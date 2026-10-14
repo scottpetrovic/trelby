@@ -1264,10 +1264,6 @@
 		repagination of the entire script, and having to print all the 100
 		pages again.</para>
 
-		<para>'Show splash screen for X seconds' can be used to customize
-		for how long to show the splash screen on startup for, or to
-		disable showing it completely.</para>
-
 		<para>'Auto-paginate interval' defines how often to repaginate the
 		script automatically. If you have a particularly slow machine, you
 		might want to increase this number. Note that automatic

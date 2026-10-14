@@ -14,7 +14,7 @@ py -3 -m venv .venv
 ## Run / test
 
 ```bash
-.venv/Scripts/python trelby.py --test trelby/sample.trelby   # --test: no splash, config goes in ./.trelby/
+.venv/Scripts/python trelby.py --test trelby/sample.trelby   # --test: config goes in ./.trelby/
 .venv/Scripts/python -m pytest
 ```
 

@@ -89,8 +89,6 @@ On Windows:
 The "--test" command line argument makes Trelby differ from normal running
 as follows:
 
- -No splash window is displayed on startup.
-
  -No global directory locations are used; configuration/state files
  instead go under ".trelby" in the current directory.
 
