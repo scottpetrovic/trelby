@@ -65,12 +65,16 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[4]: tuple of indexes of the lines that have the dual flag set,
 #   or None if none do
 #
+#   tuple[5]: dict of {index: color} for the lines that have a color, or
+#   None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
 
     locks = {i: ln.pageLock for i, ln in enumerate(lines) if ln.pageLock}
     duals = tuple(i for i, ln in enumerate(lines) if ln.dual) or None
+    colors = {i: ln.color for i, ln in enumerate(lines) if ln.color} or None
 
     lines = [str(ln) for ln in lines]
     linesStr = "\n".join(lines)
@@ -84,9 +88,9 @@ def lines2storage(lines):
     locks = locks or None
 
     if len(linesStrCompressed) < len(linesStr):
-        return (len(lines), True, linesStrCompressed, locks, duals)
+        return (len(lines), True, linesStrCompressed, locks, duals, colors)
     else:
-        return (len(lines), False, linesStr.encode(), locks, duals)
+        return (len(lines), False, linesStr.encode(), locks, duals, colors)
 
 
 # see lines2storage.
@@ -108,6 +112,10 @@ def storage2lines(storage):
     if storage[4]:
         for i in storage[4]:
             lines[i].dual = True
+
+    if storage[5]:
+        for i, color in storage[5].items():
+            lines[i].color = color
 
     return lines
 

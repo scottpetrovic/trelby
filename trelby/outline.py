@@ -8,6 +8,22 @@ import trelby.screenplay as screenplay
 SUMMARY_LINES = 2
 
 
+# return the colors offered for scenes, as a list of (name, "rrggbb").
+# they're light enough that dark text stays readable on them.
+def getSceneColors():
+    return [
+        (_("Red"), "ffb3b3"),
+        (_("Orange"), "ffd1a3"),
+        (_("Yellow"), "fff2a8"),
+        (_("Green"), "c5f0b8"),
+        (_("Teal"), "b3ece6"),
+        (_("Blue"), "b8d4ff"),
+        (_("Purple"), "dcc4ff"),
+        (_("Pink"), "ffc4e1"),
+        (_("Gray"), "dcdcdc"),
+    ]
+
+
 # return color c1 mixed with c2, with a being the fraction of c2
 def blendColors(c1, c2, a):
     return wx.Colour(
@@ -16,6 +32,43 @@ def blendColors(c1, c2, a):
             for v1, v2 in zip(c1.Get(False), c2.Get(False))
         ]
     )
+
+
+# return the wx.Colour for a scene color ("rrggbb")
+def str2color(s):
+    return wx.Colour("#" + s)
+
+
+# opposite of str2color
+def color2str(c):
+    return c.GetAsString(wx.C2S_HTML_SYNTAX)[1:].lower()
+
+
+# return the relative luminance of a color, 0.0 - 1.0
+def luminance(c):
+    return (0.299 * c.Red() + 0.587 * c.Green() + 0.114 * c.Blue()) / 255.0
+
+
+# return a menu bitmap showing a swatch of the given color ("rrggbb"), with
+# a check mark on it if 'checked' is True
+def swatchBitmap(color, checked):
+    check = ""
+
+    if checked:
+        stroke = "#000000" if luminance(str2color(color)) > 0.5 else "#ffffff"
+        check = (
+            '<path d="M 4,8.5 L 7,11.5 L 12.5,5" fill="none" stroke="%s"'
+            ' stroke-width="1.8" />' % stroke
+        )
+
+    svg = (
+        '<svg width="16" height="16" viewBox="0 0 16 16"'
+        ' xmlns="http://www.w3.org/2000/svg">'
+        '<rect x="1.5" y="1.5" width="13" height="13" rx="2" fill="#%s"'
+        ' stroke="#808080" />%s</svg>' % (color, check)
+    )
+
+    return wx.BitmapBundle.FromSVG(svg.encode(), wx.Size(16, 16))
 
 
 # the outline's list of items. each row shows the scene number, heading
@@ -35,6 +88,9 @@ class OutlineList(wx.VListBox):
 
         self.pad = self.FromDIP(wx.Size(6, 8))
         self.gap = self.FromDIP(8)
+
+        # width of the bar of full color at the left edge of colored rows
+        self.barWidth = self.FromDIP(3)
         self.lineHeight = max(
             self.GetFullTextExtent("Ag", font)[1]
             for font in (self.normalFont, self.boldFont)
@@ -114,21 +170,59 @@ class OutlineList(wx.VListBox):
 
         return self.pad.y * 2 + lines * self.lineHeight
 
-    def OnDrawBackground(self, dc, rect, n):
+    # return the background color of item n, ignoring selection, or None
+    # if it has no color of its own. on dark backgrounds the color is
+    # toned down so that light text stays readable on it.
+    def getItemColor(self, n):
+        color = self.items[n].color
+
+        if not color:
+            return None
+
+        c = str2color(color)
         bg = self.GetBackgroundColour()
+
+        if luminance(bg) < 0.5:
+            c = blendColors(bg, c, 0.35)
+
+        return c
+
+    # return item n's background, including selection
+    def getRowColor(self, n):
+        bg = self.getItemColor(n) or self.GetBackgroundColour()
         hl = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
 
         if self.isHighlighted(n):
-            fill = blendColors(bg, hl, 0.45)
+            return blendColors(bg, hl, 0.45)
         elif self.IsSelected(n):
-            fill = blendColors(bg, hl, 0.25)
-        else:
-            fill = None
+            return blendColors(bg, hl, 0.25)
 
-        if fill is not None:
+        return bg
+
+    # return the color to draw item n's text with on the background bg
+    def getTextColor(self, n, bg):
+        fg = self.GetForegroundColour()
+
+        # a custom color can be too close to the normal text color
+        if self.items[n].color and (abs(luminance(fg) - luminance(bg)) < 0.4):
+            fg = wx.BLACK if luminance(bg) > 0.5 else wx.WHITE
+
+        return fg
+
+    def OnDrawBackground(self, dc, rect, n):
+        bg = self.GetBackgroundColour()
+        hl = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+        fill = self.getRowColor(n)
+
+        if fill != bg:
             dc.SetPen(wx.TRANSPARENT_PEN)
             dc.SetBrush(wx.Brush(fill))
             dc.DrawRectangle(rect)
+
+        if self.items[n].color:
+            dc.SetPen(wx.TRANSPARENT_PEN)
+            dc.SetBrush(wx.Brush(str2color(self.items[n].color)))
+            dc.DrawRectangle(rect.x, rect.y, self.barWidth, rect.height)
 
         if n == self.dropIdx:
             dc.SetPen(wx.Pen(hl))
@@ -142,7 +236,8 @@ class OutlineList(wx.VListBox):
 
     def OnDrawItem(self, dc, rect, n):
         it = self.items[n]
-        fg = self.GetForegroundColour()
+        rowBg = self.getRowColor(n)
+        fg = self.getTextColor(n, rowBg)
 
         x = rect.x + self.pad.x
         y = rect.y + self.pad.y
@@ -177,9 +272,7 @@ class OutlineList(wx.VListBox):
         if self.isHighlighted(n):
             dc.SetTextForeground(fg)
         else:
-            dc.SetTextForeground(
-                blendColors(fg, self.GetBackgroundColour(), 0.4)
-            )
+            dc.SetTextForeground(blendColors(fg, rowBg, 0.4))
 
         for line in self.getSummaryLines(n):
             y += self.lineHeight
@@ -254,6 +347,10 @@ class OutlinePanel(wx.Panel):
         self.downBtn = addBtn(
             "movedown.svg", _("Move the selected scene down (Ctrl+Down)")
         )
+        self.colorBtn = addBtn(
+            "scenecolor.svg",
+            _("Set the selected scene's color (or right-click a scene)"),
+        )
         hdr.AddSpacer(self.FromDIP(6))
         self.closeBtn = addBtn("closepanel.svg", _("Hide the outline"))
 
@@ -285,8 +382,10 @@ class OutlinePanel(wx.Panel):
         self.list.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.list.Bind(wx.EVT_MOUSE_CAPTURE_LOST, self.OnCaptureLost)
         self.list.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
+        self.list.Bind(wx.EVT_CONTEXT_MENU, self.OnContextMenu)
         self.upBtn.Bind(wx.EVT_BUTTON, self.OnMoveUp)
         self.downBtn.Bind(wx.EVT_BUTTON, self.OnMoveDown)
+        self.colorBtn.Bind(wx.EVT_BUTTON, self.OnColorBtn)
         self.closeBtn.Bind(wx.EVT_BUTTON, self.OnClose)
 
         self.updateButtons()
@@ -351,6 +450,7 @@ class OutlinePanel(wx.Panel):
 
         self.upBtn.Enable(idx > 0)
         self.downBtn.Enable((idx != -1) and (idx < (len(self.items) - 1)))
+        self.colorBtn.Enable(idx != -1)
 
     # move item number idx so that it becomes item number newIndex
     def moveItem(self, idx, newIndex):
@@ -561,6 +661,118 @@ class OutlinePanel(wx.Panel):
             self.getCtrl().SetFocus()
         else:
             event.Skip()
+
+    # let the user pick the color of item number idx from a menu shown at
+    # pos (in win's client coordinates), and set it
+    def showColorMenu(self, idx, win, pos):
+        it = self.items[idx]
+        colors = getSceneColors()
+        menu = wx.Menu()
+
+        noneId = wx.NewIdRef()
+        customId = wx.NewIdRef()
+        colorIds = {}
+
+        menu.AppendCheckItem(noneId, _("No color")).Check(it.color is None)
+        menu.AppendSeparator()
+
+        # ids are only reserved while their WindowIDRefs exist
+        idRefs = []
+
+        for name, color in colors:
+            idRefs.append(wx.NewIdRef())
+            mi = wx.MenuItem(menu, idRefs[-1], name)
+            mi.SetBitmap(swatchBitmap(color, color == it.color))
+            menu.Append(mi)
+            colorIds[mi.GetId()] = color
+
+        menu.AppendSeparator()
+
+        mi = wx.MenuItem(menu, customId, _("Custom color..."))
+
+        # show a custom color the item already has
+        if it.color and (it.color not in colorIds.values()):
+            mi.SetBitmap(swatchBitmap(it.color, True))
+
+        menu.Append(mi)
+
+        # show which item the menu is for
+        self.list.setDropIndex(idx)
+
+        try:
+            sel = win.GetPopupMenuSelectionFromUser(menu, pos)
+        finally:
+            self.list.setDropIndex(None)
+            menu.Destroy()
+
+        if sel == int(noneId):
+            color = None
+        elif sel in colorIds:
+            color = colorIds[sel]
+        elif sel == int(customId):
+            color = self.askCustomColor(it.color)
+
+            if color is None:
+                return
+        else:
+            return
+
+        self.getCtrl().setSceneColor(it.startLine, color)
+        self.refresh()
+
+    # show a color dialog starting at color ("rrggbb" or None) and return
+    # the color picked as "rrggbb", or None if cancelled
+    def askCustomColor(self, color):
+        data = wx.ColourData()
+        data.SetChooseFull(True)
+
+        if color:
+            data.SetColour(str2color(color))
+
+        dlg = wx.ColourDialog(self, data)
+        dlg.SetTitle(_("Scene color"))
+
+        try:
+            if dlg.ShowModal() != wx.ID_OK:
+                return None
+
+            return color2str(dlg.GetColourData().GetColour())
+        finally:
+            dlg.Destroy()
+
+    def OnContextMenu(self, event):
+        if self.dragIdx is not None:
+            return
+
+        lc = self.list
+        pos = event.GetPosition()
+
+        # from the keyboard: use the selected item
+        if pos == wx.DefaultPosition:
+            idx = lc.GetSelection()
+
+            if idx == -1:
+                return
+
+            rect = lc.GetItemRect(idx)
+            pos = wx.Point(rect.x + lc.getTextX(), rect.GetBottom())
+        else:
+            pos = lc.ScreenToClient(pos)
+            idx = lc.VirtualHitTest(pos.y)
+
+            if idx == wx.NOT_FOUND:
+                return
+
+        self.showColorMenu(idx, lc, pos)
+
+    def OnColorBtn(self, event):
+        idx = self.list.GetSelection()
+
+        if idx == -1:
+            return
+
+        rect = self.colorBtn.GetRect()
+        self.showColorMenu(idx, self, wx.Point(rect.x, rect.GetBottom()))
 
     def OnMoveUp(self, event):
         self.moveScene(-1)

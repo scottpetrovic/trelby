@@ -1190,6 +1190,14 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(self.sp.line)
         self.updateScreen()
 
+    # set the outline color of the scene containing the given line, or
+    # remove it if color is None. used by the outline view.
+    def setSceneColor(self, line, color):
+        self.clearAutoComp()
+
+        if self.sp.setSceneColor(line, color):
+            self.updateScreen()
+
     def OnGotoPage(self):
         self.sp.paginate()
         self.clearAutoComp()

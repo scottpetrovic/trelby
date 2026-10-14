@@ -8,7 +8,9 @@ from trelby.screenplay import ACTION, LB_LAST
 
 # one line in a screenplay
 class Line:
-    def __init__(self, lb=LB_LAST, lt=ACTION, text="", pageLock=None, dual=False):
+    def __init__(
+        self, lb=LB_LAST, lt=ACTION, text="", pageLock=None, dual=False, color=None
+    ):
 
         # line break type
         self.lb = lb
@@ -30,9 +32,16 @@ class Line:
         # Screenplay.getDualBlock.
         self.dual = dual
 
-    # return a copy of this line, including its page lock and dual flag
+        # on the first line of a scene heading or act break element: the
+        # color the scene is shown with in the outline view, as six
+        # lower-case hex digits ("rrggbb"), or None. only meaningful on
+        # such lines; see Screenplay.getSceneColor.
+        self.color = color
+
+    # return a copy of this line, including its page lock, dual flag and
+    # color
     def copy(self):
-        return Line(self.lb, self.lt, self.text, self.pageLock, self.dual)
+        return Line(self.lb, self.lt, self.text, self.pageLock, self.dual, self.color)
 
     def __str__(self):
         return config.lb2char(self.lb) + config.lt2char(self.lt) + self.text
@@ -47,6 +56,7 @@ class Line:
             or (self.text != other.text)
             or (self.pageLock != other.pageLock)
             or (self.dual != other.dual)
+            or (self.color != other.color)
         )
 
     def __eq__(self, other):

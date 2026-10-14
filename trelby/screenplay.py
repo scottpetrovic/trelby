@@ -232,6 +232,11 @@ class Screenplay:
             if self.hasDualFlag(i):
                 output += "#Dual-Dialogue \n"
 
+            color = self.getSceneColor(i)
+
+            if color:
+                output += "#Scene-Color %s\n" % color
+
             output += str(ln) + "\n"
 
         return output.encode("UTF-8")
@@ -317,6 +322,9 @@ class Screenplay:
         # whether to set the dual flag on the next script line
         dual = False
 
+        # color to set on the next script line, or None
+        color = None
+
         for i in range(index, len(lines)):
             s = lines[i]
 
@@ -358,6 +366,9 @@ class Screenplay:
                 elif (key == "Dual-Dialogue") and startSeen:
                     dual = True
 
+                elif (key == "Scene-Color") and startSeen and isValidColor(val):
+                    color = val.lower()
+
                 else:
                     unknownConfigs = True
 
@@ -386,10 +397,11 @@ class Screenplay:
                         _("Line {} has invalid element type.".format(i + 1))
                     )
 
-                line = Line(lb, lt, text, pageLock, dual)
+                line = Line(lb, lt, text, pageLock, dual, color)
                 sp.lines.append(line)
                 pageLock = None
                 dual = False
+                color = None
 
                 if lb != LB_LAST:
                     prevType = lt
@@ -1448,8 +1460,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         wrappedLines = self.wrapLine(tmp, width)
 
-        # the dual flag stays on the first line of the element
-        wrappedLines[0].dual = ls[line1].dual and self.isFirstLineOfElem(line1)
+        # the dual flag and color stay on the first line of the element
+        firstOfElem = self.isFirstLineOfElem(line1)
+        wrappedLines[0].dual = ls[line1].dual and firstOfElem
+        wrappedLines[0].color = ls[line1].color if firstOfElem else None
 
         ls[line1 : line2 + 1] = wrappedLines
 
@@ -2643,6 +2657,46 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             if (ls[i].lt in (SCENE, ACTBREAK)) and self.isFirstLineOfElem(i)
         ]
 
+    # return the outline color of the scene heading or act break element
+    # starting at line i, or None if it has none or line i isn't the first
+    # line of such an element.
+    def getSceneColor(self, i):
+        ln = self.lines[i]
+
+        if ln.color and (ln.lt in (SCENE, ACTBREAK)) and self.isFirstLineOfElem(i):
+            return ln.color
+
+        return None
+
+    # set the outline color of the scene (or act break) containing the
+    # given line to color ("rrggbb"), or remove it if color is None.
+    # returns False if the line isn't in a scene or the scene already has
+    # that color.
+    def setSceneColor(self, line, color):
+        starts = self.getOutlineStarts()
+        idx = self.getOutlineIndex(starts, line)
+
+        if idx == -1:
+            return False
+
+        start = starts[idx]
+
+        if color is not None:
+            color = color.lower()
+
+        if self.getSceneColor(start) == color:
+            return False
+
+        u = undo.SinglePara(self, undo.CMD_MISC, start)
+
+        self.lines[start].color = color
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return True
+
     # return the full text of the element starting at the given line, with
     # line breaks converted to spaces.
     def getElemText(self, line):
@@ -2715,6 +2769,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     heading,
                     summary,
                     self.line2pageLabel(start),
+                    self.getSceneColor(start),
                 )
             )
 
@@ -3062,6 +3117,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     ln.lt,
                     ln.text[c1 : c2 + 1],
                     dual=self.hasDualFlag(i) and (c1 == 0),
+                    color=self.getSceneColor(i) if (c1 == 0) else None,
                 )
             )
 
@@ -3179,7 +3235,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             ln = clines[i]
 
-            newLine = Line(LB_LAST, ln.lt, dual=ln.dual)
+            newLine = Line(LB_LAST, ln.lt, dual=ln.dual, color=ln.color)
 
             while 1:
                 ln = clines[i]
@@ -3211,6 +3267,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         if (len(ln.text) == 0) and self.isOnlyLineOfElem(self.line):
             ln.lt = inLines[0].lt
             ln.dual = inLines[0].dual
+            ln.color = inLines[0].color
 
         ln.text = ln.text[: self.column] + inLines[0].text + ln.text[self.column :]
         self.column += len(inLines[0].text)
@@ -4507,6 +4564,11 @@ class Mark:
         return (self.line == other.line) and (self.column == other.column)
 
 
+# return True if s is a valid scene color: six hex digits, "rrggbb"
+def isValidColor(s):
+    return re.fullmatch("[0-9a-fA-F]{6}", s) is not None
+
+
 # data held in internal clipboard.
 class ClipData:
     def __init__(self):
@@ -4518,7 +4580,9 @@ class ClipData:
 # one entry (a scene or an act break) in a script's outline. see
 # Screenplay.getOutline.
 class OutlineItem:
-    def __init__(self, lt, sceneNr, startLine, endLine, heading, summary, page):
+    def __init__(
+        self, lt, sceneNr, startLine, endLine, heading, summary, page, color=None
+    ):
 
         # SCENE or ACTBREAK
         self.lt = lt
@@ -4539,6 +4603,9 @@ class OutlineItem:
 
         # label of the page the item starts on, e.g. "16" or "15A"
         self.page = page
+
+        # color to show the item with in the outline ("rrggbb"), or None
+        self.color = color
 
     def __eq__(self, other):
         return isinstance(other, OutlineItem) and (self.__dict__ == other.__dict__)

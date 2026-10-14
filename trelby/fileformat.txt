@@ -273,4 +273,9 @@ Ignored if the next line isn't the first line of a Character element, or
 if the speech before it doesn't directly precede it or is itself the
 right-hand column of a dual dialogue.
 
+"Scene-Color". Value: six hex digits, "rrggbb". The next line is the first
+line of a Scene or Act break element, and the outline view shows that
+scene (or act break) in this color. Ignored if the next line isn't the
+first line of such an element, or the value isn't valid.
+
 See sample.trelby for an example screenplay.
