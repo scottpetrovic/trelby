@@ -52,7 +52,7 @@ class MiscPanel(wx.Panel):
             ("overwriteSelectionOnInsert", _("Typing replaces selected text")),
             (
                 "checkOnExport",
-                _("Check script for errors before print, export or compare"),
+                _("Check script for errors before export or compare"),
             ),
         ]
 

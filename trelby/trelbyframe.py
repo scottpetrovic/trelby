@@ -59,11 +59,22 @@ class MyFrame(wx.Frame):
         fileMenu.Append(ID_FILE_REVERT, misc.mnemonic("v", _("Revert")))
         fileMenu.AppendSeparator()
         fileMenu.Append(ID_FILE_IMPORT, misc.mnemonic("I", _("Import") + "..."))
-        fileMenu.Append(ID_FILE_EXPORT, misc.mnemonic("E", _("Export") + "..."))
-        fileMenu.AppendSeparator()
-        fileMenu.Append(
-            ID_FILE_PRINT, misc.mnemonic("P", _("Print (via PDF)") + "\tCTRL-P")
+        exportMenu = wx.Menu()
+        exportMenu.Append(ID_FILE_EXPORT_PDF, misc.mnemonic("P", _("PDF") + "..."))
+        exportMenu.Append(
+            ID_FILE_EXPORT_RTF, misc.mnemonic("R", _("Rich Text (RTF)") + "...")
         )
+        exportMenu.Append(
+            ID_FILE_EXPORT_FDX, misc.mnemonic("D", _("Final Draft (FDX)") + "...")
+        )
+        exportMenu.Append(ID_FILE_EXPORT_HTML, misc.mnemonic("H", _("HTML") + "..."))
+        exportMenu.Append(
+            ID_FILE_EXPORT_FOUNTAIN, misc.mnemonic("F", _("Fountain") + "...")
+        )
+        exportMenu.Append(
+            ID_FILE_EXPORT_TEXT, misc.mnemonic("T", _("Formatted Text") + "...")
+        )
+        fileMenu.AppendSubMenu(exportMenu, misc.mnemonic("E", _("Export")))
         fileMenu.AppendSeparator()
         fileMenu.Append(ID_FILE_EXIT, misc.mnemonic("x", _("Exit") + "\tCTRL-Q"))
 
@@ -290,10 +301,19 @@ class MyFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, self.OnSave, id=ID_FILE_SAVE)
             self.Bind(wx.EVT_MENU, self.OnSaveScriptAs, id=ID_FILE_SAVE_AS)
             self.Bind(wx.EVT_MENU, self.OnImportScript, id=ID_FILE_IMPORT)
-            self.Bind(wx.EVT_MENU, self.OnExportScript, id=ID_FILE_EXPORT)
+            for exportId, fmt in (
+                (ID_FILE_EXPORT_PDF, "pdf"),
+                (ID_FILE_EXPORT_RTF, "rtf"),
+                (ID_FILE_EXPORT_FDX, "fdx"),
+                (ID_FILE_EXPORT_HTML, "html"),
+                (ID_FILE_EXPORT_FOUNTAIN, "fountain"),
+                (ID_FILE_EXPORT_TEXT, "txt"),
+            ):
+                self.Bind(
+                    wx.EVT_MENU, partial(self.OnExportScript, fmt=fmt), id=exportId
+                )
             self.Bind(wx.EVT_MENU, self.OnCloseScript, id=ID_FILE_CLOSE)
             self.Bind(wx.EVT_MENU, self.OnRevertScript, id=ID_FILE_REVERT)
-            self.Bind(wx.EVT_MENU, self.OnPrint, id=ID_FILE_PRINT)
             self.Bind(wx.EVT_MENU, self.OnSettings, id=ID_SETTINGS_CHANGE)
             self.Bind(wx.EVT_MENU, self.OnExit, id=ID_FILE_EXIT)
             self.Bind(wx.EVT_MENU, self.OnUndo, id=ID_EDIT_UNDO)
@@ -379,6 +399,12 @@ class MyFrame(wx.Frame):
             wx.EVT_MENU,
             partial(self.OnToolBarMenu, menu=viewMenu),
             id=ID_TOOLBAR_VIEWS,
+        )
+
+        self.Bind(
+            wx.EVT_MENU,
+            partial(self.OnToolBarMenu, menu=exportMenu),
+            id=ID_FILE_EXPORT,
         )
 
         # alternate zoom shortcuts the menu labels can't express: CTRL-+
@@ -665,8 +691,8 @@ class MyFrame(wx.Frame):
 
         dlg.Destroy()
 
-    def OnExportScript(self, event=None):
-        self.panel.ctrl.OnExportScript()
+    def OnExportScript(self, event=None, fmt="pdf"):
+        self.panel.ctrl.OnExportScript(fmt)
 
     def OnCloseScript(self, event=None):
         if not self.panel.ctrl.canBeClosed():
@@ -680,9 +706,6 @@ class MyFrame(wx.Frame):
 
     def OnRevertScript(self, event=None):
         self.panel.ctrl.OnRevertScript()
-
-    def OnPrint(self, event=None):
-        self.panel.ctrl.OnPrint()
 
     def OnSettings(self, event=None):
         self.panel.ctrl.OnSettings()
@@ -814,12 +837,11 @@ class MyFrame(wx.Frame):
         addTB(ID_FILE_SAVE, "save.svg", _("Save"))
         addTB(ID_FILE_SAVE_AS, "saveas.svg", _("Save as") + "...")
         addTB(ID_FILE_CLOSE, "close.svg", _("Close file"))
-        addTB(ID_FILE_PRINT, "pdf.svg", _("Print (via PDF)"))
 
         tb.AddSeparator()
 
         addTB(ID_FILE_IMPORT, "import.svg", _("Import file") + "...")
-        addTB(ID_FILE_EXPORT, "export.svg", _("Export file") + "...")
+        addTB(ID_FILE_EXPORT, "export.svg", _("Export file"))
 
         tb.AddSeparator()
 

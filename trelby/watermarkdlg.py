@@ -116,7 +116,7 @@ class WatermarkDlg(wx.Dialog):
 
             basename = item.replace(" ", "-")
             fn = directory + "/" + fnprefix + "-" + basename + ".pdf"
-            pmldoc = self.sp.generatePML(True)
+            pmldoc = self.sp.generatePML()
 
             ops = []
 

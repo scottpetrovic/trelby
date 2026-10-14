@@ -263,11 +263,6 @@ class PDFExporter:
         if self.doc.uniqueId:
             canvas.setKeywords(self.doc.uniqueId)
 
-        if doc.defPage != -1:
-            # canvas.addLiteral("/OpenAction [%d 0 R /XYZ null null 0]\n" % (self.pageObjs[0].nr + doc.defPage * 2)) # this should make the PDF reader open the PDF at the desired page
-            # TODO: This doesn't seem to be easily doable with reportlab. /OpenAction is considered a security threat by some (as it allows executing JavaScript), so I think it's unlikely they'll add support. Also, this feature didn't work with many PDF viewers anyway; I tested Evince, Okular and pdf.js in Firefox, and they all didn't support it. So maybe, we should remove this feature entirely?
-            pass
-
         numberOfPages: int = len(doc.pages)
 
         # draw pages

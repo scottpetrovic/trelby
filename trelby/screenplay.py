@@ -846,21 +846,16 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         return str(s)
 
     # generate PDF and return it as a string. assumes paginate/reformat is
-    # 100% correct for the screenplay. isExport is True if this is an
-    # "export to file" operation, False if we're just going to launch a
-    # PDF viewer with the data.
-    def generatePDF(self, isExport: bool) -> bytes:
-        return pdf.generate(self.generatePML(isExport))
+    # 100% correct for the screenplay.
+    def generatePDF(self) -> bytes:
+        return pdf.generate(self.generatePML())
 
-    # Same arguments as generatePDF, but returns a PML document.
-    def generatePML(self, isExport: bool) -> pml.Document:
+    # Same as generatePDF, but returns a PML document.
+    def generatePML(self) -> pml.Document:
         pager = mypager.Pager(self.cfg)
         self.titles.generatePages(pager.doc)
 
         pager.doc.showTOC = self.cfg.pdfShowTOC
-
-        if not isExport and self.cfg.pdfOpenOnCurrentPage:
-            pager.doc.defPage = len(self.titles.pages) + self.line2page(self.line) - 1
 
         for i in range(1, len(self.pages)):
             pg = self.generatePMLPage(pager, i, True, True)

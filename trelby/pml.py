@@ -51,9 +51,6 @@ class Document:
         # whether to show TOC by default on document open
         self.showTOC: bool = False
 
-        # page number to display on document open, or -1
-        self.defPage: int = -1
-
         # when running testcases, misc.version does not exist, so store a
         # dummy value in that case, correct value otherwise.
         self.version: str = getattr(misc, "version", "dummy_version")

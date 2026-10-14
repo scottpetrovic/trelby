@@ -552,7 +552,6 @@ class Config:
         v.addBool("pdfShowTOC", True, "ShowTOC")
 
         # whether to open PDF document on current page
-        v.addBool("pdfOpenOnCurrentPage", True, "OpenOnCurrentPage")
 
         # whether to remove Note elements in PDF output
         v.addBool("pdfRemoveNotes", False, "RemoveNotes")

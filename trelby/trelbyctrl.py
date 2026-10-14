@@ -417,7 +417,7 @@ class MyCtrl(wx.Control):
 
     # return an exportable, paginated Screenplay object, or None if for
     # some reason that's not possible / wanted. 'action' is the name of
-    # the action, e.g. "export" or "print", that'll be done to the script,
+    # the action, e.g. "export" or "compare", that'll be done to the script,
     # and is used in dialogue with the user if needed.
     def getExportable(self, action):
         if self.gd.cfgGl.checkOnExport:
@@ -1090,61 +1090,42 @@ class MyCtrl(wx.Control):
 
         dlg.Destroy()
 
-    def OnExportScript(self):
+    # export the script in format 'fmt', which is the file suffix
+    # without the dot ("pdf", "rtf", "fdx", "html", "fountain" or "txt").
+    def OnExportScript(self, fmt):
+        name, generate = {
+            "pdf": ("PDF", lambda sp: sp.generatePDF()),
+            "rtf": ("RTF", lambda sp: sp.generateRTF()),
+            "fdx": ("Final Draft XML", lambda sp: sp.generateFDX()),
+            "html": ("HTML", self.getExportHtml),
+            "fountain": ("Fountain", lambda sp: sp.generateFountain()),
+            "txt": (_("Formatted text"), self.getExportText),
+        }[fmt]
+
         sp = self.getExportable("export")
         if not sp:
             return
+
+        suffix = "." + fmt
 
         dlg = wx.FileDialog(
             self.gd.mainFrame,
             _("Filename to export as"),
             misc.scriptDir,
-            wildcard="PDF|*.pdf|"
-            "RTF|*.rtf|"
-            "Final Draft XML|*.fdx|"
-            "HTML|*.html|"
-            "Fountain|*.fountain|"
-            "Formatted text|*.txt",
+            wildcard="%s (*%s)|*%s" % (name, suffix, suffix),
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         )
 
         if dlg.ShowModal() == wx.ID_OK:
             misc.scriptDir = dlg.GetDirectory()
 
-            choice = dlg.GetFilterIndex()
-            if choice == 0:
-                data = sp.generatePDF(True)
-                suffix = ".pdf"
-            elif choice == 1:
-                data = sp.generateRTF()
-                suffix = ".rtf"
-            elif choice == 2:
-                data = sp.generateFDX()
-                suffix = ".fdx"
-            elif choice == 3:
-                data = self.getExportHtml(sp)
-                suffix = ".html"
-            elif choice == 4:
-                data = sp.generateFountain()
-                suffix = ".fountain"
-            else:
-                data = self.getExportText(sp)
-                suffix = ".txt"
-
+            data = generate(sp)
             fileName = util.ensureEndsIn(dlg.GetPath(), suffix)
 
             if data:
                 util.writeToFile(fileName, data, self.gd.mainFrame)
 
         dlg.Destroy()
-
-    def OnPrint(self):
-        sp = self.getExportable("print")
-        if not sp:
-            return
-
-        s = sp.generatePDF(False)
-        gutil.showTempPDF(s, self.gd.cfgGl, self.gd.mainFrame)
 
     def OnSettings(self):
         dlg = cfgdlg.CfgDlg(
