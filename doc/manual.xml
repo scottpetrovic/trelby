@@ -607,12 +607,17 @@
 	  panel wider or narrower.</para>
 
 	  <para>Click a scene to jump to it, or press Enter or double-click to
-	  jump to it and continue editing there. 'Move up' and 'Move down'
-	  (or Ctrl+Up and Ctrl+Down in the list) swap the selected scene with
-	  the one before or after it, carrying everything in the scene along.
-	  Anything before the first scene heading, such as 'FADE IN:', stays
-	  where it is. Moving scenes can be undone like any other
-	  edit.</para>
+	  jump to it and continue editing there.</para>
+
+	  <para>To reorder scenes, drag a scene onto the row whose place it
+	  should take; the scenes in between shift by one to make room.
+	  Dragging past the top or bottom of the list scrolls it, and
+	  pressing Escape or releasing the mouse outside the list cancels the
+	  move. 'Move up' and 'Move down' (or Ctrl+Up and Ctrl+Down in the
+	  list) swap the selected scene with the one before or after it.
+	  Either way, everything in the scene moves along with it. Anything
+	  before the first scene heading, such as 'FADE IN:', stays where it
+	  is. Moving scenes can be undone like any other edit.</para>
 
 	</sect1>
 

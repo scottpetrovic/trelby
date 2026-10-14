@@ -2034,16 +2034,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         return ret
 
-    # move the scene (or act break) containing the given line one step up
-    # (direction = -1) or down (direction = 1) in the script, swapping it
-    # with its neighbor. material before the first scene / act break is
-    # never moved, and nothing can be moved above it. on success, the
-    # cursor is placed at the start of the moved scene and True is
-    # returned.
-    def moveScene(self, line, direction):
-        starts = self.getOutlineStarts()
-
-        # index of the block containing line
+    # return the index in starts (as returned by getOutlineStarts) of the
+    # scene / act break containing the given line, or -1 if the line is
+    # before the first one.
+    def getOutlineIndex(self, starts, line):
         idx = -1
 
         for i, start in enumerate(starts):
@@ -2052,34 +2046,53 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             else:
                 break
 
+        return idx
+
+    # move the scene (or act break) containing the given line one step up
+    # (direction = -1) or down (direction = 1) in the script, swapping it
+    # with its neighbor. see moveSceneTo.
+    def moveScene(self, line, direction):
+        idx = self.getOutlineIndex(self.getOutlineStarts(), line)
+
         if idx == -1:
             return False
 
-        other = idx + direction
+        return self.moveSceneTo(line, idx + direction)
 
-        if (other < 0) or (other >= len(starts)):
+    # move the scene (or act break) containing the given line so that it
+    # becomes item number newIndex (0-based) in the outline, shifting the
+    # ones in between by one. material before the first scene / act break
+    # is never moved, and nothing can be moved above it. on success, the
+    # cursor is placed at the start of the moved scene and True is
+    # returned.
+    def moveSceneTo(self, line, newIndex):
+        starts = self.getOutlineStarts()
+        idx = self.getOutlineIndex(starts, line)
+
+        if (idx == -1) or (newIndex == idx):
+            return False
+
+        if (newIndex < 0) or (newIndex >= len(starts)):
             return False
 
         self.clearAutoComp()
 
         bounds = starts + [len(self.lines)]
-        first = min(idx, other)
-
-        s1 = bounds[first]
-        s2 = bounds[first + 1]
-        end = bounds[first + 2]
+        blocks = [self.lines[bounds[i] : bounds[i + 1]] for i in range(len(starts))]
 
         u = undo.AnyDifference(self)
 
-        upper = self.lines[s1:s2]
-        lower = self.lines[s2:end]
-        self.lines[s1:end] = lower + upper
+        blocks.insert(newIndex, blocks.pop(idx))
 
-        if direction < 0:
-            self.line = s1
-        else:
-            self.line = s1 + len(lower)
+        newLines = []
 
+        for i, block in enumerate(blocks):
+            if i == newIndex:
+                self.line = starts[0] + len(newLines)
+
+            newLines.extend(block)
+
+        self.lines[starts[0] :] = newLines
         self.column = 0
 
         self.clearMark()

@@ -28,13 +28,13 @@ Without `--test`, config is written to `%USERPROFILE%\Trelby\conf` (Windows) or 
 
 ## Building a Windows exe (PyInstaller)
 
-Install with `.venv/Scripts/python -m pip install pyinstaller`, then generate the `.gz` files and run:
-
 ```bash
-.venv/Scripts/pyinstaller --noconfirm --windowed --name Trelby --icon trelby/resources/icon256.ico --add-data "trelby/resources;trelby/resources" --add-data "trelby/locales;trelby/locales" --add-data "trelby/names.txt.gz;trelby" --add-data "trelby/dict_en.dat.gz;trelby" --add-data "trelby/sample.trelby;trelby" --add-data "trelby/fileformat.txt;trelby" trelby.py
+sh tools/build-exe.sh
 ```
 
-Output is `dist/Trelby/` (`Trelby.exe` + `_internal/`, which must stay together). If you add a new data file, add an `--add-data` for it.
+It installs PyInstaller if needed, regenerates the `.gz` files, and builds `dist/Trelby/` (`Trelby.exe` + `_internal/`, which must stay together). Takes about 30s. It refuses to run while `Trelby.exe` is open, since that locks `dist/Trelby/`. If you add a new data file, add an `--add-data` for it in the script.
+
+When the user asks for a "build", "Windows build" or "exe" to test changes, run the full test suite, then the script, then confirm the result. Check that `build/Trelby/PYZ-00.toc` lists any new `trelby.*` modules, and that the exe starts: launch it, then check that `tasklist //V //FI "IMAGENAME eq Trelby.exe" //FO LIST` shows a `Trelby - ...` window title rather than an error dialog. Leave it running for them, and give the path to `dist/Trelby/Trelby.exe`.
 
 ## Code conventions worth knowing
 

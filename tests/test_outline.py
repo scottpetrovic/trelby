@@ -1,3 +1,5 @@
+import os
+
 import tests.u as u
 import trelby.screenplay as scr
 import trelby.util as util
@@ -145,3 +147,98 @@ def testMoveSceneKeepsScriptValid():
     for i in range(len(sp.getOutline())):
         sp.moveScene(sp.getOutline()[0].startLine, 1)
         sp._validate()
+
+
+def testMoveSceneToLaterPosition():
+    sp = loadSmall()
+
+    assert sp.moveSceneTo(1, 2)
+
+    assert headings(sp) == [
+        "EXT. GARDEN - NIGHT",
+        "ACT TWO",
+        "INT. KITCHEN - DAY",
+        "INT. CAR - DAY",
+    ]
+    assert sp.lines[0].text == "Fade in:"
+    assert sp.line == sp.getOutline()[2].startLine
+
+
+def testMoveSceneToFirstPosition():
+    sp = loadSmall()
+    last = sp.getOutline()[-1]
+
+    assert sp.moveSceneTo(last.startLine, 0)
+
+    assert headings(sp) == [
+        "INT. CAR - DAY",
+        "INT. KITCHEN - DAY",
+        "EXT. GARDEN - NIGHT",
+        "ACT TWO",
+    ]
+    # the moved scene goes after the preamble, not before it
+    assert sp.lines[0].text == "Fade in:"
+    assert sp.line == 1
+
+
+def testMoveSceneToKeepsContents():
+    sp = u.load()
+    before = sorted(str(ln) for ln in sp.lines)
+    items = sp.getOutline()
+
+    assert sp.moveSceneTo(items[3].startLine, len(items) - 1)
+
+    assert sorted(str(ln) for ln in sp.lines) == before
+    assert sp.getOutline()[-1].heading == items[3].heading
+    sp._validate()
+
+
+def testMoveSceneToInvalid():
+    sp = loadSmall()
+    n = len(sp.getOutline())
+
+    assert not sp.moveSceneTo(1, 0)
+    assert not sp.moveSceneTo(1, -1)
+    assert not sp.moveSceneTo(1, n)
+    assert not sp.moveSceneTo(0, 2)
+    assert not sp.canUndo()
+
+
+def testMoveSceneToUndo():
+    sp = loadSmall()
+    before = [str(ln) for ln in sp.lines]
+
+    sp.moveSceneTo(1, 3)
+    sp.cmd("undo")
+
+    assert [str(ln) for ln in sp.lines] == before
+
+
+# outline-sample.trelby (in the repo root) is a hand-testing script for the
+# outline view; make sure it stays loadable and keeps covering what it's
+# meant to.
+def testOutlineSample():
+    path = os.path.join(os.path.dirname(__file__), "..", "outline-sample.trelby")
+
+    with open(path, "r", encoding="utf-8") as f:
+        sp = u.loadString(f.read())
+
+    sp._validate()
+
+    assert {ln.lt for ln in sp.lines} == {
+        scr.SCENE,
+        scr.ACTION,
+        scr.CHARACTER,
+        scr.DIALOGUE,
+        scr.PAREN,
+        scr.TRANSITION,
+        scr.SHOT,
+        scr.ACTBREAK,
+        scr.NOTE,
+    }
+
+    items = sp.getOutline()
+
+    assert len([it for it in items if it.lt == scr.ACTBREAK]) == 3
+    assert len([it for it in items if it.lt == scr.SCENE]) == 11
+    assert items[0].startLine > 0

@@ -8,13 +8,16 @@ MAX_SUMMARY_LEN = 200
 
 # side panel showing a script's outline: its scenes and act breaks.
 # selecting an item jumps to it in the script, and scenes can be reordered
-# with the buttons or Ctrl+Up / Ctrl+Down. the selection follows the
-# cursor as the user moves around in the script.
+# by dragging them, with the buttons, or with Ctrl+Up / Ctrl+Down. the
+# selection follows the cursor as the user moves around in the script.
 class OutlinePanel(wx.Panel):
 
     # how long to wait after the last change before refreshing, in ms. we
     # don't want to recompute the outline on every keypress.
     REFRESH_DELAY = 300
+
+    # how often to check whether to auto-scroll while dragging, in ms
+    DRAG_SCROLL_INTERVAL = 80
 
     def __init__(self, parent, scriptPanel):
         wx.Panel.__init__(self, parent, -1)
@@ -28,6 +31,16 @@ class OutlinePanel(wx.Panel):
         # True while we change the list's selection ourselves, so that we
         # don't mistake it for the user picking an item
         self.updating = False
+
+        # while dragging a scene: index of the item being dragged, and of
+        # the item it would be dropped on (None if dropping isn't possible
+        # at the current mouse position)
+        self.dragIdx = None
+        self.dropIdx = None
+
+        # last mouse position seen while dragging, in the list's client
+        # coordinates
+        self.dragPos = None
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -59,11 +72,17 @@ class OutlinePanel(wx.Panel):
         self.boldFont = self.normalFont.Bold()
 
         self.timer = wx.Timer(self)
+        self.dragTimer = wx.Timer(self)
 
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
+        self.Bind(wx.EVT_TIMER, self.OnDragTimer, self.dragTimer)
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
         self.list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
         self.list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated)
+        self.list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.OnBeginDrag)
+        self.list.Bind(wx.EVT_MOTION, self.OnMouseMotion)
+        self.list.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.list.Bind(wx.EVT_MOUSE_CAPTURE_LOST, self.OnCaptureLost)
         self.list.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.upBtn.Bind(wx.EVT_BUTTON, self.OnMoveUp)
         self.downBtn.Bind(wx.EVT_BUTTON, self.OnMoveDown)
@@ -83,6 +102,10 @@ class OutlinePanel(wx.Panel):
         self.timer.Stop()
 
         if not self.IsShown():
+            return
+
+        # don't shuffle rows around under the mouse; endDrag refreshes
+        if self.dragIdx is not None:
             return
 
         items = self.getCtrl().sp.getOutline()
@@ -160,13 +183,135 @@ class OutlinePanel(wx.Panel):
         self.upBtn.Enable(idx > 0)
         self.downBtn.Enable((idx != -1) and (idx < (len(self.items) - 1)))
 
+    # move item number idx so that it becomes item number newIndex
+    def moveItem(self, idx, newIndex):
+        self.getCtrl().moveSceneTo(self.items[idx].startLine, newIndex)
+        self.refresh()
+
     def moveScene(self, direction):
         idx = self.list.GetFirstSelected()
 
         if idx == -1:
             return
 
-        self.getCtrl().moveScene(self.items[idx].startLine, direction)
+        self.moveItem(idx, idx + direction)
+
+    # return index of the item a dragged scene would be dropped on when
+    # the mouse is at pos (in the list's client coordinates), or None if
+    # it's outside the list. positions above or below the visible rows map
+    # to the first or last visible row, so that auto-scrolling works.
+    def getDropIndex(self, pos):
+        lc = self.list
+        width = lc.GetClientSize().width
+        cnt = lc.GetItemCount()
+
+        if (cnt == 0) or (pos.x < 0) or (pos.x >= width):
+            return None
+
+        top = lc.GetTopItem()
+        last = min(cnt - 1, top + lc.GetCountPerPage())
+
+        for i in range(top, last + 1):
+            if pos.y <= lc.GetItemRect(i).GetBottom():
+                return i
+
+        return last
+
+    # show the drop target as highlighted
+    def setDropIndex(self, idx):
+        lc = self.list
+        state = wx.LIST_STATE_DROPHILITED
+
+        if self.dropIdx is not None:
+            lc.SetItemState(self.dropIdx, 0, state)
+
+        if idx is not None:
+            lc.SetItemState(idx, state, state)
+            lc.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        else:
+            lc.SetCursor(wx.Cursor(wx.CURSOR_NO_ENTRY))
+
+        self.dropIdx = idx
+
+    # scroll the list if the mouse is at (or past) its top or bottom row
+    def autoScroll(self, pos):
+        lc = self.list
+        cnt = lc.GetItemCount()
+
+        if cnt == 0:
+            return
+
+        top = lc.GetTopItem()
+        perPage = lc.GetCountPerPage()
+
+        if (top > 0) and (pos.y <= lc.GetItemRect(top).GetBottom()):
+            lc.EnsureVisible(top - 1)
+        elif (top + perPage < cnt) and (
+            pos.y >= lc.GetItemRect(top + perPage - 1).GetTop()
+        ):
+            lc.EnsureVisible(top + perPage)
+
+    def endDrag(self):
+        self.dragTimer.Stop()
+        self.setDropIndex(None)
+
+        lc = self.list
+
+        if lc.HasCapture():
+            lc.ReleaseMouse()
+
+        lc.SetCursor(wx.NullCursor)
+        self.dragIdx = None
+
+    def OnBeginDrag(self, event):
+        if not self.items:
+            return
+
+        self.dragIdx = event.GetIndex()
+        self.dragPos = event.GetPoint()
+        self.setDropIndex(self.dragIdx)
+
+        # so that Escape reaches us
+        self.list.SetFocus()
+
+        self.list.CaptureMouse()
+        self.dragTimer.Start(self.DRAG_SCROLL_INTERVAL)
+
+    def OnMouseMotion(self, event):
+        if self.dragIdx is None:
+            event.Skip()
+
+            return
+
+        self.dragPos = event.GetPosition()
+        self.setDropIndex(self.getDropIndex(self.dragPos))
+
+    # auto-scrolls even if the mouse is held still
+    def OnDragTimer(self, event):
+        if self.dragIdx is None:
+            return
+
+        self.autoScroll(self.dragPos)
+        self.setDropIndex(self.getDropIndex(self.dragPos))
+
+    def OnLeftUp(self, event):
+        if self.dragIdx is None:
+            event.Skip()
+
+            return
+
+        src = self.dragIdx
+        dst = self.getDropIndex(event.GetPosition())
+
+        self.endDrag()
+
+        if (dst is not None) and (dst != src):
+            self.moveItem(src, dst)
+        else:
+            self.refresh()
+
+    def OnCaptureLost(self, event):
+        self.endDrag()
         self.refresh()
 
     def OnTimer(self, event):
@@ -175,6 +320,7 @@ class OutlinePanel(wx.Panel):
     def OnDestroy(self, event):
         if event.GetEventObject() is self:
             self.timer.Stop()
+            self.dragTimer.Stop()
 
         event.Skip()
 
@@ -203,6 +349,13 @@ class OutlinePanel(wx.Panel):
 
     def OnKeyDown(self, event):
         kc = event.GetKeyCode()
+
+        if self.dragIdx is not None:
+            if kc == wx.WXK_ESCAPE:
+                self.endDrag()
+                self.refresh()
+
+            return
 
         if event.ControlDown() and (kc == wx.WXK_UP):
             self.moveScene(-1)
