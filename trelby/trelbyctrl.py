@@ -550,16 +550,24 @@ class MyCtrl(wx.Control):
         pos = event.GetPosition()
         line, col = self.gd.vm.pos2linecol(self, pos.x, pos.y)
 
-        if self.sp.mark:
-            m = self.gd.mainFrame.rightClickMenuWithCut
+        if not self.sp.mark and line is not None and (line != self.sp.line):
+            self.sp.gotoPos(line, col, False)
+            self.updateScreen()
+
+        # type changes apply to every element in the selection, if any
+        marked = self.sp.getMarkedLines()
+
+        if marked:
+            first, last = marked
         else:
-            m = self.gd.mainFrame.rightClickMenu
+            first = last = self.sp.line
 
-            if line is not None and (line != self.sp.line):
-                self.sp.gotoPos(line, col, False)
-                self.updateScreen()
+        types = {self.sp.lines[i].lt for i in range(first, last + 1)}
+        curLt = types.pop() if len(types) == 1 else None
 
+        m = self.gd.mainFrame.makeRightClickMenu(curLt, bool(self.sp.mark))
         self.PopupMenu(m)
+        m.Destroy()
 
     def OnMouseWheel(self, event):
         if event.ControlDown():

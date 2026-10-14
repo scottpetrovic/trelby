@@ -304,126 +304,100 @@ class MyFrame(wx.Frame):
 
         self.tabCtrl.setPageChangedFunc(self.OnPageChange)
 
-        # see OnRightDown
-        self.rightClickMenu = wx.Menu()
-        self.rightClickMenuWithCut = wx.Menu()
-
-        for m in (self.rightClickMenu, self.rightClickMenuWithCut):
-            tmp = wx.Menu()
-
-            tmp.Append(ID_ELEM_TO_SCENE, misc.mnemonic("S", _("Scene")))
-            tmp.Append(ID_ELEM_TO_ACTION, misc.mnemonic("A", _("Action")))
-            tmp.Append(ID_ELEM_TO_CHARACTER, misc.mnemonic("C", _("Character")))
-            tmp.Append(ID_ELEM_TO_PAREN, misc.mnemonic("P", _("Parenthetical")))
-            tmp.Append(ID_ELEM_TO_DIALOGUE, misc.mnemonic("D", _("Dialogue")))
-            tmp.Append(ID_ELEM_TO_TRANSITION, misc.mnemonic("T", _("Transition")))
-            tmp.Append(ID_ELEM_TO_SHOT, misc.mnemonic("o", _("Shot")))
-            tmp.Append(ID_ELEM_TO_ACTBREAK, misc.mnemonic("b", _("Act break")))
-            tmp.Append(ID_ELEM_TO_NOTE, misc.mnemonic("N", _("Note")))
-
-            m.AppendSubMenu(tmp, _("Element type"))
-            m.AppendSeparator()
-
-            if m is self.rightClickMenuWithCut:
-                m.Append(ID_EDIT_CUT, _("Cut"))
-                m.Append(ID_EDIT_COPY, _("Copy"))
-
-            m.Append(ID_EDIT_PASTE, _("Paste"))
-
-            self.Bind(wx.EVT_MENU, self.OnNewScript, id=ID_FILE_NEW)
-            self.Bind(wx.EVT_MENU, self.OnOpen, id=ID_FILE_OPEN)
-            self.Bind(wx.EVT_MENU, self.OnSave, id=ID_FILE_SAVE)
-            self.Bind(wx.EVT_MENU, self.OnSaveScriptAs, id=ID_FILE_SAVE_AS)
-            for importId, fmt in (
-                (ID_FILE_IMPORT_FDX, "fdx"),
-                (ID_FILE_IMPORT_FOUNTAIN, "fountain"),
-                (ID_FILE_IMPORT_CELTX, "celtx"),
-                (ID_FILE_IMPORT_ASTX, "astx"),
-                (ID_FILE_IMPORT_FADEIN, "fadein"),
-                (ID_FILE_IMPORT_TEXT, "txt"),
-            ):
-                self.Bind(
-                    wx.EVT_MENU, partial(self.OnImportScript, fmt=fmt), id=importId
-                )
-            for exportId, fmt in (
-                (ID_FILE_EXPORT_PDF, "pdf"),
-                (ID_FILE_EXPORT_RTF, "rtf"),
-                (ID_FILE_EXPORT_FDX, "fdx"),
-                (ID_FILE_EXPORT_HTML, "html"),
-                (ID_FILE_EXPORT_FOUNTAIN, "fountain"),
-                (ID_FILE_EXPORT_TEXT, "txt"),
-            ):
-                self.Bind(
-                    wx.EVT_MENU, partial(self.OnExportScript, fmt=fmt), id=exportId
-                )
-            self.Bind(wx.EVT_MENU, self.OnCloseScript, id=ID_FILE_CLOSE)
-            self.Bind(wx.EVT_MENU, self.OnRevertScript, id=ID_FILE_REVERT)
-            self.Bind(wx.EVT_MENU, self.OnSettings, id=ID_SETTINGS_CHANGE)
-            self.Bind(wx.EVT_MENU, self.OnExit, id=ID_FILE_EXIT)
-            self.Bind(wx.EVT_MENU, self.OnUndo, id=ID_EDIT_UNDO)
-            self.Bind(wx.EVT_MENU, self.OnRedo, id=ID_EDIT_REDO)
-            self.Bind(wx.EVT_MENU, self.OnCut, id=ID_EDIT_CUT)
-            self.Bind(wx.EVT_MENU, self.OnCopy, id=ID_EDIT_COPY)
-            self.Bind(wx.EVT_MENU, self.OnPaste, id=ID_EDIT_PASTE)
-            self.Bind(wx.EVT_MENU, self.OnCopySystemCb, id=ID_EDIT_COPY_TO_CB)
+        self.Bind(wx.EVT_MENU, self.OnNewScript, id=ID_FILE_NEW)
+        self.Bind(wx.EVT_MENU, self.OnOpen, id=ID_FILE_OPEN)
+        self.Bind(wx.EVT_MENU, self.OnSave, id=ID_FILE_SAVE)
+        self.Bind(wx.EVT_MENU, self.OnSaveScriptAs, id=ID_FILE_SAVE_AS)
+        for importId, fmt in (
+            (ID_FILE_IMPORT_FDX, "fdx"),
+            (ID_FILE_IMPORT_FOUNTAIN, "fountain"),
+            (ID_FILE_IMPORT_CELTX, "celtx"),
+            (ID_FILE_IMPORT_ASTX, "astx"),
+            (ID_FILE_IMPORT_FADEIN, "fadein"),
+            (ID_FILE_IMPORT_TEXT, "txt"),
+        ):
             self.Bind(
-                wx.EVT_MENU, self.OnCopySystemCbFormatted, id=ID_EDIT_COPY_TO_CB_FMT
+                wx.EVT_MENU, partial(self.OnImportScript, fmt=fmt), id=importId
             )
-            self.Bind(wx.EVT_MENU, self.OnPasteSystemCb, id=ID_EDIT_PASTE_FROM_CB)
-            self.Bind(wx.EVT_MENU, self.OnSelectScene, id=ID_EDIT_SELECT_SCENE)
-            self.Bind(wx.EVT_MENU, self.OnSelectAll, id=ID_EDIT_SELECT_ALL)
-            self.Bind(wx.EVT_MENU, self.OnGotoPage, id=ID_EDIT_GOTO_PAGE)
-            self.Bind(wx.EVT_MENU, self.OnGotoScene, id=ID_EDIT_GOTO_SCENE)
-            self.Bind(wx.EVT_MENU, self.OnInsertNbsp, id=ID_EDIT_INSERT_NBSP)
-            self.Bind(wx.EVT_MENU, self.OnFind, id=ID_EDIT_FIND)
-            self.Bind(wx.EVT_MENU, self.OnDeleteElements, id=ID_EDIT_DELETE_ELEMENTS)
-            self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_DRAFT)
-            self.Bind(wx.EVT_MENU, self.ShowHideToolbar, id=ID_SHOW_HIDE_TOOLBAR)
-            self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_LAYOUT)
-            self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_SIDE_BY_SIDE)
-            self.Bind(wx.EVT_MENU, self.OnShowFormatting, id=ID_VIEW_SHOW_FORMATTING)
-            self.Bind(wx.EVT_MENU, self.OnShowOutline, id=ID_VIEW_SHOW_OUTLINE)
-            self.Bind(wx.EVT_MENU, self.ToggleFullscreen, id=ID_VIEW_FULL_SCREEN)
-            self.Bind(wx.EVT_MENU, self.OnZoomIn, id=ID_VIEW_ZOOM_IN)
-            self.Bind(wx.EVT_MENU, self.OnZoomOut, id=ID_VIEW_ZOOM_OUT)
-            self.Bind(wx.EVT_MENU, self.OnZoomReset, id=ID_VIEW_ZOOM_RESET)
+        for exportId, fmt in (
+            (ID_FILE_EXPORT_PDF, "pdf"),
+            (ID_FILE_EXPORT_RTF, "rtf"),
+            (ID_FILE_EXPORT_FDX, "fdx"),
+            (ID_FILE_EXPORT_HTML, "html"),
+            (ID_FILE_EXPORT_FOUNTAIN, "fountain"),
+            (ID_FILE_EXPORT_TEXT, "txt"),
+        ):
+            self.Bind(
+                wx.EVT_MENU, partial(self.OnExportScript, fmt=fmt), id=exportId
+            )
+        self.Bind(wx.EVT_MENU, self.OnCloseScript, id=ID_FILE_CLOSE)
+        self.Bind(wx.EVT_MENU, self.OnRevertScript, id=ID_FILE_REVERT)
+        self.Bind(wx.EVT_MENU, self.OnSettings, id=ID_SETTINGS_CHANGE)
+        self.Bind(wx.EVT_MENU, self.OnExit, id=ID_FILE_EXIT)
+        self.Bind(wx.EVT_MENU, self.OnUndo, id=ID_EDIT_UNDO)
+        self.Bind(wx.EVT_MENU, self.OnRedo, id=ID_EDIT_REDO)
+        self.Bind(wx.EVT_MENU, self.OnCut, id=ID_EDIT_CUT)
+        self.Bind(wx.EVT_MENU, self.OnCopy, id=ID_EDIT_COPY)
+        self.Bind(wx.EVT_MENU, self.OnPaste, id=ID_EDIT_PASTE)
+        self.Bind(wx.EVT_MENU, self.OnCopySystemCb, id=ID_EDIT_COPY_TO_CB)
+        self.Bind(
+            wx.EVT_MENU, self.OnCopySystemCbFormatted, id=ID_EDIT_COPY_TO_CB_FMT
+        )
+        self.Bind(wx.EVT_MENU, self.OnPasteSystemCb, id=ID_EDIT_PASTE_FROM_CB)
+        self.Bind(wx.EVT_MENU, self.OnSelectScene, id=ID_EDIT_SELECT_SCENE)
+        self.Bind(wx.EVT_MENU, self.OnSelectAll, id=ID_EDIT_SELECT_ALL)
+        self.Bind(wx.EVT_MENU, self.OnGotoPage, id=ID_EDIT_GOTO_PAGE)
+        self.Bind(wx.EVT_MENU, self.OnGotoScene, id=ID_EDIT_GOTO_SCENE)
+        self.Bind(wx.EVT_MENU, self.OnInsertNbsp, id=ID_EDIT_INSERT_NBSP)
+        self.Bind(wx.EVT_MENU, self.OnFind, id=ID_EDIT_FIND)
+        self.Bind(wx.EVT_MENU, self.OnDeleteElements, id=ID_EDIT_DELETE_ELEMENTS)
+        self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_DRAFT)
+        self.Bind(wx.EVT_MENU, self.ShowHideToolbar, id=ID_SHOW_HIDE_TOOLBAR)
+        self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_LAYOUT)
+        self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_SIDE_BY_SIDE)
+        self.Bind(wx.EVT_MENU, self.OnShowFormatting, id=ID_VIEW_SHOW_FORMATTING)
+        self.Bind(wx.EVT_MENU, self.OnShowOutline, id=ID_VIEW_SHOW_OUTLINE)
+        self.Bind(wx.EVT_MENU, self.ToggleFullscreen, id=ID_VIEW_FULL_SCREEN)
+        self.Bind(wx.EVT_MENU, self.OnZoomIn, id=ID_VIEW_ZOOM_IN)
+        self.Bind(wx.EVT_MENU, self.OnZoomOut, id=ID_VIEW_ZOOM_OUT)
+        self.Bind(wx.EVT_MENU, self.OnZoomReset, id=ID_VIEW_ZOOM_RESET)
 
-            self.Bind(wx.EVT_MENU, self.OnFindNextError, id=ID_SCRIPT_FIND_ERROR)
-            self.Bind(wx.EVT_MENU, self.OnPaginate, id=ID_SCRIPT_PAGINATE)
-            self.Bind(wx.EVT_MENU, self.OnLockPages, id=ID_SCRIPT_LOCK_PAGES)
-            self.Bind(wx.EVT_MENU, self.OnUnlockPages, id=ID_SCRIPT_UNLOCK_PAGES)
-            self.Bind(
-                wx.EVT_MENU, self.OnAutoCompletionDlg, id=ID_SCRIPT_AUTO_COMPLETION
-            )
-            self.Bind(wx.EVT_MENU, self.OnHeadersDlg, id=ID_SCRIPT_HEADERS)
-            self.Bind(wx.EVT_MENU, self.OnLocationsDlg, id=ID_SCRIPT_LOCATIONS)
-            self.Bind(
-                wx.EVT_MENU,
-                self.OnCharacterProfilesDlg,
-                id=ID_SCRIPT_CHARACTER_PROFILES,
-            )
-            self.Bind(wx.EVT_MENU, self.OnTitlesDlg, id=ID_SCRIPT_TITLES)
-            self.Bind(
-                wx.EVT_MENU,
-                self.OnSpellCheckerScriptDictionaryDlg,
-                id=ID_SCRIPT_SC_DICT,
-            )
-            self.Bind(wx.EVT_MENU, self.OnScriptSettings, id=ID_SCRIPT_SETTINGS_CHANGE)
-            self.Bind(
-                wx.EVT_MENU, self.OnReportDialogueChart, id=ID_REPORTS_DIALOGUE_CHART
-            )
-            self.Bind(wx.EVT_MENU, self.OnReportCharacter, id=ID_REPORTS_CHARACTER_REP)
-            self.Bind(wx.EVT_MENU, self.OnReportScript, id=ID_REPORTS_SCRIPT_REP)
-            self.Bind(wx.EVT_MENU, self.OnReportLocation, id=ID_REPORTS_LOCATION_REP)
-            self.Bind(wx.EVT_MENU, self.OnReportScene, id=ID_REPORTS_SCENE_REP)
-            self.Bind(wx.EVT_MENU, self.OnSpellCheckerDlg, id=ID_TOOLS_SPELL_CHECK)
-            self.Bind(wx.EVT_MENU, self.OnNameDatabase, id=ID_TOOLS_NAME_DB)
-            self.Bind(wx.EVT_MENU, self.OnCharacterMap, id=ID_TOOLS_CHARMAP)
-            self.Bind(wx.EVT_MENU, self.OnCompareScripts, id=ID_TOOLS_COMPARE_SCRIPTS)
-            self.Bind(wx.EVT_MENU, self.OnWatermark, id=ID_FILE_EXPORT_WATERMARK)
-            self.Bind(wx.EVT_MENU, self.OnHelpCommands, id=ID_HELP_COMMANDS)
-            self.Bind(wx.EVT_MENU, self.OnHelpManual, id=ID_HELP_MANUAL)
-            self.Bind(wx.EVT_MENU, self.OnAbout, id=ID_HELP_ABOUT)
+        self.Bind(wx.EVT_MENU, self.OnFindNextError, id=ID_SCRIPT_FIND_ERROR)
+        self.Bind(wx.EVT_MENU, self.OnPaginate, id=ID_SCRIPT_PAGINATE)
+        self.Bind(wx.EVT_MENU, self.OnLockPages, id=ID_SCRIPT_LOCK_PAGES)
+        self.Bind(wx.EVT_MENU, self.OnUnlockPages, id=ID_SCRIPT_UNLOCK_PAGES)
+        self.Bind(
+            wx.EVT_MENU, self.OnAutoCompletionDlg, id=ID_SCRIPT_AUTO_COMPLETION
+        )
+        self.Bind(wx.EVT_MENU, self.OnHeadersDlg, id=ID_SCRIPT_HEADERS)
+        self.Bind(wx.EVT_MENU, self.OnLocationsDlg, id=ID_SCRIPT_LOCATIONS)
+        self.Bind(
+            wx.EVT_MENU,
+            self.OnCharacterProfilesDlg,
+            id=ID_SCRIPT_CHARACTER_PROFILES,
+        )
+        self.Bind(wx.EVT_MENU, self.OnTitlesDlg, id=ID_SCRIPT_TITLES)
+        self.Bind(
+            wx.EVT_MENU,
+            self.OnSpellCheckerScriptDictionaryDlg,
+            id=ID_SCRIPT_SC_DICT,
+        )
+        self.Bind(wx.EVT_MENU, self.OnScriptSettings, id=ID_SCRIPT_SETTINGS_CHANGE)
+        self.Bind(
+            wx.EVT_MENU, self.OnReportDialogueChart, id=ID_REPORTS_DIALOGUE_CHART
+        )
+        self.Bind(wx.EVT_MENU, self.OnReportCharacter, id=ID_REPORTS_CHARACTER_REP)
+        self.Bind(wx.EVT_MENU, self.OnReportScript, id=ID_REPORTS_SCRIPT_REP)
+        self.Bind(wx.EVT_MENU, self.OnReportLocation, id=ID_REPORTS_LOCATION_REP)
+        self.Bind(wx.EVT_MENU, self.OnReportScene, id=ID_REPORTS_SCENE_REP)
+        self.Bind(wx.EVT_MENU, self.OnSpellCheckerDlg, id=ID_TOOLS_SPELL_CHECK)
+        self.Bind(wx.EVT_MENU, self.OnNameDatabase, id=ID_TOOLS_NAME_DB)
+        self.Bind(wx.EVT_MENU, self.OnCharacterMap, id=ID_TOOLS_CHARMAP)
+        self.Bind(wx.EVT_MENU, self.OnCompareScripts, id=ID_TOOLS_COMPARE_SCRIPTS)
+        self.Bind(wx.EVT_MENU, self.OnWatermark, id=ID_FILE_EXPORT_WATERMARK)
+        self.Bind(wx.EVT_MENU, self.OnHelpCommands, id=ID_HELP_COMMANDS)
+        self.Bind(wx.EVT_MENU, self.OnHelpManual, id=ID_HELP_MANUAL)
+        self.Bind(wx.EVT_MENU, self.OnAbout, id=ID_HELP_ABOUT)
 
         self.Bind(
             wx.EVT_MENU_RANGE,
@@ -1254,6 +1228,50 @@ class MyFrame(wx.Frame):
 
     def OnChangeType(self, event):
         self.panel.ctrl.OnChangeType(event)
+
+    # build the editor's right-click menu. curLt is the type of the
+    # element(s) it applies to, or None if they're of more than one type.
+    def makeRightClickMenu(self, curLt, withCut):
+        types = (
+            (ID_ELEM_TO_SCENE, screenplay.SCENE, "S", _("Scene")),
+            (ID_ELEM_TO_ACTION, screenplay.ACTION, "A", _("Action")),
+            (ID_ELEM_TO_CHARACTER, screenplay.CHARACTER, "C", _("Character")),
+            (ID_ELEM_TO_PAREN, screenplay.PAREN, "P", _("Parenthetical")),
+            (ID_ELEM_TO_DIALOGUE, screenplay.DIALOGUE, "D", _("Dialogue")),
+            (ID_ELEM_TO_TRANSITION, screenplay.TRANSITION, "T", _("Transition")),
+            (ID_ELEM_TO_SHOT, screenplay.SHOT, "o", _("Shot")),
+            (ID_ELEM_TO_ACTBREAK, screenplay.ACTBREAK, "b", _("Act break")),
+            (ID_ELEM_TO_NOTE, screenplay.NOTE, "N", _("Note")),
+        )
+
+        m = wx.Menu()
+
+        if curLt is None:
+            header = _("Multiple types")
+        else:
+            header = next(t[3] for t in types if t[1] == curLt)
+
+        m.Append(wx.ID_ANY, header).Enable(False)
+
+        switchMenu = wx.Menu()
+
+        for id, lt, key, name in types:
+            if lt != curLt:
+                switchMenu.Append(id, misc.mnemonic(key, name))
+
+        m.AppendSubMenu(switchMenu, _("Switch type"))
+        m.AppendSeparator()
+
+        m.Append(ID_EDIT_SELECT_SCENE, _("Select scene"))
+        m.AppendSeparator()
+
+        if withCut:
+            m.Append(ID_EDIT_CUT, _("Cut"))
+            m.Append(ID_EDIT_COPY, _("Copy"))
+
+        m.Append(ID_EDIT_PASTE, _("Paste"))
+
+        return m
 
     def OnHelpCommands(self, event=None):
         dlg = commandsdlg.CommandsDlg(self.gd.cfgGl)
