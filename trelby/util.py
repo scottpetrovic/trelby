@@ -787,6 +787,9 @@ class MyKeyEvent:
     def GetKeyCode(self):
         return self.kc
 
+    def GetUnicodeKey(self):
+        return self.kc
+
     def ControlDown(self):
         return self.controlDown
 

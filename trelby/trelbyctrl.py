@@ -1606,6 +1606,11 @@ class MyCtrl(wx.Control):
     def OnKeyChar(self, ev):
         kc = ev.GetUnicodeKey()
 
+        # non-character keys (arrows, Home, PgUp, F-keys...) have no
+        # Unicode value, so fall back to the key code for those
+        if kc == wx.WXK_NONE:
+            kc = ev.GetKeyCode()
+
         cs = screenplay.CommandState()
         cs.mark = bool(ev.ShiftDown())
         scrollDirection = config.SCROLL_CENTER
