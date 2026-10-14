@@ -74,8 +74,55 @@ def loadGlobalCfg(filename, parent):
     return c
 
 
+# ask for a script settings file to load (save=False) or save, starting in
+# directory 'dirName'. returns the chosen path, or None if the user cancelled.
+def askScriptSettingsFile(parent, dirName, save):
+    if save:
+        title = _("Filename to save as")
+        style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
+    else:
+        title = _("File to open")
+        style = wx.FD_OPEN
+
+    dlg = wx.FileDialog(
+        parent,
+        title,
+        defaultDir=dirName,
+        wildcard=_("Script")
+        + " "
+        + _("setting")
+        + " "
+        + _("files")
+        + " (*.sconf)|*.sconf|"
+        + _("All files")
+        + "|*",
+        style=style,
+    )
+
+    path = None
+    if dlg.ShowModal() == wx.ID_OK:
+        path = dlg.GetPath()
+
+    dlg.Destroy()
+
+    return path
+
+
+# load script settings from the given file. returns a Config, or None on
+# error.
+def loadScriptCfg(filename, parent):
+    s = util.loadFile(filename, parent)
+
+    if not s:
+        return None
+
+    c = config.Config()
+    c.load(s)
+
+    return c
+
+
 class CfgDlg(wx.Dialog):
-    # gd is only needed (and used) for the global settings dialog.
     def __init__(self, parent, cfg, applyFunc, isGlobal, gd=None):
         wx.Dialog.__init__(
             self, parent, -1, "", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
@@ -95,9 +142,9 @@ class CfgDlg(wx.Dialog):
         self.listbook = wx.Treebook(self, -1)
 
         if isGlobal:
-            self.SetTitle(_("Settings dialog"))
+            self.SetTitle(_("Settings"))
         else:
-            self.SetTitle(_("Script settings dialog"))
+            self.SetTitle(_("Page setup"))
 
         self.addPages()
 
@@ -118,16 +165,15 @@ class CfgDlg(wx.Dialog):
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        if isGlobal:
-            loadBtn = wx.Button(self, -1, _("Load") + "...")
-            loadBtn.SetToolTip(_("Load settings from a file"))
-            hsizer.Add(loadBtn, 0, wx.RIGHT, 10)
-            self.Bind(wx.EVT_BUTTON, self.OnLoad, id=loadBtn.GetId())
+        loadBtn = wx.Button(self, -1, _("Load") + "...")
+        loadBtn.SetToolTip(_("Load settings from a file"))
+        hsizer.Add(loadBtn, 0, wx.RIGHT, 10)
+        self.Bind(wx.EVT_BUTTON, self.OnLoad, id=loadBtn.GetId())
 
-            saveBtn = wx.Button(self, -1, _("Save as") + "...")
-            saveBtn.SetToolTip(_("Save these settings to a file"))
-            hsizer.Add(saveBtn, 0, wx.RIGHT, 10)
-            self.Bind(wx.EVT_BUTTON, self.OnSaveAs, id=saveBtn.GetId())
+        saveBtn = wx.Button(self, -1, _("Save as") + "...")
+        saveBtn.SetToolTip(_("Save these settings to a file"))
+        hsizer.Add(saveBtn, 0, wx.RIGHT, 10)
+        self.Bind(wx.EVT_BUTTON, self.OnSaveAs, id=saveBtn.GetId())
 
         hsizer.Add((1, 1), 1)
 
@@ -211,16 +257,22 @@ class CfgDlg(wx.Dialog):
     # replace the settings being edited with ones loaded from a file. they
     # are applied, like any other change, on Apply/OK.
     def OnLoad(self, event):
-        path = askSettingsFile(self, self.confFilename, False)
-        if not path:
-            return
+        if self.isGlobal:
+            path = askSettingsFile(self, self.confFilename, False)
+            c = path and loadGlobalCfg(path, self)
+        else:
+            path = askScriptSettingsFile(self, self.gd.scriptSettingsPath, False)
+            c = path and loadScriptCfg(path, self)
 
-        c = loadGlobalCfg(path, self)
         if not c:
             return
 
         self.cfg = c
-        self.confFilename = path
+
+        if self.isGlobal:
+            self.confFilename = path
+        else:
+            self.gd.scriptSettingsPath = os.path.dirname(path)
 
         # the pages hold references to the old config, so recreate them
         sel = self.listbook.GetSelection()
@@ -231,7 +283,11 @@ class CfgDlg(wx.Dialog):
     def OnSaveAs(self, event):
         self.checkForErrors()
 
-        path = askSettingsFile(self, self.confFilename, True)
+        if self.isGlobal:
+            path = askSettingsFile(self, self.confFilename, True)
+        else:
+            path = askScriptSettingsFile(self, self.gd.scriptSettingsPath, True)
+
         if not path:
             return
 
@@ -240,7 +296,10 @@ class CfgDlg(wx.Dialog):
         c.recalc()
 
         if util.writeToFile(path, c.save(), self):
-            self.confFilename = path
+            if self.isGlobal:
+                self.confFilename = path
+            else:
+                self.gd.scriptSettingsPath = os.path.dirname(path)
 
     # edit the global spell checker dictionary. it's stored separately from
     # the settings, so changes are saved immediately.

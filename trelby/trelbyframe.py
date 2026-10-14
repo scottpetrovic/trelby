@@ -14,7 +14,6 @@ import trelby
 import trelby.cfgdlg as cfgdlg
 import trelby.charmapdlg as charmapdlg
 import trelby.commandsdlg as commandsdlg
-import trelby.config as config
 import trelby.gutil as gutil
 import trelby.menubar as menubar
 import trelby.misc as misc
@@ -116,6 +115,10 @@ class MyFrame(wx.Frame):
         editMenu.AppendSeparator()
         editMenu.Append(ID_EDIT_SELECT_SCENE, misc.mnemonic("S", _("Select scene")))
         editMenu.Append(ID_EDIT_SELECT_ALL, misc.mnemonic("l", _("Select all")))
+        editMenu.AppendSeparator()
+        editMenu.Append(
+            ID_EDIT_FIND, misc.mnemonic("F", _("Find && Replace") + "...\tCTRL-F")
+        )
         editMenu.Append(
             ID_EDIT_GOTO_PAGE, misc.mnemonic("G", _("Goto page") + "...\tCTRL-G")
         )
@@ -124,11 +127,6 @@ class MyFrame(wx.Frame):
         )
         editMenu.AppendSeparator()
         editMenu.Append(ID_EDIT_INSERT_NBSP, _("Insert non-breaking space"))
-        editMenu.AppendSeparator()
-        editMenu.Append(
-            ID_EDIT_FIND, misc.mnemonic("F", _("Find && Replace") + "...\tCTRL-F")
-        )
-        editMenu.AppendSeparator()
         editMenu.Append(
             ID_EDIT_DELETE_ELEMENTS, misc.mnemonic("D", _("Delete elements") + "...")
         )
@@ -143,9 +141,6 @@ class MyFrame(wx.Frame):
         viewMenu.AppendRadioItem(
             ID_VIEW_STYLE_SIDE_BY_SIDE, misc.mnemonic("S", _("Side by side"))
         )
-        viewMenu.AppendCheckItem(
-            ID_SHOW_HIDE_TOOLBAR, misc.mnemonic("T", _("Show/Hide Toolbar"))
-        )
 
         if gd.viewMode == gd.VIEWMODE_DRAFT:
             viewMenu.Check(ID_VIEW_STYLE_DRAFT, True)
@@ -155,10 +150,12 @@ class MyFrame(wx.Frame):
             viewMenu.Check(ID_VIEW_STYLE_SIDE_BY_SIDE, True)
 
         viewMenu.AppendSeparator()
+        viewMenu.AppendCheckItem(ID_SHOW_HIDE_TOOLBAR, misc.mnemonic("T", _("Toolbar")))
+        viewMenu.Check(ID_SHOW_HIDE_TOOLBAR, True)
         viewMenu.AppendCheckItem(ID_VIEW_SHOW_OUTLINE, misc.mnemonic("O", _("Outline")))
         viewMenu.Check(ID_VIEW_SHOW_OUTLINE, gd.showOutline)
         viewMenu.AppendCheckItem(
-            ID_VIEW_SHOW_FORMATTING, misc.mnemonic("S", _("Show formatting"))
+            ID_VIEW_SHOW_FORMATTING, misc.mnemonic("h", _("Show formatting"))
         )
         viewMenu.AppendSeparator()
         viewMenu.Append(ID_VIEW_ZOOM_IN, misc.mnemonic("I", _("Zoom in") + "\tCTRL-="))
@@ -173,42 +170,17 @@ class MyFrame(wx.Frame):
             ID_VIEW_FULL_SCREEN, misc.mnemonic("F", _("Fullscreen") + "\tF11")
         )
 
-        scriptMenu = wx.Menu()
-        scriptMenu.Append(
-            ID_SCRIPT_FIND_ERROR, misc.mnemonic("F", _("Find next error"))
+        # the script's own page format: the settings that end up in the PDF
+        pageMenu = wx.Menu()
+        pageMenu.Append(
+            ID_SCRIPT_SETTINGS_CHANGE, misc.mnemonic("S", _("Page setup") + "...")
         )
-        scriptMenu.Append(ID_SCRIPT_PAGINATE, misc.mnemonic("P", _("Paginate")))
-        scriptMenu.Append(ID_SCRIPT_LOCK_PAGES, misc.mnemonic("k", _("Lock pages")))
-        scriptMenu.Append(
-            ID_SCRIPT_UNLOCK_PAGES, misc.mnemonic("U", _("Unlock pages"))
-        )
-        scriptMenu.AppendSeparator()
-        scriptMenu.Append(
-            ID_SCRIPT_AUTO_COMPLETION, misc.mnemonic("A", _("Auto-completion") + "...")
-        )
-        scriptMenu.Append(ID_SCRIPT_HEADERS, misc.mnemonic("H", _("Headers") + "..."))
-        scriptMenu.Append(
-            ID_SCRIPT_LOCATIONS, misc.mnemonic("L", _("Locations") + "...")
-        )
-        scriptMenu.Append(
-            ID_SCRIPT_CHARACTER_PROFILES,
-            misc.mnemonic("r", _("Character profiles") + "..."),
-        )
-        scriptMenu.Append(
-            ID_SCRIPT_TITLES, misc.mnemonic("T", _("Title pages") + "...")
-        )
-        scriptMenu.Append(
-            ID_SCRIPT_SC_DICT, misc.mnemonic("S", _("Spell checker dictionary..."))
-        )
-        scriptMenu.AppendSeparator()
-
-        tmp = wx.Menu()
-
-        tmp.Append(ID_SCRIPT_SETTINGS_CHANGE, misc.mnemonic("C", _("Change") + "..."))
-        tmp.AppendSeparator()
-        tmp.Append(ID_SCRIPT_SETTINGS_LOAD, misc.mnemonic("L", _("Load") + "..."))
-        tmp.Append(ID_SCRIPT_SETTINGS_SAVE_AS, misc.mnemonic("S", _("Save as") + "..."))
-        scriptMenu.AppendSubMenu(tmp, misc.mnemonic("S", _("Settings")))
+        pageMenu.Append(ID_SCRIPT_HEADERS, misc.mnemonic("H", _("Headers") + "..."))
+        pageMenu.Append(ID_SCRIPT_TITLES, misc.mnemonic("T", _("Title pages") + "..."))
+        pageMenu.AppendSeparator()
+        pageMenu.Append(ID_SCRIPT_PAGINATE, misc.mnemonic("P", _("Paginate")))
+        pageMenu.Append(ID_SCRIPT_LOCK_PAGES, misc.mnemonic("L", _("Lock pages")))
+        pageMenu.Append(ID_SCRIPT_UNLOCK_PAGES, misc.mnemonic("U", _("Unlock pages")))
 
         reportsMenu = wx.Menu()
         reportsMenu.Append(
@@ -232,11 +204,29 @@ class MyFrame(wx.Frame):
             ID_TOOLS_SPELL_CHECK, misc.mnemonic("S", _("Spell checker") + "...")
         )
         toolsMenu.Append(
+            ID_SCRIPT_SC_DICT, misc.mnemonic("d", _("Script dictionary") + "...")
+        )
+        toolsMenu.Append(
+            ID_SCRIPT_FIND_ERROR, misc.mnemonic("F", _("Find next error"))
+        )
+        toolsMenu.AppendSeparator()
+        toolsMenu.Append(
+            ID_SCRIPT_CHARACTER_PROFILES,
+            misc.mnemonic("r", _("Character profiles") + "..."),
+        )
+        toolsMenu.Append(
+            ID_SCRIPT_LOCATIONS, misc.mnemonic("L", _("Locations") + "...")
+        )
+        toolsMenu.Append(
+            ID_SCRIPT_AUTO_COMPLETION, misc.mnemonic("A", _("Auto-completion") + "...")
+        )
+        toolsMenu.Append(
             ID_TOOLS_NAME_DB, misc.mnemonic("N", _("Name database") + "...")
         )
         toolsMenu.Append(
             ID_TOOLS_CHARMAP, misc.mnemonic("C", _("Character map") + "...")
         )
+        toolsMenu.AppendSeparator()
         toolsMenu.Append(
             ID_TOOLS_COMPARE_SCRIPTS, misc.mnemonic("o", _("Compare scripts") + "...")
         )
@@ -264,9 +254,9 @@ class MyFrame(wx.Frame):
         self.menuBar.Append(fileMenu, misc.mnemonic("F", _("File")))
         self.menuBar.Append(editMenu, misc.mnemonic("E", _("Edit")))
         self.menuBar.Append(viewMenu, misc.mnemonic("V", _("View")))
-        self.menuBar.Append(scriptMenu, misc.mnemonic("i", _("Script")))
+        self.menuBar.Append(pageMenu, misc.mnemonic("P", _("Page")))
         self.menuBar.Append(reportsMenu, misc.mnemonic("R", _("Reports")))
-        self.menuBar.Append(toolsMenu, misc.mnemonic("l", _("Tools")))
+        self.menuBar.Append(toolsMenu, misc.mnemonic("T", _("Tools")))
         self.menuBar.Append(helpMenu, misc.mnemonic("H", _("Help")))
 
         if self.ownMenuBar:
@@ -419,12 +409,6 @@ class MyFrame(wx.Frame):
                 id=ID_SCRIPT_SC_DICT,
             )
             self.Bind(wx.EVT_MENU, self.OnScriptSettings, id=ID_SCRIPT_SETTINGS_CHANGE)
-            self.Bind(
-                wx.EVT_MENU, self.OnLoadScriptSettings, id=ID_SCRIPT_SETTINGS_LOAD
-            )
-            self.Bind(
-                wx.EVT_MENU, self.OnSaveScriptSettingsAs, id=ID_SCRIPT_SETTINGS_SAVE_AS
-            )
             self.Bind(
                 wx.EVT_MENU, self.OnReportDialogueChart, id=ID_REPORTS_DIALOGUE_CHART
             )
@@ -1096,14 +1080,7 @@ class MyFrame(wx.Frame):
         self.zoomInBtn.Enable(self.gd.getZoomStep(1) != zoom)
 
     def ShowHideToolbar(self, event=None):
-        self.CheckToolbar = self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR)
-
-        if self.CheckToolbar == True:
-            self.toolBar.Hide()
-
-        else:
-            self.toolBar.Show()
-
+        self.toolBar.Show(self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR))
         self.Layout()
 
     def OnViewModeLayout(self):
@@ -1165,7 +1142,7 @@ class MyFrame(wx.Frame):
         if self.ownMenuBar:
             self.menuBar.Show(not fullScreen)
             self.toolBar.Show(
-                not (fullScreen or self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR))
+                not fullScreen and self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR)
             )
 
         self.ShowFullScreen(fullScreen, wx.FULLSCREEN_ALL)
@@ -1214,54 +1191,25 @@ class MyFrame(wx.Frame):
     def OnScriptSettings(self, event=None):
         self.panel.ctrl.OnScriptSettings()
 
+    # the LoadScriptSettings / SaveScriptSettingsAs keyboard commands. the
+    # page setup dialog has buttons for these too.
     def OnLoadScriptSettings(self, event=None):
-        dlg = wx.FileDialog(
-            self,
-            _("File to open"),
-            defaultDir=self.gd.scriptSettingsPath,
-            wildcard=_("Script")
-            + " "
-            + _("setting")
-            + " "
-            + _("files")
-            + " (*.sconf)|*.sconf|"
-            + _("All files")
-            + "|*",
-            style=wx.FD_OPEN,
-        )
+        path = cfgdlg.askScriptSettingsFile(self, self.gd.scriptSettingsPath, False)
+        if not path:
+            return
 
-        if dlg.ShowModal() == wx.ID_OK:
-            s = util.loadFile(dlg.GetPath(), self)
-
-            if s:
-                cfg = config.Config()
-                cfg.load(s)
-                self.panel.ctrl.applyCfg(cfg)
-
-                self.gd.scriptSettingsPath = os.path.dirname(dlg.GetPath())
-
-        dlg.Destroy()
+        c = cfgdlg.loadScriptCfg(path, self)
+        if c:
+            self.panel.ctrl.applyCfg(c)
+            self.gd.scriptSettingsPath = os.path.dirname(path)
 
     def OnSaveScriptSettingsAs(self, event=None):
-        dlg = wx.FileDialog(
-            self,
-            _("Filename to save as"),
-            defaultDir=self.gd.scriptSettingsPath,
-            wildcard=_("Script")
-            + " "
-            + _("setting")
-            + _("files")
-            + " (*.sconf)|*.sconf|"
-            + _("All files")
-            + "|*",
-            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-        )
+        path = cfgdlg.askScriptSettingsFile(self, self.gd.scriptSettingsPath, True)
+        if not path:
+            return
 
-        if dlg.ShowModal() == wx.ID_OK:
-            if util.writeToFile(dlg.GetPath(), self.panel.ctrl.sp.saveCfg(), self):
-                self.gd.scriptSettingsPath = os.path.dirname(dlg.GetPath())
-
-        dlg.Destroy()
+        if util.writeToFile(path, self.panel.ctrl.sp.saveCfg(), self):
+            self.gd.scriptSettingsPath = os.path.dirname(path)
 
     def OnReportCharacter(self, event=None):
         self.panel.ctrl.OnReportCharacter()

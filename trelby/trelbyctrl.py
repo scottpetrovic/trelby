@@ -1233,7 +1233,11 @@ class MyCtrl(wx.Control):
 
     def OnScriptSettings(self):
         dlg = cfgdlg.CfgDlg(
-            self.gd.mainFrame, copy.deepcopy(self.sp.cfg), self.applyCfg, False
+            self.gd.mainFrame,
+            copy.deepcopy(self.sp.cfg),
+            self.applyCfg,
+            False,
+            self.gd,
         )
 
         if dlg.ShowModal() == wx.ID_OK:

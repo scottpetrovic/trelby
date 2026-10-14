@@ -632,99 +632,18 @@
 	</sect1>
 
 	<sect1>
-	  <title>Script/Find next error</title>
+	  <title>Page/Page setup</title>
 
-	  <para>'Find next error' searches through the script, starting from
-	  the cursor position, looking for errors. This means that to search
-	  the entire script for errors you should first position the cursor at
-	  the beginning of the script.</para>
-
-	  <para>If it finds any errors, it positions the cursor on the line
-	  containing the error and displays a message detailing the error. You
-	  should fix the error, back up a few lines, and activate the command
-	  again to search for more errors. Alternatively, if you don't want to
-	  fix the error right now, move the cursor down one line if you want
-	  to search for more errors.</para>
-
-	  <para>It can detect the following errors:</para>
-
-	  <itemizedlist>
-
-		<listitem>
-
-		  <para>An empty line, or a parenthetical element containing only
-		  ().</para>
-
-		</listitem>
-
-		<listitem>
-
-		  <para>A character element that is not followed by a
-		  parenthetical or a dialogue element.</para>
-
-		</listitem>
-
-		<listitem>
-
-		  <para>A parenthetical element that does not follow a character or
-		  a dialogue element.</para>
-
-		</listitem>
-
-		<listitem>
-
-		  <para>A dialogue element that does not follow a character or a
-			parenthetical element.</para>
-
-		</listitem>
-
-		<listitem>
-
-		  <para>Various error conditions that can only arise from bugs in
-		  the program. This includes things like overlong lines, elements
-		  that have lines with different element types, invalid characters
-		  in the script, etc. You should never find any of these errors,
-		  but if you do, you should try to fix them before saving the
-		  script, otherwise you might not be able to load it again. You
-		  should also notify us about the problem so we can fix it.</para>
-
-		  <para>The messages for these all say "(BUG)" at the end so they
-		  can be identified from normal errors.</para>
-
-		</listitem>
-
-	  </itemizedlist>
+	  <para>This edits the script format settings (see
+	  <xref linkend="format_settings"/>): paper size, element formatting,
+	  PDF output and so on. The 'Load' and 'Save as' buttons load the
+	  settings from, or save them to, a script settings file (.sconf), so
+	  you can use the same format for several scripts.</para>
 
 	</sect1>
 
 	<sect1>
-	  <title>Script/Paginate</title>
-
-	  <para>'Paginate' simply repaginates the script. You normally don't
-	  need to run this if you have automatic repagination enabled, but the
-	  command is available for use when automatic repagination is disabled
-	  or you want immediate repagination for some reason.</para>
-
-	</sect1>
-
-	<sect1 id="autocomp">
-	  <title>Scripts/Auto-completion</title>
-
-	  <para>Here you can define items to be added to the auto-completion
-	  lists for Scene, Character and Transition elements, and optionally
-	  disable auto-completion for any one of them.</para>
-
-	  <para>Transition auto-completes are pretty generic so by default
-	  there are a few of them here, but the Scene and Character lists are
-	  empty. The main use for them are TV shows, where you have a
-	  recurring cast of characters and locations, and it's nice to have
-	  them always available, even if they haven't yet been used in the
-	  current episode's script.</para>
-
-	</sect1>
-
-	<sect1>
-	  <title>Script/Headers</title>
+	  <title>Page/Headers</title>
 
 	  <para>'Headers' allows you to edit your script's headers. Headers
 	  are lines that are automatically added to the top of each page of
@@ -760,32 +679,8 @@
 
 	</sect1>
 
-	<sect1 id="locations_dlg">
-	  <title>Scripts/Locations</title>
-
-	  <para>This dialog allows you to define what scenes are part of the
-	  same location (see <xref linkend="location_rep"/>). The top listbox
-	  shows locations, separated by lines of "-----------", while the
-	  bottom listbox shows scenes not part of a user-specified location.
-	  In the middle are 'Add' and 'Delete' buttons for moving scenes
-	  between the two listboxes. The bottom listbox allows you to select
-	  many scenes at once.</para>
-
-	  <para>An example of how to use this dialog: select the scenes "INT.
-	  MOTEL ROOM - DAY", "INT. MOTEL ROOM - DAY - LATER" and "INT. MOTEL
-	  ROOM - NIGHT" in the bottom listbox, then click 'Add' which adds
-	  those three into a single location in the top listbox. Then, if you
-	  want to add more scenes to the same location, make sure one of the
-	  scenes for the location is selected in the top listbox, select the
-	  new scenes you want to add in the bottom listbox, and click 'Add'.
-	  If you want to add scenes to a new location, select one of the
-	  "-----------" lines in the top listbox as the destination before
-	  clicking 'Add'.</para>
-
-	</sect1>
-
 	<sect1>
-	  <title>Script/Title pages</title>
+	  <title>Page/Title pages</title>
 
 	  <para>'Title pages' allows you to edit your script's title pages.
 	  You can have as many title pages as you want, or none at all.</para>
@@ -848,20 +743,25 @@
 	</sect1>
 
 	<sect1>
-	  <title>Script/Spell checker dictionary</title>
+	  <title>Page/Paginate</title>
 
-	  <para>This opens a dialog allowing you to edit the script-specific
-	  spell checker dictionary. Insert new words by entering them on
-	  separate lines, or delete existing words by deleting the lines they
-	  are on.</para>
+	  <para>'Paginate' simply repaginates the script. You normally don't
+	  need to run this if you have automatic repagination enabled, but the
+	  command is available for use when automatic repagination is disabled
+	  or you want immediate repagination for some reason.</para>
 
 	</sect1>
 
 	<sect1>
-	  <title>Script/Settings/(Change|Load|Save as)</title>
+	  <title>Page/Lock pages, Page/Unlock pages</title>
 
-	  <para>These allow you to edit/load/save script format settings (see
-	  <xref linkend="format_settings"/>).</para>
+	  <para>'Lock pages' locks every page to start where it starts now,
+	  with its current page number. After that, adding text creates
+	  A-pages (12A, 12B, ...) instead of moving text onto later pages, and
+	  removing text leaves gaps instead of pulling text back. This is
+	  normally done once a script goes into production. Locking again also
+	  locks any A-pages created since. 'Unlock pages' removes the locks and
+	  repaginates the script normally.</para>
 
 	</sect1>
 
@@ -944,6 +844,122 @@
 
 	  <para>Note that the spell checker currently only supports the
 	  English language.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Tools/Script dictionary</title>
+
+	  <para>This opens a dialog allowing you to edit the script-specific
+	  spell checker dictionary. Insert new words by entering them on
+	  separate lines, or delete existing words by deleting the lines they
+	  are on.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Tools/Find next error</title>
+
+	  <para>'Find next error' searches through the script, starting from
+	  the cursor position, looking for errors. This means that to search
+	  the entire script for errors you should first position the cursor at
+	  the beginning of the script.</para>
+
+	  <para>If it finds any errors, it positions the cursor on the line
+	  containing the error and displays a message detailing the error. You
+	  should fix the error, back up a few lines, and activate the command
+	  again to search for more errors. Alternatively, if you don't want to
+	  fix the error right now, move the cursor down one line if you want
+	  to search for more errors.</para>
+
+	  <para>It can detect the following errors:</para>
+
+	  <itemizedlist>
+
+		<listitem>
+
+		  <para>An empty line, or a parenthetical element containing only
+		  ().</para>
+
+		</listitem>
+
+		<listitem>
+
+		  <para>A character element that is not followed by a
+		  parenthetical or a dialogue element.</para>
+
+		</listitem>
+
+		<listitem>
+
+		  <para>A parenthetical element that does not follow a character or
+		  a dialogue element.</para>
+
+		</listitem>
+
+		<listitem>
+
+		  <para>A dialogue element that does not follow a character or a
+			parenthetical element.</para>
+
+		</listitem>
+
+		<listitem>
+
+		  <para>Various error conditions that can only arise from bugs in
+		  the program. This includes things like overlong lines, elements
+		  that have lines with different element types, invalid characters
+		  in the script, etc. You should never find any of these errors,
+		  but if you do, you should try to fix them before saving the
+		  script, otherwise you might not be able to load it again. You
+		  should also notify us about the problem so we can fix it.</para>
+
+		  <para>The messages for these all say "(BUG)" at the end so they
+		  can be identified from normal errors.</para>
+
+		</listitem>
+
+	  </itemizedlist>
+
+	</sect1>
+
+	<sect1 id="locations_dlg">
+	  <title>Tools/Locations</title>
+
+	  <para>This dialog allows you to define what scenes are part of the
+	  same location (see <xref linkend="location_rep"/>). The top listbox
+	  shows locations, separated by lines of "-----------", while the
+	  bottom listbox shows scenes not part of a user-specified location.
+	  In the middle are 'Add' and 'Delete' buttons for moving scenes
+	  between the two listboxes. The bottom listbox allows you to select
+	  many scenes at once.</para>
+
+	  <para>An example of how to use this dialog: select the scenes "INT.
+	  MOTEL ROOM - DAY", "INT. MOTEL ROOM - DAY - LATER" and "INT. MOTEL
+	  ROOM - NIGHT" in the bottom listbox, then click 'Add' which adds
+	  those three into a single location in the top listbox. Then, if you
+	  want to add more scenes to the same location, make sure one of the
+	  scenes for the location is selected in the top listbox, select the
+	  new scenes you want to add in the bottom listbox, and click 'Add'.
+	  If you want to add scenes to a new location, select one of the
+	  "-----------" lines in the top listbox as the destination before
+	  clicking 'Add'.</para>
+
+	</sect1>
+
+	<sect1 id="autocomp">
+	  <title>Tools/Auto-completion</title>
+
+	  <para>Here you can define items to be added to the auto-completion
+	  lists for Scene, Character and Transition elements, and optionally
+	  disable auto-completion for any one of them.</para>
+
+	  <para>Transition auto-completes are pretty generic so by default
+	  there are a few of them here, but the Scene and Character lists are
+	  empty. The main use for them are TV shows, where you have a
+	  recurring cast of characters and locations, and it's nice to have
+	  them always available, even if they haven't yet been used in the
+	  current episode's script.</para>
 
 	</sect1>
 
@@ -1257,7 +1273,7 @@
         pressed and there's an active selection.</para>
 
 		<para>'Check script for errors before export or compare',
-		if checked, causes the program to run 'Script/Find next error' for
+		if checked, causes the program to run 'Tools/Find next error' for
 		the entire script automatically before export/compare
 		operations. This is to avoid printing 100 pages and then finding
 		there's an error on one of them, fixing of which causes
@@ -1269,7 +1285,7 @@
 		might want to increase this number. Note that automatic
 		repagination is only done when you modify the script, so you can't
 		just sit back and wait for the repagination to happen, you have to
-		keep making changes. (You can always use Script/Paginate if you
+		keep making changes. (You can always use Page/Paginate if you
 		want immediate repagination.)</para>
 
 		<para>'Lines to scroll per mouse wheel event' needs no
@@ -1298,7 +1314,7 @@
 	<sect1 id="format_settings">
 	  <title>Script format settings</title>
 
-	  <para>Script format settings are found in Script/Settings/Change. It
+	  <para>Script format settings are found in Page/Page setup. It
 	  has the same Apply/Cancel/OK buttons as the global settings
 	  dialog.</para>
 
