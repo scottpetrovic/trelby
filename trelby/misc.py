@@ -174,7 +174,7 @@ class MyFSButton(wx.Window):
 
 # custom status control
 class MyStatus(wx.Window):
-    WIDTH = 280
+    WIDTH = 250
     X_ELEDIVIDER = 100
 
     def __init__(self, parent, id, getCfgGui):
@@ -188,8 +188,6 @@ class MyStatus(wx.Window):
 
         self.getCfgGui = getCfgGui
 
-        self.page = 0
-        self.pageCnt = 0
         self.elemType = ""
         self.tabNext = ""
         self.enterNext = ""
@@ -220,17 +218,7 @@ class MyStatus(wx.Window):
         dc.SetPen(cfgGui.tabTextPen)
         dc.SetTextForeground(cfgGui.tabTextColor)
 
-        pageText = "Page %d / %d" % (self.page, self.pageCnt)
         dc.SetFont(self.font)
-
-        util.drawText(
-            dc,
-            pageText,
-            MyStatus.WIDTH - xoff,
-            cy,
-            util.ALIGN_RIGHT,
-            util.VALIGN_CENTER,
-        )
 
         s1 = "%s [Enter]" % self.enterNext
         s2 = "%s [Tab]" % self.tabNext
@@ -250,9 +238,7 @@ class MyStatus(wx.Window):
         for x in (MyStatus.X_ELEDIVIDER, 0):
             dc.DrawLine(x, 0, x, h - 1)
 
-    def SetValues(self, page, pageCnt, elemType, tabNext, enterNext):
-        self.page = page
-        self.pageCnt = pageCnt
+    def SetValues(self, elemType, tabNext, enterNext):
         self.elemType = elemType
         self.tabNext = tabNext
         self.enterNext = enterNext

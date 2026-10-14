@@ -335,9 +335,8 @@ class MyCtrl(wx.Control):
         page = self.sp.line2page(self.sp.line)
         pageCnt = self.sp.line2page(len(self.sp.lines) - 1)
 
-        self.gd.mainFrame.statusCtrl.SetValues(
-            page, pageCnt, cur.ti.name, tabNext, enterNext
-        )
+        self.gd.mainFrame.statusCtrl.SetValues(cur.ti.name, tabNext, enterNext)
+        self.gd.mainFrame.setPageStatus(page, pageCnt)
 
         canUndo = self.sp.canUndo()
         canRedo = self.sp.canRedo()

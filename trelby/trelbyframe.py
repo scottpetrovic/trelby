@@ -224,6 +224,8 @@ class MyFrame(wx.Frame):
         self.toolBar = self.CreateToolBar(wx.TB_VERTICAL)
         self.fillToolBar()
 
+        self.createStatusBar()
+
         self.Bind(wx.EVT_MOVE, self.OnMove)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
@@ -807,7 +809,10 @@ class MyFrame(wx.Frame):
 
             bitmap = wx.BitmapBundle.FromSVG(svg_content, size)
 
-            tb.AddTool(id, "", bitmap, shortHelp=toolTip)
+            tool = tb.AddTool(id, "", bitmap, shortHelp=toolTip)
+
+            # the status bar shows this while the tool is hovered
+            tool.SetLongHelp(toolTip)
 
         addTB(ID_FILE_NEW, "new.svg", _("New script"))
         addTB(ID_FILE_OPEN, "open.svg", _("Open Script") + "..")
@@ -837,6 +842,82 @@ class MyFrame(wx.Frame):
 
         tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         tb.Realize()
+
+    # status bar fields
+    SB_HELP = 0
+    SB_PAGE = 1
+    SB_ZOOM = 2
+
+    # the status bar at the bottom of the window. the help field shows the
+    # hovered toolbar tool's name (wx puts each tool's longHelp in field 0),
+    # then come the current page and the zoom buttons.
+    def createStatusBar(self):
+        sb = self.CreateStatusBar(3)
+        self.statusBar = sb
+
+        style = wx.BU_EXACTFIT | wx.BORDER_NONE
+
+        self.zoomOutBtn = wx.Button(sb, -1, "\u2212", style=style)
+        self.zoomOutBtn.SetToolTip(_("Zoom out"))
+        self.zoomOutBtn.Bind(wx.EVT_BUTTON, partial(self.OnZoomButton, self.OnZoomOut))
+
+        self.zoomLevelBtn = wx.Button(sb, -1, "", style=style)
+        self.zoomLevelBtn.SetToolTip(_("Reset zoom"))
+        self.zoomLevelBtn.Bind(
+            wx.EVT_BUTTON, partial(self.OnZoomButton, self.OnZoomReset)
+        )
+
+        self.zoomInBtn = wx.Button(sb, -1, "+", style=style)
+        self.zoomInBtn.SetToolTip(_("Zoom in"))
+        self.zoomInBtn.Bind(wx.EVT_BUTTON, partial(self.OnZoomButton, self.OnZoomIn))
+
+        self.zoomBtns = (self.zoomOutBtn, self.zoomLevelBtn, self.zoomInBtn)
+
+        # fixed widths, so nothing shifts as the values change
+        pad = sb.FromDIP(16)
+        btnW = sb.FromDIP(24)
+        self.zoomOutBtn.SetSize(btnW, -1)
+        self.zoomInBtn.SetSize(btnW, -1)
+        self.zoomLevelBtn.SetSize(sb.GetTextExtent("300%")[0] + pad, -1)
+
+        pageW = sb.GetTextExtent(_("Page %d / %d") % (999, 999))[0] + pad
+        zoomW = sum(b.GetSize().width for b in self.zoomBtns) + sb.FromDIP(8)
+        sb.SetStatusWidths([-1, pageW, zoomW])
+
+        sb.Bind(wx.EVT_SIZE, self.OnStatusBarSize)
+
+        self.updateZoomStatus()
+
+        # the status bar may already have its final size, in which case no
+        # size event comes
+        wx.CallAfter(self.layoutZoomButtons)
+
+    def OnStatusBarSize(self, event):
+        self.layoutZoomButtons()
+        event.Skip()
+
+    # place the zoom buttons centered in their status bar field
+    def layoutZoomButtons(self):
+        rect = self.statusBar.GetFieldRect(self.SB_ZOOM)
+        x = rect.x + (rect.width - sum(b.GetSize().width for b in self.zoomBtns)) // 2
+
+        for btn in self.zoomBtns:
+            w = btn.GetSize().width
+            btn.SetSize(x, rect.y, w, rect.height)
+            x += w
+
+    def OnZoomButton(self, zoomFunc, event):
+        zoomFunc()
+        self.panel.ctrl.SetFocus()
+
+    def setPageStatus(self, page, pageCnt):
+        self.statusBar.SetStatusText(_("Page %d / %d") % (page, pageCnt), self.SB_PAGE)
+
+    def updateZoomStatus(self):
+        zoom = self.gd.zoom
+        self.zoomLevelBtn.SetLabel("%d%%" % zoom)
+        self.zoomOutBtn.Enable(self.gd.getZoomStep(-1) != zoom)
+        self.zoomInBtn.Enable(self.gd.getZoomStep(1) != zoom)
 
     def ShowHideToolbar(self, event=None):
         self.CheckToolbar = self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR)
@@ -887,6 +968,7 @@ class MyFrame(wx.Frame):
             return
 
         self.gd.zoom = zoom
+        self.updateZoomStatus()
         self.panel.ctrl.refreshGuiConfig()
 
         for c in self.getCtrls():
