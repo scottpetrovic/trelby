@@ -38,7 +38,7 @@ When the user asks for a "build", "Windows build" or "exe" to test changes, run 
 
 ## MCP server
 
-`trelby/mcpserver.py` is a stdio MCP server that reads and edits `.trelby` files without the GUI; the operations themselves are in `trelby/mcptools.py` (no MCP SDK dependency, tested in `tests/test_mcptools.py`). The `mcp` SDK is an optional extra (`pip install trelby[mcp]`, entry point `trelby-mcp`) and is not bundled in the exe. Run it from source with `.venv/Scripts/python -m trelby.mcpserver`; for a client config, use the venv's python as the command, `["-m", "trelby.mcpserver"]` as args and the repo root as cwd.
+`trelby/mcpserver.py` is a stdio MCP server that reads and edits `.trelby` files without the GUI; the operations themselves are in `trelby/mcptools.py` (no MCP SDK dependency, tested in `tests/test_mcptools.py`). The `mcp` SDK is an optional extra (`pip install trelby[mcp]`, entry point `trelby-mcp`) and is not bundled in the exe. Run it from source with `.venv/Scripts/python -m trelby.mcpserver`; for a client config, use the venv's python as the command, `["-m", "trelby.mcpserver"]` as args and `PYTHONPATH` set to the repo root in `env` (Claude Desktop has no `cwd` option, and trelby isn't pip-installed in the venv). Claude Desktop rewrites its config file while running, so quit it fully (tray → Quit) before editing `claude_desktop_config.json`.
 
 Edits are made to the file on disk, so they don't reach a copy of the script open in the app. Every write needs the revision (content hash) from a previous read, and saves with a `.bak` backup.
 
