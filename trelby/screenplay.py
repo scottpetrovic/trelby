@@ -3639,6 +3639,54 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.line = len(self.lines) - 1
         self.column = len(self.lines[self.line].text)
 
+    # select the word at (line, col), as on a double click. clicking on
+    # whitespace or punctuation selects the run of it instead. selections
+    # are inclusive, so the cursor ends up on the word's last character.
+    def selectWordAt(self, line, col):
+        self.clearAutoComp()
+
+        s = self.lines[line].text
+
+        if not s:
+            self.clearMark()
+            self.gotoPos(line, 0)
+
+            return
+
+        col = util.clamp(col, 0, len(s) - 1)
+
+        def charClass(ch):
+            if not util.isWordBoundary(ch):
+                return 0
+            elif ch.isspace():
+                return 1
+            else:
+                return 2
+
+        cls = charClass(s[col])
+        start = col
+        end = col
+
+        while (start > 0) and (charClass(s[start - 1]) == cls):
+            start -= 1
+
+        while (end < (len(s) - 1)) and (charClass(s[end + 1]) == cls):
+            end += 1
+
+        self.setMark(line, start)
+        self.line = line
+        self.column = end
+
+    # select the whole element containing line, as on a triple click.
+    def selectElementAt(self, line):
+        self.clearAutoComp()
+
+        first, last = self.getElemIndexesFromLine(line)
+
+        self.setMark(first, 0)
+        self.line = last
+        self.column = len(self.lines[last].text)
+
     def insertForcedLineBreakCmd(self, cs):
         u = undo.ManyElems(self, undo.CMD_MISC, self.line, 1, 1)
 

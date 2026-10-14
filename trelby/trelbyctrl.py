@@ -62,7 +62,7 @@ class MyCtrl(wx.Control):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-        self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDClick)
         self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
@@ -90,6 +90,14 @@ class MyCtrl(wx.Control):
 
     def clearVars(self):
         self.mouseSelectActive = False
+
+        # True while the button is still down after a double/triple click
+        # selected a word/element, so drags don't disturb that selection
+        self.clickSelectActive = False
+
+        # (time, position) of the last double click, to detect triple
+        # clicks, which wx has no event for
+        self.lastDClick = None
 
         # find dialog stored settings
         self.findDlgFindText = ""
@@ -519,6 +527,15 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(self.sp.line)
 
     def OnLeftDown(self, event, mark=False):
+        if not mark and self.isTripleClick(event.GetPosition()):
+            self.lastDClick = None
+            self.selectByClick(event, False)
+
+            return
+
+        if not mark:
+            self.clickSelectActive = False
+
         if not self.mouseSelectActive:
             self.sp.clearMark()
             self.updateScreen()
@@ -532,8 +549,59 @@ class MyCtrl(wx.Control):
             self.sp.gotoPos(line, col, mark)
             self.updateScreen()
 
+    def OnLeftDClick(self, event):
+        self.lastDClick = (time.monotonic(), event.GetPosition())
+        self.selectByClick(event, True)
+
+    # True if a click at pos follows the last double click closely enough,
+    # in time and space, to make it a triple click.
+    def isTripleClick(self, pos):
+        if not self.lastDClick:
+            return False
+
+        t, dpos = self.lastDClick
+
+        ms = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_MSEC)
+        dx = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_X)
+        dy = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_Y)
+
+        # metrics are -1 if the platform doesn't report them
+        ms = ms if ms > 0 else 500
+        dx = dx if dx > 0 else 4
+        dy = dy if dy > 0 else 4
+
+        return (
+            ((time.monotonic() - t) * 1000 <= ms)
+            and (abs(pos.x - dpos.x) <= dx)
+            and (abs(pos.y - dpos.y) <= dy)
+        )
+
+    # select the word (isWord) or element under the mouse.
+    def selectByClick(self, event, isWord):
+        pos = event.GetPosition()
+        line, col = self.gd.vm.pos2linecol(self, pos.x, pos.y)
+
+        if line is None:
+            return
+
+        if isWord:
+            self.sp.selectWordAt(line, col)
+        else:
+            self.sp.selectElementAt(line)
+
+        self.mouseSelectActive = True
+        self.clickSelectActive = True
+        self.updateScreen()
+
     def OnLeftUp(self, event):
         self.mouseSelectActive = False
+
+        # a double/triple click selection is deliberate, even if it's
+        # just one character
+        if self.clickSelectActive:
+            self.clickSelectActive = False
+
+            return
 
         # to avoid phantom selections (Windows sends some strange events
         # sometimes), check if anything worthwhile is actually selected.
@@ -543,7 +611,7 @@ class MyCtrl(wx.Control):
             self.sp.clearMark()
 
     def OnMotion(self, event):
-        if event.LeftIsDown():
+        if event.LeftIsDown() and not self.clickSelectActive:
             self.OnLeftDown(event, mark=True)
 
     def OnRightDown(self, event):
