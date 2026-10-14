@@ -15,6 +15,7 @@ import trelby.cfgdlg as cfgdlg
 import trelby.charmapdlg as charmapdlg
 import trelby.commandsdlg as commandsdlg
 import trelby.config as config
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.namesdlg as namesdlg
 import trelby.screenplay as screenplay
@@ -842,18 +843,7 @@ class MyFrame(wx.Frame):
             self.elemTypeBar.Destroy()
 
         def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
-            filepath = misc.getFullPath(("trelby/resources/%s" % iconFilename))
-
-            # neat hack to change the color of the SVG
-            with open(filepath, "r") as svg_file:
-                svg_content = svg_file.read()
-
-            if config.isDarkAppearance():
-                svg_content = svg_content.replace("fill:#000000", "fill:#CCCCCC")
-            svg_content = svg_content.encode()
-
-            bitmap = wx.BitmapBundle.FromSVG(svg_content, size)
-
+            bitmap = gutil.svgBitmap(iconFilename, size)
             tool = tb.AddTool(id, "", bitmap, shortHelp=toolTip, kind=kind)
 
             # the status bar shows this while the tool is hovered

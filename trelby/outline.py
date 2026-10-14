@@ -1,5 +1,6 @@
 import wx
 
+import trelby.gutil as gutil
 import trelby.screenplay as screenplay
 
 # max length of the summary text shown for each scene
@@ -44,18 +45,28 @@ class OutlinePanel(wx.Panel):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        # header: the panel's title and a button to close it
+        # header: the panel's title, buttons to move the selected scene,
+        # and a button to close the panel
         hdr = wx.BoxSizer(wx.HORIZONTAL)
 
         title = wx.StaticText(self, -1, _("Outline"))
         title.SetFont(title.GetFont().Bold())
         hdr.Add(title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, self.FromDIP(6))
 
-        self.closeBtn = wx.Button(
-            self, -1, "\u2715", style=wx.BU_EXACTFIT | wx.BORDER_NONE
+        def addBtn(iconFilename, toolTip):
+            bitmap = gutil.svgBitmap(iconFilename, wx.Size(16, 16))
+            btn = wx.BitmapButton(self, -1, bitmap, style=wx.BORDER_NONE)
+            btn.SetToolTip(toolTip)
+            hdr.Add(btn, 0, wx.ALL, self.FromDIP(2))
+
+            return btn
+
+        self.upBtn = addBtn("moveup.svg", _("Move the selected scene up (Ctrl+Up)"))
+        self.downBtn = addBtn(
+            "movedown.svg", _("Move the selected scene down (Ctrl+Down)")
         )
-        self.closeBtn.SetToolTip(_("Hide the outline"))
-        hdr.Add(self.closeBtn, 0, wx.ALL, self.FromDIP(2))
+        hdr.AddSpacer(self.FromDIP(6))
+        self.closeBtn = addBtn("closepanel.svg", _("Hide the outline"))
 
         vsizer.Add(hdr, 0, wx.EXPAND)
         vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND)
@@ -69,18 +80,6 @@ class OutlinePanel(wx.Panel):
         self.list.InsertColumn(3, _("Summary"), width=300)
 
         vsizer.Add(self.list, 1, wx.EXPAND)
-
-        hsizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.upBtn = wx.Button(self, -1, _("Move up"))
-        self.upBtn.SetToolTip(_("Move the selected scene up (Ctrl+Up)"))
-        hsizer.Add(self.upBtn, 1, wx.ALL, 4)
-
-        self.downBtn = wx.Button(self, -1, _("Move down"))
-        self.downBtn.SetToolTip(_("Move the selected scene down (Ctrl+Down)"))
-        hsizer.Add(self.downBtn, 1, wx.TOP | wx.BOTTOM | wx.RIGHT, 4)
-
-        vsizer.Add(hsizer, 0, wx.EXPAND)
 
         self.SetSizer(vsizer)
 

@@ -16,6 +16,20 @@ else:
 # this contains misc GUI-related functions
 
 
+# load one of the black SVG icons in trelby/resources as a bitmap bundle of
+# the given size (in DIPs), recolored to show up on a dark appearance
+def svgBitmap(iconFilename, size):
+    filepath = misc.getFullPath("trelby/resources/%s" % iconFilename)
+
+    with open(filepath, "r") as svg_file:
+        svg_content = svg_file.read()
+
+    if config.isDarkAppearance():
+        svg_content = svg_content.replace("fill:#000000", "fill:#CCCCCC")
+
+    return wx.BitmapBundle.FromSVG(svg_content.encode(), size)
+
+
 # since at least GTK 1.2's single-selection listbox is buggy in that if we
 # don't deselect the old item manually, it does multiple selections, we
 # have this function that does the following:
