@@ -1123,6 +1123,27 @@ class ConfigGlobal:
                     isMenu=True,
                 ),
                 Command("Watermark", _("Generate watermarked PDFs."), isMenu=True),
+                Command(
+                    "ZoomIn",
+                    _("Zoom in."),
+                    [util.Key(ord("="), ctrl=True).toInt()],
+                    isFixed=True,
+                    isMenu=True,
+                ),
+                Command(
+                    "ZoomOut",
+                    _("Zoom out."),
+                    [util.Key(ord("-"), ctrl=True).toInt()],
+                    isFixed=True,
+                    isMenu=True,
+                ),
+                Command(
+                    "ZoomReset",
+                    _("Reset zoom to 100%."),
+                    [util.Key(ord("0"), ctrl=True).toInt()],
+                    isFixed=True,
+                    isMenu=True,
+                ),
             ]
         )
 
@@ -1388,7 +1409,9 @@ class ConfigGui:
     redColor = None
     blackColor = None
 
-    def __init__(self, cfgGl):
+    # zoom is the screen zoom level in percent; it scales the fonts and
+    # the draft mode line spacing.
+    def __init__(self, cfgGl, zoom=100):
 
         if not ConfigGui.constantsInited:
             ConfigGui.bluePen = wx.Pen(wx.Colour(0, 0, 255))
@@ -1492,12 +1515,18 @@ class ConfigGui:
                 )
                 setattr(cfgGl, fname, fi.font.GetNativeFontInfo().ToString())
 
+            if zoom != 100:
+                fi.font = fi.font.Scaled(zoom / 100.0)
+
             fx, fy = util.getTextExtent(fi.font, "O")
 
             fi.fx = max(1, fx)
             fi.fy = max(1, fy)
 
             self.fonts.append(fi)
+
+        # vertical distance between rows in draft mode, in pixels
+        self.fontYdelta = max(1, round(cfgGl.fontYdelta * zoom / 100.0))
 
     # TextType -> FontInfo
     def tt2fi(self, tt):

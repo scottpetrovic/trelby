@@ -126,6 +126,11 @@ class MyFrame(wx.Frame):
         viewMenu.AppendCheckItem(
             ID_VIEW_SHOW_FORMATTING, "(&S) " + _("Show formatting")
         )
+        viewMenu.AppendSeparator()
+        viewMenu.Append(ID_VIEW_ZOOM_IN, "(&I) " + _("Zoom in") + "\tCTRL-=")
+        viewMenu.Append(ID_VIEW_ZOOM_OUT, "(&U) " + _("Zoom out") + "\tCTRL--")
+        viewMenu.Append(ID_VIEW_ZOOM_RESET, "(&R) " + _("Reset zoom") + "\tCTRL-0")
+        viewMenu.AppendSeparator()
         viewMenu.Append(ID_VIEW_FULL_SCREEN, "(&F) " + _("Fullscreen") + "\tF11")
 
         scriptMenu = wx.Menu()
@@ -342,6 +347,9 @@ class MyFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, self.OnShowFormatting, id=ID_VIEW_SHOW_FORMATTING)
             self.Bind(wx.EVT_MENU, self.OnShowOutline, id=ID_VIEW_SHOW_OUTLINE)
             self.Bind(wx.EVT_MENU, self.ToggleFullscreen, id=ID_VIEW_FULL_SCREEN)
+            self.Bind(wx.EVT_MENU, self.OnZoomIn, id=ID_VIEW_ZOOM_IN)
+            self.Bind(wx.EVT_MENU, self.OnZoomOut, id=ID_VIEW_ZOOM_OUT)
+            self.Bind(wx.EVT_MENU, self.OnZoomReset, id=ID_VIEW_ZOOM_RESET)
             self.Bind(wx.EVT_MENU, self.OnFindNextError, id=ID_SCRIPT_FIND_ERROR)
             self.Bind(wx.EVT_MENU, self.OnPaginate, id=ID_SCRIPT_PAGINATE)
             self.Bind(
@@ -400,6 +408,19 @@ class MyFrame(wx.Frame):
         addTBMenu(ID_TOOLBAR_REPORTS, reportsMenu)
         addTBMenu(ID_TOOLBAR_VIEWS, viewMenu)
         addTBMenu(ID_TOOLBAR_TOOLS, toolsMenu)
+
+        # alternate zoom shortcuts the menu labels can't express: CTRL-+
+        # (shifted '=' on many keyboards) and the numeric keypad
+        self.SetAcceleratorTable(
+            wx.AcceleratorTable(
+                [
+                    (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("="), ID_VIEW_ZOOM_IN),
+                    (wx.ACCEL_CTRL, wx.WXK_NUMPAD_ADD, ID_VIEW_ZOOM_IN),
+                    (wx.ACCEL_CTRL, wx.WXK_NUMPAD_SUBTRACT, ID_VIEW_ZOOM_OUT),
+                    (wx.ACCEL_CTRL, wx.WXK_NUMPAD0, ID_VIEW_ZOOM_RESET),
+                ]
+            )
+        )
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
@@ -825,6 +846,30 @@ class MyFrame(wx.Frame):
             mode = self.gd.VIEWMODE_SIDE_BY_SIDE
 
         self.gd.setViewMode(mode)
+
+        for c in self.getCtrls():
+            c.refreshCache()
+
+        c = self.panel.ctrl
+        c.makeLineVisible(c.sp.line)
+        c.updateScreen()
+
+    def OnZoomIn(self, event=None):
+        self.setZoom(self.gd.getZoomStep(1))
+
+    def OnZoomOut(self, event=None):
+        self.setZoom(self.gd.getZoomStep(-1))
+
+    def OnZoomReset(self, event=None):
+        self.setZoom(100)
+
+    # set zoom level (in percent) for all open scripts
+    def setZoom(self, zoom):
+        if zoom == self.gd.zoom:
+            return
+
+        self.gd.zoom = zoom
+        self.panel.ctrl.refreshGuiConfig()
 
         for c in self.getCtrls():
             c.refreshCache()

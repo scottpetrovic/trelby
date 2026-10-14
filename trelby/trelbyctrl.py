@@ -71,7 +71,7 @@ class MyCtrl(wx.Control):
         self.updateScreen(redraw=False)
 
     def refreshGuiConfig(self):
-        self.gd.cfgGui = config.ConfigGui(self.gd.cfgGl)
+        self.gd.cfgGui = config.ConfigGui(self.gd.cfgGl, self.gd.zoom)
 
     def OnChangeType(self, event):
         cs = screenplay.CommandState()
@@ -500,6 +500,14 @@ class MyCtrl(wx.Control):
         self.PopupMenu(m)
 
     def OnMouseWheel(self, event):
+        if event.ControlDown():
+            if event.GetWheelRotation() > 0:
+                self.gd.mainFrame.OnZoomIn()
+            elif event.GetWheelRotation() < 0:
+                self.gd.mainFrame.OnZoomOut()
+
+            return
+
         if event.GetWheelRotation() > 0:
             delta = -self.gd.cfgGl.mouseWheelLines
         else:

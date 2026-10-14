@@ -93,9 +93,6 @@ class MyApp(wx.App):
             # various reasons, if no default config file yet exists
             util.writeToFile(gd.confFilename, cfgGl.save(), None)
 
-        # refreshGuiConfig()
-        gd.cfgGui = config.ConfigGui(gd.cfgGl)
-
         # cfgGl.scriptDir is the directory used on startup, while
         # misc.scriptDir is updated every time the user opens something in
         # a different directory.
@@ -108,6 +105,9 @@ class MyApp(wx.App):
                 gd.load(s)
 
         gd.setViewMode(gd.viewMode)
+
+        # refreshGuiConfig()
+        gd.cfgGui = config.ConfigGui(gd.cfgGl, gd.zoom)
 
         if util.fileExists(gd.scDictFilename):
             s = util.loadFile(gd.scDictFilename, None)

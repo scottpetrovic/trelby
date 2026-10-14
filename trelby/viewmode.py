@@ -212,7 +212,7 @@ class ViewModeDraft(ViewMode):
 
         marginLeft = int(ctrl.mm2p * cfg.marginLeft)
         cox = util.clamp((width - ctrl.pageW) // 2, 0)
-        fyd = ctrl.sp.cfgGl.fontYdelta
+        fyd = cfgGui.fontYdelta
         length = len(ls)
 
         texts = []
@@ -255,7 +255,7 @@ class ViewModeDraft(ViewMode):
         return (texts, [])
 
     def getLineHeight(self, ctrl):
-        return ctrl.sp.cfgGl.fontYdelta
+        return ctrl.getCfgGui().fontYdelta
 
     def getPageWidth(self, ctrl):
         # this is not really used for much in draft mode, as it has no
