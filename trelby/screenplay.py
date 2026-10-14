@@ -822,12 +822,26 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         titleNeeded = True
         kwPattern = re.compile(r"^([A-za-z][^:]+:)")
         for page in self.titles.pages:
-            for titleLine in page:
+            # index of a title string already used as an author
+            skipIndex = -1
+            for i, titleLine in enumerate(page):
+                if i == skipIndex:
+                    continue
                 if titleNeeded and titleLine.isBold and titleLine.isCentered:
                     generateTitleString("Title:", titleLine.items, 0, "_**", "**_")
                     titleNeeded = False
-                elif titleLine.items[0] == "by":
-                    generateTitleString("Author:", titleLine.items, 2, "", "")
+                elif titleLine.items[0].strip().lower() == "by":
+                    # the author is either in this title string after "by"
+                    # (usually with a blank line in between), or, if "by"
+                    # is alone, in the next one.
+                    author = titleLine.items[1:]
+                    while author and not author[0].strip():
+                        author = author[1:]
+                    if not author and (i + 1) < len(page):
+                        author = page[i + 1].items
+                        skipIndex = i + 1
+                    if author:
+                        generateTitleString("Author:", author, 0, "", "")
                 elif kwPattern.match(titleLine.items[0]):
                     generateTitleString(titleLine.items[0], titleLine.items, 0, "", "")
                 else:
