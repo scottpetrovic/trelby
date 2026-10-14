@@ -80,8 +80,15 @@ class OutlineList(wx.VListBox):
         # screenplay.OutlineItems shown
         self.items = []
 
-        # index of the item highlighted as a drop target, or None
-        self.dropIdx = None
+        # index of the item highlighted while its color menu is shown, or
+        # None
+        self.markIdx = None
+
+        # while dragging a scene: index of the item being dragged, and of
+        # the item it would be dropped on (None if dropping isn't possible
+        # at the current mouse position)
+        self.dragIdx = None
+        self.dragDst = None
 
         self.normalFont = self.GetFont()
         self.boldFont = self.normalFont.Bold()
@@ -118,13 +125,26 @@ class OutlineList(wx.VListBox):
         self.SetItemCount(len(items))
         self.Refresh()
 
-    def setDropIndex(self, idx):
-        old = self.dropIdx
-        self.dropIdx = idx
-
-        for i in (old, idx):
+    def refreshRows(self, rows):
+        for i in rows:
             if (i is not None) and (i < self.GetItemCount()):
                 self.RefreshRow(i)
+
+    def setMarkedIndex(self, idx):
+        old = self.markIdx
+        self.markIdx = idx
+        self.refreshRows({old, idx})
+
+    # show item src as being dragged, and where it would land if dropped
+    # on item dst. both None when no drag is in progress.
+    def setDrag(self, src, dst):
+        if (src, dst) == (self.dragIdx, self.dragDst):
+            return
+
+        rows = {self.dragIdx, self.dragDst, src, dst}
+        self.dragIdx = src
+        self.dragDst = dst
+        self.refreshRows(rows)
 
     # x position of the heading and summary text, relative to the row
     def getTextX(self):
@@ -163,7 +183,7 @@ class OutlineList(wx.VListBox):
         return lines
 
     def isHighlighted(self, n):
-        return (n == self.dropIdx) or (self.IsSelected(n) and self.HasFocus())
+        return (n == self.markIdx) or (self.IsSelected(n) and self.HasFocus())
 
     def OnMeasureItem(self, n):
         lines = 1 + len(self.getSummaryLines(n))
@@ -224,7 +244,7 @@ class OutlineList(wx.VListBox):
             dc.SetBrush(wx.Brush(str2color(self.items[n].color)))
             dc.DrawRectangle(rect.x, rect.y, self.barWidth, rect.height)
 
-        if n == self.dropIdx:
+        if n == self.markIdx:
             dc.SetPen(wx.Pen(hl))
             dc.SetBrush(wx.TRANSPARENT_BRUSH)
             dc.DrawRectangle(rect)
@@ -234,10 +254,45 @@ class OutlineList(wx.VListBox):
         y = rect.GetBottom()
         dc.DrawLine(rect.GetLeft(), y, rect.GetRight() + 1, y)
 
+        # dashed outline around the item being dragged
+        if n == self.dragIdx:
+            dc.SetPen(wx.Pen(hl, self.FromDIP(1), wx.PENSTYLE_SHORT_DASH))
+            dc.SetBrush(wx.TRANSPARENT_BRUSH)
+            dc.DrawRectangle(wx.Rect(rect).Deflate(self.FromDIP(1)))
+
+    # draw the line showing where a dragged item would be inserted, at the
+    # bottom of row n (in rect) if 'below' is True, otherwise at its top.
+    # rows are drawn clipped to their own rect, so it has to fit inside.
+    def drawInsertMark(self, dc, rect, n, below):
+        hl = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+        thickness = self.FromDIP(2)
+        radius = self.FromDIP(4)
+
+        if below:
+            cy = rect.GetBottom() - radius
+        else:
+            cy = rect.y + radius
+
+        cx = rect.x + self.barWidth + radius + self.FromDIP(1)
+
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.SetBrush(wx.Brush(hl))
+        dc.DrawRectangle(
+            cx, cy - thickness // 2, rect.GetRight() - self.pad.x - cx, thickness
+        )
+
+        dc.SetPen(wx.Pen(hl, thickness))
+        dc.SetBrush(wx.Brush(self.getRowColor(n)))
+        dc.DrawCircle(cx, cy, radius - thickness // 2)
+
     def OnDrawItem(self, dc, rect, n):
         it = self.items[n]
         rowBg = self.getRowColor(n)
         fg = self.getTextColor(n, rowBg)
+
+        # fade out the item being dragged
+        if n == self.dragIdx:
+            fg = blendColors(fg, rowBg, 0.6)
 
         x = rect.x + self.pad.x
         y = rect.y + self.pad.y
@@ -277,6 +332,11 @@ class OutlineList(wx.VListBox):
         for line in self.getSummaryLines(n):
             y += self.lineHeight
             dc.DrawText(line, textX, y)
+
+        # dropping item dragIdx on item n puts it where n is now, so it
+        # lands after n when moving down and before it when moving up
+        if (n == self.dragDst) and (n != self.dragIdx):
+            self.drawInsertMark(dc, rect, n, n > self.dragIdx)
 
     def OnSize(self, event):
         event.Skip()
@@ -487,13 +547,14 @@ class OutlinePanel(wx.Panel):
 
         return idx
 
-    # show the drop target as highlighted
+    # show where the dragged item would be dropped
     def setDropIndex(self, idx):
         lc = self.list
-        lc.setDropIndex(idx)
+        lc.setDrag(self.dragIdx, idx)
 
+        # scenes can only move up or down
         if idx is not None:
-            lc.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+            lc.SetCursor(wx.Cursor(wx.CURSOR_SIZENS))
         else:
             lc.SetCursor(wx.Cursor(wx.CURSOR_NO_ENTRY))
 
@@ -511,9 +572,10 @@ class OutlinePanel(wx.Panel):
 
     def endDrag(self):
         self.dragTimer.Stop()
-        self.setDropIndex(None)
+        self.dropIdx = None
 
         lc = self.list
+        lc.setDrag(None, None)
 
         if lc.HasCapture():
             lc.ReleaseMouse()
@@ -697,12 +759,12 @@ class OutlinePanel(wx.Panel):
         menu.Append(mi)
 
         # show which item the menu is for
-        self.list.setDropIndex(idx)
+        self.list.setMarkedIndex(idx)
 
         try:
             sel = win.GetPopupMenuSelectionFromUser(menu, pos)
         finally:
-            self.list.setDropIndex(None)
+            self.list.setMarkedIndex(None)
             menu.Destroy()
 
         if sel == int(noneId):
