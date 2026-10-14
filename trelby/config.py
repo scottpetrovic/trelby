@@ -1177,7 +1177,7 @@ class ConfigGlobal:
                     _("Change view mode to side by side."),
                     isMenu=True,
                 ),
-                Command("Watermark", _("Generate watermarked PDFs."), isMenu=True),
+                Command("Watermark", _("Export the current script as watermarked PDFs."), isMenu=True),
                 Command(
                     "ZoomIn",
                     _("Zoom in."),

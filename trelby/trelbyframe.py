@@ -81,6 +81,10 @@ class MyFrame(wx.Frame):
         exportMenu = wx.Menu()
         exportMenu.Append(ID_FILE_EXPORT_PDF, misc.mnemonic("P", _("PDF") + "..."))
         exportMenu.Append(
+            ID_FILE_EXPORT_WATERMARK,
+            misc.mnemonic("W", _("Watermarked PDF") + "..."),
+        )
+        exportMenu.Append(
             ID_FILE_EXPORT_RTF, misc.mnemonic("R", _("Rich Text (RTF)") + "...")
         )
         exportMenu.Append(
@@ -229,10 +233,6 @@ class MyFrame(wx.Frame):
         toolsMenu.AppendSeparator()
         toolsMenu.Append(
             ID_TOOLS_COMPARE_SCRIPTS, misc.mnemonic("o", _("Compare scripts") + "...")
-        )
-        toolsMenu.Append(
-            ID_TOOLS_WATERMARK,
-            misc.mnemonic("G", _("Generate watermarked PDFs") + "..."),
         )
 
         helpMenu = wx.Menu()
@@ -420,7 +420,7 @@ class MyFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, self.OnNameDatabase, id=ID_TOOLS_NAME_DB)
             self.Bind(wx.EVT_MENU, self.OnCharacterMap, id=ID_TOOLS_CHARMAP)
             self.Bind(wx.EVT_MENU, self.OnCompareScripts, id=ID_TOOLS_COMPARE_SCRIPTS)
-            self.Bind(wx.EVT_MENU, self.OnWatermark, id=ID_TOOLS_WATERMARK)
+            self.Bind(wx.EVT_MENU, self.OnWatermark, id=ID_FILE_EXPORT_WATERMARK)
             self.Bind(wx.EVT_MENU, self.OnHelpCommands, id=ID_HELP_COMMANDS)
             self.Bind(wx.EVT_MENU, self.OnHelpManual, id=ID_HELP_MANUAL)
             self.Bind(wx.EVT_MENU, self.OnAbout, id=ID_HELP_ABOUT)
