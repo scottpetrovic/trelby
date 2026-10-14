@@ -623,6 +623,11 @@ class MyFrame(wx.Frame):
         self.panel.ctrl.updateCommon()
         self.setTitle(self.panel.ctrl.fileNameDisplay)
 
+        # also called when a script is opened or closed
+        self.menuBar.Enable(
+            ID_TOOLS_COMPARE_SCRIPTS, self.tabCtrl.getPageCount() >= 2
+        )
+
     def selectScript(self, toNext):
         current = self.tabCtrl.getSelectedPageIndex()
         pageCnt = self.tabCtrl.getPageCount()
