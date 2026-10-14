@@ -67,6 +67,9 @@ class GlobalData:
             self.VIEWMODE_SIDE_BY_SIDE,
         )
 
+        v.addBool("showOutline", False, "ShowOutline")
+        v.addInt("outlineWidth", 240, "OutlineWidth", 120, 2000)
+
         v.addList("files", [], _("Files"), mypickle.StrUnicodeVar("", "", ""))
 
         v.makeDicts()

@@ -1097,6 +1097,11 @@ class ConfigGlobal:
                 ),
                 Command("TitlesDlg", _("Open the titles dialog."), isMenu=True),
                 Command(
+                    "ToggleOutline",
+                    _("Show or hide the outline view."),
+                    isMenu=True,
+                ),
+                Command(
                     "ToggleShowFormatting",
                     _("Toggle 'Show formatting' display."),
                     isMenu=True,

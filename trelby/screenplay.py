@@ -1946,6 +1946,150 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         return ret
 
+    # return the first line of every scene heading and act break element,
+    # in script order.
+    def getOutlineStarts(self):
+        ls = self.lines
+
+        return [
+            i
+            for i in range(len(ls))
+            if (ls[i].lt in (SCENE, ACTBREAK)) and self.isFirstLineOfElem(i)
+        ]
+
+    # return the full text of the element starting at the given line, with
+    # line breaks converted to spaces.
+    def getElemText(self, line):
+        ls = self.lines
+        s = ""
+
+        while 1:
+            ln = ls[line]
+            s += ln.text
+
+            if ln.lb == LB_LAST:
+                break
+
+            s += config.lb2str(ln.lb).replace("\n", " ")
+            line += 1
+
+        return s
+
+    # return the script's outline as a list of OutlineItems, one for each
+    # scene and act break, in script order. anything before the first
+    # scene / act break is not included. page numbers are only accurate
+    # if pagination is up to date.
+    def getOutline(self):
+        ls = self.lines
+        starts = self.getOutlineStarts()
+        ret = []
+        scene = 0
+
+        for idx, start in enumerate(starts):
+            if idx + 1 < len(starts):
+                end = starts[idx + 1] - 1
+            else:
+                end = len(ls) - 1
+
+            lt = ls[start].lt
+            heading = self.getElemText(start)
+
+            if self.cfg.getType(lt).screen.isCaps:
+                heading = util.upper(heading)
+
+            if lt == SCENE:
+                scene += 1
+                sceneNr = str(scene)
+            else:
+                sceneNr = ""
+
+            note = None
+            action = None
+
+            i = start + 1
+
+            while i <= end:
+                if self.isFirstLineOfElem(i):
+                    if (ls[i].lt == NOTE) and (note is None):
+                        note = self.getElemText(i)
+                        break
+                    elif (ls[i].lt == ACTION) and (action is None):
+                        action = self.getElemText(i)
+
+                i += 1
+
+            summary = note if note is not None else (action or "")
+
+            ret.append(
+                OutlineItem(
+                    lt,
+                    sceneNr,
+                    start,
+                    end,
+                    heading,
+                    summary,
+                    self.line2page(start),
+                )
+            )
+
+        return ret
+
+    # move the scene (or act break) containing the given line one step up
+    # (direction = -1) or down (direction = 1) in the script, swapping it
+    # with its neighbor. material before the first scene / act break is
+    # never moved, and nothing can be moved above it. on success, the
+    # cursor is placed at the start of the moved scene and True is
+    # returned.
+    def moveScene(self, line, direction):
+        starts = self.getOutlineStarts()
+
+        # index of the block containing line
+        idx = -1
+
+        for i, start in enumerate(starts):
+            if start <= line:
+                idx = i
+            else:
+                break
+
+        if idx == -1:
+            return False
+
+        other = idx + direction
+
+        if (other < 0) or (other >= len(starts)):
+            return False
+
+        self.clearAutoComp()
+
+        bounds = starts + [len(self.lines)]
+        first = min(idx, other)
+
+        s1 = bounds[first]
+        s2 = bounds[first + 1]
+        end = bounds[first + 2]
+
+        u = undo.AnyDifference(self)
+
+        upper = self.lines[s1:s2]
+        lower = self.lines[s2:end]
+        self.lines[s1:end] = lower + upper
+
+        if direction < 0:
+            self.line = s1
+        else:
+            self.line = s1 + len(lower)
+
+        self.column = 0
+
+        self.clearMark()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return True
+
     # return a dictionary of all scene names (single-line text elements
     # only, upper-cased, values = None).
     def getSceneNames(self):
@@ -3444,6 +3588,35 @@ class ClipData:
 
         # list of Line objects
         self.lines = []
+
+
+# one entry (a scene or an act break) in a script's outline. see
+# Screenplay.getOutline.
+class OutlineItem:
+    def __init__(self, lt, sceneNr, startLine, endLine, heading, summary, page):
+
+        # SCENE or ACTBREAK
+        self.lt = lt
+
+        # scene number as a string, or "" for act breaks
+        self.sceneNr = sceneNr
+
+        # range of lines covered, inclusive
+        self.startLine = startLine
+        self.endLine = endLine
+
+        # text of the scene heading / act break element
+        self.heading = heading
+
+        # text of the first note in the scene, or if there are none, the
+        # first action element. "" if neither exists.
+        self.summary = summary
+
+        # page number the item starts on
+        self.page = page
+
+    def __eq__(self, other):
+        return isinstance(other, OutlineItem) and (self.__dict__ == other.__dict__)
 
 
 # stuff we need when handling commands in Screenplay.

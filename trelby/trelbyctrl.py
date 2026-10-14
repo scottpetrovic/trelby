@@ -48,11 +48,12 @@ KC_CTRL_V = 22
 
 class MyCtrl(wx.Control):
 
-    def __init__(self, parent, id, gd):
+    # panel is the trelbypanel.MyPanel we belong to
+    def __init__(self, parent, id, gd, panel):
         style = wx.WANTS_CHARS | wx.FULL_REPAINT_ON_RESIZE | wx.NO_BORDER
         wx.Control.__init__(self, parent, id, style=style)
 
-        self.panel = parent
+        self.panel = panel
         self.gd = gd
 
         self.Bind(wx.EVT_SIZE, self.OnSize)
@@ -347,6 +348,8 @@ class MyCtrl(wx.Control):
         self.gd.mainFrame.toolBar.EnableTool(ID_EDIT_UNDO, canUndo)
         self.gd.mainFrame.toolBar.EnableTool(ID_EDIT_REDO, canRedo)
 
+        self.panel.outline.scheduleRefresh()
+
     # apply per-script config
     def applyCfg(self, newCfg):
         self.sp.applyCfg(newCfg)
@@ -435,9 +438,11 @@ class MyCtrl(wx.Control):
         pass
 
     def OnSize(self, event):
-        if misc.doDblBuf:
-            size = self.GetClientSize()
+        size = self.GetClientSize()
 
+        # we can briefly be zero-sized while the outline view's splitter
+        # lays us out, and wx can't create empty bitmaps
+        if misc.doDblBuf and (size.width > 0) and (size.height > 0):
             sb = wx.Bitmap(size.width, size.height)
             old = getattr(self.__class__, "screenBuf", None)
 
@@ -865,6 +870,30 @@ class MyCtrl(wx.Control):
 
         # we need to refresh the screen in all cases because pagination
         # might have changed
+        self.makeLineVisible(self.sp.line)
+        self.updateScreen()
+
+    # move the cursor to the start of the given line and scroll it to the
+    # top of the screen. used by the outline view.
+    def gotoLine(self, line):
+        self.clearAutoComp()
+        self.sp.clearMark()
+        self.sp.gotoPos(line, 0)
+
+        self.sp.setTopLine(line)
+        self.makeLineVisible(line)
+        self.updateScreen()
+
+    # move the scene containing the given line up (direction = -1) or down
+    # (direction = 1). used by the outline view.
+    def moveScene(self, line, direction):
+        self.clearAutoComp()
+
+        if not self.sp.moveScene(line, direction):
+            return
+
+        self.sp.paginate()
+        self.sp.setTopLine(self.sp.line)
         self.makeLineVisible(self.sp.line)
         self.updateScreen()
 

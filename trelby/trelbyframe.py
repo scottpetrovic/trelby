@@ -121,6 +121,8 @@ class MyFrame(wx.Frame):
             viewMenu.Check(ID_VIEW_STYLE_SIDE_BY_SIDE, True)
 
         viewMenu.AppendSeparator()
+        viewMenu.AppendCheckItem(ID_VIEW_SHOW_OUTLINE, "(&O) " + _("Outline"))
+        viewMenu.Check(ID_VIEW_SHOW_OUTLINE, gd.showOutline)
         viewMenu.AppendCheckItem(
             ID_VIEW_SHOW_FORMATTING, "(&S) " + _("Show formatting")
         )
@@ -338,6 +340,7 @@ class MyFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_LAYOUT)
             self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_SIDE_BY_SIDE)
             self.Bind(wx.EVT_MENU, self.OnShowFormatting, id=ID_VIEW_SHOW_FORMATTING)
+            self.Bind(wx.EVT_MENU, self.OnShowOutline, id=ID_VIEW_SHOW_OUTLINE)
             self.Bind(wx.EVT_MENU, self.ToggleFullscreen, id=ID_VIEW_FULL_SCREEN)
             self.Bind(wx.EVT_MENU, self.OnFindNextError, id=ID_SCRIPT_FIND_ERROR)
             self.Bind(wx.EVT_MENU, self.OnPaginate, id=ID_SCRIPT_PAGINATE)
@@ -779,6 +782,18 @@ class MyFrame(wx.Frame):
     def OnShowFormatting(self, event=None):
         self.showFormatting = self.menuBar.IsChecked(ID_VIEW_SHOW_FORMATTING)
         self.panel.ctrl.Refresh(False)
+
+    def OnToggleOutline(self, event=None):
+        self.menuBar.Check(
+            ID_VIEW_SHOW_OUTLINE, not self.menuBar.IsChecked(ID_VIEW_SHOW_OUTLINE)
+        )
+        self.OnShowOutline()
+
+    def OnShowOutline(self, event=None):
+        self.gd.showOutline = self.menuBar.IsChecked(ID_VIEW_SHOW_OUTLINE)
+
+        for i in range(self.tabCtrl.getPageCount()):
+            self.tabCtrl.getPage(i).showOutline(self.gd.showOutline)
 
     def OnViewModeDraft(self):
         self.menuBar.Check(ID_VIEW_STYLE_DRAFT, True)
