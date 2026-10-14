@@ -869,7 +869,6 @@ class MyFrame(wx.Frame):
 
         addTB(ID_EDIT_FIND, "find.svg", _("Find / Replace"))
         addTB(ID_TOOLBAR_VIEWS, "view.svg", _("View mode"))
-        addTB(ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
 
         tb.AddSeparator()
 
@@ -886,6 +885,10 @@ class MyFrame(wx.Frame):
             height,
         )
         tb.AddControl(self.elemTypeBar)
+
+        # at the far right, next to where the outline view appears
+        tb.AddStretchableSpace()
+        addTB(ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
 
         tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         tb.Realize()
