@@ -286,17 +286,21 @@ class MyElemTypeBar(wx.Control):
         for i, rect in enumerate(self.rects):
             label = self.items[i][1]
 
+            # Deflate works in place, and self.rects is also used for
+            # hit testing, so deflate a copy
+            fillRect = wx.Rect(rect).Deflate(inset)
+
             if i == self.selected:
                 dc.SetBrush(wx.Brush(selBgColor))
                 dc.SetPen(wx.Pen(selBgColor))
-                dc.DrawRoundedRectangle(rect.Deflate(inset), radius - 1)
+                dc.DrawRoundedRectangle(fillRect, radius - 1)
                 dc.SetTextForeground(selTextColor)
                 dc.SetFont(self.boldFont)
             else:
                 if i == self.hover:
                     dc.SetBrush(cfgGui.tabNonActiveBgBrush)
                     dc.SetPen(cfgGui.tabNonActiveBgPen)
-                    dc.DrawRoundedRectangle(rect.Deflate(inset), radius - 1)
+                    dc.DrawRoundedRectangle(fillRect, radius - 1)
 
                 dc.SetTextForeground(cfgGui.tabTextColor)
                 dc.SetFont(self.font)
