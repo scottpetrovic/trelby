@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 
 import trelby.config as config
@@ -17,8 +18,10 @@ else:
 
 
 # load one of the black SVG icons in trelby/resources as a bitmap bundle of
-# the given size (in DIPs), recolored to show up on a dark appearance
-def svgBitmap(iconFilename, size):
+# the given size (in DIPs), recolored to show up on a dark appearance. a
+# non-zero padding (in DIPs) adds that much empty space on every side of the
+# icon, by growing the SVG's viewBox, so the bundle is size + 2 * padding.
+def svgBitmap(iconFilename, size, padding=0):
     filepath = misc.getFullPath("trelby/resources/%s" % iconFilename)
 
     with open(filepath, "r") as svg_file:
@@ -27,7 +30,26 @@ def svgBitmap(iconFilename, size):
     if config.isDarkAppearance():
         svg_content = svg_content.replace("fill:#000000", "fill:#CCCCCC")
 
+    if padding:
+        svg_content = re.sub(
+            r'viewBox="([^"]*)"',
+            lambda m: 'viewBox="%s"' % padViewBox(m.group(1), size, padding),
+            svg_content,
+            count=1,
+        )
+        size = wx.Size(size.width + padding * 2, size.height + padding * 2)
+
     return wx.BitmapBundle.FromSVG(svg_content.encode(), size)
+
+
+# return the SVG viewBox 'box' grown on every side by 'padding' DIPs, for an
+# icon drawn at 'size' DIPs
+def padViewBox(box, size, padding):
+    x, y, w, h = [float(v) for v in box.replace(",", " ").split()]
+    padX = w * padding / size.width
+    padY = h * padding / size.height
+
+    return "%g %g %g %g" % (x - padX, y - padY, w + padX * 2, h + padY * 2)
 
 
 # since at least GTK 1.2's single-selection listbox is buggy in that if we

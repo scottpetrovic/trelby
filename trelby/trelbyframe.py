@@ -16,6 +16,7 @@ import trelby.charmapdlg as charmapdlg
 import trelby.commandsdlg as commandsdlg
 import trelby.config as config
 import trelby.gutil as gutil
+import trelby.menubar as menubar
 import trelby.misc as misc
 import trelby.namesdlg as namesdlg
 import trelby.screenplay as screenplay
@@ -240,7 +241,16 @@ class MyFrame(wx.Frame):
         helpMenu.AppendSeparator()
         helpMenu.Append(ID_HELP_ABOUT, misc.mnemonic("A", _("About") + "..."))
 
-        self.menuBar = wx.MenuBar()
+        # Windows' native menu bar has a fixed, cramped height, so there we
+        # draw our own, with the toolbar below it in the sizer instead of
+        # being managed by the frame
+        self.ownMenuBar = misc.isWindows
+
+        if self.ownMenuBar:
+            self.menuBar = menubar.MyMenuBar(self, self.getCfgGui)
+        else:
+            self.menuBar = wx.MenuBar()
+
         self.menuBar.Append(fileMenu, misc.mnemonic("F", _("File")))
         self.menuBar.Append(editMenu, misc.mnemonic("E", _("Edit")))
         self.menuBar.Append(viewMenu, misc.mnemonic("V", _("View")))
@@ -248,9 +258,13 @@ class MyFrame(wx.Frame):
         self.menuBar.Append(reportsMenu, misc.mnemonic("R", _("Reports")))
         self.menuBar.Append(toolsMenu, misc.mnemonic("l", _("Tools")))
         self.menuBar.Append(helpMenu, misc.mnemonic("H", _("Help")))
-        self.SetMenuBar(self.menuBar)
 
-        self.toolBar = self.CreateToolBar(wx.TB_HORIZONTAL)
+        if self.ownMenuBar:
+            self.toolBar = wx.ToolBar(self, style=wx.TB_HORIZONTAL | wx.TB_NODIVIDER)
+        else:
+            self.SetMenuBar(self.menuBar)
+            self.toolBar = self.CreateToolBar(wx.TB_HORIZONTAL)
+
         self.fillToolBar()
 
         self.createStatusBar()
@@ -260,6 +274,10 @@ class MyFrame(wx.Frame):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(vsizer)
+
+        if self.ownMenuBar:
+            vsizer.Add(self.menuBar, 0, wx.EXPAND)
+            vsizer.Add(self.toolBar, 0, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -441,16 +459,18 @@ class MyFrame(wx.Frame):
 
         # alternate zoom shortcuts the menu labels can't express: CTRL-+
         # (shifted '=' on many keyboards) and the numeric keypad
-        self.SetAcceleratorTable(
-            wx.AcceleratorTable(
-                [
-                    (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("="), ID_VIEW_ZOOM_IN),
-                    (wx.ACCEL_CTRL, wx.WXK_NUMPAD_ADD, ID_VIEW_ZOOM_IN),
-                    (wx.ACCEL_CTRL, wx.WXK_NUMPAD_SUBTRACT, ID_VIEW_ZOOM_OUT),
-                    (wx.ACCEL_CTRL, wx.WXK_NUMPAD0, ID_VIEW_ZOOM_RESET),
-                ]
-            )
-        )
+        accels = [
+            (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("="), ID_VIEW_ZOOM_IN),
+            (wx.ACCEL_CTRL, wx.WXK_NUMPAD_ADD, ID_VIEW_ZOOM_IN),
+            (wx.ACCEL_CTRL, wx.WXK_NUMPAD_SUBTRACT, ID_VIEW_ZOOM_OUT),
+            (wx.ACCEL_CTRL, wx.WXK_NUMPAD0, ID_VIEW_ZOOM_RESET),
+        ]
+
+        # a native menu bar handles its items' own accelerators
+        if self.ownMenuBar:
+            accels += self.menuBar.getAccelEntries()
+
+        self.SetAcceleratorTable(wx.AcceleratorTable(accels))
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
@@ -835,15 +855,20 @@ class MyFrame(wx.Frame):
         tb = self.toolBar
         size = wx.Size(self.gd.cfgGl.toolbarIconSize, self.gd.cfgGl.toolbarIconSize)
 
+        # empty space around each icon. wxMSW ignores the toolbar's own
+        # margin / packing settings, so it's part of the icons instead.
+        pad = 5
+        paddedSize = wx.Size(size.width + pad * 2, size.height + pad * 2)
+
         tb.ClearTools()
-        tb.SetToolBitmapSize(size)
+        tb.SetToolBitmapSize(paddedSize)
 
         # ClearTools normally destroys controls along with their tools
         if getattr(self, "elemTypeBar", None):
             self.elemTypeBar.Destroy()
 
         def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
-            bitmap = gutil.svgBitmap(iconFilename, size)
+            bitmap = gutil.svgBitmap(iconFilename, size, pad)
             tool = tb.AddTool(id, "", bitmap, shortHelp=toolTip, kind=kind)
 
             # the status bar shows this while the tool is hovered
@@ -873,7 +898,7 @@ class MyFrame(wx.Frame):
         tb.AddSeparator()
 
         height = max(
-            size.height + tb.FromDIP(8), tb.GetCharHeight() + tb.FromDIP(12)
+            tb.FromDIP(paddedSize.height), tb.GetCharHeight() + tb.FromDIP(12)
         )
         self.elemTypeBar = misc.MyElemTypeBar(
             tb,
@@ -948,6 +973,9 @@ class MyFrame(wx.Frame):
     def createStatusBar(self):
         sb = self.CreateStatusBar(4)
         self.statusBar = sb
+
+        # a bit taller than the default, so the text isn't cramped
+        sb.SetMinHeight(sb.GetCharHeight() + sb.FromDIP(14))
 
         style = wx.BU_EXACTFIT | wx.BORDER_NONE
 
@@ -1024,6 +1052,8 @@ class MyFrame(wx.Frame):
         else:
             self.toolBar.Show()
 
+        self.Layout()
+
     def OnViewModeLayout(self):
         self.menuBar.Check(ID_VIEW_STYLE_LAYOUT, True)
         self.OnViewModeChange()
@@ -1075,8 +1105,19 @@ class MyFrame(wx.Frame):
         c.updateScreen()
 
     def ToggleFullscreen(self, event=None):
-        self.noFSBtn.Show(not self.IsFullScreen())
-        self.ShowFullScreen(not self.IsFullScreen(), wx.FULLSCREEN_ALL)
+        fullScreen = not self.IsFullScreen()
+
+        self.noFSBtn.Show(fullScreen)
+
+        # FULLSCREEN_ALL only hides the bars the frame manages
+        if self.ownMenuBar:
+            self.menuBar.Show(not fullScreen)
+            self.toolBar.Show(
+                not (fullScreen or self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR))
+            )
+
+        self.ShowFullScreen(fullScreen, wx.FULLSCREEN_ALL)
+        self.Layout()
         self.panel.ctrl.SetFocus()
 
     def OnPaginate(self, event=None):
