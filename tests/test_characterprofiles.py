@@ -198,33 +198,12 @@ def texts(sp):
     return [ln.text for ln in sp.lines]
 
 
-def test_renameCount():
-    sp = loadRenameScript()
-    before = texts(sp)
-
-    renames = {"BOB": "ROBERT", "MARY JANE": "MJ"}
-
-    assert sp.renameCharacters(renames, True, apply=False) == (2, 4)
-    assert sp.renameCharacters(renames, False, apply=False) == (2, 0)
-    assert texts(sp) == before
-    assert not sp.canUndo()
-
-
-def test_renameCuesOnly():
+def test_rename():
     sp = loadRenameScript()
 
-    assert sp.renameCharacters({"BOB": "ROBERT"}, False) == (1, 0)
-
-    t = texts(sp)
-    assert "ROBERT" in t
-    assert "INT. BOB'S HOUSE - DAY" in t
-    assert sp.isModified()
-
-
-def test_renameInText():
-    sp = loadRenameScript()
-
-    sp.renameCharacters({"BOB": "ROBERT", "MARY JANE": "MARY-ANNE O'NEIL"}, True)
+    assert sp.renameCharacters(
+        {"BOB": "ROBERT", "MARY JANE": "MARY-ANNE O'NEIL"}
+    ) == (2, 4)
 
     t = " ".join(texts(sp))
 
@@ -233,25 +212,49 @@ def test_renameInText():
     assert "MARY-ANNE O'NEIL (V.O.)" in t
     assert "Robert's here." in t
     assert "Hi, Mary." in t
+    assert sp.isModified()
 
     names = sorted(sp.getCharacterNames())
     assert names == ["mary", "mary-anne o'neil (v.o.)", "robert"]
 
 
+def test_renameKeepsOtherNames():
+    sp = loadRenameScript()
+
+    # "Mary" in "Mary Jane" is part of another character's name
+    assert sp.renameCharacters({"MARY": "SUE"}) == (1, 2)
+
+    t = " ".join(texts(sp))
+
+    assert "Bob and Mary Jane enter. SUE sits." in t
+    assert "Hi, Sue." in t
+    assert "MARY JANE (V.O.)" in t
+
+
 def test_renameSwap():
     sp = loadRenameScript()
 
-    assert sp.renameCharacters({"BOB": "MARY", "MARY": "BOB"}, False) == (2, 0)
+    assert sp.renameCharacters({"BOB": "MARY", "MARY": "BOB"}) == (2, 5)
     assert sorted(sp.getCharacterNames()) == ["bob", "mary", "mary jane (v.o.)"]
+    assert texts(sp)[1] == "Mary and Mary Jane enter. BOB sits. Bobby waves."
     assert texts(sp)[2] == "MARY"
+    assert texts(sp)[3] == "Hi, Bob."
     assert texts(sp)[6] == "BOB"
+
+
+def test_renameNothing():
+    sp = loadRenameScript()
+
+    assert sp.renameCharacters({"NOBODY": "SOMEBODY"}) == (0, 0)
+    assert sp.renameCharacters({"BOB": "BOB"}) == (0, 0)
+    assert not sp.canUndo()
 
 
 def test_renameUndo():
     sp = loadRenameScript()
     before = texts(sp)
 
-    sp.renameCharacters({"BOB": "ROBERT"}, True)
+    sp.renameCharacters({"BOB": "ROBERT"})
     assert texts(sp) != before
 
     sp.undoCmd(None)
@@ -264,7 +267,7 @@ def test_renameUndo():
 def test_renameRewraps():
     sp = loadRenameScript()
 
-    sp.renameCharacters({"BOB": "BARTHOLOMEW-MAXIMILIAN " * 3}, True)
+    sp.renameCharacters({"BOB": "BARTHOLOMEW-MAXIMILIAN " * 3})
 
     # the action line got too long and was wrapped
     width = sp.cfg.getType(screenplay.ACTION).width

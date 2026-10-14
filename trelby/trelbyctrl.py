@@ -10,7 +10,6 @@ import wx
 import trelby
 import trelby.autocompletiondlg as autocompletiondlg
 import trelby.cfgdlg as cfgdlg
-import trelby.characterprofiles as characterprofiles
 import trelby.characterprofilesdlg as characterprofilesdlg
 import trelby.config as config
 import trelby.dialoguechart as dialoguechart
@@ -669,60 +668,12 @@ class MyCtrl(wx.Control):
                 self.sp.characterProfiles = dlg.charProfiles
                 self.sp.markChanged()
 
-            if dlg.renames:
-                self.renameCharactersInScript(dlg.renames)
-
-        dlg.Destroy()
-
-    # offer to rename characters in the script after their profiles were
-    # renamed. 'renames' is as in Screenplay.renameCharacters.
-    def renameCharactersInScript(self, renames):
-        cues, mentions = self.sp.renameCharacters(renames, True, apply=False)
-
-        if not cues and not mentions:
-            return
-
-        scriptNames = {
-            characterprofiles.normalizeName(n) for n in self.sp.getCharacterNames()
-        }
-
-        lines = []
-
-        for old in sorted(renames):
-            s = "    %s \u2192 %s" % (old, renames[old])
-
-            if renames[old] in scriptNames:
-                s += " " + _("(already in the script)")
-
-            lines.append(s)
-
-        msg = (
-            _("These characters were renamed:")
-            + "\n\n"
-            + "\n".join(lines)
-            + "\n\n"
-            + _("Rename them in the script too? This changes {} character cues.").format(
-                cues
-            )
-        )
-
-        dlg = wx.RichMessageDialog(
-            self.gd.mainFrame, msg, _("Rename in script"), wx.YES_NO | wx.ICON_QUESTION
-        )
-        dlg.SetYesNoLabels(_("Rename in script"), _("Profile only"))
-
-        if mentions:
-            dlg.ShowCheckBox(
-                _(
-                    "Also replace {} mentions in action, dialogue and other text"
-                ).format(mentions)
-            )
-
-        if dlg.ShowModal() == wx.ID_YES:
-            self.sp.renameCharacters(renames, dlg.IsCheckBoxChecked())
-            self.sp.paginate()
-            self.makeLineVisible(self.sp.line)
-            self.updateScreen()
+            # renaming a character's profile renames the character
+            # everywhere in the script too
+            if dlg.renames and any(self.sp.renameCharacters(dlg.renames)):
+                self.sp.paginate()
+                self.makeLineVisible(self.sp.line)
+                self.updateScreen()
 
         dlg.Destroy()
 

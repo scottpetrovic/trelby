@@ -3189,30 +3189,46 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     # rename characters. 'renames' is a dictionary mapping old names to
     # new ones, both normalized with characterprofiles.normalizeName.
     # character cues are renamed keeping any extension like "(V.O.)", and
-    # if 'inText' is True, the names are also replaced where they're
-    # mentioned in other elements, matching the case they were written in.
-    # all renames are done in one pass, so names can be swapped. if
-    # 'apply' is False, nothing is changed. returns a (cues, mentions)
-    # tuple of how many of each were (or would be) renamed.
-    def renameCharacters(self, renames, inText, apply=True):
+    # the names are also replaced where they're mentioned in other
+    # elements, matching the case they were written in. all renames are
+    # done in one pass, so names can be swapped. returns a (cues,
+    # mentions) tuple of how many of each were renamed.
+    def renameCharacters(self, renames):
         normalize = characterprofiles.normalizeName
 
         renames = {k: v for k, v in renames.items() if k and v and (k != v)}
         if not renames:
             return (0, 0)
 
-        # longest names first, so that "MARY JANE" wins over "MARY"
+        # the names of the other characters are matched too, but left as
+        # they are, so that renaming MARY doesn't touch "Mary" in mentions
+        # of MARY JANE. longest names first, so that "MARY JANE" wins over
+        # "MARY".
+        names = {normalize(n): None for n in self.getCharacterNames()}
+        names.update(renames)
+        names.pop("", None)
+
         pattern = re.compile(
             "|".join(
                 r"(?<!\w)%s(?!\w)" % r"\s+".join(re.escape(w) for w in name.split())
-                for name in sorted(renames, key=len, reverse=True)
+                for name in sorted(names, key=len, reverse=True)
             ),
             re.IGNORECASE,
         )
 
+        # how many mentions the current line had renamed
+        lineMentions = 0
+
         def replaceMention(mo):
+            nonlocal lineMentions
+
             found = mo.group(0)
-            new = renames[normalize(found)]
+            new = names[normalize(found)]
+
+            if not new:
+                return found
+
+            lineMentions += 1
 
             if found.isupper():
                 return new
@@ -3244,14 +3260,15 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     changes.append((i, new + ext))
                     cues += 1
 
-            elif inText:
-                text, cnt = pattern.subn(replaceMention, ln.text)
+            else:
+                lineMentions = 0
+                text = pattern.sub(replaceMention, ln.text)
 
-                if cnt:
+                if lineMentions:
                     changes.append((i, text))
-                    mentions += cnt
+                    mentions += lineMentions
 
-        if not apply or not changes:
+        if not changes:
             return (cues, mentions)
 
         self.clearAutoComp()
