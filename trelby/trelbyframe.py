@@ -4,6 +4,7 @@ import copy
 import os
 import os.path
 import signal
+import time
 import webbrowser
 from functools import partial
 
@@ -11,6 +12,7 @@ import wx
 import wx.svg
 
 import trelby
+import trelby.autosave as autosave
 import trelby.cfgdlg as cfgdlg
 import trelby.charmapdlg as charmapdlg
 import trelby.commandsdlg as commandsdlg
@@ -450,11 +452,84 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
 
+        self.autosaveTimer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnAutosaveTimer, self.autosaveTimer)
+
         self.Layout()
 
     def init(self):
         self.updateKbdCommands()
         self.panel = self.createNewPanel()
+        self.updateAutosaveTimer()
+
+    # (re)start or stop the autosave timer according to the configuration
+    def updateAutosaveTimer(self):
+        minutes = self.gd.cfgGl.autosaveInterval
+
+        if minutes > 0:
+            self.autosaveTimer.Start(minutes * 60 * 1000)
+        else:
+            self.autosaveTimer.Stop()
+
+    def OnAutosaveTimer(self, event=None):
+        for c in self.getCtrls():
+            c.autosave()
+
+    # if recovery copies were left over by a session that didn't exit
+    # cleanly, offer to restore them
+    def offerRecovery(self):
+        entries = autosave.listRecoveries(autosave.getRecoveryDir())
+
+        if not entries:
+            return
+
+        names = "\n".join(
+            "    %s  (%s)"
+            % (
+                e.getDisplayName(),
+                time.strftime("%Y-%m-%d %H:%M", time.localtime(e.time)),
+            )
+            for e in entries
+        )
+
+        dlg = wx.MessageDialog(
+            self,
+            _(
+                "Trelby did not close normally last time. Unsaved changes\nto the following scripts were recovered:\n\n{}\n\nDo you want to restore them?"
+            ).format(names),
+            _("Recover Unsaved Changes"),
+            wx.YES_NO | wx.CANCEL | wx.YES_DEFAULT | wx.ICON_QUESTION,
+        )
+        dlg.SetYesNoCancelLabels(
+            misc.mnemonic("R", _("Restore")),
+            misc.mnemonic("D", _("Discard")),
+            misc.mnemonic("L", _("Decide later")),
+        )
+        response = dlg.ShowModal()
+        dlg.Destroy()
+
+        if response == wx.ID_YES:
+            for e in entries:
+                if not self.panel.ctrl.isUntouched():
+                    self.panel = self.createNewPanel()
+
+                self.panel.ctrl.loadRecovery(e)
+                self.panel.ctrl.updateScreen()
+
+        elif response == wx.ID_NO:
+            if (
+                wx.MessageBox(
+                    _(
+                        "Are you sure you want to permanently discard\nthe recovered changes?"
+                    ),
+                    _("Confirm"),
+                    wx.YES_NO | wx.NO_DEFAULT,
+                    self,
+                )
+                == wx.YES
+            ):
+                for e in entries:
+                    autosave.removeRecovery(autosave.getRecoveryDir(), e.recId)
 
     def mySetIcons(self):
         wx.Image.AddHandler(wx.PNGHandler())
@@ -718,6 +793,7 @@ class MyFrame(wx.Frame):
             return
 
         if self.tabCtrl.getPageCount() > 1:
+            self.panel.ctrl.removeRecovery()
             self.tabCtrl.deletePage(self.tabCtrl.getSelectedPageIndex())
         else:
             self.panel.ctrl.createEmptySp()
@@ -1289,6 +1365,7 @@ class MyFrame(wx.Frame):
 
     def OnCloseWindow(self, event):
         doExit = True
+        discard = False
         if event.CanVeto() and self.isModifications():
             close_msg_box = wx.MessageDialog(
                 self,
@@ -1302,10 +1379,23 @@ class MyFrame(wx.Frame):
             response = close_msg_box.ShowModal()
             if response == wx.ID_YES:
                 self.OnSave()
+            elif response == wx.ID_NO:
+                discard = True
             elif response == wx.ID_CANCEL:
                 doExit = False
 
         if doExit:
+            self.autosaveTimer.Stop()
+
+            # changes the user didn't explicitly discard but that still
+            # aren't saved (e.g. other tabs, or a cancelled save) are kept
+            # for recovery on the next startup
+            for c in self.getCtrls():
+                if discard:
+                    c.removeRecovery()
+                else:
+                    c.autosave()
+
             util.writeToFile(self.gd.stateFilename, self.gd.save(), self)
             util.removeTempFiles(misc.tmpPrefix)
             self.Destroy()

@@ -5,6 +5,8 @@ import glob
 import gzip
 import os
 import re
+import shutil
+import stat
 import tempfile
 import time
 from typing import AnyStr, Optional
@@ -1041,24 +1043,87 @@ def loadMaybeCompressedFile(filename, frame):
 
 # write 'data' to 'filename', popping up a messagebox using 'frame' as
 # parent on errors. returns True on success.
-def writeToFile(filename: str, data: AnyStr, frame: wx.TopLevelWindow) -> bool:
-    try:
-        f = open(misc.toPath(filename), "wb")
+# write data to filename so that a crash or error halfway through never
+# leaves a partially written file behind: the data goes to a temp file in
+# the same directory, which then replaces the target in one step. if
+# backup is True and the target already exists, its previous contents are
+# kept as filename + ".bak". raises OSError on failure, in which case the
+# target is untouched.
+def atomicWrite(filename: str, data: AnyStr, backup: bool = False) -> None:
+    if isinstance(data, str):
+        data = data.encode("UTF-8")
 
-        try:
-            if isinstance(data, str):
-                f.write(data.encode("UTF-8"))
+    path = os.path.abspath(filename)
+    dirName = os.path.dirname(path)
+    exists = os.path.exists(path)
+
+    fd, tmpPath = tempfile.mkstemp(
+        prefix="." + os.path.basename(path) + ".", suffix=".tmp", dir=dirName
+    )
+
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+
+        # mkstemp creates the file as owner-only; keep the permissions an
+        # in-place write would have had. (on Windows the only "mode" is the
+        # read-only flag, which we don't want to copy to the temp file.)
+        if not misc.isWindows:
+            if exists:
+                mode = stat.S_IMODE(os.stat(path).st_mode)
             else:
-                f.write(data)
-        finally:
-            f.close()
+                umask = os.umask(0)
+                os.umask(umask)
+                mode = 0o666 & ~umask
+
+            os.chmod(tmpPath, mode)
+
+        if backup and exists:
+            # a failed backup shouldn't stop the user's work from being
+            # saved
+            try:
+                shutil.copy2(path, path + ".bak")
+            except OSError:
+                pass
+
+        os.replace(tmpPath, path)
+
+    except BaseException:
+        try:
+            os.remove(tmpPath)
+        except OSError:
+            pass
+
+        raise
+
+    # make the rename itself durable. not possible / needed on Windows.
+    if not misc.isWindows:
+        try:
+            dirFd = os.open(dirName, os.O_RDONLY)
+
+            try:
+                os.fsync(dirFd)
+            finally:
+                os.close(dirFd)
+        except OSError:
+            pass
+
+
+# write data to filename (see atomicWrite), showing an error message box
+# on failure. returns True on success.
+def writeToFile(
+    filename: str, data: AnyStr, frame: wx.TopLevelWindow, backup: bool = False
+) -> bool:
+    try:
+        atomicWrite(filename, data, backup)
 
         return True
 
-    except IOError as xxx_todo_changeme1:
-        (errno, strerror) = xxx_todo_changeme1.args
+    except OSError as e:
         wx.MessageBox(
-            _("Error writing file '{}': {}".format(filename, strerror)),
+            _("Error writing file '{}': {}").format(filename, e.strerror or e),
             _("Error"),
             wx.OK,
             frame,

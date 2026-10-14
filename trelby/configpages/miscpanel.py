@@ -75,6 +75,14 @@ class MiscPanel(wx.Panel):
         )
 
         self.addSpin(
+            "autosave",
+            _("Autosave recovery copy interval in minutes:\n (0 = disable)"),
+            self,
+            vsizer,
+            "autosaveInterval",
+        )
+
+        self.addSpin(
             "wheelScroll",
             _("Lines to scroll per mouse wheel event:"),
             self,
@@ -103,7 +111,7 @@ class MiscPanel(wx.Panel):
 
         sizer.Add(hsizer, 0, wx.BOTTOM, 10)
 
-        setattr(self, name + _("Entry"), tmp)
+        setattr(self, name + "Entry", tmp)
 
     def OnKillFocus(self, event):
         self.OnMisc()
@@ -119,6 +127,7 @@ class MiscPanel(wx.Panel):
             setattr(self.cfg, it[0], bool(self.checkList.IsChecked(i)))
 
         self.cfg.paginateInterval = util.getSpinValue(self.paginateEntry)
+        self.cfg.autosaveInterval = util.getSpinValue(self.autosaveEntry)
         self.cfg.mouseWheelLines = util.getSpinValue(self.wheelScrollEntry)
 
     def OnBrowse(self, event):
@@ -138,6 +147,7 @@ class MiscPanel(wx.Panel):
         # stupid wxwindows/wxpython displays empty box if the initial
         # value is zero if we don't do this...
         self.paginateEntry.SetValue(5)
+        self.autosaveEntry.SetValue(5)
 
         self.scriptDirEntry.SetValue(self.cfg.scriptDir)
 
@@ -145,4 +155,5 @@ class MiscPanel(wx.Panel):
             self.checkList.Check(i, getattr(self.cfg, it[0]))
 
         self.paginateEntry.SetValue(self.cfg.paginateInterval)
+        self.autosaveEntry.SetValue(self.cfg.autosaveInterval)
         self.wheelScrollEntry.SetValue(self.cfg.mouseWheelLines)

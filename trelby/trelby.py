@@ -138,6 +138,9 @@ class MyApp(wx.App):
 
         mainFrame.checkFonts()
 
+        # after the main window is up, so the question has a parent
+        wx.CallAfter(mainFrame.offerRecovery)
+
         return True
 
 

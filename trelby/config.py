@@ -1228,6 +1228,10 @@ class ConfigGlobal:
         # interval in seconds between automatic pagination (0 = disabled)
         v.addInt("paginateInterval", 1, "PaginateInterval", 0, 10)
 
+        # interval in minutes between writing recovery copies of modified
+        # scripts (0 = disabled)
+        v.addInt("autosaveInterval", 2, "AutosaveInterval", 0, 60)
+
         # whether to check script for errors before export / print
         v.addBool("checkOnExport", True, "CheckScriptForErrors")
 

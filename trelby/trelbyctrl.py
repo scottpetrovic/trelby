@@ -9,6 +9,7 @@ import wx
 
 import trelby
 import trelby.autocompletiondlg as autocompletiondlg
+import trelby.autosave as autosave
 import trelby.cfgdlg as cfgdlg
 import trelby.characterprofilesdlg as characterprofilesdlg
 import trelby.config as config
@@ -68,6 +69,12 @@ class MyCtrl(wx.Control):
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
         self.Bind(wx.EVT_CHAR, self.OnKeyChar)
 
+        # id of this script's recovery copy (see autosave.py), whether
+        # one has been written, and the data last written to it
+        self.recoveryId = autosave.newRecoveryId()
+        self.recoveryWritten = False
+        self.autosavedData = None
+
         self.createEmptySp()
         self.updateScreen(redraw=False)
 
@@ -109,6 +116,7 @@ class MyCtrl(wx.Control):
         self.findDlgElements = None
 
     def createEmptySp(self):
+        self.removeRecovery()
         self.clearVars()
         self.sp = screenplay.Screenplay(self.gd.cfgGl)
         self.sp.titles.addDefaults()
@@ -133,10 +141,12 @@ class MyCtrl(wx.Control):
     def getCfgGui(self):
         return self.gd.cfgGui
 
-    def loadFile(self, fileName):
-        s = str(util.loadFile(fileName, self.gd.mainFrame))
-        if s == None:
-            return
+    # load script from path and show it as fileName. returns True on
+    # success.
+    def loadFile(self, fileName, path=None):
+        s = util.loadFile(path or fileName, self.gd.mainFrame)
+        if s is None:
+            return False
 
         try:
             (sp, msg) = screenplay.Screenplay.load(s, self.gd.cfgGl)
@@ -148,10 +158,13 @@ class MyCtrl(wx.Control):
                 self.gd.mainFrame,
             )
 
-            return
+            return False
 
         if msg:
             misc.showText(self.gd.mainFrame, msg, _("Warning"))
+
+        # whatever was here before has been saved or discarded
+        self.removeRecovery()
 
         self.clearVars()
         self.sp = sp
@@ -162,18 +175,74 @@ class MyCtrl(wx.Control):
         # display the first page
         self.makeLineVisible(self.sp.line)
 
+        return True
+
+    # load the recovery copy described by the autosave.RecoveryEntry, and
+    # keep maintaining it until the script is saved or discarded. returns
+    # True on success.
+    def loadRecovery(self, entry):
+        if not self.loadFile(entry.original, entry.scriptPath):
+            return False
+
+        self.sp.markChanged(True)
+        self.recoveryId = entry.recId
+        self.recoveryWritten = True
+
+        return True
+
     # save script to given filename. returns True on success.
     def saveFile(self, fileName):
         fileName = str(util.ensureEndsIn(fileName, ".trelby"))
 
-        if util.writeToFile(fileName, self.sp.save(), self.gd.mainFrame):
+        if util.writeToFile(
+            fileName, self.sp.save(), self.gd.mainFrame, backup=True
+        ):
             self.setFile(fileName)
             self.sp.markChanged(False)
             self.gd.mru.add(fileName)
+            self.removeRecovery()
 
             return True
         else:
             return False
+
+    # write a recovery copy of the script if it has changes that haven't
+    # been saved or autosaved yet (or remove it if there are no unsaved
+    # changes anymore). never touches the script's real file.
+    def autosave(self):
+        if not self.sp.isModified():
+            self.removeRecovery()
+
+            return
+
+        data = self.sp.save()
+
+        if data == self.autosavedData:
+            return
+
+        try:
+            autosave.writeRecovery(
+                autosave.getRecoveryDir(),
+                self.recoveryId,
+                data,
+                os.path.abspath(self.fileName) if self.fileName else None,
+            )
+        except OSError as e:
+            # no message box, since this would repeat every interval
+            print("Error writing recovery file: %s" % e)
+
+            return
+
+        self.autosavedData = data
+        self.recoveryWritten = True
+
+    # remove the script's recovery copy, if any
+    def removeRecovery(self):
+        if self.recoveryWritten:
+            autosave.removeRecovery(autosave.getRecoveryDir(), self.recoveryId)
+            self.recoveryWritten = False
+
+        self.autosavedData = None
 
     # import fileName as format fmt ("fdx", "celtx", "astx", "fountain",
     # "fadein" or "txt"). if fmt is None, it's guessed from the extension.
@@ -420,6 +489,9 @@ class MyCtrl(wx.Control):
             self.gd.mainFrame.fillToolBar()
             self.gd.mainFrame.SendSizeEvent()
             self.updateCommon()
+
+        if self.gd.cfgGl.autosaveInterval != oldCfgGl.autosaveInterval:
+            self.gd.mainFrame.updateAutosaveTimer()
 
         if writeCfg:
             util.writeToFile(
