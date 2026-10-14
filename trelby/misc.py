@@ -103,6 +103,26 @@ def getFullPath(relative):
     return progPath + "/" + relative
 
 
+# return menu label 'label' (already translated, optionally followed by
+# "\t<accelerator>") with a mnemonic for 'key'. the '&' goes before the
+# first occurrence of 'key' in the text (preferring an exact case match),
+# so it's only underlined while Alt is held. if the text doesn't contain
+# 'key' at all (e.g. in some translations), " (&KEY)" is appended instead.
+def mnemonic(key, label):
+    text, sep, accel = label.partition("\t")
+
+    i = text.find(key)
+    if i == -1:
+        i = text.lower().find(key.lower())
+
+    if i != -1:
+        text = text[:i] + "&" + text[i:]
+    else:
+        text += " (&%s)" % key.upper()
+
+    return text + sep + accel
+
+
 # TODO: move all GUI stuff to gutil
 
 
