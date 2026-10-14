@@ -193,9 +193,9 @@ class OutlineList(wx.VListBox):
         hl = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
 
         if self.isHighlighted(n):
-            return blendColors(bg, hl, 0.45)
+            return blendColors(bg, hl, 0.2)
         elif self.IsSelected(n):
-            return blendColors(bg, hl, 0.25)
+            return blendColors(bg, hl, 0.1)
 
         return bg
 
