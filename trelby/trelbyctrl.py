@@ -409,9 +409,6 @@ class MyCtrl(wx.Control):
                 self.gd.confFilename, self.gd.cfgGl.save(), self.gd.mainFrame
             )
 
-        if appearanceChanged:
-            self.gd.mainFrame.onAppearanceChanged()
-
         self.gd.mainFrame.checkFonts()
 
     def applyHeaders(self, newHeaders):
@@ -1152,7 +1149,11 @@ class MyCtrl(wx.Control):
 
     def OnSettings(self):
         dlg = cfgdlg.CfgDlg(
-            self.gd.mainFrame, copy.deepcopy(self.gd.cfgGl), self.applyGlobalCfg, True
+            self.gd.mainFrame,
+            copy.deepcopy(self.gd.cfgGl),
+            self.applyGlobalCfg,
+            True,
+            self.gd,
         )
 
         if dlg.ShowModal() == wx.ID_OK:

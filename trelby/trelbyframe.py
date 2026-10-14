@@ -11,6 +11,7 @@ import wx
 import wx.svg
 
 import trelby
+import trelby.cfgdlg as cfgdlg
 import trelby.charmapdlg as charmapdlg
 import trelby.commandsdlg as commandsdlg
 import trelby.config as config
@@ -64,22 +65,7 @@ class MyFrame(wx.Frame):
             ID_FILE_PRINT, misc.mnemonic("P", _("Print (via PDF)") + "\tCTRL-P")
         )
         fileMenu.AppendSeparator()
-
-        tmp = wx.Menu()
-
-        tmp.Append(ID_SETTINGS_CHANGE, misc.mnemonic("C", _("Change") + "..."))
-        tmp.AppendSeparator()
-        tmp.Append(ID_SETTINGS_LOAD, _("Load") + "...")
-        tmp.Append(ID_SETTINGS_SAVE_AS, _("Save as") + "...")
-        tmp.AppendSeparator()
-        tmp.Append(
-            ID_SETTINGS_SC_DICT,
-            misc.mnemonic("S", _("Spell checker dictionary") + "..."),
-        )
-        settingsMenu = tmp
-
-        fileMenu.AppendSubMenu(tmp, misc.mnemonic("t", _("Settings")))
-
+        fileMenu.Append(ID_SETTINGS_CHANGE, misc.mnemonic("t", _("Settings") + "..."))
         fileMenu.AppendSeparator()
         fileMenu.Append(ID_FILE_EXIT, misc.mnemonic("x", _("Exit") + "\tCTRL-Q"))
 
@@ -150,15 +136,6 @@ class MyFrame(wx.Frame):
             ID_VIEW_ZOOM_RESET, misc.mnemonic("R", _("Reset zoom") + "\tCTRL-0")
         )
         viewMenu.AppendSeparator()
-
-        tmp = wx.Menu()
-        tmp.AppendRadioItem(
-            ID_VIEW_THEME_SYSTEM, misc.mnemonic("S", _("System default"))
-        )
-        tmp.AppendRadioItem(ID_VIEW_THEME_LIGHT, misc.mnemonic("L", _("Light")))
-        tmp.AppendRadioItem(ID_VIEW_THEME_DARK, misc.mnemonic("D", _("Dark")))
-        viewMenu.AppendSubMenu(tmp, misc.mnemonic("h", _("Theme")))
-
         viewMenu.Append(
             ID_VIEW_FULL_SCREEN, misc.mnemonic("F", _("Fullscreen") + "\tF11")
         )
@@ -244,10 +221,6 @@ class MyFrame(wx.Frame):
         self.menuBar.Append(helpMenu, misc.mnemonic("H", _("Help")))
         self.SetMenuBar(self.menuBar)
 
-        # menu id for each config.APPEARANCE_* value, in order
-        self.themeIds = [ID_VIEW_THEME_SYSTEM, ID_VIEW_THEME_LIGHT, ID_VIEW_THEME_DARK]
-        self.menuBar.Check(self.themeIds[gd.cfgGl.appearance], True)
-
         self.toolBar = self.CreateToolBar(wx.TB_VERTICAL)
         self.fillToolBar()
 
@@ -321,11 +294,6 @@ class MyFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, self.OnRevertScript, id=ID_FILE_REVERT)
             self.Bind(wx.EVT_MENU, self.OnPrint, id=ID_FILE_PRINT)
             self.Bind(wx.EVT_MENU, self.OnSettings, id=ID_SETTINGS_CHANGE)
-            self.Bind(wx.EVT_MENU, self.OnLoadSettings, id=ID_SETTINGS_LOAD)
-            self.Bind(wx.EVT_MENU, self.OnSaveSettingsAs, id=ID_SETTINGS_SAVE_AS)
-            self.Bind(
-                wx.EVT_MENU, self.OnSpellCheckerDictionaryDlg, id=ID_SETTINGS_SC_DICT
-            )
             self.Bind(wx.EVT_MENU, self.OnExit, id=ID_FILE_EXIT)
             self.Bind(wx.EVT_MENU, self.OnUndo, id=ID_EDIT_UNDO)
             self.Bind(wx.EVT_MENU, self.OnRedo, id=ID_EDIT_REDO)
@@ -354,9 +322,6 @@ class MyFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, self.OnZoomIn, id=ID_VIEW_ZOOM_IN)
             self.Bind(wx.EVT_MENU, self.OnZoomOut, id=ID_VIEW_ZOOM_OUT)
             self.Bind(wx.EVT_MENU, self.OnZoomReset, id=ID_VIEW_ZOOM_RESET)
-
-            for themeId in self.themeIds:
-                self.Bind(wx.EVT_MENU, self.OnThemeChange, id=themeId)
 
             self.Bind(wx.EVT_MENU, self.OnFindNextError, id=ID_SCRIPT_FIND_ERROR)
             self.Bind(wx.EVT_MENU, self.OnPaginate, id=ID_SCRIPT_PAGINATE)
@@ -409,10 +374,11 @@ class MyFrame(wx.Frame):
             id2=ID_ELEM_TO_TRANSITION,
         )
 
+        self.Bind(wx.EVT_MENU, self.OnSettings, id=ID_TOOLBAR_SETTINGS)
+
         def addTBMenu(id, menu):
             self.Bind(wx.EVT_MENU, partial(self.OnToolBarMenu, menu=menu), id=id)
 
-        addTBMenu(ID_TOOLBAR_SETTINGS, settingsMenu)
         addTBMenu(ID_TOOLBAR_SCRIPTSETTINGS, scriptSettingsMenu)
         addTBMenu(ID_TOOLBAR_REPORTS, reportsMenu)
         addTBMenu(ID_TOOLBAR_VIEWS, viewMenu)
@@ -559,7 +525,7 @@ class MyFrame(wx.Frame):
         if failed:
             wx.MessageBox(
                 _(
-                    "The fonts listed below are not fixed width and\nwill cause the program not to function correctly.\nPlease change the fonts at File/Settings/Change.\n\n\n"
+                    "The fonts listed below are not fixed width and\nwill cause the program not to function correctly.\nPlease change the fonts at File/Settings.\n\n\n"
                 ).join(failed),
                 _("Error"),
                 wx.OK,
@@ -724,53 +690,25 @@ class MyFrame(wx.Frame):
     def OnSettings(self, event=None):
         self.panel.ctrl.OnSettings()
 
+    # the LoadSettings / SaveSettingsAs keyboard commands. the settings
+    # dialog has buttons for these too.
     def OnLoadSettings(self, event=None):
-        dlg = wx.FileDialog(
-            self,
-            _("File to open"),
-            defaultDir=os.path.dirname(self.gd.confFilename),
-            defaultFile=os.path.basename(self.gd.confFilename),
-            wildcard=_("Setting")
-            + " "
-            + _("files")
-            + " (*.conf)|*.conf|"
-            + _("All files")
-            + "|*",
-            style=wx.FD_OPEN,
-        )
+        path = cfgdlg.askSettingsFile(self, self.gd.confFilename, False)
+        if not path:
+            return
 
-        if dlg.ShowModal() == wx.ID_OK:
-            s = util.loadFile(dlg.GetPath(), self)
-
-            if s:
-                c = config.ConfigGlobal()
-                c.load(s)
-                self.gd.confFilename = dlg.GetPath()
-
-                self.panel.ctrl.applyGlobalCfg(c, False)
-
-        dlg.Destroy()
+        c = cfgdlg.loadGlobalCfg(path, self)
+        if c:
+            self.gd.confFilename = path
+            self.panel.ctrl.applyGlobalCfg(c, False)
 
     def OnSaveSettingsAs(self, event=None):
-        dlg = wx.FileDialog(
-            self,
-            _("Filename to save as"),
-            defaultDir=os.path.dirname(self.gd.confFilename),
-            defaultFile=os.path.basename(self.gd.confFilename),
-            wildcard=_("Setting")
-            + " "
-            + _("files")
-            + " (*.conf)|*.conf|"
-            + _("All files")
-            + "|*",
-            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-        )
+        path = cfgdlg.askSettingsFile(self, self.gd.confFilename, True)
+        if not path:
+            return
 
-        if dlg.ShowModal() == wx.ID_OK:
-            if util.writeToFile(dlg.GetPath(), self.gd.cfgGl.save(), self):
-                self.gd.confFilename = dlg.GetPath()
-
-        dlg.Destroy()
+        if util.writeToFile(path, self.gd.cfgGl.save(), self):
+            self.gd.confFilename = path
 
     def OnUndo(self, event=None):
         self.panel.ctrl.OnUndo()
@@ -842,17 +780,6 @@ class MyFrame(wx.Frame):
 
         for i in range(self.tabCtrl.getPageCount()):
             self.tabCtrl.getPage(i).showOutline(self.gd.showOutline)
-
-    def OnThemeChange(self, event):
-        cfgGl = copy.deepcopy(self.gd.cfgGl)
-        cfgGl.appearance = self.themeIds.index(event.GetId())
-
-        self.panel.ctrl.applyGlobalCfg(cfgGl)
-
-    # called after the theme in the global config has been changed and
-    # applied, e.g. from the settings dialog.
-    def onAppearanceChanged(self):
-        self.menuBar.Check(self.themeIds[self.gd.cfgGl.appearance], True)
 
     def OnViewModeDraft(self):
         self.menuBar.Check(ID_VIEW_STYLE_DRAFT, True)

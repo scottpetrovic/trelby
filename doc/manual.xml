@@ -437,24 +437,15 @@
 	</sect1>
 
 	<sect1 id="globcfg_menu">
-	  <title>File/Settings/(Change|Load|Save as)</title>
+	  <title>File/Settings</title>
 
-	  <para>These allow you to edit/load/save global settings (see <xref
-	  linkend="settings"/>).</para>
+	  <para>This opens the global settings dialog (see <xref
+	  linkend="settings"/>), which also lets you load and save settings
+	  files and edit the global spell checker dictionary.</para>
 
 	  <para>By default, &trelby; loads settings from a file named
 	  "default.conf" on startup. See <xref linkend="cmdparams"/> for
 	  customizing this.</para>
-
-	</sect1>
-
-	<sect1>
-	  <title>File/Settings/Spell checker dictionary</title>
-
-	  <para>This opens a dialog allowing you to edit the global spell
-	  checker user-defined dictionary. Insert new words by entering them
-	  on separate lines, or delete existing words by deleting the lines
-	  they are on.</para>
 
 	</sect1>
 
@@ -1135,13 +1126,24 @@
 	  <title>Global settings</title>
 
 	  <para>The global settings dialog is found under
-	  File/Settings/Change. It has a list of categories on the left, the
+	  File/Settings. It has a list of categories on the left, the
 	  selected category's settings on the right, and three buttons, Apply,
 	  Cancel and OK on the bottom. Apply updates the settings to the ones
 	  given in the dialog so you can easily preview your changes without
 	  closing the dialog. Note that pressing Cancel after Apply has no
 	  effect, it only cancels changes that haven't yet been
 	  committed.</para>
+
+	  <para>The Load and Save as buttons on the bottom left load the
+	  dialog's settings from a file, or save them to one. Loaded settings
+	  take effect on Apply or OK, like any other change, and from then on
+	  changes are saved to that file.</para>
+
+	  <para>The global spell checker dictionary is edited with the Global
+	  dictionary button on the Misc page. Insert new words by entering
+	  them on separate lines, or delete existing words by deleting the
+	  lines they are on. Dictionary changes are saved as soon as you
+	  close its dialog with OK.</para>
 
 	  <para>The following sections detail the various settings.</para>
 

@@ -70,7 +70,17 @@ class MiscPanel(wx.Panel):
 
         bsizer.Add(hsizer, 1, wx.EXPAND)
 
-        vsizer.Add(bsizer, 1, wx.EXPAND)
+        vsizer.Add(bsizer, 1, wx.EXPAND | wx.BOTTOM, 10)
+
+        bsizer = wx.StaticBoxSizer(
+            wx.StaticBox(self, -1, _("Spell checker")), wx.VERTICAL
+        )
+
+        btn = wx.Button(bsizer.GetStaticBox(), -1, _("Global dictionary") + "...")
+        btn.Bind(wx.EVT_BUTTON, self.OnScDict)
+        bsizer.Add(btn, 0, wx.TOP | wx.BOTTOM, 5)
+
+        vsizer.Add(bsizer, 0, wx.EXPAND)
 
         # wxGTK adds way more space by default than wxMSW between the
         # items, have to adjust for that
@@ -168,6 +178,9 @@ class MiscPanel(wx.Panel):
             self.scriptDirEntry.SetValue(dlg.GetPath())
 
         dlg.Destroy()
+
+    def OnScDict(self, event):
+        self.cfgFrame.editScDict()
 
     def OnBrowsePDF(self, event):
         dlg = wx.FileDialog(

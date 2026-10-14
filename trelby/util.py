@@ -1246,7 +1246,7 @@ def showPDF(
     def complain():
         wx.MessageBox(
             _(
-                "PDF viewer application not found.\n\nYou can change your PDF viewer\nsettings at File/Settings/Change/Misc."
+                "PDF viewer application not found.\n\nYou can change your PDF viewer\nsettings at File/Settings/Misc."
             ),
             _("Error"),
             wx.OK,
@@ -1266,7 +1266,7 @@ def showPDF(
         if regPDF:
             wx.MessageBox(
                 _(
-                    "Currently set PDF viewer ({}) was not found.\nChange this in File/Settings/Change/Misc.\n\nUsing the default PDF viewer instead:\n%s".format(
+                    "Currently set PDF viewer ({}) was not found.\nChange this in File/Settings/Misc.\n\nUsing the default PDF viewer instead:\n%s".format(
                         pdfProgram, regPDF
                     )
                 ),
