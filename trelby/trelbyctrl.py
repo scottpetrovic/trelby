@@ -75,6 +75,12 @@ class MyCtrl(wx.Control):
         self.recoveryWritten = False
         self.autosavedData = None
 
+        # when the recovery copy was last written (seconds since the
+        # epoch), and the error from the last failed attempt, if any. shown
+        # in the status bar.
+        self.autosaveTime = None
+        self.autosaveError = None
+
         self.createEmptySp()
         self.updateScreen(redraw=False)
 
@@ -187,6 +193,8 @@ class MyCtrl(wx.Control):
         self.sp.markChanged(True)
         self.recoveryId = entry.recId
         self.recoveryWritten = True
+        self.autosaveTime = entry.time
+        self.gd.mainFrame.updateAutosaveStatus(self)
 
         return True
 
@@ -229,12 +237,16 @@ class MyCtrl(wx.Control):
             )
         except OSError as e:
             # no message box, since this would repeat every interval
-            print("Error writing recovery file: %s" % e)
+            self.autosaveError = e.strerror or str(e)
+            self.gd.mainFrame.updateAutosaveStatus(self)
 
             return
 
         self.autosavedData = data
         self.recoveryWritten = True
+        self.autosaveTime = time.time()
+        self.autosaveError = None
+        self.gd.mainFrame.updateAutosaveStatus(self)
 
     # remove the script's recovery copy, if any
     def removeRecovery(self):
@@ -243,6 +255,11 @@ class MyCtrl(wx.Control):
             self.recoveryWritten = False
 
         self.autosavedData = None
+
+        if (self.autosaveTime is not None) or (self.autosaveError is not None):
+            self.autosaveTime = None
+            self.autosaveError = None
+            self.gd.mainFrame.updateAutosaveStatus(self)
 
     # import fileName as format fmt ("fdx", "celtx", "astx", "fountain",
     # "fadein" or "txt"). if fmt is None, it's guessed from the extension.

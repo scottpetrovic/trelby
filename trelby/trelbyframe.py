@@ -475,6 +475,27 @@ class MyFrame(wx.Frame):
         for c in self.getCtrls():
             c.autosave()
 
+    # show the current script's autosave state in the status bar. if ctrl
+    # is given, only does anything if that's the current script.
+    def updateAutosaveStatus(self, ctrl=None):
+        panel = getattr(self, "panel", None)
+
+        if not panel or ((ctrl is not None) and (ctrl is not panel.ctrl)):
+            return
+
+        c = panel.ctrl
+
+        if c.autosaveError is not None:
+            s = _("Autosave failed: %s") % c.autosaveError
+        elif c.autosaveTime is not None:
+            s = _("Recovery copy autosaved at %s") % time.strftime(
+                "%H:%M", time.localtime(c.autosaveTime)
+            )
+        else:
+            s = ""
+
+        self.statusBar.SetStatusText(s, self.SB_HELP)
+
     # if recovery copies were left over by a session that didn't exit
     # cleanly, offer to restore them
     def offerRecovery(self):
@@ -671,6 +692,7 @@ class MyFrame(wx.Frame):
         self.panel.ctrl.SetFocus()
         self.panel.ctrl.updateCommon()
         self.setTitle(self.panel.ctrl.fileNameDisplay)
+        self.updateAutosaveStatus()
 
         # also called when a script is opened or closed
         self.menuBar.Enable(
