@@ -1,6 +1,7 @@
 import os.path
 
 import trelby.misc as misc
+import trelby.pdfviewer as pdfviewer
 import trelby.util as util
 import wx
 
@@ -12,6 +13,20 @@ class PDFViewerPanel(wx.Panel):
         self.cfgFrame = cfgFrame
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.builtinCb = wx.CheckBox(self, -1, _("Use built-in PDF viewer"))
+        vsizer.Add(self.builtinCb, 0, wx.BOTTOM, 5)
+
+        if pdfviewer.isAvailable():
+            note = _(
+                "The application below is used when the built-in viewer is"
+                " turned off or can't open a file."
+            )
+        else:
+            self.builtinCb.Disable()
+            note = _("The built-in viewer isn't available on this system.")
+
+        vsizer.Add(wx.StaticText(self, -1, note), 0, wx.BOTTOM, 10)
 
         bsizer = wx.StaticBoxSizer(
             wx.StaticBox(self, -1, _("PDF viewer application")), wx.VERTICAL
@@ -60,10 +75,12 @@ class PDFViewerPanel(wx.Panel):
 
         util.finishWindow(self, vsizer, center=False)
 
+        self.Bind(wx.EVT_CHECKBOX, self.OnMisc, id=self.builtinCb.GetId())
         self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.progEntry.GetId())
         self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.argsEntry.GetId())
 
     def OnMisc(self, event=None):
+        self.cfg.pdfUseBuiltinViewer = self.builtinCb.GetValue()
         self.cfg.pdfViewerPath = self.progEntry.GetValue()
         self.cfg.pdfViewerArgs = misc.fromGUI(self.argsEntry.GetValue())
 
@@ -95,5 +112,6 @@ class PDFViewerPanel(wx.Panel):
             )
 
     def cfg2gui(self):
+        self.builtinCb.SetValue(self.cfg.pdfUseBuiltinViewer)
         self.progEntry.SetValue(self.cfg.pdfViewerPath)
         self.argsEntry.SetValue(self.cfg.pdfViewerArgs)

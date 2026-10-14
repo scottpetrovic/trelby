@@ -1247,6 +1247,10 @@ class ConfigGlobal:
         # page break indicators to show
         v.addInt("pbi", PBI_REAL, "PageBreakIndicators", PBI_FIRST, PBI_LAST)
 
+        # whether to show PDFs in the built-in viewer (where the platform
+        # supports it) instead of the external viewer program below
+        v.addBool("pdfUseBuiltinViewer", True, "PDF/UseBuiltinViewer")
+
         # PDF viewer program and args. defaults are empty since generating
         # them is a complex process handled by findPDFViewer.
         v.addStrUnicode("pdfViewerPath", "", "PDF/ViewerPath")

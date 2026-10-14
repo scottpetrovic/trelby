@@ -1239,8 +1239,21 @@ def getWindowsUnicodeEnvVar(name):
     return buf.value
 
 
-# show PDF file.
+# show PDF file, in the built-in viewer if it's enabled and available,
+# otherwise in the external viewer application.
 def showPDF(
+    filename: str, cfgGl: "config.ConfigGlobal", frame: wx.TopLevelWindow
+) -> None:
+    import trelby.pdfviewer as pdfviewer
+
+    if cfgGl.pdfUseBuiltinViewer and pdfviewer.isAvailable():
+        pdfviewer.show(filename, cfgGl)
+    else:
+        showPDFExternal(filename, cfgGl, frame)
+
+
+# show PDF file in the external viewer application.
+def showPDFExternal(
     filename: str, cfgGl: "config.ConfigGlobal", frame: wx.TopLevelWindow
 ) -> None:
     def complain():

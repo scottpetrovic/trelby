@@ -49,6 +49,11 @@ class MyApp(wx.App):
             )
             sys.exit()
 
+        # fixed name, so per-user data wx keeps (e.g. the built-in PDF
+        # viewer's browser profile) goes to the same place for source runs
+        # and the exe
+        self.SetAppName("Trelby")
+
         misc.init()
         util.init()
 

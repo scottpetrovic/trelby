@@ -27,6 +27,7 @@ $PY -m PyInstaller --noconfirm --windowed --name Trelby \
     --add-data "trelby/dict_en.dat.gz;trelby" \
     --add-data "trelby/sample.trelby;trelby" \
     --add-data "trelby/fileformat.txt;trelby" \
+    --add-binary ".venv/Lib/site-packages/wx/WebView2Loader.dll;wx" \
     trelby.py
 
 echo "Built $(pwd)/dist/Trelby/Trelby.exe"
