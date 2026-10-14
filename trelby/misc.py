@@ -175,11 +175,11 @@ class MyStatus(wx.Window):
         self.enterNext = ""
 
         self.elementFont = util.createPixelFont(
-            TAB_BAR_HEIGHT // 2 + 6, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.NORMAL
+            TAB_BAR_HEIGHT // 2 + 6, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
         )
 
         self.font = util.createPixelFont(
-            TAB_BAR_HEIGHT // 2 + 2, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.NORMAL
+            TAB_BAR_HEIGHT // 2 + 2, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
         )
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -490,10 +490,10 @@ class MyTabCtrl(wx.Window):
         if not self.font:
             textH = h - self.textY - 1
             self.font = util.createPixelFont(
-                textH, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.NORMAL
+                textH, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
             )
             self.boldFont = util.createPixelFont(
-                textH, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.BOLD
+                textH, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
             )
 
         maxTab = self.getLastVisibleTab()
@@ -1030,15 +1030,14 @@ class MRUFiles:
         # items (Unicode strings)
         self.items = []
 
-        for i in range(self.maxCount):
-            id = wx.NewId()
+        # contiguous menu ids. keep the refs alive so wx doesn't reuse them;
+        # store plain ints since the code below does arithmetic on them.
+        self.idRefs = wx.NewIdRef(count=self.maxCount)
+        if self.maxCount == 1:
+            self.idRefs = [self.idRefs]
 
-            if i == 0:
-                # first menu id
-                self.firstId = id
-            elif i == (self.maxCount - 1):
-                # last menu id
-                self.lastId = id
+        self.firstId = int(self.idRefs[0])
+        self.lastId = int(self.idRefs[-1])
 
     # use given menu. this must be called before any "add" calls.
     def useMenu(self, menu, menuPos):

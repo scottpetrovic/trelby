@@ -48,14 +48,14 @@ class SplashWindow(wx.Frame):
 
         self.textColor = wx.Colour(0, 0, 0)
 
-        self.font = util.createPixelFont(14, wx.FONTFAMILY_MODERN, wx.NORMAL, wx.NORMAL)
+        self.font = util.createPixelFont(14, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
         self.quoteFont = util.createPixelFont(
-            16, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.NORMAL
+            16, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
         )
 
         self.sourceFont = util.createPixelFont(
-            15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.NORMAL
+            15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL
         )
 
         if delay != -1:

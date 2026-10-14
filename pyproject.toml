@@ -1,6 +1,50 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "trelby"
+version = "2.4.16.2"
+description = "Free, multiplatform, feature-rich screenwriting program"
+readme = { file = "long_description.txt", content-type = "text/plain" }
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Osku Salerma", email = "osku.salerma@gmail.com" }]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "wxPython>=4.2,<5",
+    "lxml>=4.9,<7",
+    "reportlab>=4.0,<6",
+]
+
+[project.urls]
+Homepage = "https://www.trelby.org"
+Source = "https://github.com/trelby/trelby"
+
+[project.scripts]
+trelby = "trelby:trelby.main"
+
+# configpages/, resources/ and locales/ have no __init__.py, so they are
+# picked up as namespace packages
+[tool.setuptools.packages.find]
+include = ["trelby", "trelby.*"]
+
+[tool.setuptools.package-data]
+trelby = [
+    "dict_en.dat.gz",
+    "fileformat.txt",
+    "manual.html",
+    "names.txt.gz",
+    "sample.trelby",
+    "resources/*",
+    "trelby.1.gz",
+    "locales/*/*/*",
+    "configpages/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

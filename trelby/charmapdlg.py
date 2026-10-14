@@ -55,13 +55,13 @@ class MyCharMap(wx.Window):
         self.boxSize = 60
 
         self.smallFont = util.createPixelFont(
-            18, wx.FONTFAMILY_SWISS, wx.NORMAL, wx.NORMAL
+            18, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
         )
         self.normalFont = util.createPixelFont(
-            self.cellSize - 2, wx.FONTFAMILY_MODERN, wx.NORMAL, wx.BOLD
+            self.cellSize - 2, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
         )
         self.bigFont = util.createPixelFont(
-            self.boxSize - 2, wx.FONTFAMILY_MODERN, wx.NORMAL, wx.BOLD
+            self.boxSize - 2, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
         )
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)

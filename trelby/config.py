@@ -1480,9 +1480,9 @@ class ConfigGui:
             if not fi.font:
                 fi.font = wx.Font(
                     10,
-                    wx.MODERN,
-                    wx.NORMAL,
-                    wx.NORMAL,
+                    wx.FONTFAMILY_MODERN,
+                    wx.FONTSTYLE_NORMAL,
+                    wx.FONTWEIGHT_NORMAL,
                     encoding=wx.FONTENCODING_ISO8859_1,
                 )
                 setattr(cfgGl, fname, fi.font.GetNativeFontInfo().ToString())

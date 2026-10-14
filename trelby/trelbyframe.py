@@ -71,7 +71,7 @@ class MyFrame(wx.Frame):
         tmp.Append(ID_SETTINGS_SC_DICT, "(&S) " + _("Spell checker dictionary") + "...")
         settingsMenu = tmp
 
-        fileMenu.Append(ID_FILE_SETTINGS, "(&t) " + _("Settings"), tmp)
+        fileMenu.AppendSubMenu(tmp, "(&t) " + _("Settings"))
 
         fileMenu.AppendSeparator()
         # "most recently used" list comes in here
@@ -91,7 +91,7 @@ class MyFrame(wx.Frame):
         tmp.Append(ID_EDIT_COPY_TO_CB, "(&U) " + _("Unformatted"))
         tmp.Append(ID_EDIT_COPY_TO_CB_FMT, "(&F) " + _("Formatted"))
 
-        editMenu.Append(ID_EDIT_COPY_SYSTEM, "(&o) " + _("Copy (system)"), tmp)
+        editMenu.AppendSubMenu(tmp, "(&o) " + _("Copy (system)"))
         editMenu.Append(ID_EDIT_PASTE_FROM_CB, "(&a) " + _("Paste (system)"))
         editMenu.AppendSeparator()
         editMenu.Append(ID_EDIT_SELECT_SCENE, "(&S) " + _("Select scene"))
@@ -145,7 +145,7 @@ class MyFrame(wx.Frame):
         tmp.AppendSeparator()
         tmp.Append(ID_SCRIPT_SETTINGS_LOAD, "(&L) " + _("Load") + "...")
         tmp.Append(ID_SCRIPT_SETTINGS_SAVE_AS, "(&S) " + _("Save as") + "...")
-        scriptMenu.Append(ID_SCRIPT_SETTINGS, "(&S) " + _("Settings"), tmp)
+        scriptMenu.AppendSubMenu(tmp, "(&S) " + _("Settings"))
         scriptSettingsMenu = tmp
 
         reportsMenu = wx.Menu()

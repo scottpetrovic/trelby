@@ -155,9 +155,9 @@ class TitleString:
             tmp = "\\fs%d" % (self.size * 2)
 
             if self.isCentered:
-                tmp += " \qc"
+                tmp += r" \qc"
             elif self.isRightJustified:
-                tmp += " \qr"
+                tmp += r" \qr"
 
             if self.isBold:
                 tmp += r" \b"

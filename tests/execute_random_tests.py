@@ -220,7 +220,7 @@ def runRandomOps():
 
 # run ops from given file
 def runOpsFromFile(filename):
-    f = open(filename, "r")
+    f = open(filename, "r", encoding="utf-8")
     s = f.read()
     f.close()
 
@@ -238,7 +238,7 @@ def runOpsFromFile(filename):
 
 # save information about failed ops.
 def save(ops: Ops, cnt: int):
-    f = open("%d.ops" % cnt, "w")
+    f = open("%d.ops" % cnt, "w", encoding="utf-8")
 
     tbLines = traceback.format_exception(*sys.exc_info())
 

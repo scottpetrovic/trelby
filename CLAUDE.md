@@ -41,9 +41,8 @@ Output is `dist/Trelby/` (`Trelby.exe` + `_internal/`, which must stay together)
 - Data files are found relative to the package: `misc.getFullPath("trelby/resources/...")` (uses `misc.progPath`, the parent of the `trelby/` package) or `trelby.__path__[0]`. Use these instead of hard-coded or CWD-relative paths, or the exe build breaks.
 - `misc.init()` sets `progPath = "."` in `--test` mode and in tests, so tests must run from the repo root.
 - UI strings are wrapped in `_()` for gettext; translations live in `trelby/locales` and `po/` (see `TRANSLATION_NOTES.txt`).
-- Version string is duplicated in `setup.cfg`, `trelby/misc.py`, and `choco/`; bump all of them together.
-
-## Known issues
-
-- `trelby/titles.py` ~line 158-160: `" \qc"` / `" \qr"` are invalid escape sequences (SyntaxWarning on Python 3.12+).
-- `.github/workflows/main.yml` triggers on pushes to `main`, but the default branch is `master` (runs on PRs only).
+- Version string is duplicated in `pyproject.toml`, `trelby/misc.py`, `doc/version.xml`, and `choco/`; bump all of them together.
+- Packaging metadata and dependency bounds live in `pyproject.toml`; `requirements.txt` is the dev install (same bounds plus pytest). Keep them in sync.
+- Menu/control IDs: use `wx.NewIdRef()` (not the deprecated `wx.NewId()`). `WindowIDRef` works as a dict key and in `Bind`/`Append`, but doesn't support arithmetic; convert with `int()` when you need it (see `misc.MRUFiles`). Submenus use `AppendSubMenu`.
+- Font constants: use `wx.FONTFAMILY_*` / `wx.FONTSTYLE_*` / `wx.FONTWEIGHT_*`, not the old `wx.NORMAL` / `wx.BOLD` / `wx.MODERN`.
+- To catch new deprecations, run the app with `.venv/Scripts/python -X dev -W always trelby.py --test`; startup should print no warnings.

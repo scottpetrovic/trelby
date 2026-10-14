@@ -69,7 +69,7 @@ R                      Replace
 
         vsizer.Add(htmlWin, 1, wx.EXPAND)
 
-        id = wx.NewId()
+        id = wx.NewIdRef()
         menu = wx.Menu()
         menu.Append(id, "&Save as...")
 
