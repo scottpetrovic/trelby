@@ -168,7 +168,6 @@ class MyFrame(wx.Frame):
         tmp.Append(ID_SCRIPT_SETTINGS_LOAD, misc.mnemonic("L", _("Load") + "..."))
         tmp.Append(ID_SCRIPT_SETTINGS_SAVE_AS, misc.mnemonic("S", _("Save as") + "..."))
         scriptMenu.AppendSubMenu(tmp, misc.mnemonic("S", _("Settings")))
-        scriptSettingsMenu = tmp
 
         reportsMenu = wx.Menu()
         reportsMenu.Append(
@@ -221,7 +220,7 @@ class MyFrame(wx.Frame):
         self.menuBar.Append(helpMenu, misc.mnemonic("H", _("Help")))
         self.SetMenuBar(self.menuBar)
 
-        self.toolBar = self.CreateToolBar(wx.TB_VERTICAL)
+        self.toolBar = self.CreateToolBar(wx.TB_HORIZONTAL)
         self.fillToolBar()
 
         self.createStatusBar()
@@ -376,15 +375,11 @@ class MyFrame(wx.Frame):
             id2=ID_ELEM_TO_TRANSITION,
         )
 
-        self.Bind(wx.EVT_MENU, self.OnSettings, id=ID_TOOLBAR_SETTINGS)
-
-        def addTBMenu(id, menu):
-            self.Bind(wx.EVT_MENU, partial(self.OnToolBarMenu, menu=menu), id=id)
-
-        addTBMenu(ID_TOOLBAR_SCRIPTSETTINGS, scriptSettingsMenu)
-        addTBMenu(ID_TOOLBAR_REPORTS, reportsMenu)
-        addTBMenu(ID_TOOLBAR_VIEWS, viewMenu)
-        addTBMenu(ID_TOOLBAR_TOOLS, toolsMenu)
+        self.Bind(
+            wx.EVT_MENU,
+            partial(self.OnToolBarMenu, menu=viewMenu),
+            id=ID_TOOLBAR_VIEWS,
+        )
 
         # alternate zoom shortcuts the menu labels can't express: CTRL-+
         # (shifted '=' on many keyboards) and the numeric keypad
@@ -814,18 +809,17 @@ class MyFrame(wx.Frame):
             # the status bar shows this while the tool is hovered
             tool.SetLongHelp(toolTip)
 
-        addTB(ID_FILE_NEW, "new.svg", _("New script"))
-        addTB(ID_FILE_OPEN, "open.svg", _("Open Script") + "..")
-        addTB(ID_FILE_SAVE, "save.svg", _("Save") + "..")
-        addTB(ID_FILE_SAVE_AS, "saveas.svg", _("Save as") + "..")
-        addTB(ID_FILE_CLOSE, "close.svg", _("Close Script"))
-        addTB(ID_TOOLBAR_SCRIPTSETTINGS, "scrset.svg", _("Script settings"))
+        addTB(ID_FILE_NEW, "new.svg", _("New file"))
+        addTB(ID_FILE_OPEN, "open.svg", _("Open file") + "...")
+        addTB(ID_FILE_SAVE, "save.svg", _("Save"))
+        addTB(ID_FILE_SAVE_AS, "saveas.svg", _("Save as") + "...")
+        addTB(ID_FILE_CLOSE, "close.svg", _("Close file"))
         addTB(ID_FILE_PRINT, "pdf.svg", _("Print (via PDF)"))
 
         tb.AddSeparator()
 
-        addTB(ID_FILE_IMPORT, "import.svg", _("Import a text script"))
-        addTB(ID_FILE_EXPORT, "export.svg", _("Export script"))
+        addTB(ID_FILE_IMPORT, "import.svg", _("Import file") + "...")
+        addTB(ID_FILE_EXPORT, "export.svg", _("Export file") + "...")
 
         tb.AddSeparator()
 
@@ -836,9 +830,6 @@ class MyFrame(wx.Frame):
 
         addTB(ID_EDIT_FIND, "find.svg", _("Find / Replace"))
         addTB(ID_TOOLBAR_VIEWS, "view.svg", _("View mode"))
-        addTB(ID_TOOLBAR_REPORTS, "report.svg", _("Script reports"))
-        addTB(ID_TOOLBAR_TOOLS, "tools.svg", _("Tools"))
-        addTB(ID_TOOLBAR_SETTINGS, "settings.svg", _("Global settings"))
 
         tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         tb.Realize()
