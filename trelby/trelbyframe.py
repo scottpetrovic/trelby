@@ -808,16 +808,21 @@ class MyFrame(wx.Frame):
         self.panel.ctrl.Refresh(False)
 
     def OnToggleOutline(self, event=None):
-        self.menuBar.Check(
-            ID_VIEW_SHOW_OUTLINE, not self.menuBar.IsChecked(ID_VIEW_SHOW_OUTLINE)
-        )
-        self.OnShowOutline()
+        self.setShowOutline(not self.gd.showOutline)
 
-    def OnShowOutline(self, event=None):
-        self.gd.showOutline = self.menuBar.IsChecked(ID_VIEW_SHOW_OUTLINE)
+    # from the View menu item or the toolbar button, which share an id
+    def OnShowOutline(self, event):
+        self.setShowOutline(event.IsChecked())
+
+    # show or hide the outline view in all tabs, keeping the View menu item
+    # and the toolbar button in sync
+    def setShowOutline(self, show):
+        self.gd.showOutline = show
+        self.menuBar.Check(ID_VIEW_SHOW_OUTLINE, show)
+        self.toolBar.ToggleTool(ID_VIEW_SHOW_OUTLINE, show)
 
         for i in range(self.tabCtrl.getPageCount()):
-            self.tabCtrl.getPage(i).showOutline(self.gd.showOutline)
+            self.tabCtrl.getPage(i).showOutline(show)
 
     def OnViewModeDraft(self):
         self.menuBar.Check(ID_VIEW_STYLE_DRAFT, True)
@@ -836,7 +841,7 @@ class MyFrame(wx.Frame):
         if getattr(self, "elemTypeBar", None):
             self.elemTypeBar.Destroy()
 
-        def addTB(id, iconFilename, toolTip):
+        def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
             filepath = misc.getFullPath(("trelby/resources/%s" % iconFilename))
 
             # neat hack to change the color of the SVG
@@ -849,7 +854,7 @@ class MyFrame(wx.Frame):
 
             bitmap = wx.BitmapBundle.FromSVG(svg_content, size)
 
-            tool = tb.AddTool(id, "", bitmap, shortHelp=toolTip)
+            tool = tb.AddTool(id, "", bitmap, shortHelp=toolTip, kind=kind)
 
             # the status bar shows this while the tool is hovered
             tool.SetLongHelp(toolTip)
@@ -874,6 +879,7 @@ class MyFrame(wx.Frame):
 
         addTB(ID_EDIT_FIND, "find.svg", _("Find / Replace"))
         addTB(ID_TOOLBAR_VIEWS, "view.svg", _("View mode"))
+        addTB(ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
 
         tb.AddSeparator()
 
@@ -893,6 +899,8 @@ class MyFrame(wx.Frame):
 
         tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         tb.Realize()
+
+        tb.ToggleTool(ID_VIEW_SHOW_OUTLINE, self.gd.showOutline)
 
     # element types in the toolbar's element type group: line type, label,
     # name of the command that changes to it

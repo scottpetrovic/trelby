@@ -44,6 +44,22 @@ class OutlinePanel(wx.Panel):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
+        # header: the panel's title and a button to close it
+        hdr = wx.BoxSizer(wx.HORIZONTAL)
+
+        title = wx.StaticText(self, -1, _("Outline"))
+        title.SetFont(title.GetFont().Bold())
+        hdr.Add(title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, self.FromDIP(6))
+
+        self.closeBtn = wx.Button(
+            self, -1, "\u2715", style=wx.BU_EXACTFIT | wx.BORDER_NONE
+        )
+        self.closeBtn.SetToolTip(_("Hide the outline"))
+        hdr.Add(self.closeBtn, 0, wx.ALL, self.FromDIP(2))
+
+        vsizer.Add(hdr, 0, wx.EXPAND)
+        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND)
+
         self.list = wx.ListCtrl(
             self, -1, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_NONE
         )
@@ -86,6 +102,7 @@ class OutlinePanel(wx.Panel):
         self.list.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.upBtn.Bind(wx.EVT_BUTTON, self.OnMoveUp)
         self.downBtn.Bind(wx.EVT_BUTTON, self.OnMoveDown)
+        self.closeBtn.Bind(wx.EVT_BUTTON, self.OnClose)
 
         self.updateButtons()
 
@@ -371,3 +388,6 @@ class OutlinePanel(wx.Panel):
 
     def OnMoveDown(self, event):
         self.moveScene(1)
+
+    def OnClose(self, event):
+        self.scriptPanel.gd.mainFrame.setShowOutline(False)

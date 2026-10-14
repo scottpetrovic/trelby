@@ -25,6 +25,10 @@ class MyPanel(wx.Panel):
         )
         self.splitter.SetMinimumPaneSize(120)
 
+        # the outline is on the right; it keeps its width when the window
+        # is resized
+        self.splitter.SetSashGravity(1.0)
+
         # created before MyCtrl, which refreshes it during its own init
         self.outline = OutlinePanel(self.splitter, self)
 
@@ -57,8 +61,9 @@ class MyPanel(wx.Panel):
         if show:
             if not self.splitter.IsSplit():
                 self.outline.Show()
+                # a negative sash position is the right pane's width
                 self.splitter.SplitVertically(
-                    self.outline, self.editor, self.gd.outlineWidth
+                    self.editor, self.outline, -self.gd.outlineWidth
                 )
 
             self.outline.refresh()
@@ -69,8 +74,12 @@ class MyPanel(wx.Panel):
                 self.splitter.Initialize(self.editor)
                 self.outline.Hide()
 
+    # outlineWidth is what showOutline passes to SplitVertically, so it
+    # includes the sash
     def OnSashChanged(self, event):
-        self.gd.outlineWidth = event.GetSashPosition()
+        self.gd.outlineWidth = (
+            self.splitter.GetClientSize().width - event.GetSashPosition()
+        )
         event.Skip()
 
     # we never want the scrollbar to get the keyboard focus, pass it on to
