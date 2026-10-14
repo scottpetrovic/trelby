@@ -33,6 +33,30 @@ class DisplayPanel(wx.Panel):
         hsizer.Add(self.errText, 0, wx.ALIGN_CENTER_VERTICAL)
         vsizer.Add(hsizer, 0, wx.BOTTOM, 20)
 
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        hsizer.Add(
+            wx.StaticText(self, -1, _("Toolbar icon size:")),
+            0,
+            wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
+            10,
+        )
+
+        self.iconSizeEntry = wx.SpinCtrl(self, -1)
+        self.iconSizeEntry.SetRange(*self.cfg.cvars.getMinMax("toolbarIconSize"))
+        self.Bind(wx.EVT_SPINCTRL, self.OnMisc, id=self.iconSizeEntry.GetId())
+        self.iconSizeEntry.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
+        hsizer.Add(self.iconSizeEntry, 0)
+
+        hsizer.Add(
+            wx.StaticText(self, -1, _("pixels")),
+            0,
+            wx.ALIGN_CENTER_VERTICAL | wx.LEFT,
+            10,
+        )
+
+        vsizer.Add(hsizer, 0, wx.BOTTOM, 20)
+
         vsizer.Add(
             wx.StaticText(
                 self, -1, _("The settings below apply only to 'Draft' view mode.")
@@ -123,6 +147,7 @@ class DisplayPanel(wx.Panel):
         dlg.Destroy()
 
     def OnMisc(self, event=None):
+        self.cfg.toolbarIconSize = util.getSpinValue(self.iconSizeEntry)
         self.cfg.fontYdelta = util.getSpinValue(self.spacingEntry)
         self.cfg.pbi = self.pbRb.GetSelection()
 
@@ -158,5 +183,6 @@ class DisplayPanel(wx.Panel):
             self.errText.SetForegroundColour(self.origColor)
 
     def cfg2gui(self):
+        self.iconSizeEntry.SetValue(self.cfg.toolbarIconSize)
         self.spacingEntry.SetValue(self.cfg.fontYdelta)
         self.pbRb.SetSelection(self.cfg.pbi)

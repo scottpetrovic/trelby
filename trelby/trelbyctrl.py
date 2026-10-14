@@ -388,6 +388,11 @@ class MyCtrl(wx.Control):
         self.gd.mainFrame.noFSBtn.Refresh(False)
         self.gd.mainFrame.toolBar.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
 
+        if self.gd.cfgGl.toolbarIconSize != oldCfgGl.toolbarIconSize:
+            self.gd.mainFrame.fillToolBar()
+            self.gd.mainFrame.SendSizeEvent()
+            self.updateCommon()
+
         if writeCfg:
             util.writeToFile(
                 self.gd.confFilename, self.gd.cfgGl.save(), self.gd.mainFrame

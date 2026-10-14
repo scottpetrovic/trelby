@@ -1158,6 +1158,9 @@ class ConfigGlobal:
         # vertical distance between rows, in pixels
         v.addInt("fontYdelta", 18, "FontYDelta", 4, 125)
 
+        # size of the toolbar icons, in pixels (before DPI scaling)
+        v.addInt("toolbarIconSize", 24, "ToolbarIconSize", 16, 48)
+
         # how many lines to scroll per mouse wheel event
         v.addInt("mouseWheelLines", 4, "MouseWheelLines", 1, 50)
 

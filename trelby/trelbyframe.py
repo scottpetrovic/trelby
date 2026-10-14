@@ -236,56 +236,7 @@ class MyFrame(wx.Frame):
         self.SetMenuBar(self.menuBar)
 
         self.toolBar = self.CreateToolBar(wx.TB_VERTICAL)
-
-        def addTB(id, iconFilename, toolTip):
-            filepath = misc.getFullPath(("trelby/resources/%s" % iconFilename))
-
-            # neat hack to change the color of the SVG
-            with open(filepath, "r") as svg_file:
-                svg_content = svg_file.read()
-
-            if wx.SystemSettings.GetAppearance().IsDark():
-                svg_content = svg_content.replace("fill:#000000", "fill:#CCCCCC")
-            svg_content = svg_content.encode()
-
-            # svg_image = wx.svg.SVGimage.CreateFromBytes(svg_content)
-            bitmap = wx.BitmapBundle.FromSVG(svg_content, wx.Size(32, 32))
-
-            self.toolBar.AddTool(
-                id,
-                "",
-                bitmap,
-                shortHelp=toolTip,
-            )
-
-        addTB(ID_FILE_NEW, "new.svg", _("New script"))
-        addTB(ID_FILE_OPEN, "open.svg", _("Open Script") + "..")
-        addTB(ID_FILE_SAVE, "save.svg", _("Save") + "..")
-        addTB(ID_FILE_SAVE_AS, "saveas.svg", _("Save as") + "..")
-        addTB(ID_FILE_CLOSE, "close.svg", _("Close Script"))
-        addTB(ID_TOOLBAR_SCRIPTSETTINGS, "scrset.svg", _("Script settings"))
-        addTB(ID_FILE_PRINT, "pdf.svg", _("Print (via PDF)"))
-
-        self.toolBar.AddSeparator()
-
-        addTB(ID_FILE_IMPORT, "import.svg", _("Import a text script"))
-        addTB(ID_FILE_EXPORT, "export.svg", _("Export script"))
-
-        self.toolBar.AddSeparator()
-
-        addTB(ID_EDIT_UNDO, "undo.svg", _("Undo"))
-        addTB(ID_EDIT_REDO, "redo.svg", _("Redo"))
-
-        self.toolBar.AddSeparator()
-
-        addTB(ID_EDIT_FIND, "find.svg", _("Find / Replace"))
-        addTB(ID_TOOLBAR_VIEWS, "view.svg", _("View mode"))
-        addTB(ID_TOOLBAR_REPORTS, "report.svg", _("Script reports"))
-        addTB(ID_TOOLBAR_TOOLS, "tools.svg", _("Tools"))
-        addTB(ID_TOOLBAR_SETTINGS, "settings.svg", _("Global settings"))
-
-        self.toolBar.SetBackgroundColour(gd.cfgGui.tabBarBgColor)
-        self.toolBar.Realize()
+        self.fillToolBar()
 
         self.Bind(wx.EVT_MOVE, self.OnMove)
         self.Bind(wx.EVT_SIZE, self.OnSize)
@@ -859,6 +810,59 @@ class MyFrame(wx.Frame):
     def OnViewModeDraft(self):
         self.menuBar.Check(ID_VIEW_STYLE_DRAFT, True)
         self.OnViewModeChange()
+
+    # (re)create the toolbar's tools, with icons at the size set in the
+    # global config.
+    def fillToolBar(self):
+        tb = self.toolBar
+        size = wx.Size(self.gd.cfgGl.toolbarIconSize, self.gd.cfgGl.toolbarIconSize)
+
+        tb.ClearTools()
+        tb.SetToolBitmapSize(size)
+
+        def addTB(id, iconFilename, toolTip):
+            filepath = misc.getFullPath(("trelby/resources/%s" % iconFilename))
+
+            # neat hack to change the color of the SVG
+            with open(filepath, "r") as svg_file:
+                svg_content = svg_file.read()
+
+            if wx.SystemSettings.GetAppearance().IsDark():
+                svg_content = svg_content.replace("fill:#000000", "fill:#CCCCCC")
+            svg_content = svg_content.encode()
+
+            bitmap = wx.BitmapBundle.FromSVG(svg_content, size)
+
+            tb.AddTool(id, "", bitmap, shortHelp=toolTip)
+
+        addTB(ID_FILE_NEW, "new.svg", _("New script"))
+        addTB(ID_FILE_OPEN, "open.svg", _("Open Script") + "..")
+        addTB(ID_FILE_SAVE, "save.svg", _("Save") + "..")
+        addTB(ID_FILE_SAVE_AS, "saveas.svg", _("Save as") + "..")
+        addTB(ID_FILE_CLOSE, "close.svg", _("Close Script"))
+        addTB(ID_TOOLBAR_SCRIPTSETTINGS, "scrset.svg", _("Script settings"))
+        addTB(ID_FILE_PRINT, "pdf.svg", _("Print (via PDF)"))
+
+        tb.AddSeparator()
+
+        addTB(ID_FILE_IMPORT, "import.svg", _("Import a text script"))
+        addTB(ID_FILE_EXPORT, "export.svg", _("Export script"))
+
+        tb.AddSeparator()
+
+        addTB(ID_EDIT_UNDO, "undo.svg", _("Undo"))
+        addTB(ID_EDIT_REDO, "redo.svg", _("Redo"))
+
+        tb.AddSeparator()
+
+        addTB(ID_EDIT_FIND, "find.svg", _("Find / Replace"))
+        addTB(ID_TOOLBAR_VIEWS, "view.svg", _("View mode"))
+        addTB(ID_TOOLBAR_REPORTS, "report.svg", _("Script reports"))
+        addTB(ID_TOOLBAR_TOOLS, "tools.svg", _("Tools"))
+        addTB(ID_TOOLBAR_SETTINGS, "settings.svg", _("Global settings"))
+
+        tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
+        tb.Realize()
 
     def ShowHideToolbar(self, event=None):
         self.CheckToolbar = self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR)
