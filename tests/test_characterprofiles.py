@@ -42,15 +42,12 @@ def makeProfiles():
     profs = characterprofiles.CharacterProfiles()
 
     p = characterprofiles.CharacterProfile("JOHN")
-    p.role = "Protagonist"
-    p.age = "42"
-    p.background = "Grew up in Ohio.\n\nMoved to \\ New York."
-    p.notes = "Line one\nLine two: with a colon"
+    p.notes = "Age: 42\n\nGrew up in Ohio.\nMoved to \\ New York: with a colon"
     p.photos = [b"\x89PNG fake data \x00\xff", b"\xff\xd8 more fake data"]
     profs.profiles.append(p)
 
     p = characterprofiles.CharacterProfile("MARY")
-    p.gender = "Female"
+    p.notes = "Female"
     profs.profiles.append(p)
 
     return profs
@@ -79,9 +76,28 @@ def test_saveLoad():
 def test_get():
     profs = makeProfiles()
 
-    assert profs.get("john").age == "42"
-    assert profs.get("JOHN (O.S.)").age == "42"
+    assert profs.get("john").name == "JOHN"
+    assert profs.get("JOHN (O.S.)").name == "JOHN"
     assert profs.get("nobody") is None
+
+
+def test_oldFieldsMergedIntoNotes():
+    profs = characterprofiles.CharacterProfiles()
+    profs.load(
+        "Profiles:1\n"
+        "Profile/1/Name:BOB\n"
+        "Profile/1/Role:Protagonist\n"
+        "Profile/1/Background:Line one\\nLine two\n"
+        "Profile/1/Notes:Likes cats.\n"
+    )
+
+    prof = profs.profiles[0]
+
+    assert prof.notes == (
+        "Role: Protagonist\n\nBackground: Line one\nLine two\n\nLikes cats."
+    )
+    assert prof.extra == {}
+    assert "Profile/1/Role:" not in profs.save()
 
 
 def test_unknownKeysKept():
@@ -149,9 +165,9 @@ def test_deepcopy():
     sp.characterProfiles = makeProfiles()
 
     sp2 = copy.deepcopy(sp)
-    sp2.characterProfiles.profiles[0].age = "1"
+    sp2.characterProfiles.profiles[0].notes = "changed"
 
-    assert sp.characterProfiles.profiles[0].age == "42"
+    assert sp.characterProfiles.profiles[0].notes.startswith("Age: 42")
 
 
 def test_randomNames():

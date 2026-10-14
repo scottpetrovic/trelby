@@ -4,19 +4,24 @@ import re
 import trelby.mypickle as mypickle
 import trelby.util as util
 
-# profile fields stored as text, in the order they're shown and saved:
-# (attribute name, name in the file)
+# profile fields stored as text, in the order they're saved: (attribute
+# name, name in the file)
 TEXT_FIELDS = [
     ("name", "Name"),
-    ("role", "Role"),
-    ("age", "Age"),
-    ("gender", "Gender"),
-    ("occupation", "Occupation"),
-    ("appearance", "Appearance"),
-    ("personality", "Personality"),
-    ("background", "Background"),
-    ("goals", "Goals"),
     ("notes", "Notes"),
+]
+
+# separate fields that early development versions had, and which are now
+# merged into the notes when loading
+OLD_FIELDS = [
+    "Role",
+    "Age",
+    "Gender",
+    "Occupation",
+    "Appearance",
+    "Personality",
+    "Background",
+    "Goals",
 ]
 
 # characters that str.splitlines() splits on (the script loader uses it),
@@ -128,6 +133,17 @@ class CharacterProfile:
 
             if name in vals:
                 setattr(self, attr, unescapeText(vals.pop(name)))
+
+        old = []
+
+        for key in OLD_FIELDS:
+            val = unescapeText(vals.pop("%s/%s" % (prefix, key), "")).strip()
+
+            if val:
+                old.append("%s: %s" % (key, val))
+
+        if old:
+            self.notes = "\n\n".join(old + ([self.notes] if self.notes else []))
 
         count = util.str2int(vals.pop(prefix + "/Photos", "0"), 0, 0, 1000)
 

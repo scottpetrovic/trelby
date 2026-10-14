@@ -126,10 +126,9 @@ The following config sections exists and appear in the file in this order:
   Profiles (integer): Number of profiles. Each profile N (1-based) has
   these values, all optional except Name:
 
-  Profile/N/(Name|Role|Age|Gender|Occupation|Appearance|Personality|
-  Background|Goals|Notes) (string): Text fields. Newlines are stored as
-  \n, the \ character as \\, and other line breaks and control
-  characters as \uXXXX (4 hex digits).
+  Profile/N/(Name|Notes) (string): The character's name and free-form
+  notes. Newlines are stored as \n, the \ character as \\, and other
+  line breaks and control characters as \uXXXX (4 hex digits).
 
   Profile/N/Photos (integer): Number of photos.
 

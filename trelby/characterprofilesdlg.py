@@ -361,119 +361,67 @@ class CharacterProfilesDlg(wx.Dialog):
         self.form = wx.Panel(self, -1)
         formSizer = wx.BoxSizer(wx.VERTICAL)
 
-        topSizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        # photo, with buttons to page through, add and remove photos
-        photoSizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.photoPanel = PhotoPanel(self.form, dip(wx.Size(180, 220)))
-        self.photoPanel.SetToolTip(_("Double-click to view a larger version"))
-        photoSizer.Add(self.photoPanel)
-
-        navSizer = wx.BoxSizer(wx.HORIZONTAL)
+        # photo carousel: the current photo, with arrows on its sides to
+        # page through the photos
+        carouselSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.prevBtn = wx.Button(self.form, -1, "<", style=wx.BU_EXACTFIT)
         self.prevBtn.SetToolTip(_("Previous photo"))
-        navSizer.Add(self.prevBtn)
+        carouselSizer.Add(self.prevBtn, 0, wx.EXPAND | wx.RIGHT, 5)
 
-        self.photoLabel = wx.StaticText(
-            self.form, -1, "", style=wx.ALIGN_CENTER_HORIZONTAL | wx.ST_NO_AUTORESIZE
-        )
-        navSizer.Add(self.photoLabel, 1, wx.ALIGN_CENTER_VERTICAL)
+        self.photoPanel = PhotoPanel(self.form, dip(wx.Size(420, 260)))
+        self.photoPanel.SetToolTip(_("Double-click to view a larger version"))
+        carouselSizer.Add(self.photoPanel, 1, wx.EXPAND)
 
         self.nextBtn = wx.Button(self.form, -1, ">", style=wx.BU_EXACTFIT)
         self.nextBtn.SetToolTip(_("Next photo"))
-        navSizer.Add(self.nextBtn)
+        carouselSizer.Add(self.nextBtn, 0, wx.EXPAND | wx.LEFT, 5)
 
-        photoSizer.Add(navSizer, 0, wx.EXPAND | wx.TOP, 3)
+        formSizer.Add(carouselSizer, 0, wx.EXPAND)
 
         photoBtnSizer = wx.BoxSizer(wx.HORIZONTAL)
 
+        self.photoLabel = wx.StaticText(self.form, -1, "")
+        photoBtnSizer.Add(self.photoLabel, 1, wx.ALIGN_CENTER_VERTICAL)
+
         self.addPhotoBtn = wx.Button(self.form, -1, _("Add photo..."))
-        photoBtnSizer.Add(self.addPhotoBtn, 1)
+        photoBtnSizer.Add(self.addPhotoBtn)
 
-        self.removePhotoBtn = wx.Button(self.form, -1, _("Remove"))
-        photoBtnSizer.Add(self.removePhotoBtn, 1, wx.LEFT, 5)
+        self.removePhotoBtn = wx.Button(self.form, -1, _("Remove photo"))
+        photoBtnSizer.Add(self.removePhotoBtn, 0, wx.LEFT, 5)
 
-        photoSizer.Add(photoBtnSizer, 0, wx.EXPAND | wx.TOP, 3)
+        formSizer.Add(photoBtnSizer, 0, wx.EXPAND | wx.TOP, 5)
 
-        topSizer.Add(photoSizer)
-
-        # short fields. key = attribute name, value = the control
+        # key = attribute name, value = the control editing it
         self.ctrls = {}
 
-        grid = wx.FlexGridSizer(5, 2, 5, 10)
-        grid.AddGrowableCol(1)
-
-        def addLabel(sizer, label, flags=wx.ALIGN_CENTER_VERTICAL):
-            sizer.Add(wx.StaticText(self.form, -1, label), 0, flags)
-
-        addLabel(grid, _("Name:"))
-
+        # name, which is what ties the profile to the script, so it gets
+        # its own line and a bold font
         nameSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        nameLabel = wx.StaticText(self.form, -1, _("Name:"))
+        nameLabel.SetFont(nameLabel.GetFont().Bold())
+        nameSizer.Add(nameLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+
         self.ctrls["name"] = wx.TextCtrl(self.form, -1)
+        self.ctrls["name"].SetFont(self.ctrls["name"].GetFont().Bold())
         nameSizer.Add(self.ctrls["name"], 1, wx.ALIGN_CENTER_VERTICAL)
 
         genBtn = wx.Button(self.form, -1, _("Generate..."))
         genBtn.SetToolTip(_("Pick a name from the name database"))
         nameSizer.Add(genBtn, 0, wx.LEFT, 5)
 
-        grid.Add(nameSizer, 0, wx.EXPAND)
+        formSizer.Add(nameSizer, 0, wx.EXPAND | wx.TOP, 15)
 
-        def addCombo(attr, label, choices):
-            addLabel(grid, label)
-            self.ctrls[attr] = wx.ComboBox(self.form, -1, choices=choices)
-            grid.Add(self.ctrls[attr], 0, wx.EXPAND)
+        formSizer.Add(wx.StaticText(self.form, -1, _("Notes:")), 0, wx.TOP, 10)
 
-        def addText(attr, label):
-            addLabel(grid, label)
-            self.ctrls[attr] = wx.TextCtrl(self.form, -1)
-            grid.Add(self.ctrls[attr], 0, wx.EXPAND)
-
-        addCombo(
-            "role",
-            _("Role:"),
-            [
-                _("Protagonist"),
-                _("Antagonist"),
-                _("Supporting"),
-                _("Love interest"),
-                _("Mentor"),
-                _("Minor"),
-            ],
+        self.ctrls["notes"] = wx.TextCtrl(
+            self.form,
+            -1,
+            size=dip(wx.Size(-1, 220)),
+            style=wx.TE_MULTILINE,
         )
-        addText("age", _("Age:"))
-        addCombo("gender", _("Gender:"), [_("Female"), _("Male"), _("Non-binary")])
-        addText("occupation", _("Occupation:"))
-
-        topSizer.Add(grid, 1, wx.LEFT, 15)
-
-        formSizer.Add(topSizer, 0, wx.EXPAND)
-
-        # long, multi-line fields
-        grid = wx.FlexGridSizer(5, 2, 5, 10)
-        grid.AddGrowableCol(1)
-
-        longFields = [
-            ("appearance", _("Appearance:")),
-            ("personality", _("Personality:")),
-            ("background", _("Background:")),
-            ("goals", _("Goals:")),
-            ("notes", _("Notes:")),
-        ]
-
-        for i, (attr, label) in enumerate(longFields):
-            addLabel(grid, label, wx.TOP)
-            self.ctrls[attr] = wx.TextCtrl(
-                self.form,
-                -1,
-                size=dip(wx.Size(380, 64)),
-                style=wx.TE_MULTILINE,
-            )
-            grid.Add(self.ctrls[attr], 1, wx.EXPAND)
-            grid.AddGrowableRow(i)
-
-        formSizer.Add(grid, 1, wx.EXPAND | wx.TOP, 15)
+        formSizer.Add(self.ctrls["notes"], 1, wx.EXPAND | wx.TOP, 3)
 
         self.form.SetSizer(formSizer)
 
