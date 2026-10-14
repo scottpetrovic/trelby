@@ -607,23 +607,23 @@ class MyCtrl(wx.Control):
 
     def OnReportDialogueChart(self):
         self.sp.paginate()
-        dialoguechart.genDialogueChart(self.gd.mainFrame, self.sp)
+        dialoguechart.genDialogueChart(self.gd.mainFrame, self.sp, self.fileNameDisplay)
 
     def OnReportCharacter(self):
         self.sp.paginate()
-        reports.genCharacterReport(self.gd.mainFrame, self.sp)
+        reports.genCharacterReport(self.gd.mainFrame, self.sp, self.fileNameDisplay)
 
     def OnReportLocation(self):
         self.sp.paginate()
-        reports.genLocationReport(self.gd.mainFrame, self.sp)
+        reports.genLocationReport(self.gd.mainFrame, self.sp, self.fileNameDisplay)
 
     def OnReportScene(self):
         self.sp.paginate()
-        reports.genSceneReport(self.gd.mainFrame, self.sp)
+        reports.genSceneReport(self.gd.mainFrame, self.sp, self.fileNameDisplay)
 
     def OnReportScript(self):
         self.sp.paginate()
-        reports.genScriptReport(self.gd.mainFrame, self.sp)
+        reports.genScriptReport(self.gd.mainFrame, self.sp, self.fileNameDisplay)
 
     def OnCompareScripts(self):
         if self.gd.mainFrame.tabCtrl.getPageCount() < 2:

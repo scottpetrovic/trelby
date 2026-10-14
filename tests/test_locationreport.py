@@ -15,3 +15,12 @@ def testBasic():
     # document
     assert len(data) > 200
     assert data[:8] == util.toLatin1("%PDF-1.5")
+
+
+def testHtml():
+    sp = u.load()
+    report = locationreport.LocationReport(scenereport.SceneReport(sp))
+    html = report.generateHtml()
+
+    assert html.startswith("<tt>")
+    assert "Lines: " in html

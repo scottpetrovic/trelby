@@ -3,62 +3,79 @@ from typing import List
 
 import wx
 
-import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.pdf as pdf
 import trelby.pml as pml
+import trelby.reportwindow as reportwindow
 import trelby.screenplay as screenplay
 import trelby.util as util
 
 
-def genDialogueChart(mainFrame, sp):
-    # TODO: would be nice if this behaved like the other reports, i.e. the
-    # junk below would be inside the class, not outside. this would allow
-    # testcases to be written. only complication is the minLines thing
-    # which would need some thinking.
+def genDialogueChart(mainFrame, sp, scriptName):
+    reportwindow.show(DialogueChartFrame, mainFrame, sp, scriptName)
 
-    inf = []
-    for it in [
-        (_("Characters with < 10 lines"), None),
-        (_("Sorted by: First appearance"), cmpFirst),
-        (_("Sorted by: Last appearance"), cmpLast),
-        (_("Sorted by: Number of lines spoken"), cmpCount),
-        (_("Sorted by: Name"), cmpName),
-    ]:
-        inf.append(misc.CheckBoxItem(it[0], cdata=it[1]))
 
-    dlg = misc.CheckBoxDlg(
-        mainFrame, _("Report type"), inf, _("Information to include:"), False
-    )
+class DialogueChartFrame(reportwindow.ReportFrame):
+    def __init__(self, parent, sp, scriptName):
+        # (label, compare function) for each sort order
+        self.sorts = [
+            (_("Sorted by: First appearance"), cmpFirst),
+            (_("Sorted by: Last appearance"), cmpLast),
+            (_("Sorted by: Number of lines spoken"), cmpCount),
+            (_("Sorted by: Name"), cmpName),
+        ]
 
-    if dlg.ShowModal() != wx.ID_OK:
-        dlg.Destroy()
+        self.allChars = True
+        self.doc = None
 
-        return
+        reportwindow.ReportFrame.__init__(self, parent, sp, scriptName, (1100, 800))
 
-    dlg.Destroy()
+    def getName(self):
+        return _("Dialogue Chart")
 
-    minLines = 1
-    if not inf[0].selected:
-        minLines = 10
+    def makeReport(self):
+        self.chart = DialogueChart(self.sp, 1 if self.allChars else 10)
 
-    chart = DialogueChart(sp, minLines)
+    def createControls(self, panel):
+        self.allCharsCb = wx.CheckBox(panel, -1, _("Characters with < 10 lines"))
+        self.allCharsCb.SetValue(self.allChars)
+        self.Bind(wx.EVT_CHECKBOX, self.OnAllChars, id=self.allCharsCb.GetId())
+        self.optionsSizer.Add(
+            self.allCharsCb, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 15
+        )
 
-    if not chart.cinfo:
-        wx.MessageBox(_("No characters speaking found."), "Error", wx.OK, mainFrame)
+        self.sortChoice = wx.Choice(panel, -1, choices=[s[0] for s in self.sorts])
+        self.sortChoice.SetSelection(0)
+        self.Bind(wx.EVT_CHOICE, lambda e: self.update(), id=self.sortChoice.GetId())
+        self.optionsSizer.Add(self.sortChoice, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        return
+        self.view = reportwindow.PageView(panel)
+        self.contentSizer.Add(self.view, 1, wx.EXPAND)
 
-    del inf[0]
+    def OnAllChars(self, event):
+        self.allChars = self.allCharsCb.GetValue()
+        self.makeReport()
+        self.update()
 
-    if len(misc.CheckBoxItem.getClientData(inf)) == 0:
-        wx.MessageBox(_("Can't disable all output."), "Error", wx.OK, mainFrame)
+    def updateView(self):
+        if not self.chart.cinfo:
+            self.doc = None
 
-        return
+            if self.allChars:
+                msg = _("No characters speaking found.")
+            else:
+                msg = _("No characters with 10 or more lines found.")
 
-    data = chart.generate(inf)
+            self.view.setDoc(None, msg)
+        else:
+            label, func = self.sorts[self.sortChoice.GetSelection()]
+            self.doc = self.chart.generateDoc([misc.CheckBoxItem(label, cdata=func)])
+            self.view.setDoc(self.doc)
 
-    gutil.showTempPDF(data, sp.cfgGl, mainFrame)
+        self.hasContents = self.doc is not None
+
+    def getPDF(self):
+        return pdf.generate(self.doc)
 
 
 class DialogueChart:
@@ -173,7 +190,9 @@ class DialogueChart:
         # spacing from one legend item to next
         self.legendSize = 4.0
 
-    def generate(self, cbil: List[misc.CheckBoxItem]) -> bytes:
+    # return a pml.Document with a page for each selected sort order in
+    # 'cbil'.
+    def generateDoc(self, cbil: List[misc.CheckBoxItem]) -> pml.Document:
         doc = pml.Document(self.sp.cfg.paperHeight, self.sp.cfg.paperWidth)
 
         for it in cbil:
@@ -181,7 +200,10 @@ class DialogueChart:
                 self.cinfo = sorted(self.cinfo, key=functools.cmp_to_key(it.cdata))
                 doc.add(self.generatePage(it.text, doc))
 
-        return pdf.generate(doc)
+        return doc
+
+    def generate(self, cbil: List[misc.CheckBoxItem]) -> bytes:
+        return pdf.generate(self.generateDoc(cbil))
 
     def generatePage(self, title, doc):
         pg = pml.Page(doc)

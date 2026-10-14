@@ -14,3 +14,17 @@ def testBasic():
     # document
     assert len(data) > 200
     assert data[:8] == util.toLatin1("%PDF-1.5")
+
+
+def testHtml():
+    sp = u.load()
+    report = characterreport.CharacterReport(sp)
+    html = report.generateHtml()
+
+    assert report.cinfo[0].name in html
+
+    # nothing to show when no characters are included
+    for ci in report.cinfo:
+        ci.include = False
+
+    assert report.generateHtml() == ""

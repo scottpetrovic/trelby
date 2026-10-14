@@ -2,13 +2,13 @@ import functools
 import operator
 
 import trelby.misc as misc
-import trelby.pdf as pdf
 import trelby.pml as pml
+import trelby.textreport as textreport
 import trelby.util as util
 from trelby.pagelist import PageList
 
 
-class LocationReport:
+class LocationReport(textreport.TextReport):
     # sr = SceneReport
     def __init__(self, sr):
         self.sp = sr.sp
@@ -62,11 +62,7 @@ class LocationReport:
         for s in ["Speakers"]:
             self.inf.append(misc.CheckBoxItem(s))
 
-    def generate(self) -> bytes:
-        tf = pml.TextFormatter(
-            self.sp.cfg.paperWidth, self.sp.cfg.paperHeight, 15.0, 12
-        )
-
+    def format(self, tf) -> None:
         scriptLines = sum([li.lines for li in self.locations])
 
         for li in self.locations:
@@ -109,7 +105,6 @@ class LocationReport:
                 for it in util.sortDict(li.chars):
                     tf.addText("     %3d  %s" % (it[1], it[0]))
 
-        return pdf.generate(tf.doc)
 
 
 # information about one location

@@ -2,16 +2,17 @@ import functools
 from functools import reduce
 
 import trelby.misc as misc
-import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.screenplay as screenplay
+import trelby.textreport as textreport
 import trelby.util as util
 from trelby.pagelist import PageList
 
 
-class CharacterReport:
-    def __init__(self, sp):
+class CharacterReport(textreport.TextReport):
+    margin = 20.0
 
+    def __init__(self, sp):
         self.sp = sp
 
         ls = sp.lines
@@ -86,11 +87,7 @@ class CharacterReport:
     def sum(self, name):
         return reduce(lambda tot, ci: tot + getattr(ci, name), self.cinfo, 0)
 
-    def generate(self) -> bytes:
-        tf = pml.TextFormatter(
-            self.sp.cfg.paperWidth, self.sp.cfg.paperHeight, 20.0, 12
-        )
-
+    def format(self, tf) -> None:
         for ci in self.cinfo:
             if not ci.include:
                 continue
@@ -132,7 +129,6 @@ class CharacterReport:
 
             tf.addSpace(5.0)
 
-        return pdf.generate(tf.doc)
 
 
 # information about one character
