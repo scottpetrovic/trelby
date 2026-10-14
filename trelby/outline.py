@@ -33,7 +33,7 @@ class OutlineList(wx.VListBox):
         self.normalFont = self.GetFont()
         self.boldFont = self.normalFont.Bold()
 
-        self.pad = self.FromDIP(wx.Size(6, 4))
+        self.pad = self.FromDIP(wx.Size(6, 8))
         self.gap = self.FromDIP(8)
         self.lineHeight = max(
             self.GetFullTextExtent("Ag", font)[1]
