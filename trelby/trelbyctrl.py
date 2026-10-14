@@ -165,19 +165,24 @@ class MyCtrl(wx.Control):
         else:
             return False
 
-    def importFile(self, fileName):
+    # import fileName as format fmt ("fdx", "celtx", "astx", "fountain",
+    # "fadein" or "txt"). if fmt is None, it's guessed from the extension.
+    def importFile(self, fileName, fmt=None):
+        if fmt is None:
+            fmt = os.path.splitext(fileName)[1].lower().lstrip(".")
+
         titlePages = False
-        if fileName.endswith("fdx"):
+        if fmt == "fdx":
             lines = myimport.importFDX(fileName, self.gd.mainFrame)
-        elif fileName.endswith("celtx"):
+        elif fmt == "celtx":
             lines = myimport.importCeltx(fileName, self.gd.mainFrame)
-        elif fileName.endswith("astx"):
+        elif fmt == "astx":
             lines = myimport.importAstx(fileName, self.gd.mainFrame)
-        elif fileName.endswith("fountain"):
+        elif fmt == "fountain":
             lines, titlePages = myimport.importFountain(
                 fileName, self.gd.mainFrame, self.sp.titles.pages
             )
-        elif fileName.endswith("fadein"):
+        elif fmt == "fadein":
             lines = myimport.importFadein(fileName, self.gd.mainFrame)
         else:
             lines = myimport.importTextFile(fileName, self.gd.mainFrame)

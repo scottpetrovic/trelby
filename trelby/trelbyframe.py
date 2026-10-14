@@ -58,7 +58,24 @@ class MyFrame(wx.Frame):
         fileMenu.Append(ID_FILE_CLOSE, misc.mnemonic("C", _("Close\tCTRL-W")))
         fileMenu.Append(ID_FILE_REVERT, misc.mnemonic("v", _("Revert")))
         fileMenu.AppendSeparator()
-        fileMenu.Append(ID_FILE_IMPORT, misc.mnemonic("I", _("Import") + "..."))
+        importMenu = wx.Menu()
+        importMenu.Append(
+            ID_FILE_IMPORT_FDX, misc.mnemonic("D", _("Final Draft (FDX)") + "...")
+        )
+        importMenu.Append(
+            ID_FILE_IMPORT_FOUNTAIN, misc.mnemonic("F", _("Fountain") + "...")
+        )
+        importMenu.Append(ID_FILE_IMPORT_CELTX, misc.mnemonic("C", _("Celtx") + "..."))
+        importMenu.Append(
+            ID_FILE_IMPORT_ASTX, misc.mnemonic("A", _("Adobe Story (ASTX)") + "...")
+        )
+        importMenu.Append(
+            ID_FILE_IMPORT_FADEIN, misc.mnemonic("I", _("Fade In") + "...")
+        )
+        importMenu.Append(
+            ID_FILE_IMPORT_TEXT, misc.mnemonic("T", _("Formatted Text") + "...")
+        )
+        fileMenu.AppendSubMenu(importMenu, misc.mnemonic("I", _("Import")))
         exportMenu = wx.Menu()
         exportMenu.Append(ID_FILE_EXPORT_PDF, misc.mnemonic("P", _("PDF") + "..."))
         exportMenu.Append(
@@ -300,7 +317,17 @@ class MyFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, self.OnOpen, id=ID_FILE_OPEN)
             self.Bind(wx.EVT_MENU, self.OnSave, id=ID_FILE_SAVE)
             self.Bind(wx.EVT_MENU, self.OnSaveScriptAs, id=ID_FILE_SAVE_AS)
-            self.Bind(wx.EVT_MENU, self.OnImportScript, id=ID_FILE_IMPORT)
+            for importId, fmt in (
+                (ID_FILE_IMPORT_FDX, "fdx"),
+                (ID_FILE_IMPORT_FOUNTAIN, "fountain"),
+                (ID_FILE_IMPORT_CELTX, "celtx"),
+                (ID_FILE_IMPORT_ASTX, "astx"),
+                (ID_FILE_IMPORT_FADEIN, "fadein"),
+                (ID_FILE_IMPORT_TEXT, "txt"),
+            ):
+                self.Bind(
+                    wx.EVT_MENU, partial(self.OnImportScript, fmt=fmt), id=importId
+                )
             for exportId, fmt in (
                 (ID_FILE_EXPORT_PDF, "pdf"),
                 (ID_FILE_EXPORT_RTF, "rtf"),
@@ -399,6 +426,12 @@ class MyFrame(wx.Frame):
             wx.EVT_MENU,
             partial(self.OnToolBarMenu, menu=viewMenu),
             id=ID_TOOLBAR_VIEWS,
+        )
+
+        self.Bind(
+            wx.EVT_MENU,
+            partial(self.OnToolBarMenu, menu=importMenu),
+            id=ID_FILE_IMPORT,
         )
 
         self.Bind(
@@ -646,37 +679,24 @@ class MyFrame(wx.Frame):
     def OnSaveScriptAs(self, event=None):
         self.panel.ctrl.OnSaveScriptAs()
 
-    def OnImportScript(self, event=None):
+    def OnImportScript(self, event=None, fmt="txt"):
+        # (file type description, wildcard pattern) for each import format
+        types = {
+            "fdx": ("Final Draft XML", "*.fdx"),
+            "fountain": ("Fountain", "*.fountain;*.txt"),
+            "celtx": ("Celtx", "*.celtx"),
+            "astx": ("Adobe Story XML", "*.astx"),
+            "fadein": ("Fade In", "*.fadein"),
+            "txt": (_("Formatted text"), "*.txt"),
+        }
+        desc, pattern = types[fmt]
+
         dlg = wx.FileDialog(
             self,
             _("File to import"),
             misc.scriptDir,
-            wildcard=_("Importable")
-            + " "
-            + _("files")
-            + "(*.txt;*.fdx;*.celtx;*.astx;*.fountain;*.fadein)|"
-            + "*.fdx;*.txt;*.celtx;*.astx;*.fountain;*.fadein|"
-            + _("Formatted")
-            + " "
-            + _("text")
-            + " "
-            + _("files")
-            + "(*.txt)|*.txt|"
-            + "Final Draft XML(*.fdx)|*.fdx|"
-            + "Celtx "
-            + _("files")
-            + " (*.celtx)|*.celtx|"
-            + "Adobe Story XML "
-            + _("files")
-            + " (*.astx)|*.astx|"
-            + "Fountain "
-            + _("files")
-            + " (*.fountain)|*.fountain|"
-            + "Fadein "
-            + _("files")
-            + " (*.fadein)|*.fadein|"
-            + _("All files")
-            + "|*",
+            wildcard="%s %s (%s)|%s|%s|*"
+            % (desc, _("files"), pattern, pattern, _("All files")),
             style=wx.FD_OPEN,
         )
 
@@ -686,7 +706,7 @@ class MyFrame(wx.Frame):
             if not self.tabCtrl.getPage(self.findPage(self.panel)).ctrl.isUntouched():
                 self.panel = self.createNewPanel()
 
-            self.panel.ctrl.importFile(dlg.GetPath())
+            self.panel.ctrl.importFile(dlg.GetPath(), fmt)
             self.panel.ctrl.updateScreen()
 
         dlg.Destroy()
