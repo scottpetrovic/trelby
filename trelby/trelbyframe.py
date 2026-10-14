@@ -963,15 +963,21 @@ class MyFrame(wx.Frame):
     # status bar fields
     SB_HELP = 0
     SB_NEXT = 1
-    SB_PAGE = 2
-    SB_ZOOM = 3
+    SB_WORDS = 2
+    SB_RUNTIME = 3
+    SB_PAGE = 4
+    SB_ZOOM = 5
 
     # the status bar at the bottom of the window. the help field shows the
     # hovered toolbar tool's name (wx puts each tool's longHelp in field 0),
-    # then come the element types Enter / Tab would create, the current
-    # page and the zoom buttons.
+    # then come the element types Enter / Tab would create, the script's
+    # word count and estimated running time, the current page and the zoom
+    # buttons.
     def createStatusBar(self):
-        sb = self.CreateStatusBar(4)
+        # created with one field, as splitting the still unsized bar into
+        # all of them makes wx log SB_GETRECT errors; the rest are added
+        # below, along with their widths
+        sb = self.CreateStatusBar(1)
         self.statusBar = sb
 
         # a bit taller than the default, so the text isn't cramped
@@ -1006,7 +1012,10 @@ class MyFrame(wx.Frame):
         zoomW = sum(b.GetSize().width for b in self.zoomBtns) + sb.FromDIP(8)
         longest = _("Parenthetical")
         nextW = sb.GetTextExtent(_("Enter: %s    Tab: %s") % (longest, longest))[0]
-        sb.SetStatusWidths([-1, nextW + pad, pageW, zoomW])
+        wordsW = sb.GetTextExtent(self.formatWordCount(999999))[0] + pad
+        runtimeW = sb.GetTextExtent(self.formatRuntime(599))[0] + pad
+        widths = [-1, nextW + pad, wordsW, runtimeW, pageW, zoomW]
+        sb.SetFieldsCount(len(widths), widths)
 
         sb.Bind(wx.EVT_SIZE, self.OnStatusBarSize)
 
@@ -1036,6 +1045,26 @@ class MyFrame(wx.Frame):
 
     def setPageStatus(self, page, pageCnt):
         self.statusBar.SetStatusText(_("Page %d / %d") % (page, pageCnt), self.SB_PAGE)
+
+    def setLengthStatus(self, wordCnt, pageLength):
+        self.statusBar.SetStatusText(self.formatWordCount(wordCnt), self.SB_WORDS)
+        self.statusBar.SetStatusText(
+            self.formatRuntime(round(pageLength)), self.SB_RUNTIME
+        )
+
+    def formatWordCount(self, cnt):
+        if cnt == 1:
+            return _("1 word")
+
+        return _("%s words") % "{:,}".format(cnt)
+
+    # estimated running time, using the usual rule of thumb of one minute
+    # of screen time per script page
+    def formatRuntime(self, minutes):
+        if minutes < 60:
+            return _("Runtime: ~%d min") % minutes
+
+        return _("Runtime: ~%d h %d min") % divmod(minutes, 60)
 
     def updateZoomStatus(self):
         zoom = self.gd.zoom

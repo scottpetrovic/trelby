@@ -1546,6 +1546,52 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def getCharCount(self):
         return sum([len(ln.text) for ln in self.lines])
 
+    # return total number of words in script
+    def getWordCount(self):
+        # a line broken without a space (LB_NONE) continues the same word
+        # on the next line
+        parts = []
+
+        for ln in self.lines:
+            parts.append(ln.text)
+
+            if ln.lb != LB_NONE:
+                parts.append(" ")
+
+        return len("".join(parts).split())
+
+    # return the script's length in pages, with the last page counted as
+    # the fraction of it that is filled. uses the last pagination, like
+    # the page numbers do.
+    def getPageLength(self):
+        pageCnt = len(self.pages) - 1
+
+        if pageCnt < 1:
+            return 0.0
+
+        ls = self.lines
+        ct = self.cfg.types
+        last = len(ls) - 1
+
+        # self.pages can point to lines that no longer exist
+        start = util.clamp(self.pages[-2] + 1, 0, last)
+
+        # in tenths of a line, like paginate
+        units = 10
+
+        if pageCnt > 1:
+            units += self.headers.getNrOfLines() * 10
+
+        for i in range(start + 1, last + 1):
+            units += 10
+
+            if ls[i - 1].lb == LB_LAST:
+                units += ct[ls[i].lt].beforeSpacing
+            else:
+                units += ct[ls[i].lt].intraSpacing
+
+        return (pageCnt - 1) + min(1.0, units / (self.cfg.linesOnPage * 10))
+
     def paginate(self):
         # sfdlksjf = util.TimerDev("paginate")
 
