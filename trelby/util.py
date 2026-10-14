@@ -741,7 +741,7 @@ def drawText(dc, text, x, y, align=ALIGN_LEFT, valign=VALIGN_TOP):
 # create pad sizer for given window whose controls are in topSizer, with
 # 'pad' pixels of padding on each side, resize window to correct size, and
 # optionally center it.
-def finishWindow(window, topSizer, pad=10, center=False):
+def finishWindow(window, topSizer, pad=20, center=False):
     padSizer = wx.BoxSizer(wx.VERTICAL)
     padSizer.Add(topSizer, 1, wx.EXPAND | wx.ALL, pad)
     window.SetSizerAndFit(padSizer)
@@ -1246,7 +1246,7 @@ def showPDF(
     def complain():
         wx.MessageBox(
             _(
-                "PDF viewer application not found.\n\nYou can change your PDF viewer\nsettings at File/Settings/Misc."
+                "PDF viewer application not found.\n\nYou can change your PDF viewer\nsettings at Edit/Settings/Misc."
             ),
             _("Error"),
             wx.OK,
@@ -1266,7 +1266,7 @@ def showPDF(
         if regPDF:
             wx.MessageBox(
                 _(
-                    "Currently set PDF viewer ({}) was not found.\nChange this in File/Settings/Misc.\n\nUsing the default PDF viewer instead:\n%s".format(
+                    "Currently set PDF viewer ({}) was not found.\nChange this in Edit/Settings/Misc.\n\nUsing the default PDF viewer instead:\n%s".format(
                         pdfProgram, regPDF
                     )
                 ),

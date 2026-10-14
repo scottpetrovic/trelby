@@ -22,6 +22,7 @@ from trelby.configpages.pdffontspanel import PDFFontsPanel
 from trelby.configpages.pdfpanel import PDFPanel
 from trelby.configpages.scriptaboutpanel import ScriptAboutPanel
 from trelby.configpages.stringspanel import StringsPanel
+from trelby.configpages.themepanel import ThemePanel
 
 
 # ask for a global settings file to load (save=False) or save, starting at
@@ -89,7 +90,7 @@ class CfgDlg(wx.Dialog):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.listbook = wx.Listbook(self, -1)
+        self.listbook = wx.Treebook(self, -1)
 
         if isGlobal:
             self.SetTitle(_("Settings dialog"))
@@ -98,38 +99,48 @@ class CfgDlg(wx.Dialog):
 
         self.addPages()
 
+        # the page list is a flat tree (a wx.Listbook truncates long page
+        # names). drop the indent meant for child pages, and make it wide
+        # enough for the longest name plus some padding.
+        tree = self.listbook.GetTreeCtrl()
+        tree.SetIndent(0)
+        w = max(
+            tree.GetTextExtent(self.listbook.GetPageText(i))[0]
+            for i in range(self.listbook.GetPageCount())
+        )
+        tree.SetMinSize((w + tree.FromDIP(40), -1))
+
         vsizer.Add(self.listbook, 1, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 15)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         if isGlobal:
             loadBtn = wx.Button(self, -1, _("Load") + "...")
             loadBtn.SetToolTip(_("Load settings from a file"))
-            hsizer.Add(loadBtn, 0, wx.ALL, 5)
+            hsizer.Add(loadBtn, 0, wx.RIGHT, 10)
             self.Bind(wx.EVT_BUTTON, self.OnLoad, id=loadBtn.GetId())
 
             saveBtn = wx.Button(self, -1, _("Save as") + "...")
             saveBtn.SetToolTip(_("Save these settings to a file"))
-            hsizer.Add(saveBtn, 0, wx.ALL, 5)
+            hsizer.Add(saveBtn, 0, wx.RIGHT, 10)
             self.Bind(wx.EVT_BUTTON, self.OnSaveAs, id=saveBtn.GetId())
 
         hsizer.Add((1, 1), 1)
 
         applyBtn = gutil.createStockButton(self, _("Apply"))
-        hsizer.Add(applyBtn, 0, wx.ALL, 5)
+        hsizer.Add(applyBtn, 0, wx.LEFT, 10)
 
         cancelBtn = gutil.createStockButton(self, _("Cancel"))
-        hsizer.Add(cancelBtn, 0, wx.ALL, 5)
+        hsizer.Add(cancelBtn, 0, wx.LEFT, 10)
 
         okBtn = gutil.createStockButton(self, "OK")
-        hsizer.Add(okBtn, 0, wx.ALL, 5)
+        hsizer.Add(okBtn, 0, wx.LEFT, 10)
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        self.SetSizerAndFit(vsizer)
-        self.Layout()
+        util.finishWindow(self, vsizer)
         # self.Center()
 
         self.Bind(wx.EVT_BUTTON, self.OnApply, id=applyBtn.GetId())
@@ -138,6 +149,7 @@ class CfgDlg(wx.Dialog):
 
     def addPages(self):
         if self.isGlobal:
+            self.AddPage(ThemePanel, _("Theme"))
             self.AddPage(GlobalAboutPanel, _("About"))
             self.AddPage(ColorsPanel, _("Colors"))
             self.AddPage(DisplayPanel, _("Display"))

@@ -65,8 +65,6 @@ class MyFrame(wx.Frame):
             ID_FILE_PRINT, misc.mnemonic("P", _("Print (via PDF)") + "\tCTRL-P")
         )
         fileMenu.AppendSeparator()
-        fileMenu.Append(ID_SETTINGS_CHANGE, misc.mnemonic("t", _("Settings") + "..."))
-        fileMenu.AppendSeparator()
         fileMenu.Append(ID_FILE_EXIT, misc.mnemonic("x", _("Exit") + "\tCTRL-Q"))
 
         editMenu = wx.Menu()
@@ -103,6 +101,8 @@ class MyFrame(wx.Frame):
         editMenu.Append(
             ID_EDIT_DELETE_ELEMENTS, misc.mnemonic("D", _("Delete elements") + "...")
         )
+        editMenu.AppendSeparator()
+        editMenu.Append(ID_SETTINGS_CHANGE, misc.mnemonic("n", _("Settings") + "..."))
 
         viewMenu = wx.Menu()
         viewMenu.AppendRadioItem(ID_VIEW_STYLE_DRAFT, misc.mnemonic("D", _("Draft")))
@@ -525,7 +525,7 @@ class MyFrame(wx.Frame):
         if failed:
             wx.MessageBox(
                 _(
-                    "The fonts listed below are not fixed width and\nwill cause the program not to function correctly.\nPlease change the fonts at File/Settings.\n\n\n"
+                    "The fonts listed below are not fixed width and\nwill cause the program not to function correctly.\nPlease change the fonts at Edit/Settings.\n\n\n"
                 ).join(failed),
                 _("Error"),
                 wx.OK,

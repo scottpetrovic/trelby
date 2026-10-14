@@ -26,7 +26,7 @@ class MiscPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.OnBrowse, id=btn.GetId())
         hsizer.Add(btn, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 10)
 
-        bsizer.Add(hsizer, 1, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        bsizer.Add(hsizer, 1, wx.EXPAND | wx.RIGHT | wx.TOP | wx.BOTTOM, 10)
 
         vsizer.Add(bsizer, 0, wx.EXPAND | wx.BOTTOM, 10)
 
@@ -54,7 +54,7 @@ class MiscPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.OnGuessPDF, id=btn.GetId())
         hsizer.Add(btn, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 10)
 
-        bsizer.Add(hsizer, 1, wx.EXPAND)
+        bsizer.Add(hsizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -68,7 +68,7 @@ class MiscPanel(wx.Panel):
         self.argsEntry = wx.TextCtrl(self, -1)
         hsizer.Add(self.argsEntry, 1, wx.ALIGN_CENTER_VERTICAL)
 
-        bsizer.Add(hsizer, 1, wx.EXPAND)
+        bsizer.Add(hsizer, 1, wx.EXPAND | wx.ALL, 10)
 
         vsizer.Add(bsizer, 1, wx.EXPAND | wx.BOTTOM, 10)
 
@@ -78,7 +78,7 @@ class MiscPanel(wx.Panel):
 
         btn = wx.Button(bsizer.GetStaticBox(), -1, _("Global dictionary") + "...")
         btn.Bind(wx.EVT_BUTTON, self.OnScDict)
-        bsizer.Add(btn, 0, wx.TOP | wx.BOTTOM, 5)
+        bsizer.Add(btn, 0, wx.ALL, 10)
 
         vsizer.Add(bsizer, 0, wx.EXPAND)
 

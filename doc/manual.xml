@@ -436,19 +436,6 @@
 
 	</sect1>
 
-	<sect1 id="globcfg_menu">
-	  <title>File/Settings</title>
-
-	  <para>This opens the global settings dialog (see <xref
-	  linkend="settings"/>), which also lets you load and save settings
-	  files and edit the global spell checker dictionary.</para>
-
-	  <para>By default, &trelby; loads settings from a file named
-	  "default.conf" on startup. See <xref linkend="cmdparams"/> for
-	  customizing this.</para>
-
-	</sect1>
-
 	<sect1>
 	  <title>Edit/Undo,Redo</title>
 
@@ -583,6 +570,19 @@
 	  copies of the script, or if you want a version of the script with
 	  only the dialog, only the action, or only the scene headers, or
 	  whatever else you can come up with.</para>
+
+	</sect1>
+
+	<sect1 id="globcfg_menu">
+	  <title>Edit/Settings</title>
+
+	  <para>This opens the global settings dialog (see <xref
+	  linkend="settings"/>), which also lets you load and save settings
+	  files and edit the global spell checker dictionary.</para>
+
+	  <para>By default, &trelby; loads settings from a file named
+	  "default.conf" on startup. See <xref linkend="cmdparams"/> for
+	  customizing this.</para>
 
 	</sect1>
 
@@ -1126,7 +1126,7 @@
 	  <title>Global settings</title>
 
 	  <para>The global settings dialog is found under
-	  File/Settings. It has a list of categories on the left, the
+	  Edit/Settings. It has a list of categories on the left, the
 	  selected category's settings on the right, and three buttons, Apply,
 	  Cancel and OK on the bottom. Apply updates the settings to the ones
 	  given in the dialog so you can easily preview your changes without
@@ -1146,6 +1146,15 @@
 	  close its dialog with OK.</para>
 
 	  <para>The following sections detail the various settings.</para>
+
+	  <sect2>
+		<title>Theme</title>
+
+		<para>Chooses whether &trelby; uses a light or dark theme. 'System
+		default' follows the light or dark mode setting of your operating
+		system.</para>
+
+	  </sect2>
 
 	  <sect2>
 		<title>Colors</title>
