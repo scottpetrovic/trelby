@@ -375,7 +375,10 @@ class MyCtrl(wx.Control):
         if len(texts) == 0:
             return False
 
-        return (line >= texts[0].line) and (line <= texts[-1].line)
+        # not just a range check, since the bottom rows on screen can show
+        # the right-hand column of a dual dialogue but not the end of the
+        # left one
+        return any(t.line == line for t in texts)
 
     def makeLineVisible(self, line, direction=config.SCROLL_CENTER):
         texts = self.gd.vm.getScreen(self, False)[0]
@@ -1206,6 +1209,27 @@ class MyCtrl(wx.Control):
 
     def OnInsertNbsp(self):
         self.OnKeyChar(util.MyKeyEvent(160))
+
+    def OnDualDialogue(self):
+        self.clearAutoComp()
+
+        if not self.sp.toggleDualDialogue():
+            wx.MessageBox(
+                _(
+                    "Dual dialogue needs two speeches in a row (a character"
+                    " followed by its dialogue), with the cursor in one of"
+                    " them."
+                ),
+                _("Error"),
+                wx.OK,
+                self.gd.mainFrame,
+            )
+
+            return
+
+        self.sp.paginate()
+        self.makeLineVisible(self.sp.line)
+        self.updateScreen()
 
     def OnFindNextError(self):
         self.clearAutoComp()

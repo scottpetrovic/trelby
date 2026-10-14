@@ -644,6 +644,31 @@ class Config:
     def getType(self, lt):
         return self.types[lt]
 
+    # return (indent, width) of element type lt (character, parenthetical
+    # or dialogue) in the given column (1 = left, 2 = right) of a dual
+    # dialogue. the action width is split into two columns, and each
+    # column gets the same layout as a normal speech, scaled down so that
+    # dialogue fills the column.
+    def getDualIndentWidth(self, lt, col):
+        action = self.types[screenplay.ACTION]
+        dlg = self.types[screenplay.DIALOGUE]
+
+        gap = 2
+        colWidth = (action.width - gap) // 2
+        dlgWidth = max(5, colWidth - 2)
+
+        x = action.indent + (0 if col == 1 else colWidth + gap)
+
+        if lt == screenplay.DIALOGUE:
+            return (x, dlgWidth)
+
+        t = self.types[lt]
+        offset = round(max(0, t.indent - dlg.indent) * dlgWidth / dlg.width)
+        width = round(t.width * dlgWidth / dlg.width)
+        width = max(5, min(width, colWidth - offset))
+
+        return (x + offset, width)
+
     # get a PDFFontInfo object for the given font type (PDF_FONT_*)
     def getPDFFont(self, fontType):
         return self.pdfFonts[fontType]
@@ -842,6 +867,15 @@ class ConfigGlobal:
                 Command(
                     "DeleteElements",
                     _("Open the 'Delete elements' dialog."),
+                    isMenu=True,
+                ),
+                Command(
+                    "DualDialogue",
+                    _(
+                        "Turn dual dialogue on or off for the current speech"
+                        " and the one before it."
+                    ),
+                    [util.Key(4, ctrl=True).toInt()],
                     isMenu=True,
                 ),
                 Command("ExportScript", _("Export the current script."), isMenu=True),

@@ -375,7 +375,19 @@ def importFDX(fileName, frame):
             # contained a scriptnote
             if s or not addedNote:
                 lt = elemMap.get(et, screenplay.ACTION)
+                firstLine = len(lines)
                 addElem(lt, s)
+
+                # in a DualDialogue, the second character's speech is the
+                # right-hand column
+                parent = para.getparent()
+
+                if (
+                    (lt == screenplay.CHARACTER)
+                    and (parent.tag == "DualDialogue")
+                    and (parent.xpath("Paragraph[@Type='Character']")[0] is not para)
+                ):
+                    lines[firstLine].dual = True
 
         if len(lines) == 0:
             wx.MessageBox(
@@ -722,8 +734,12 @@ def importFountain(fileName, frame, titlePages):
 
         if removeMarkdown:
             line.text = unmarkdown(line.text)
-            if line.lt == screenplay.CHARACTER and line.text.endswith("^"):
-                line.text = line.text[:-1]
+
+        # "^" after a character name makes it the right-hand column of a
+        # dual dialogue
+        if line.lt == screenplay.CHARACTER and line.text.rstrip().endswith("^"):
+            line.text = line.text.rstrip()[:-1].rstrip()
+            line.dual = True
 
         lns.append(line)
 

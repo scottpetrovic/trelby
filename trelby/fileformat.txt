@@ -265,4 +265,12 @@ after page 15), "A1", "B1", ... (pages added before page 1) or "16-17"
 (page 16 combined with page 17 after all of its text was deleted). Labels
 must be in increasing order; out-of-order ones are ignored.
 
+"Dual-Dialogue". Value: empty. The next line is the first line of a
+Character element, and that character's speech (the Character element and
+the Parenthetical and Dialogue elements following it) is printed as the
+right-hand column of a dual dialogue, beside the speech just before it.
+Ignored if the next line isn't the first line of a Character element, or
+if the speech before it doesn't directly precede it or is itself the
+right-hand column of a dual dialogue.
+
 See sample.trelby for an example screenplay.

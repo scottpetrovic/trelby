@@ -48,6 +48,53 @@ def testImportTextFile() -> None:
         assert TextImportMatcher(line) == TextImportMatcher(expectedLine)
 
 
+# return the dual dialogue blocks in imported lines, as lists of the
+# character names in them
+def importedDuals(lines):
+    sp = u.new()
+    sp.lines = lines
+    sp.reformatAll()
+
+    blocks = {
+        sp.getDualBlock(i)
+        for i, ln in enumerate(sp.lines)
+        if ln.lt == screenplay.CHARACTER and sp.getDualBlock(i)
+    }
+
+    return sorted(
+        [sp.lines[first].text, sp.lines[right].text] for first, right, last in blocks
+    )
+
+
+def dualScript():
+    import tests.test_dualdialogue as dd
+
+    return dd.makeScript()
+
+
+def testImportFDXDualDialogue(tmp_path) -> None:
+    path = tmp_path / "dual.fdx"
+    path.write_bytes(dualScript().generateFDX())
+
+    lines = myimport.importFDX(str(path), mock.Mock())
+
+    assert importedDuals(lines) == [["BRICK", "STEEL"]]
+
+
+def testImportFountainDualDialogue(tmp_path) -> None:
+    path = tmp_path / "dual.fountain"
+    path.write_text(dualScript().generateFountain(), encoding="UTF-8")
+
+    dlg = mock.Mock()
+    dlg.ShowModal.return_value = myimport.wx.ID_OK
+
+    with mock.patch.object(myimport.misc, "CheckBoxDlg", return_value=dlg):
+        lines, titlePages = myimport.importFountain(str(path), mock.Mock(), [])
+
+    assert importedDuals(lines) == [["BRICK", "STEEL"]]
+    assert "^" not in "".join(ln.text for ln in lines)
+
+
 class TextImportMatcher:
     line: Line
 

@@ -134,6 +134,10 @@ class MyFrame(wx.Frame):
         editMenu.AppendSeparator()
         editMenu.Append(ID_EDIT_INSERT_NBSP, _("Insert non-breaking space"))
         editMenu.Append(
+            ID_EDIT_DUAL_DIALOGUE,
+            misc.mnemonic("i", _("Dual dialogue") + "\tCTRL-D"),
+        )
+        editMenu.Append(
             ID_EDIT_DELETE_ELEMENTS, misc.mnemonic("D", _("Delete elements") + "...")
         )
         editMenu.AppendSeparator()
@@ -351,6 +355,7 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnGotoPage, id=ID_EDIT_GOTO_PAGE)
         self.Bind(wx.EVT_MENU, self.OnGotoScene, id=ID_EDIT_GOTO_SCENE)
         self.Bind(wx.EVT_MENU, self.OnInsertNbsp, id=ID_EDIT_INSERT_NBSP)
+        self.Bind(wx.EVT_MENU, self.OnDualDialogue, id=ID_EDIT_DUAL_DIALOGUE)
         self.Bind(wx.EVT_MENU, self.OnFind, id=ID_EDIT_FIND)
         self.Bind(wx.EVT_MENU, self.OnDeleteElements, id=ID_EDIT_DELETE_ELEMENTS)
         self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_DRAFT)
@@ -891,6 +896,9 @@ class MyFrame(wx.Frame):
 
     def OnInsertNbsp(self, event=None):
         self.panel.ctrl.OnInsertNbsp()
+
+    def OnDualDialogue(self, event=None):
+        self.panel.ctrl.OnDualDialogue()
 
     def OnDeleteElements(self, event=None):
         self.panel.ctrl.OnDeleteElements()

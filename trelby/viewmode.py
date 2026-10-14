@@ -117,8 +117,9 @@ class ViewMode:
     def pos2linecolGeneric(self, ctrl, x, y):
         sel = None
         lineh = self.getLineHeight(ctrl)
+        texts = self.getScreen(ctrl, False, True)[0]
 
-        for t in self.getScreen(ctrl, False, True)[0]:
+        for t in texts:
             if t.line == -1:
                 continue
 
@@ -129,6 +130,12 @@ class ViewMode:
 
         if sel == None:
             return (None, None)
+
+        # the two columns of a dual dialogue share rows, so use the
+        # rightmost line on the row that starts left of x
+        for t in texts:
+            if (t.line != -1) and (t.y == sel.y) and (sel.x < t.x <= x):
+                sel = t
 
         line = sel.line
         l = ctrl.sp.lines[line]
@@ -367,9 +374,11 @@ class ViewModeLayout(ViewMode):
 
                 y = max(y, ypos)
 
-                if (y >= height) or (not partials and ((ypos + fontY) > height)):
+                # keep going, since the right-hand column of a dual
+                # dialogue comes after the left one but starts higher up
+                if (ypos >= height) or (not partials and ((ypos + fontY) > height)):
                     done = True
-                    break
+                    continue
 
                 texts.append(
                     TextString(

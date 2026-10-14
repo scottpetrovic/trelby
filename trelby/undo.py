@@ -62,11 +62,15 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[3]: dict of {index: pageLock} for the lines that have a page
 #   lock, or None if none do
 #
+#   tuple[4]: tuple of indexes of the lines that have the dual flag set,
+#   or None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
 
     locks = {i: ln.pageLock for i, ln in enumerate(lines) if ln.pageLock}
+    duals = tuple(i for i, ln in enumerate(lines) if ln.dual) or None
 
     lines = [str(ln) for ln in lines]
     linesStr = "\n".join(lines)
@@ -80,9 +84,9 @@ def lines2storage(lines):
     locks = locks or None
 
     if len(linesStrCompressed) < len(linesStr):
-        return (len(lines), True, linesStrCompressed, locks)
+        return (len(lines), True, linesStrCompressed, locks, duals)
     else:
-        return (len(lines), False, linesStr.encode(), locks)
+        return (len(lines), False, linesStr.encode(), locks, duals)
 
 
 # see lines2storage.
@@ -100,6 +104,10 @@ def storage2lines(storage):
     if storage[3]:
         for i, label in storage[3].items():
             lines[i].pageLock = label
+
+    if storage[4]:
+        for i in storage[4]:
+            lines[i].dual = True
 
     return lines
 

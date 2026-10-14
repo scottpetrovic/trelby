@@ -225,9 +225,12 @@ class Screenplay:
 
         output += "#Start-Script \n"
 
-        for ln in self.lines:
+        for i, ln in enumerate(self.lines):
             if ln.pageLock:
                 output += "#Page-Lock %s\n" % ln.pageLock
+
+            if self.hasDualFlag(i):
+                output += "#Dual-Dialogue \n"
 
             output += str(ln) + "\n"
 
@@ -311,6 +314,9 @@ class Screenplay:
         # page lock to set on the next script line, or None
         pageLock = None
 
+        # whether to set the dual flag on the next script line
+        dual = False
+
         for i in range(index, len(lines)):
             s = lines[i]
 
@@ -349,6 +355,9 @@ class Screenplay:
                 elif (key == "Page-Lock") and startSeen and pagelock.isValid(val):
                     pageLock = val
 
+                elif (key == "Dual-Dialogue") and startSeen:
+                    dual = True
+
                 else:
                     unknownConfigs = True
 
@@ -377,9 +386,10 @@ class Screenplay:
                         _("Line {} has invalid element type.".format(i + 1))
                     )
 
-                line = Line(lb, lt, text, pageLock)
+                line = Line(lb, lt, text, pageLock, dual)
                 sp.lines.append(line)
                 pageLock = None
+                dual = False
 
                 if lb != LB_LAST:
                     prevType = lt
@@ -476,6 +486,54 @@ class Screenplay:
     def saveCfg(self):
         return self.cfg.save()
 
+    # return line i's text for export, upper-cased if its type's export
+    # style says so
+    def getExportText(self, i):
+        line = self.lines[i]
+
+        if self.cfg.getType(line.lt).export.isCaps:
+            return util.upper(line.text)
+
+        return line.text
+
+    # return a dual dialogue (see getDualLines) as a list of (lineType,
+    # text) rows of plain text, indented with spaces, with the columns side
+    # by side. lineType is that of the row's left column if it has a line
+    # there, otherwise the right column's, and DIALOGUE for empty rows.
+    def getDualTextRows(self, first, right, last):
+        def column(start, end, col):
+            rows = []
+
+            for i in range(start, end + 1):
+                if i != start:
+                    rows.extend([(None, "")] * (self.getSpacingBefore(i) // 10))
+
+                text = self.getExportText(i)
+
+                if text and self.needsExtraParenIndent(i):
+                    text = " " + text
+
+                indent = self.cfg.getDualIndentWidth(self.lines[i].lt, col)[0]
+                rows.append((self.lines[i].lt, " " * indent + text))
+
+            return rows
+
+        leftRows = column(first, right - 1, 1)
+        rightRows = column(right, last, 2)
+        ret = []
+
+        for k in range(max(len(leftRows), len(rightRows))):
+            lt1, text1 = leftRows[k] if k < len(leftRows) else (None, "")
+            lt2, text2 = rightRows[k] if k < len(rightRows) else (None, "")
+
+            if text2.strip():
+                indent = len(text2) - len(text2.lstrip())
+                text1 = text1.ljust(indent) + text2.lstrip()
+
+            ret.append((lt1 or lt2 or DIALOGUE, text1))
+
+        return ret
+
     # generate formatted text and return it as a string. if 'dopages' is
     # True, marks pagination in the output.
     def generateText(self, doPages):
@@ -485,6 +543,7 @@ class Screenplay:
 
         for p in range(1, len(self.pages)):
             start, end = self.page2lines(p)
+            dualLines = self.getDualLines(start, end)
 
             if doPages and (p != 1):
                 s = "%s %s. " % ("-" * 30, self.pageLabels[p])
@@ -494,14 +553,22 @@ class Screenplay:
             for i in range(start, end + 1):
                 line = ls[i]
                 tcfg = self.cfg.getType(line.lt)
+                dual = dualLines.get(i)
 
-                if tcfg.export.isCaps:
-                    text = util.upper(line.text)
-                else:
-                    text = line.text
+                # dual dialogues are output whole at their first line
+                if dual and (i != dual[1]):
+                    continue
+
+                text = self.getExportText(i)
 
                 if (i != 0) and (not doPages or (i != start)):
                     output += (self.getSpacingBefore(i) // 10) * "\n"
+
+                if dual:
+                    for lt, s in self.getDualTextRows(*dual[1:]):
+                        output += s + "\n"
+
+                    continue
 
                 if text and self.needsExtraParenIndent(i):
                     text = " " + text
@@ -568,17 +635,21 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             para.set("class", "title")
             para.text = "***"
 
+        dualLines = self.getDualLines(0, len(ls) - 1)
+
         for i in range(len(ls)):
             line = ls[i]
+            dual = dualLines.get(i)
 
             if not includeNotes and (line.lt == NOTE):
                 continue
 
+            # dual dialogues are output whole at their first line
+            if dual and (i != dual[1]):
+                continue
+
             tcfg = self.cfg.getType(line.lt)
-            if tcfg.export.isCaps:
-                text = util.upper(line.text)
-            else:
-                text = line.text
+            text = self.getExportText(i)
 
             if text and self.needsExtraParenIndent(i):
                 text = " " + text
@@ -593,6 +664,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 para.set("class", htmlMap[line.lt])
                 para.text = " "
 
+            if dual:
+                for lt, s in self.getDualTextRows(*dual[1:]):
+                    para = etree.SubElement(content, "pre")
+                    para.set("class", htmlMap[lt])
+                    para.text = s or " "
+
+                continue
+
             # and now the line text
             para = etree.SubElement(content, "pre")
             para.set("class", htmlMap[line.lt])
@@ -602,14 +681,16 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         return htmlHeader + bodyText + htmlFooter
 
-    # Return screenplay as list of tuples of the form (elType, elText).
+    # Return screenplay as list of tuples of the form (elType, elText,
+    # firstLine), where firstLine is the index of the element's first line.
     # forced linebreaks are represented as \n characters.
     def getElementsAsList(self):
         ls = self.lines
         eleList = []
         curLine = ""
+        firstLine = 0
 
-        for line in ls:
+        for i, line in enumerate(ls):
             lineType = line.lt
             lineText = line.text
 
@@ -619,8 +700,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             curLine += lineText
 
             if line.lb == LB_LAST:
-                eleList.append((lineType, curLine))
+                eleList.append((lineType, curLine, firstLine))
                 curLine = ""
+                firstLine = i + 1
             elif line.lb == LB_SPACE:
                 curLine += " "
             elif line.lb == LB_FORCED:
@@ -649,8 +731,21 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             ACTBREAK: "New Act",
         }
 
-        for ele in eleList:
-            typ, txt = ele
+        # where to add paragraphs: 'content', or the DualDialogue element
+        # of the dual dialogue we're in, which ends at line dualEnd
+        parent = content
+        dualEnd = -1
+
+        for typ, txt, first in eleList:
+            if typ == CHARACTER:
+                block = self.getDualBlock(first)
+
+                if block and (block[0] == first):
+                    general = etree.SubElement(content, "Paragraph")
+                    general.set("Type", "General")
+                    parent = etree.SubElement(general, "DualDialogue")
+                    dualEnd = block[2]
+
             if typ == NOTE:
                 dummyPara = etree.SubElement(content, "Paragraph")
                 dummyPara.set("Type", xmlMap[typ])
@@ -658,11 +753,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 scriptnote.set("ID", "1")
                 para = etree.SubElement(scriptnote, "Paragraph")
             else:
-                para = etree.SubElement(content, "Paragraph")
+                para = etree.SubElement(parent, "Paragraph")
                 para.set("Type", xmlMap[typ])
 
             paratxt = etree.SubElement(para, "Text")
             paratxt.text = str(txt)
+
+            if self.getElemLastIndexFromLine(first) >= dualEnd:
+                parent = content
 
         # FD does not recognize "New Act" by default. It needs an
         # ElementSettings element added.
@@ -723,8 +821,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 else:
                     generateTitleString("Contact:", titleLine.items, 0, "", "")
 
-        for ele in eleList:
-            typ, txt = ele
+        for typ, txt, first in eleList:
             lns = txt.split("\n")
 
             # ensure last element of flines is empty for some types.
@@ -769,6 +866,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             elif typ == SHOT:
                 txt += TWOSPACE
+
+            elif typ == CHARACTER:
+                if self.getDualBlockFromRight(first):
+                    txt += " ^"
 
             flines.append(txt)
 
@@ -998,12 +1099,29 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                 y += 10
 
+        # dual dialogues: the right-hand speech goes back up to where the
+        # left one started, and what follows goes below the longer one
+        dualLines = self.getDualLines(start, end)
+        dualTop = dualLeftBottom = 0
+
         for i in range(start, end + 1):
             line = ls[i]
             tcfg = cfg.getType(line.lt)
+            dual = dualLines.get(i)
 
-            if i != start:
+            if dual and (i == dual[2]):
+                dualLeftBottom = y
+                y = dualTop
+            elif i != start:
                 y += self.getSpacingBefore(i)
+
+            if dual and (i == dual[1]):
+                dualTop = y
+
+            if dual:
+                indent = cfg.getDualIndentWidth(line.lt, dual[0])[0]
+            else:
+                indent = tcfg.indent
 
             typ = pml.NORMAL
 
@@ -1031,7 +1149,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             to = pml.TextOp(
                 text,
-                cfg.marginLeft + (tcfg.indent + extraIndent) * chX,
+                cfg.marginLeft + (indent + extraIndent) * chX,
                 cfg.marginTop + (y / 10.0) * chY,
                 fs,
                 typ,
@@ -1091,7 +1209,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                     to.toc = pml.TOCItem(s, to)
 
-            if doExtra and cfg.pdfShowLineNumbers:
+            # the left column's line numbers are where the right one's
+            # would go
+            if doExtra and cfg.pdfShowLineNumbers and not (dual and (dual[0] == 2)):
                 pg.add(
                     pml.TextOp(
                         "%02d" % (i - start + 1),
@@ -1102,6 +1222,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 )
 
             y += 10
+
+            if dual and (i == dual[3]):
+                y = max(y, dualLeftBottom)
 
         if self.needsMore(end):
             if doExtra:
@@ -1203,11 +1326,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 break
 
     # wraps a single line into however many lines are needed, according to
-    # the type's width. doesn't modify the input line, returns a list of
-    # new lines.
-    def wrapLine(self, line):
+    # the given width, or the type's width if it's None. doesn't modify the
+    # input line, returns a list of new lines.
+    def wrapLine(self, line, width=None):
         ret = []
-        width = self.cfg.getType(line.lt).width
+
+        if width is None:
+            width = self.cfg.getType(line.lt).width
+
         isParen = line.lt == PAREN
 
         # text remaining to be wrapped
@@ -1311,7 +1437,20 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             s += ls[i].text
 
         tmp = Line(ls[line2].lb, ls[line1].lt, s)
-        wrappedLines = self.wrapLine(tmp)
+
+        # speeches in a dual dialogue are wrapped to fit their column
+        width = None
+        if tmp.lt in (CHARACTER, PAREN, DIALOGUE):
+            col = self.getDualColumn(line1)
+
+            if col:
+                width = self.cfg.getDualIndentWidth(tmp.lt, col)[1]
+
+        wrappedLines = self.wrapLine(tmp, width)
+
+        # the dual flag stays on the first line of the element
+        wrappedLines[0].dual = ls[line1].dual and self.isFirstLineOfElem(line1)
+
         ls[line1 : line2 + 1] = wrappedLines
 
         # put the page locks back on the lines that now contain the text
@@ -1350,6 +1489,45 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         return len(wrappedLines)
 
+    # rewrap the elements of lines line1 - line2 and the elements next to
+    # them, extended to whole speeches (see getSpeechRangeAround), so that
+    # speeches that an edit there has made part of a dual dialogue, or
+    # taken out of one, get their new widths. the undo object for the edit
+    # must cover those lines too.
+    def rewrapSpeechesAround(self, line1, line2):
+        first, last = self.getSpeechRangeAround(line1, line2)
+        self.rewrapElems(first, self.elemsDistance(first, last) + 1)
+
+    # rewrap 'count' elements starting from the one starting at 'line'
+    def rewrapElems(self, line, count):
+        for i in range(count):
+            self.rewrapElem(line)
+            line = self.getElemLastIndexFromLine(line) + 1
+
+    # return (first, last) lines of the elements containing lines line1 -
+    # line2 and the elements before and after them, extended to whole
+    # speeches.
+    def getSpeechRangeAround(self, line1, line2):
+        ls = self.lines
+
+        first = self.getElemFirstIndexFromLine(line1)
+        if first > 0:
+            first = self.getElemFirstIndexFromLine(first - 1)
+
+        last = self.getElemLastIndexFromLine(line2)
+        if (last + 1) < len(ls):
+            last = self.getElemLastIndexFromLine(last + 1)
+
+        speech = self.getSpeechIndexes(first)
+        if speech:
+            first = speech[0]
+
+        speech = self.getSpeechIndexes(last)
+        if speech:
+            last = speech[1]
+
+        return (first, last)
+
     # rewraps paragraph previous to current one.
     def rewrapPrevPara(self):
         line = self.getParaFirstIndexFromLine(self.line)
@@ -1386,6 +1564,117 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         return (self.lines[line].lb == LB_LAST) and (
             (line == 0) or (self.lines[line - 1].lb == LB_LAST)
         )
+
+    # return True if line i has the dual flag set where it means
+    # something, i.e. on the first line of a character element.
+    def hasDualFlag(self, i):
+        ln = self.lines[i]
+
+        return ln.dual and (ln.lt == CHARACTER) and self.isFirstLineOfElem(i)
+
+    # if 'line' is in a character's speech (a character element and the
+    # parenthetical and dialogue elements following it), return the
+    # (first, last) lines of the speech, otherwise None.
+    def getSpeechIndexes(self, line):
+        ls = self.lines
+        speechTypes = (PAREN, DIALOGUE)
+
+        i = line
+        while (i >= 0) and (ls[i].lt in speechTypes):
+            i -= 1
+
+        if (i < 0) or (ls[i].lt != CHARACTER):
+            return None
+
+        first, last = self.getElemIndexesFromLine(i)
+
+        while ((last + 1) < len(ls)) and (ls[last + 1].lt in speechTypes):
+            last += 1
+
+        return (first, last)
+
+    # if line r starts the speech printed as the right-hand column of a
+    # dual dialogue, return the dual dialogue's lines as (first line of
+    # left speech, r, last line of right speech), otherwise None. the
+    # left speech is the one right before r, and it can't itself be the
+    # right-hand column of another dual dialogue.
+    def getDualBlockFromRight(self, r):
+        if (
+            (r == 0)
+            or not self.hasDualFlag(r)
+            or (self.lines[r - 1].lt not in (PAREN, DIALOGUE))
+        ):
+            return None
+
+        left = self.getSpeechIndexes(r - 1)
+
+        if not left or self.hasDualFlag(left[0]):
+            return None
+
+        return (left[0], r, self.getSpeechIndexes(r)[1])
+
+    # return the dual dialogue 'line' is part of, in the format of
+    # getDualBlockFromRight, or None.
+    def getDualBlock(self, line):
+        speech = self.getSpeechIndexes(line)
+
+        if not speech:
+            return None
+
+        block = self.getDualBlockFromRight(speech[0])
+
+        if not block and ((speech[1] + 1) < len(self.lines)):
+            block = self.getDualBlockFromRight(speech[1] + 1)
+
+        return block
+
+    # return which column of a dual dialogue 'line' is in: 1 = left, 2 =
+    # right, or 0 if it's not in one.
+    def getDualColumn(self, line):
+        block = self.getDualBlock(line)
+
+        if not block:
+            return 0
+
+        return 1 if line < block[1] else 2
+
+    # return the dual dialogues lying entirely within lines start - end
+    # (inclusive) that can be printed as such, as a {line: (column, first,
+    # right, last)} dict containing all of their lines (see
+    # getDualBlockFromRight). a dual dialogue can't be printed if some of
+    # its lines are too long for its columns, which happens when
+    # something has made it one without its speeches being rewrapped.
+    def getDualLines(self, start, end):
+        ls = self.lines
+        cfg = self.cfg
+        ret = {}
+
+        for r in range(start + 1, end + 1):
+            if not ls[r].dual:
+                continue
+
+            block = self.getDualBlockFromRight(r)
+
+            if not block or (block[0] < start) or (block[2] > end):
+                continue
+
+            first, right, last = block
+            fits = True
+
+            for i in range(first, last + 1):
+                col = 1 if i < right else 2
+                width = cfg.getDualIndentWidth(ls[i].lt, col)[1]
+
+                if len(ls[i].text.rstrip(" ")) > width:
+                    fits = False
+
+                    break
+
+            if fits:
+                for i in range(first, last + 1):
+                    ret[i] = (1 if i < right else 2, first, right, last)
+
+        return ret
 
     # get first index of paragraph
     def getParaFirstIndexFromLine(self, line):
@@ -1665,6 +1954,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         length = len(self.lines)
         locks = self.getPageLocks()
 
+        self.initDualPagination()
+
         if not locks:
             self.paginateRange(0, length - 1)
             self.pageLabels.extend(str(p) for p in range(1, len(self.pages)))
@@ -1685,6 +1976,49 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         self.lastPaginated = time.time()
 
+    # set up what paginateRange needs to know about dual dialogues, for
+    # paginate to call before it:
+    #
+    # dualBlockAt: {line: (first, right, last)} for each line of a dual
+    # dialogue except its last one, i.e. the lines a page must not end on.
+    #
+    # dualCost: {line: (first, cost)} for each line of a right-hand
+    # column. when the whole dual dialogue is on one page (it starts after
+    # the previous page break), 'cost' is how much height the line adds,
+    # in the same units as in paginateRange; together they add whatever
+    # the right column is taller than the left one, if anything.
+    def initDualPagination(self):
+        self.dualBlockAt = {}
+        self.dualCost = {}
+
+        ls = self.lines
+        ct = self.cfg.types
+
+        def height(first, last):
+            h = 10
+
+            for i in range(first + 1, last + 1):
+                h += 10
+
+                if ls[i - 1].lb == LB_LAST:
+                    h += ct[ls[i].lt].beforeSpacing
+                else:
+                    h += ct[ls[i].lt].intraSpacing
+
+            return h
+
+        blocks = {v[1:] for v in self.getDualLines(0, len(ls) - 1).values()}
+
+        for first, right, last in blocks:
+            for i in range(first, last):
+                self.dualBlockAt[i] = (first, right, last)
+
+            for i in range(right, last):
+                self.dualCost[i] = (first, 0)
+
+            extra = height(right, last) - height(first, right - 1)
+            self.dualCost[last] = (first, max(0, extra))
+
     # paginate lines start - end (inclusive), appending to self.pages and
     # self.pagesNoAdjust as if 'start' was the first line of the script
     # and 'end' the last one, except that line 0 is the only one that
@@ -1701,6 +2035,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         lbl = LB_LAST
         ct = cfg.types
         hdrLines = self.headers.getNrOfLines()
+        dualBlockAt = self.dualBlockAt
+        dualCost = self.dualCost
 
         i = start
         while 1:
@@ -1731,11 +2067,16 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                 while i < (length - 1):
 
-                    pageLines += 10
-                    if ls[i].lb == lbl:
-                        pageLines += ct[ls[i + 1].lt].beforeSpacing
+                    dual = dualCost.get(i + 1)
+
+                    if dual and (dual[0] > lastBreak):
+                        pageLines += dual[1]
                     else:
-                        pageLines += ct[ls[i + 1].lt].intraSpacing
+                        pageLines += 10
+                        if ls[i].lb == lbl:
+                            pageLines += ct[ls[i + 1].lt].beforeSpacing
+                        else:
+                            pageLines += ct[ls[i + 1].lt].intraSpacing
 
                     if pageLines > lp:
                         break
@@ -1750,6 +2091,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 break
 
             self.pagesNoAdjust.append(i)
+
+            # don't split a dual dialogue between pages. if it starts at
+            # the top of the page and still doesn't fit, it's split
+            # between its columns, or failing that, like a normal speech.
+            block = dualBlockAt.get(i)
+
+            if block:
+                first, right, last = block
+
+                if first > (lastBreak + 1):
+                    i = first - 1
+                elif i >= right:
+                    i = right - 1
 
             line = ls[i]
 
@@ -1890,6 +2244,59 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         u.setAfter(self)
         self.addUndo(u)
 
+    # if the cursor is in a dual dialogue, make its speeches normal again.
+    # otherwise make the speech the cursor is in a dual dialogue with the
+    # speech right before it, or failing that, the one right after it.
+    # returns False if that wasn't possible.
+    def toggleDualDialogue(self):
+        ls = self.lines
+
+        speech = self.getSpeechIndexes(self.line)
+
+        if not speech:
+            return False
+
+        block = self.getDualBlock(self.line)
+        makeDual = not block
+
+        if makeDual:
+            for r in (speech[0], speech[1] + 1):
+                if (r >= len(ls)) or (ls[r].lt != CHARACTER):
+                    continue
+
+                # don't take over a speech from another dual dialogue
+                if (r != speech[0]) and self.getDualBlock(r):
+                    continue
+
+                old = ls[r].dual
+                ls[r].dual = True
+                block = self.getDualBlockFromRight(r)
+                ls[r].dual = old
+
+                if block:
+                    break
+
+            if not block:
+                return False
+
+        first, right, last = block
+        elemCnt = self.elemsDistance(first, last) + 1
+
+        u = undo.ManyElems(self, undo.CMD_MISC, first, elemCnt, elemCnt)
+
+        ls[right].dual = makeDual
+
+        # rewrap both speeches to their new widths
+        self.rewrapElems(first, elemCnt)
+
+        self.clearAutoComp()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return True
+
     # add a page lock to the given line. if it already has one, the two
     # pages are combined (e.g. "16-17").
     def addPageLock(self, line, label):
@@ -1960,9 +2367,13 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         currentLine = startSection
 
         if saveUndo:
-            u = undo.ManyElems(
-                self, undo.CMD_MISC, currentLine, selectedElems, selectedElems
-            )
+            # the speeches around the changed elements may move into or
+            # out of a dual dialogue, so they're rewrapped too, and
+            # included in the undo
+            wrapFirst, wrapLast = self.getSpeechRangeAround(startSection, endSection)
+            wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+
+            u = undo.ManyElems(self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt)
 
         while currentLine <= endSection:
             first, last = self.getElemIndexesFromLine(currentLine)
@@ -2011,6 +2422,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.markChanged()
 
         if saveUndo:
+            self.rewrapElems(wrapFirst, wrapCnt)
+
             u.setAfter(self)
             self.addUndo(u)
 
@@ -2610,7 +3023,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             ln = ls[i]
 
-            cd.lines.append(Line(ln.lb, ln.lt, ln.text[c1 : c2 + 1]))
+            cd.lines.append(
+                Line(
+                    ln.lb,
+                    ln.lt,
+                    ln.text[c1 : c2 + 1],
+                    dual=self.hasDualFlag(i) and (c1 == 0),
+                )
+            )
 
         cd.lines[-1].lb = LB_LAST
 
@@ -2701,6 +3121,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.column = min(endCol, len(ls[self.line].text))
 
         self.rewrapElem()
+        self.rewrapSpeechesAround(self.line, self.line)
         self.markChanged()
 
         u.setAfter(self)
@@ -2725,7 +3146,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             ln = clines[i]
 
-            newLine = Line(LB_LAST, ln.lt)
+            newLine = Line(LB_LAST, ln.lt, dual=ln.dual)
 
             while 1:
                 ln = clines[i]
@@ -2756,6 +3177,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         if (len(ln.text) == 0) and self.isOnlyLineOfElem(self.line):
             ln.lt = inLines[0].lt
+            ln.dual = inLines[0].dual
 
         ln.text = ln.text[: self.column] + inLines[0].text + ln.text[self.column :]
         self.column += len(inLines[0].text)
@@ -2787,6 +3209,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # bug...
 
         self.reformatRange(wrap1, self.getParaFirstIndexFromLine(self.line))
+        self.rewrapSpeechesAround(wrap1, self.line)
 
         u.setAfter(self)
         self.addUndo(u)
