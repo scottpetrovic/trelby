@@ -791,6 +791,11 @@ class ConfigGlobal:
                 ),
                 Command("CharacterMap", _("Open the character map."), isMenu=True),
                 Command(
+                    "CharacterProfilesDlg",
+                    _("Open the character profiles dialog."),
+                    isMenu=True,
+                ),
+                Command(
                     "CloseScript",
                     _("Close the current script."),
                     [util.Key(23, ctrl=True).toInt()],

@@ -1,5 +1,6 @@
 import array
 import collections
+import random
 
 
 class NameArray:
@@ -52,3 +53,30 @@ class NameArray:
             self.typeNamesById.append(type)
 
         return typeId
+
+    # return up to 'count' different names picked at random. 'typeIds' is
+    # a collection of type ids to pick from, or None for all types. 'sex'
+    # is 0 for female names, 1 for male names, or None for both. 'rng' is
+    # a random.Random-like object.
+    def randomNames(self, count, typeIds=None, sex=None, rng=random):
+        candidates = [
+            i
+            for i in range(self.count)
+            if ((typeIds is None) or (self.type[i] in typeIds))
+            and ((sex is None) or (self.sex[i] == sex))
+        ]
+
+        # the same name can be listed under several types, so pick extra
+        # ones to have enough left after removing duplicates
+        picked = rng.sample(candidates, min(count * 3, len(candidates)))
+
+        names = []
+
+        for i in picked:
+            if self.name[i] not in names:
+                names.append(self.name[i])
+
+                if len(names) == count:
+                    break
+
+        return names

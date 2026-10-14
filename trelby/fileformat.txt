@@ -121,6 +121,24 @@ The following config sections exists and appear in the file in this order:
   Words (list of strings): Script-specific spell checker dictionary.
 
 
+ Character-Profiles (optional, only present if the script has any):
+
+  Profiles (integer): Number of profiles. Each profile N (1-based) has
+  these values, all optional except Name:
+
+  Profile/N/(Name|Role|Age|Gender|Occupation|Appearance|Personality|
+  Background|Goals|Notes) (string): Text fields. Newlines are stored as
+  \n, the \ character as \\, and other line breaks and control
+  characters as \uXXXX (4 hex digits).
+
+  Profile/N/Photos (integer): Number of photos.
+
+  Profile/N/Photo/M (string): Photo M (1-based) as a base64-encoded PNG
+  or JPEG file.
+
+  Unknown Profile/N/... values are kept as-is when saving.
+
+
 After this (in version 1 files after "#Version 1") there is more
 configuration, but in a different syntax, that is mostly due to historical
 accidents.

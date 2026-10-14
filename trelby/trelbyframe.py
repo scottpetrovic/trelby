@@ -191,6 +191,10 @@ class MyFrame(wx.Frame):
             ID_SCRIPT_LOCATIONS, misc.mnemonic("L", _("Locations") + "...")
         )
         scriptMenu.Append(
+            ID_SCRIPT_CHARACTER_PROFILES,
+            misc.mnemonic("r", _("Character profiles") + "..."),
+        )
+        scriptMenu.Append(
             ID_SCRIPT_TITLES, misc.mnemonic("T", _("Title pages") + "...")
         )
         scriptMenu.Append(
@@ -403,6 +407,11 @@ class MyFrame(wx.Frame):
             )
             self.Bind(wx.EVT_MENU, self.OnHeadersDlg, id=ID_SCRIPT_HEADERS)
             self.Bind(wx.EVT_MENU, self.OnLocationsDlg, id=ID_SCRIPT_LOCATIONS)
+            self.Bind(
+                wx.EVT_MENU,
+                self.OnCharacterProfilesDlg,
+                id=ID_SCRIPT_CHARACTER_PROFILES,
+            )
             self.Bind(wx.EVT_MENU, self.OnTitlesDlg, id=ID_SCRIPT_TITLES)
             self.Bind(
                 wx.EVT_MENU,
@@ -1183,6 +1192,9 @@ class MyFrame(wx.Frame):
 
     def OnLocationsDlg(self, event=None):
         self.panel.ctrl.OnLocationsDlg()
+
+    def OnCharacterProfilesDlg(self, event=None):
+        self.panel.ctrl.OnCharacterProfilesDlg()
 
     def OnSpellCheckerDictionaryDlg(self, event=None):
         dlg = spellcheckcfgdlg.SCDictDlg(self, copy.deepcopy(self.gd.scDict), True)

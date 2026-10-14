@@ -10,6 +10,7 @@ import wx
 import trelby
 import trelby.autocompletiondlg as autocompletiondlg
 import trelby.cfgdlg as cfgdlg
+import trelby.characterprofilesdlg as characterprofilesdlg
 import trelby.config as config
 import trelby.dialoguechart as dialoguechart
 import trelby.finddlg as finddlg
@@ -640,6 +641,32 @@ class MyCtrl(wx.Control):
         if dlg.ShowModal() == wx.ID_OK:
             self.sp.locations = dlg.sp.locations
             self.sp.markChanged()
+
+        dlg.Destroy()
+
+    def OnCharacterProfilesDlg(self):
+        ls = self.sp.lines
+
+        # start with the character whose name or speech the cursor is on
+        i = self.sp.line
+        while (i > 0) and (ls[i].lt in (screenplay.DIALOGUE, screenplay.PAREN)):
+            i -= 1
+
+        selectName = ls[i].text if ls[i].lt == screenplay.CHARACTER else None
+
+        old = self.sp.characterProfiles.save()
+
+        dlg = characterprofilesdlg.CharacterProfilesDlg(
+            self.gd.mainFrame,
+            copy.deepcopy(self.sp.characterProfiles),
+            self.sp.getCharacterNames(),
+            selectName,
+        )
+
+        if dlg.ShowModal() == wx.ID_OK:
+            if dlg.charProfiles.save() != old:
+                self.sp.characterProfiles = dlg.charProfiles
+                self.sp.markChanged()
 
         dlg.Destroy()
 

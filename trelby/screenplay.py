@@ -34,6 +34,7 @@ from typing import Tuple
 from lxml import etree
 
 import trelby.autocompletion as autocompletion
+import trelby.characterprofiles as characterprofiles
 import trelby.config as config
 import trelby.error as error
 import trelby.headers as headers
@@ -57,6 +58,7 @@ class Screenplay:
         self.locations = locations.Locations()
         self.titles = titles.Titles()
         self.scDict = spellcheck.Dict()
+        self.characterProfiles = characterprofiles.CharacterProfiles()
 
         self.lines = [Line(LB_LAST, SCENE)]
 
@@ -164,6 +166,7 @@ class Screenplay:
         sp.locations = copy.deepcopy(self.locations)
         sp.titles = copy.deepcopy(self.titles)
         sp.scDict = copy.deepcopy(self.scDict)
+        sp.characterProfiles = copy.deepcopy(self.characterProfiles)
 
         sp.lines = [ln.copy() for ln in self.lines]
 
@@ -199,6 +202,13 @@ class Screenplay:
         output += "#Begin-Spell-Checker-Dict \n"
         output += self.scDict.save()
         output += "#End-Spell-Checker-Dict \n"
+
+        # only written when there are profiles, so that scripts without
+        # any stay readable by older versions without a warning
+        if self.characterProfiles.profiles:
+            output += "#Begin-Character-Profiles \n"
+            output += self.characterProfiles.save()
+            output += "#End-Character-Profiles \n"
 
         pgs = self.titles.pages
         for pg in range(len(pgs)):
@@ -276,6 +286,10 @@ class Screenplay:
         s, index = Screenplay.getConfigPart(lines, "Spell-Checker-Dict", index)
         if s:
             sp.scDict.load(s)
+
+        s, index = Screenplay.getConfigPart(lines, "Character-Profiles", index)
+        if s:
+            sp.characterProfiles.load(s)
 
         # used to keep track that element type only changes after a
         # LB_LAST line.
