@@ -11,6 +11,22 @@ import trelby.screenplay as screenplay
 import trelby.util as util
 
 
+# colors (r, g, b, each 0-1) for the page content bars and their legend.
+# the speaking bars in the chart use the dialogue color.
+OTHER_COLOR = (1.0, 1.0, 1.0)
+CHARACTER_COLOR = (0.106, 0.686, 0.478)
+DIALOGUE_COLOR = (0.922, 0.408, 0.204)
+ACTION_COLOR = (0.165, 0.471, 0.839)
+
+# background color for every other row of the chart
+ROW_COLOR = (0.933, 0.957, 0.988)
+
+
+# return a pml.PDFOp that sets the fill color to 'color', an (r, g, b) tuple
+def fillColor(color):
+    return pml.PDFOp("%.3f %.3f %.3f rg" % color)
+
+
 def genDialogueChart(mainFrame, sp, scriptName):
     reportwindow.show(DialogueChartFrame, mainFrame, sp, scriptName)
 
@@ -230,7 +246,7 @@ class DialogueChart:
             y = self.chartY + i * self.charY
 
             if (i % 2) == 1:
-                pg.add(pml.PDFOp("0.93 g"))
+                pg.add(fillColor(ROW_COLOR))
                 pg.add(pml.RectOp(self.chartX, y, self.chartWidth, self.charY))
                 pg.add(pml.PDFOp("0.0 g"))
 
@@ -282,10 +298,10 @@ class DialogueChart:
             )
         )
 
-        self.drawLegend(pg, 0, 1.0, "Other", lw)
-        self.drawLegend(pg, 1, 0.7, "Character", lw)
-        self.drawLegend(pg, 2, 0.5, "Dialogue", lw)
-        self.drawLegend(pg, 3, 0.3, "Action", lw)
+        self.drawLegend(pg, 0, OTHER_COLOR, "Other", lw)
+        self.drawLegend(pg, 1, CHARACTER_COLOR, "Character", lw)
+        self.drawLegend(pg, 2, DIALOGUE_COLOR, "Dialogue", lw)
+        self.drawLegend(pg, 3, ACTION_COLOR, "Action", lw)
 
         # page content bars
         for i in range(pageCnt):
@@ -294,19 +310,19 @@ class DialogueChart:
             pi = self.pages[i]
             tlc = pi.getTotalLineCount()
 
-            pg.add(pml.PDFOp("0.3 g"))
+            pg.add(fillColor(ACTION_COLOR))
             pct = util.safeDivInt(pi.getLineCount(screenplay.ACTION), tlc)
             barH = self.barHeight * pct
             pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
             y -= barH
 
-            pg.add(pml.PDFOp("0.5 g"))
+            pg.add(fillColor(DIALOGUE_COLOR))
             pct = util.safeDivInt(pi.getLineCount(screenplay.DIALOGUE), tlc)
             barH = self.barHeight * pct
             pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
             y -= barH
 
-            pg.add(pml.PDFOp("0.7 g"))
+            pg.add(fillColor(CHARACTER_COLOR))
             pct = util.safeDivInt(pi.getLineCount(screenplay.CHARACTER), tlc)
             barH = self.barHeight * pct
             pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
@@ -335,6 +351,8 @@ class DialogueChart:
                 )
             )
 
+            pg.add(fillColor(DIALOGUE_COLOR))
+
             for i in range(pageCnt):
                 pi = self.pages[i]
                 cnt = pi.getSpeakerLineCount(ci.name)
@@ -351,6 +369,8 @@ class DialogueChart:
                         )
                     )
 
+            pg.add(pml.PDFOp("0.0 g"))
+
         return pg
 
     # draw a single legend for page content bars
@@ -358,7 +378,7 @@ class DialogueChart:
         x = self.legendX + self.legendMargin
         y = self.legendY + self.legendMargin + pos * self.legendSpacing
 
-        pg.add(pml.PDFOp("%f g" % color))
+        pg.add(fillColor(color))
 
         pg.add(pml.RectOp(x, y, self.legendSize, self.legendSize, pml.STROKE_FILL, lw))
 

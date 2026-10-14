@@ -284,9 +284,11 @@ class PageView(wx.Window):
 
 
 def _gray(v):
-    c = round(v * 255)
+    return _rgb(v, v, v)
 
-    return wx.Colour(c, c, c)
+
+def _rgb(r, g, b):
+    return wx.Colour(round(r * 255), round(g * 255), round(b * 255))
 
 
 # key = wx.FONTFAMILY_*, value = face name
@@ -304,8 +306,10 @@ def _getFaceName(family):
 # corner at (ox, oy) and 'scale' pixels per mm.
 class _PageRenderer:
     # the PDF commands the reports use in pml.PDFOps: setting the fill (g)
-    # or stroke (G) gray level, and the line dash pattern (d)
+    # or stroke (G) gray level, the fill (rg) or stroke (RG) RGB color, and
+    # the line dash pattern (d)
     grayRe = re.compile(r"([\d.]+) ([gG])$")
+    rgbRe = re.compile(r"([\d.]+) ([\d.]+) ([\d.]+) (rg|RG)$")
     dashRe = re.compile(r"\[(.*)\] [\d.]+ d$")
 
     def __init__(self, gc, ox, oy, scale):
@@ -314,8 +318,8 @@ class _PageRenderer:
         self.oy = oy
         self.scale = scale
 
-        self.fill = 0.0
-        self.stroke = 0.0
+        self.fill = _gray(0.0)
+        self.stroke = _gray(0.0)
         self.dashed = False
 
     def x(self, mm):
@@ -336,7 +340,7 @@ class _PageRenderer:
                 self.applyPDFOp(op)
 
     def pen(self, lw):
-        info = wx.GraphicsPenInfo(_gray(self.stroke)).Width(max(1.0, lw * self.scale))
+        info = wx.GraphicsPenInfo(self.stroke).Width(max(1.0, lw * self.scale))
 
         if self.dashed:
             info.Style(wx.PENSTYLE_SHORT_DASH)
@@ -366,7 +370,7 @@ class _PageRenderer:
             util.getTextHeight(op.size) * self.scale,
             _getFaceName(family),
             flags,
-            _gray(self.fill),
+            self.fill,
         )
         self.gc.SetFont(font)
 
@@ -388,7 +392,7 @@ class _PageRenderer:
 
     def drawRect(self, op):
         if op.fillType in (pml.FILL, pml.STROKE_FILL):
-            self.gc.SetBrush(wx.Brush(_gray(self.fill)))
+            self.gc.SetBrush(wx.Brush(self.fill))
         else:
             self.gc.SetBrush(wx.TRANSPARENT_BRUSH)
 
@@ -406,9 +410,21 @@ class _PageRenderer:
 
         if m:
             if m.group(2) == "g":
-                self.fill = float(m.group(1))
+                self.fill = _gray(float(m.group(1)))
             else:
-                self.stroke = float(m.group(1))
+                self.stroke = _gray(float(m.group(1)))
+
+            return
+
+        m = self.rgbRe.match(op.cmds)
+
+        if m:
+            color = _rgb(*(float(v) for v in m.group(1, 2, 3)))
+
+            if m.group(4) == "rg":
+                self.fill = color
+            else:
+                self.stroke = color
 
             return
 
