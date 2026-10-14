@@ -21,7 +21,7 @@ TEXT_FIELDS = [
 
 # characters that str.splitlines() splits on (the script loader uses it),
 # so they must never appear unescaped in a saved value
-_LINE_BREAKS = "\n\r\x0b\x0c\x1c\x1d\x1e\x85  "
+_LINE_BREAKS = "\n\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029"
 
 
 # escape a possibly multi-line text value so that it fits on one line:

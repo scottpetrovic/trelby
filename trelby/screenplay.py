@@ -3186,6 +3186,102 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             u.setAfter(self)
             self.addUndo(u)
 
+    # rename characters. 'renames' is a dictionary mapping old names to
+    # new ones, both normalized with characterprofiles.normalizeName.
+    # character cues are renamed keeping any extension like "(V.O.)", and
+    # if 'inText' is True, the names are also replaced where they're
+    # mentioned in other elements, matching the case they were written in.
+    # all renames are done in one pass, so names can be swapped. if
+    # 'apply' is False, nothing is changed. returns a (cues, mentions)
+    # tuple of how many of each were (or would be) renamed.
+    def renameCharacters(self, renames, inText, apply=True):
+        normalize = characterprofiles.normalizeName
+
+        renames = {k: v for k, v in renames.items() if k and v and (k != v)}
+        if not renames:
+            return (0, 0)
+
+        # longest names first, so that "MARY JANE" wins over "MARY"
+        pattern = re.compile(
+            "|".join(
+                r"(?<!\w)%s(?!\w)" % r"\s+".join(re.escape(w) for w in name.split())
+                for name in sorted(renames, key=len, reverse=True)
+            ),
+            re.IGNORECASE,
+        )
+
+        def replaceMention(mo):
+            found = mo.group(0)
+            new = renames[normalize(found)]
+
+            if found.isupper():
+                return new
+            elif found.islower():
+                return util.lower(new)
+            else:
+                # capitalize each word, e.g. "MARY-ANNE O'NEIL" ->
+                # "Mary-Anne O'Neil"
+                return re.sub(
+                    r"[^\W\d_]+",
+                    lambda m: util.upper(m.group(0)[:1]) + util.lower(m.group(0)[1:]),
+                    new,
+                )
+
+        cues = 0
+        mentions = 0
+
+        # (line, new text) for every changed line
+        changes = []
+
+        for i, ln in enumerate(self.lines):
+            if ln.lt == CHARACTER:
+                new = renames.get(normalize(ln.text)) if ln.lb == LB_LAST else None
+
+                if new:
+                    idx = ln.text.find("(")
+                    ext = (" " + ln.text[idx:].strip()) if idx != -1 else ""
+
+                    changes.append((i, new + ext))
+                    cues += 1
+
+            elif inText:
+                text, cnt = pattern.subn(replaceMention, ln.text)
+
+                if cnt:
+                    changes.append((i, text))
+                    mentions += cnt
+
+        if not apply or not changes:
+            return (cues, mentions)
+
+        self.clearAutoComp()
+
+        u = undo.FullCopy(self)
+
+        for i, text in changes:
+            self.lines[i].text = text
+
+        # rewrap changed paragraphs from the bottom up, so that the line
+        # numbers of the ones still to do stay valid
+        paras = {self.getParaFirstIndexFromLine(i) for i, _text in changes}
+
+        for line in sorted(paras, reverse=True):
+            self.rewrapPara(line)
+
+        acType = self.autoCompletion.getType(CHARACTER)
+        acType.items = list(
+            dict.fromkeys(renames.get(normalize(it), it) for it in acType.items)
+        )
+
+        self.validatePos()
+        self.clearMark()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return (cues, mentions)
+
     # set mark at given position
     def setMark(self, line, column):
         self.mark = Mark(line, column)

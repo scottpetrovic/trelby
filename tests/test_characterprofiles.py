@@ -3,6 +3,10 @@ import random
 import tests.u as u
 import trelby.characterprofiles as characterprofiles
 import trelby.namearray as namearray
+import trelby.screenplay as screenplay
+import trelby.translations as translations
+
+_ = translations.trelby_translations_load()
 
 # test characterprofiles.CharacterProfiles and its saving/loading as part
 # of a script
@@ -169,3 +173,99 @@ def test_randomNames():
     assert sorted(arr.randomNames(10, None, 0, rng)) == ["Anna", "Greta"]
 
     assert len(arr.randomNames(2, None, None, rng)) == 2
+
+
+def loadRenameScript():
+    return u.loadString(
+        "\n".join(
+            [
+                "#Version 3",
+                "#Start-Script ",
+                ".\\INT. BOB'S HOUSE - DAY",
+                "..Bob and Mary Jane enter. MARY sits. Bobby waves.",
+                "._BOB",
+                ".:Hi, Mary.",
+                "._MARY JANE (V.O.)",
+                ".:Bob's here.",
+                "._mary",
+                ".:Hello.",
+            ]
+        )
+    )
+
+
+def texts(sp):
+    return [ln.text for ln in sp.lines]
+
+
+def test_renameCount():
+    sp = loadRenameScript()
+    before = texts(sp)
+
+    renames = {"BOB": "ROBERT", "MARY JANE": "MJ"}
+
+    assert sp.renameCharacters(renames, True, apply=False) == (2, 4)
+    assert sp.renameCharacters(renames, False, apply=False) == (2, 0)
+    assert texts(sp) == before
+    assert not sp.canUndo()
+
+
+def test_renameCuesOnly():
+    sp = loadRenameScript()
+
+    assert sp.renameCharacters({"BOB": "ROBERT"}, False) == (1, 0)
+
+    t = texts(sp)
+    assert "ROBERT" in t
+    assert "INT. BOB'S HOUSE - DAY" in t
+    assert sp.isModified()
+
+
+def test_renameInText():
+    sp = loadRenameScript()
+
+    sp.renameCharacters({"BOB": "ROBERT", "MARY JANE": "MARY-ANNE O'NEIL"}, True)
+
+    t = " ".join(texts(sp))
+
+    assert "INT. ROBERT'S HOUSE - DAY" in t
+    assert "Robert and Mary-Anne O'Neil enter. MARY sits. Bobby waves." in t
+    assert "MARY-ANNE O'NEIL (V.O.)" in t
+    assert "Robert's here." in t
+    assert "Hi, Mary." in t
+
+    names = sorted(sp.getCharacterNames())
+    assert names == ["mary", "mary-anne o'neil (v.o.)", "robert"]
+
+
+def test_renameSwap():
+    sp = loadRenameScript()
+
+    assert sp.renameCharacters({"BOB": "MARY", "MARY": "BOB"}, False) == (2, 0)
+    assert sorted(sp.getCharacterNames()) == ["bob", "mary", "mary jane (v.o.)"]
+    assert texts(sp)[2] == "MARY"
+    assert texts(sp)[6] == "BOB"
+
+
+def test_renameUndo():
+    sp = loadRenameScript()
+    before = texts(sp)
+
+    sp.renameCharacters({"BOB": "ROBERT"}, True)
+    assert texts(sp) != before
+
+    sp.undoCmd(None)
+    assert texts(sp) == before
+
+    sp.redoCmd(None)
+    assert "ROBERT" in texts(sp)
+
+
+def test_renameRewraps():
+    sp = loadRenameScript()
+
+    sp.renameCharacters({"BOB": "BARTHOLOMEW-MAXIMILIAN " * 3}, True)
+
+    # the action line got too long and was wrapped
+    width = sp.cfg.getType(screenplay.ACTION).width
+    assert all(len(ln.text) <= width for ln in sp.lines)

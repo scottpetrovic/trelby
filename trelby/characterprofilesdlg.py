@@ -303,6 +303,15 @@ class CharacterProfilesDlg(wx.Dialog):
 
         self.sortProfiles()
 
+        # name of each profile when the dialog opened. key = id(profile),
+        # value = (profile, normalized name). the profile is kept here so
+        # that its id can't get reused by a new one if it's deleted.
+        self.origNames = {id(p): (p, normalize(p.name)) for p in self.profiles}
+
+        # set on OK: script characters whose profile was renamed. key = old
+        # name, value = new name, both normalized.
+        self.renames = {}
+
         # profile being shown, or None
         self.cur = None
 
@@ -769,6 +778,15 @@ class CharacterProfilesDlg(wx.Dialog):
             seen[name] = None
             prof.name = util.upper(prof.name.strip())
             keep.append(prof)
+
+        self.renames = {}
+
+        for prof in keep:
+            old = self.origNames.get(id(prof), (None, None))[1]
+            new = normalize(prof.name)
+
+            if old and (old != new) and (old in self.scriptNames):
+                self.renames[old] = new
 
         self.charProfiles.profiles = keep
         self.charProfiles.sort()
