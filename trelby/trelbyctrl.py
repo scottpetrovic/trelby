@@ -420,25 +420,8 @@ class MyCtrl(wx.Control):
     # the action, e.g. "export" or "compare", that'll be done to the script,
     # and is used in dialogue with the user if needed.
     def getExportable(self, action):
-        if self.gd.cfgGl.checkOnExport:
-            line = self.sp.findError(0)[0]
-
-            if line != -1:
-                if (
-                    wx.MessageBox(
-                        _(
-                            "The script seems to contain errors.\nAre you sure you want to {} it?".format(
-                                action
-                            )
-                        ),
-                        _("Confirm"),
-                        wx.YES_NO | wx.NO_DEFAULT,
-                        self.gd.mainFrame,
-                    )
-                    == wx.NO
-                ):
-
-                    return None
+        if self.gd.cfgGl.checkOnExport and not self.confirmExportable(action):
+            return None
 
         sp = self.sp
         if sp.cfg.pdfRemoveNotes:
@@ -448,6 +431,60 @@ class MyCtrl(wx.Control):
         sp.paginate()
 
         return sp
+
+    # check the script before 'action' ("export" or "compare") is done to
+    # it. if it's empty or has an error, ask whether to continue anyway,
+    # offering to show the error. returns True if we should continue.
+    def confirmExportable(self, action):
+        anyway = {"export": _("Export Anyway"), "compare": _("Compare Anyway")}[
+            action
+        ]
+
+        if not any(ln.text.strip() for ln in self.sp.lines):
+            dlg = wx.MessageDialog(
+                self.gd.mainFrame,
+                _("\"{}\" is empty.").format(self.fileNameDisplay),
+                _("Empty Script"),
+                wx.OK | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_INFORMATION,
+            )
+            dlg.SetExtendedMessage(_("There is no text in the script yet."))
+            dlg.SetOKCancelLabels(anyway, wx.ID_CANCEL)
+            ret = dlg.ShowModal()
+            dlg.Destroy()
+
+            return ret == wx.ID_OK
+
+        line, msg = self.sp.findError(0)
+
+        if line == -1:
+            return True
+
+        dlg = wx.MessageDialog(
+            self.gd.mainFrame,
+            _("\"{}\" has a problem on page {}.").format(
+                self.fileNameDisplay, self.sp.line2page(line)
+            ),
+            _("Script Problem"),
+            wx.YES_NO | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_WARNING,
+        )
+        dlg.SetExtendedMessage(msg)
+        dlg.SetYesNoCancelLabels(anyway, _("Go to Problem"), wx.ID_CANCEL)
+        ret = dlg.ShowModal()
+        dlg.Destroy()
+
+        if ret == wx.ID_NO:
+            mf = self.gd.mainFrame
+            page = mf.findPage(self.panel)
+            if page != -1:
+                mf.tabCtrl.selectPage(page)
+
+            self.clearAutoComp()
+            self.sp.line = line
+            self.sp.column = 0
+            self.makeLineVisible(line)
+            self.updateScreen()
+
+        return ret == wx.ID_YES
 
     def OnEraseBackground(self, event):
         pass
