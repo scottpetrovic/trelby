@@ -57,57 +57,12 @@ class DisplayPanel(wx.Panel):
 
         vsizer.Add(hsizer, 0, wx.BOTTOM, 20)
 
-        vsizer.Add(
-            wx.StaticText(
-                self, -1, _("The settings below apply only to 'Draft' view mode.")
-            ),
-            0,
-            wx.BOTTOM,
-            15,
-        )
-
-        hsizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        hsizer.Add(
-            wx.StaticText(self, -1, _("Row spacing:")),
-            0,
-            wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
-            10,
-        )
-
-        self.spacingEntry = wx.SpinCtrl(self, -1)
-        self.spacingEntry.SetRange(*self.cfg.cvars.getMinMax("fontYdelta"))
-        self.Bind(wx.EVT_SPINCTRL, self.OnMisc, id=self.spacingEntry.GetId())
-        self.spacingEntry.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
-        hsizer.Add(self.spacingEntry, 0)
-
-        hsizer.Add(
-            wx.StaticText(self, -1, _("pixels")),
-            0,
-            wx.ALIGN_CENTER_VERTICAL | wx.LEFT,
-            10,
-        )
-
-        vsizer.Add(hsizer, 0, wx.EXPAND | wx.BOTTOM, 15)
-
-        self.pbRb = wx.RadioBox(
-            self,
-            -1,
-            _("Page break lines to show"),
-            style=wx.RA_SPECIFY_COLS,
-            majorDimension=1,
-            choices=[_("None"), _("Normal"), _("Normal + unadjusted   ")],
-        )
-        vsizer.Add(self.pbRb)
-
         self.fontsLb.SetSelection(0)
         self.updateFontLb()
 
         self.cfg2gui()
 
         util.finishWindow(self, vsizer, center=False)
-
-        self.Bind(wx.EVT_RADIOBOX, self.OnMisc, id=self.pbRb.GetId())
 
     def OnKillFocus(self, event):
         self.OnMisc()
@@ -148,8 +103,6 @@ class DisplayPanel(wx.Panel):
 
     def OnMisc(self, event=None):
         self.cfg.toolbarIconSize = util.getSpinValue(self.iconSizeEntry)
-        self.cfg.fontYdelta = util.getSpinValue(self.spacingEntry)
-        self.cfg.pbi = self.pbRb.GetSelection()
 
     def updateFontLb(self):
         names = ["Normal", "Bold", "Italic", "Bold-Italic"]
@@ -184,5 +137,3 @@ class DisplayPanel(wx.Panel):
 
     def cfg2gui(self):
         self.iconSizeEntry.SetValue(self.cfg.toolbarIconSize)
-        self.spacingEntry.SetValue(self.cfg.fontYdelta)
-        self.pbRb.SetSelection(self.cfg.pbi)

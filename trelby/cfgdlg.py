@@ -9,6 +9,7 @@ import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.util as util
 from trelby.configpages.colorspanel import ColorsPanel
 from trelby.configpages.displaypanel import DisplayPanel
+from trelby.configpages.draftpanel import DraftPanel
 from trelby.configpages.elementsglobalpanel import ElementsGlobalPanel
 from trelby.configpages.elementspanel import ElementsPanel
 from trelby.configpages.formattingpanel import FormattingPanel
@@ -20,6 +21,7 @@ from trelby.configpages.miscpanel import MiscPanel
 from trelby.configpages.paperpanel import PaperPanel
 from trelby.configpages.pdffontspanel import PDFFontsPanel
 from trelby.configpages.pdfpanel import PDFPanel
+from trelby.configpages.pdfviewerpanel import PDFViewerPanel
 from trelby.configpages.scriptaboutpanel import ScriptAboutPanel
 from trelby.configpages.stringspanel import StringsPanel
 from trelby.configpages.themepanel import ThemePanel
@@ -153,9 +155,11 @@ class CfgDlg(wx.Dialog):
             self.AddPage(GlobalAboutPanel, _("About"))
             self.AddPage(ColorsPanel, _("Colors"))
             self.AddPage(DisplayPanel, _("Display"))
+            self.AddPage(DraftPanel, _("Draft Mode"))
             self.AddPage(ElementsGlobalPanel, _("Elements"))
             self.AddPage(KeyboardPanel, _("Keyboard"))
             self.AddPage(MiscPanel, _("Misc"))
+            self.AddPage(PDFViewerPanel, "PDF")
         else:
             self.AddPage(ScriptAboutPanel, _("About"))
             self.AddPage(ElementsPanel, _("Elements"))
@@ -167,7 +171,13 @@ class CfgDlg(wx.Dialog):
 
     def AddPage(self, classObj, name):
         # stupid hack to get correct window modality stacking for dialogs
-        needs_frame_ref = [DisplayPanel, KeyboardPanel, MiscPanel, PDFFontsPanel]
+        needs_frame_ref = [
+            DisplayPanel,
+            KeyboardPanel,
+            MiscPanel,
+            PDFFontsPanel,
+            PDFViewerPanel,
+        ]
         if classObj in needs_frame_ref:
             p = classObj(self.listbook, -1, self.cfg, self)
         else:

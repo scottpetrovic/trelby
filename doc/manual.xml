@@ -324,7 +324,7 @@
 	  script contents, so page headers, CONTINUED/(MORE) and other
 	  automatically added texts are not shown at all. Page breaks, if
 	  enabled, are shown as a horizontal line (see <xref
-	  linkend="display_cfg"/>).</para>
+	  linkend="draft_cfg"/>).</para>
 
 	  <para>Reasons you might want to use this mode:</para>
 
@@ -1176,11 +1176,19 @@
 		want to use for normal, bold, italic, and bold + italic text. Note
 		that you should use the same size font for each one.</para>
 
-		<para>(Draft view mode only) The row spacing setting affects how
-		many pixels there are between each row. It has an effect only in
-		the 'Draft' view mode.</para>
+	  </sect2>
 
-		<para>(Draft view mode only) The 'Page break lines to show'
+	  <sect2 id="draft_cfg">
+		<title>Draft Mode</title>
+
+		<para>These settings have an effect only in the 'Draft' view
+		mode.</para>
+
+		<para>The row spacing setting affects how many pixels there are
+		between each row. Changing the screen font on the Display page
+		resets it to suit the new font.</para>
+
+		<para>The 'Page break lines to show'
 		setting affects how page breaks are shown. If you select 'None',
 		they are not shown at all. 'Normal', you see solid gray lines in
 		the scripts indicating actual page break positions. 'Normal +
@@ -1234,16 +1242,6 @@
 		the default directory for File/Open dialog on program
 		startup.</para>
 
-		<para>You can specify what application you want to use as your PDF
-		viewer. On Windows, this is usually Adobe Acrobat, and the path is
-		something like "C:\Program Files\Adobe\Acrobat
-		7.0\Reader\AcroRd32.exe". On Linux, you can also use Adobe
-		Acrobat, path being something like
-		"/usr/local/Adobe/Acrobat7.0/bin/acroread".</para>
-
-		<para>You can also specify arguments to give to the PDF viewer
-		program.</para>
-
 		<para>'Auto-capitalize sentences', if on, auto-capitalizes
 		sentences as you write them. If it capitalizes something you don't
 		want capitalized, write another letter, and then replace the
@@ -1285,6 +1283,22 @@
 
 		<para>'Lines to scroll per mouse wheel event' needs no
 		explaining.</para>
+
+	  </sect2>
+
+	  <sect2 id="pdf_gcfg">
+		<title>PDF</title>
+
+		<para>You can specify what application you want to use as your PDF
+		viewer. On Windows, this is usually Adobe Acrobat, and the path is
+		something like "C:\Program Files\Adobe\Acrobat
+		7.0\Reader\AcroRd32.exe". On Linux, you can also use Adobe
+		Acrobat, path being something like
+		"/usr/local/Adobe/Acrobat7.0/bin/acroread". The Guess button tries
+		to find an installed viewer for you.</para>
+
+		<para>You can also specify arguments to give to the PDF viewer
+		program.</para>
 
 	  </sect2>
 
