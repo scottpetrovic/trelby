@@ -74,9 +74,10 @@ class MyCtrl(wx.Control):
         self.gd.cfgGui = config.ConfigGui(self.gd.cfgGl, self.gd.zoom)
 
     def OnChangeType(self, event):
-        cs = screenplay.CommandState()
+        self.changeType(idToLTMap[event.GetId()])
 
-        lt = idToLTMap[event.GetId()]
+    def changeType(self, lt):
+        cs = screenplay.CommandState()
 
         self.sp.convertTypeTo(lt, True)
         self.sp.cmdPost(cs)
@@ -340,7 +341,7 @@ class MyCtrl(wx.Control):
         page = self.sp.line2page(self.sp.line)
         pageCnt = self.sp.line2page(len(self.sp.lines) - 1)
 
-        self.gd.mainFrame.statusCtrl.SetValues(cur.ti.name, tabNext, enterNext)
+        self.gd.mainFrame.setElemTypeStatus(cur.lt, tabNext, enterNext)
         self.gd.mainFrame.setPageStatus(page, pageCnt)
 
         canUndo = self.sp.canUndo()
@@ -395,7 +396,7 @@ class MyCtrl(wx.Control):
 
         # in case tab colors have been changed
         self.gd.mainFrame.tabCtrl.Refresh(False)
-        self.gd.mainFrame.statusCtrl.Refresh(False)
+        self.gd.mainFrame.elemTypeBar.Refresh(False)
         self.gd.mainFrame.noFSBtn.Refresh(False)
         self.gd.mainFrame.toolBar.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         self.gd.mainFrame.toolBar.Refresh()

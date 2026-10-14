@@ -17,6 +17,7 @@ import trelby.commandsdlg as commandsdlg
 import trelby.config as config
 import trelby.misc as misc
 import trelby.namesdlg as namesdlg
+import trelby.screenplay as screenplay
 import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.splash as splash
 import trelby.util as util
@@ -270,9 +271,6 @@ class MyFrame(wx.Frame):
 
         self.tabCtrl = misc.MyTabCtrl(self, -1, self.getCfgGui)
         hsizer.Add(self.tabCtrl, 1, wx.EXPAND)
-
-        self.statusCtrl = misc.MyStatus(self, -1, self.getCfgGui)
-        hsizer.Add(self.statusCtrl)
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
@@ -834,6 +832,10 @@ class MyFrame(wx.Frame):
         tb.ClearTools()
         tb.SetToolBitmapSize(size)
 
+        # ClearTools normally destroys controls along with their tools
+        if getattr(self, "elemTypeBar", None):
+            self.elemTypeBar.Destroy()
+
         def addTB(id, iconFilename, toolTip):
             filepath = misc.getFullPath(("trelby/resources/%s" % iconFilename))
 
@@ -873,19 +875,77 @@ class MyFrame(wx.Frame):
         addTB(ID_EDIT_FIND, "find.svg", _("Find / Replace"))
         addTB(ID_TOOLBAR_VIEWS, "view.svg", _("View mode"))
 
+        tb.AddSeparator()
+
+        height = max(
+            size.height + tb.FromDIP(8), tb.GetCharHeight() + tb.FromDIP(12)
+        )
+        self.elemTypeBar = misc.MyElemTypeBar(
+            tb,
+            -1,
+            self.getCfgGui,
+            [(lt, label) for lt, label, cmdName in self.getElemTypes()],
+            self.OnElemTypeBar,
+            self.getElemTypeToolTip,
+            height,
+        )
+        tb.AddControl(self.elemTypeBar)
+
         tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         tb.Realize()
 
+    # element types in the toolbar's element type group: line type, label,
+    # name of the command that changes to it
+    def getElemTypes(self):
+        return [
+            (screenplay.SCENE, _("Scene"), "ChangeToScene"),
+            (screenplay.ACTION, _("Action"), "ChangeToAction"),
+            (screenplay.CHARACTER, _("Character"), "ChangeToCharacter"),
+            (screenplay.PAREN, _("Parenthetical"), "ChangeToParenthetical"),
+            (screenplay.DIALOGUE, _("Dialogue"), "ChangeToDialogue"),
+            (screenplay.TRANSITION, _("Transition"), "ChangeToTransition"),
+            (screenplay.SHOT, _("Shot"), "ChangeToShot"),
+            (screenplay.ACTBREAK, _("Act break"), "ChangeToActBreak"),
+            (screenplay.NOTE, _("Note"), "ChangeToNote"),
+        ]
+
+    def OnElemTypeBar(self, lt):
+        self.panel.ctrl.changeType(lt)
+        self.panel.ctrl.SetFocus()
+
+    def getElemTypeToolTip(self, lt):
+        for itemLt, label, cmdName in self.getElemTypes():
+            if itemLt == lt:
+                break
+
+        s = _("Change element to %s") % label
+
+        for cmd in self.gd.cfgGl.commands:
+            if (cmd.name == cmdName) and cmd.keys:
+                s += " (%s)" % util.Key.fromInt(cmd.keys[0]).toStr()
+
+        return s
+
+    # show the current element's type in the toolbar, and what Enter and
+    # Tab would change it to in the status bar
+    def setElemTypeStatus(self, lt, tabNext, enterNext):
+        self.elemTypeBar.SetValue(lt)
+        self.statusBar.SetStatusText(
+            _("Enter: %s    Tab: %s") % (_(enterNext), _(tabNext)), self.SB_NEXT
+        )
+
     # status bar fields
     SB_HELP = 0
-    SB_PAGE = 1
-    SB_ZOOM = 2
+    SB_NEXT = 1
+    SB_PAGE = 2
+    SB_ZOOM = 3
 
     # the status bar at the bottom of the window. the help field shows the
     # hovered toolbar tool's name (wx puts each tool's longHelp in field 0),
-    # then come the current page and the zoom buttons.
+    # then come the element types Enter / Tab would create, the current
+    # page and the zoom buttons.
     def createStatusBar(self):
-        sb = self.CreateStatusBar(3)
+        sb = self.CreateStatusBar(4)
         self.statusBar = sb
 
         style = wx.BU_EXACTFIT | wx.BORDER_NONE
@@ -915,7 +975,9 @@ class MyFrame(wx.Frame):
 
         pageW = sb.GetTextExtent(_("Page %d / %d") % (999, 999))[0] + pad
         zoomW = sum(b.GetSize().width for b in self.zoomBtns) + sb.FromDIP(8)
-        sb.SetStatusWidths([-1, pageW, zoomW])
+        longest = _("Parenthetical")
+        nextW = sb.GetTextExtent(_("Enter: %s    Tab: %s") % (longest, longest))[0]
+        sb.SetStatusWidths([-1, nextW + pad, pageW, zoomW])
 
         sb.Bind(wx.EVT_SIZE, self.OnStatusBarSize)
 

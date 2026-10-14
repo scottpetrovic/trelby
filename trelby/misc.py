@@ -172,78 +172,145 @@ class MyFSButton(wx.Window):
         self.GetEventHandler().ProcessEvent(clickEvent)
 
 
-# custom status control
-class MyStatus(wx.Window):
-    WIDTH = 250
-    X_ELEDIVIDER = 100
+# toolbar control showing the element types as a group of toggle buttons,
+# with the current element's type selected. 'items' is a list of (lt,
+# label) tuples; clicking one calls onSelect(lt). getToolTip(lt) returns
+# the tooltip for an item.
+class MyElemTypeBar(wx.Control):
+    def __init__(self, parent, id, getCfgGui, items, onSelect, getToolTip, height):
+        wx.Control.__init__(self, parent, id, style=wx.BORDER_NONE)
 
-    def __init__(self, parent, id, getCfgGui):
-        wx.Window.__init__(
-            self,
-            parent,
-            id,
-            size=(MyStatus.WIDTH, TAB_BAR_HEIGHT),
-            style=wx.FULL_REPAINT_ON_RESIZE,
-        )
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
         self.getCfgGui = getCfgGui
+        self.items = items
+        self.onSelect = onSelect
+        self.getToolTip = getToolTip
 
-        self.elemType = ""
-        self.tabNext = ""
-        self.enterNext = ""
+        # line type of the current element, and indexes of the selected
+        # and hovered items (-1 = none)
+        self.curLt = None
+        self.selected = -1
+        self.hover = -1
 
-        self.elementFont = util.createPixelFont(
-            TAB_BAR_HEIGHT // 2 + 6, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
-        )
+        self.font = self.GetFont()
+        self.boldFont = self.font.Bold()
 
-        self.font = util.createPixelFont(
-            TAB_BAR_HEIGHT // 2 + 2, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
-        )
+        # every item is as wide as its label in bold, so selecting one
+        # doesn't shift the others
+        padX = self.FromDIP(10)
+        self.margin = self.FromDIP(2)
+
+        self.rects = []
+        x = self.margin
+
+        for lt, label in items:
+            w = self.GetFullTextExtent(label, self.boldFont)[0] + padX * 2
+            self.rects.append(wx.Rect(x, self.margin, w, height - self.margin * 2))
+            x += w
+
+        size = wx.Size(x + self.margin, height)
+        self.SetMinSize(size)
+        self.SetSize(size)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDown)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeave)
+
+    def AcceptsFocus(self):
+        return False
+
+    def SetValue(self, lt):
+        if lt == self.curLt:
+            return
+
+        self.curLt = lt
+        self.selected = -1
+
+        for i, (itemLt, label) in enumerate(self.items):
+            if itemLt == lt:
+                self.selected = i
+
+        self.Refresh(False)
+
+    def itemAt(self, pos):
+        for i, rect in enumerate(self.rects):
+            if rect.Contains(pos):
+                return i
+
+        return -1
+
+    def OnLeftDown(self, event):
+        i = self.itemAt(event.GetPosition())
+
+        if i != -1:
+            self.onSelect(self.items[i][0])
+
+    def OnMotion(self, event):
+        i = self.itemAt(event.GetPosition())
+
+        if i != self.hover:
+            self.hover = i
+            self.SetToolTip(self.getToolTip(self.items[i][0]) if i != -1 else "")
+            self.Refresh(False)
+
+    def OnLeave(self, event):
+        if self.hover != -1:
+            self.hover = -1
+            self.Refresh(False)
 
     def OnPaint(self, event):
         cfgGui = self.getCfgGui()
 
-        cy = (TAB_BAR_HEIGHT - 1) // 2
-        xoff = 5
-
-        dc = wx.PaintDC(self)
+        dc = wx.AutoBufferedPaintDC(self)
         w, h = self.GetClientSize()
 
         dc.SetBrush(cfgGui.tabBarBgBrush)
         dc.SetPen(cfgGui.tabBarBgPen)
         dc.DrawRectangle(0, 0, w, h)
 
-        dc.SetPen(cfgGui.tabTextPen)
-        dc.SetTextForeground(cfgGui.tabTextColor)
+        radius = self.FromDIP(4)
+        group = wx.Rect(0, 0, w, h).Deflate(self.margin - 1)
 
-        dc.SetFont(self.font)
-
-        s1 = "%s [Enter]" % self.enterNext
-        s2 = "%s [Tab]" % self.tabNext
-
-        x = MyStatus.X_ELEDIVIDER + xoff
-        dc.DrawText(s1, x, 0)
-        dc.DrawText(s2, x, cy)
-
-        x = xoff
-        s = "%s" % self.elemType
-        dc.SetFont(self.elementFont)
-        util.drawText(dc, s, x, cy, valign=util.VALIGN_CENTER)
-
+        dc.SetBrush(wx.TRANSPARENT_BRUSH)
         dc.SetPen(cfgGui.tabBorderPen)
-        dc.DrawLine(0, h - 1, w, h - 1)
+        dc.DrawRoundedRectangle(group, radius)
 
-        for x in (MyStatus.X_ELEDIVIDER, 0):
-            dc.DrawLine(x, 0, x, h - 1)
+        selBgColor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+        selTextColor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHTTEXT)
 
-    def SetValues(self, elemType, tabNext, enterNext):
-        self.elemType = elemType
-        self.tabNext = tabNext
-        self.enterNext = enterNext
+        inset = self.FromDIP(2)
 
-        self.Refresh(False)
+        for i, rect in enumerate(self.rects):
+            label = self.items[i][1]
+
+            if i == self.selected:
+                dc.SetBrush(wx.Brush(selBgColor))
+                dc.SetPen(wx.Pen(selBgColor))
+                dc.DrawRoundedRectangle(rect.Deflate(inset), radius - 1)
+                dc.SetTextForeground(selTextColor)
+                dc.SetFont(self.boldFont)
+            else:
+                if i == self.hover:
+                    dc.SetBrush(cfgGui.tabNonActiveBgBrush)
+                    dc.SetPen(cfgGui.tabNonActiveBgPen)
+                    dc.DrawRoundedRectangle(rect.Deflate(inset), radius - 1)
+
+                dc.SetTextForeground(cfgGui.tabTextColor)
+                dc.SetFont(self.font)
+
+            tw, th = dc.GetTextExtent(label)
+            dc.DrawText(
+                label, rect.x + (rect.width - tw) // 2, rect.y + (rect.height - th) // 2
+            )
+
+            # divider between two items that are both unhighlighted
+            if (i > 0) and not ({i - 1, i} & {self.selected, self.hover}):
+                dc.SetPen(cfgGui.tabBorderPen)
+                dy = rect.height // 4
+                dc.DrawLine(rect.x, rect.y + dy, rect.x, rect.bottom - dy + 1)
 
 
 # our own version of a tab control, which exists for two reasons: it does
