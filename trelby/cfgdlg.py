@@ -155,7 +155,7 @@ class CfgDlg(wx.Dialog):
             self.AddPage(GlobalAboutPanel, _("About"))
             self.AddPage(ColorsPanel, _("Colors"))
             self.AddPage(DisplayPanel, _("Display"))
-            self.AddPage(DraftPanel, _("Draft Mode"))
+            self.AddPage(DraftPanel, _("Continuous Mode"))
             self.AddPage(ElementsGlobalPanel, _("Elements"))
             self.AddPage(KeyboardPanel, _("Keyboard"))
             self.AddPage(MiscPanel, _("Misc"))

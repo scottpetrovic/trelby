@@ -264,7 +264,11 @@ class DialogueChart:
                 x = self.chartX + i * mmPerPage
                 pg.add(
                     pml.TextOp(
-                        "%d" % (i + 1), x, self.pageY, 10, align=util.ALIGN_CENTER
+                        self.sp.getPageLabel(i + 1),
+                        x,
+                        self.pageY,
+                        10,
+                        align=util.ALIGN_CENTER,
                     )
                 )
                 if i != 0:

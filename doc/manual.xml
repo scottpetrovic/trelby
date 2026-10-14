@@ -317,9 +317,9 @@
 	shortcuts.</para>
 
 	<sect1>
-	  <title>Draft</title>
+	  <title>Continuous</title>
 
-	  <para>In 'Draft' mode, the text area consists of an empty background
+	  <para>In 'Continuous' mode, the text area consists of an empty background
 	  with the script's text drawn on top. This text includes only actual
 	  script contents, so page headers, CONTINUED/(MORE) and other
 	  automatically added texts are not shown at all. Page breaks, if
@@ -355,9 +355,9 @@
 	</sect1>
 
 	<sect1>
-	  <title>Layout</title>
+	  <title>Page</title>
 
-	  <para>'Layout' mode shows an almost exact representation of the page
+	  <para>'Page' mode shows an almost exact representation of the page
 	  as it would appear when printed. Page borders, margins, headers,
 	  CONTINUED/(MORE) and so on are all shown at their correct
 	  places.</para>
@@ -396,7 +396,7 @@
 	  <para>'Side by side' mode shows multiple pages side by side, as many
 	  as fit on your screen. You need to use a high resolution display
 	  and/or small fonts in order to fit more than one page on the screen
-	  at a time. Otherwise this mode is the same as the 'Layout'
+	  at a time. Otherwise this mode is the same as the 'Page'
 	  mode.</para>
 
 	  <para>Note that this mode also assumes that the entire pages fit
@@ -1170,9 +1170,9 @@
 	  </sect2>
 
 	  <sect2 id="draft_cfg">
-		<title>Draft Mode</title>
+		<title>Continuous Mode</title>
 
-		<para>These settings have an effect only in the 'Draft' view
+		<para>These settings have an effect only in the 'Continuous' view
 		mode.</para>
 
 		<para>The row spacing setting affects how many pixels there are

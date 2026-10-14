@@ -136,8 +136,10 @@ class MyFrame(wx.Frame):
         editMenu.Append(ID_SETTINGS_CHANGE, misc.mnemonic("n", _("Settings") + "..."))
 
         viewMenu = wx.Menu()
-        viewMenu.AppendRadioItem(ID_VIEW_STYLE_DRAFT, misc.mnemonic("D", _("Draft")))
-        viewMenu.AppendRadioItem(ID_VIEW_STYLE_LAYOUT, misc.mnemonic("L", _("Layout")))
+        viewMenu.AppendRadioItem(
+            ID_VIEW_STYLE_DRAFT, misc.mnemonic("C", _("Continuous"))
+        )
+        viewMenu.AppendRadioItem(ID_VIEW_STYLE_LAYOUT, misc.mnemonic("P", _("Page")))
         viewMenu.AppendRadioItem(
             ID_VIEW_STYLE_SIDE_BY_SIDE, misc.mnemonic("S", _("Side by side"))
         )
@@ -176,6 +178,10 @@ class MyFrame(wx.Frame):
             ID_SCRIPT_FIND_ERROR, misc.mnemonic("F", _("Find next error"))
         )
         scriptMenu.Append(ID_SCRIPT_PAGINATE, misc.mnemonic("P", _("Paginate")))
+        scriptMenu.Append(ID_SCRIPT_LOCK_PAGES, misc.mnemonic("k", _("Lock pages")))
+        scriptMenu.Append(
+            ID_SCRIPT_UNLOCK_PAGES, misc.mnemonic("U", _("Unlock pages"))
+        )
         scriptMenu.AppendSeparator()
         scriptMenu.Append(
             ID_SCRIPT_AUTO_COMPLETION, misc.mnemonic("A", _("Auto-completion") + "...")
@@ -390,6 +396,8 @@ class MyFrame(wx.Frame):
 
             self.Bind(wx.EVT_MENU, self.OnFindNextError, id=ID_SCRIPT_FIND_ERROR)
             self.Bind(wx.EVT_MENU, self.OnPaginate, id=ID_SCRIPT_PAGINATE)
+            self.Bind(wx.EVT_MENU, self.OnLockPages, id=ID_SCRIPT_LOCK_PAGES)
+            self.Bind(wx.EVT_MENU, self.OnUnlockPages, id=ID_SCRIPT_UNLOCK_PAGES)
             self.Bind(
                 wx.EVT_MENU, self.OnAutoCompletionDlg, id=ID_SCRIPT_AUTO_COMPLETION
             )
@@ -1043,8 +1051,14 @@ class MyFrame(wx.Frame):
         zoomFunc()
         self.panel.ctrl.SetFocus()
 
-    def setPageStatus(self, page, pageCnt):
-        self.statusBar.SetStatusText(_("Page %d / %d") % (page, pageCnt), self.SB_PAGE)
+    # page is the label of the current page, pageCnt the number of pages
+    def setPageStatus(self, page, pageCnt, locked=False):
+        if locked:
+            s = _("Page %s / %d (locked)") % (page, pageCnt)
+        else:
+            s = _("Page %s / %d") % (page, pageCnt)
+
+        self.statusBar.SetStatusText(s, self.SB_PAGE)
 
     def setLengthStatus(self, wordCnt, pageLength):
         self.statusBar.SetStatusText(self.formatWordCount(wordCnt), self.SB_WORDS)
@@ -1151,6 +1165,12 @@ class MyFrame(wx.Frame):
 
     def OnPaginate(self, event=None):
         self.panel.ctrl.OnPaginate()
+
+    def OnLockPages(self, event=None):
+        self.panel.ctrl.OnLockPages()
+
+    def OnUnlockPages(self, event=None):
+        self.panel.ctrl.OnUnlockPages()
 
     def OnAutoCompletionDlg(self, event=None):
         self.panel.ctrl.OnAutoCompletionDlg()

@@ -1161,9 +1161,11 @@ class ConfigGlobal:
                     isFixed=True,
                     isMenu=True,
                 ),
-                Command("ViewModeDraft", _("Change view mode to draft."), isMenu=True),
                 Command(
-                    "ViewModeLayout", _("Change view mode to layout."), isMenu=True
+                    "ViewModeDraft", _("Change view mode to continuous."), isMenu=True
+                ),
+                Command(
+                    "ViewModeLayout", _("Change view mode to page."), isMenu=True
                 ),
                 Command(
                     "ViewModeSideBySide",

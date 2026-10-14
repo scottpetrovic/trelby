@@ -59,9 +59,14 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[2]: string; the line objects converted to their string
 #   representation and joined by the "\n" character
 #
+#   tuple[3]: dict of {index: pageLock} for the lines that have a page
+#   lock, or None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
+
+    locks = {i: ln.pageLock for i, ln in enumerate(lines) if ln.pageLock}
 
     lines = [str(ln) for ln in lines]
     linesStr = "\n".join(lines)
@@ -72,10 +77,12 @@ def lines2storage(lines):
 
     linesStrCompressed = zlib.compress(linesStr.encode(), 6)
 
+    locks = locks or None
+
     if len(linesStrCompressed) < len(linesStr):
-        return (len(lines), True, linesStrCompressed)
+        return (len(lines), True, linesStrCompressed, locks)
     else:
-        return (len(lines), False, linesStr.encode())
+        return (len(lines), False, linesStr.encode(), locks)
 
 
 # see lines2storage.
@@ -88,7 +95,13 @@ def storage2lines(storage):
     else:
         linesStr = storage[2].decode()
 
-    return [Line.fromStr(s) for s in linesStr.split("\n")]
+    lines = [Line.fromStr(s) for s in linesStr.split("\n")]
+
+    if storage[3]:
+        for i, label in storage[3].items():
+            lines[i].pageLock = label
+
+    return lines
 
 
 # how much memory is used by the given storage object
@@ -241,7 +254,7 @@ class AnyDifference(Base):
     def __init__(self, sp):
         Base.__init__(self, sp, CMD_MISC)
 
-        self.linesBefore = [Line(ln.lb, ln.lt, ln.text) for ln in sp.lines]
+        self.linesBefore = [ln.copy() for ln in sp.lines]
 
     def setAfter(self, sp):
         self.a, self.b, self.x, self.y = mySequenceMatcher(self.linesBefore, sp.lines)

@@ -39,6 +39,7 @@ import trelby.error as error
 import trelby.headers as headers
 import trelby.locations as locations
 import trelby.mypager as mypager
+import trelby.pagelock as pagelock
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.spellcheck as spellcheck
@@ -73,9 +74,14 @@ class Screenplay:
         # Mark object if selection active, or None.
         self.mark = None
 
-        # FIXME: document these
+        # pagination: pages[n] is the last line on page n (1-based) and
+        # pages[0] is -1. pagesNoAdjust is the same, but without the
+        # adjustments made to avoid things like dangling scene headings.
+        # pageLabels[n] is the label printed on page n, which differs from
+        # n once pages are locked (see paginate).
         self.pages = [-1, 0]
         self.pagesNoAdjust = [-1, 0]
+        self.pageLabels = ["", "1"]
 
         # time when last paginated
         self.lastPaginated = 0.0
@@ -159,7 +165,7 @@ class Screenplay:
         sp.titles = copy.deepcopy(self.titles)
         sp.scDict = copy.deepcopy(self.scDict)
 
-        sp.lines = [Line(ln.lb, ln.lt, ln.text) for ln in self.lines]
+        sp.lines = [ln.copy() for ln in self.lines]
 
         # "open PDF on current page" breaks on scripts we're removing
         # notes from before printing if we don't copy these
@@ -209,8 +215,11 @@ class Screenplay:
 
         output += "#Start-Script \n"
 
-        for i in range(len(self.lines)):
-            output += str(self.lines[i]) + "\n"
+        for ln in self.lines:
+            if ln.pageLock:
+                output += "#Page-Lock %s\n" % ln.pageLock
+
+            output += str(ln) + "\n"
 
         return output.encode("UTF-8")
 
@@ -285,6 +294,9 @@ class Screenplay:
         # files which didn't have it.
         startSeen = version < 3
 
+        # page lock to set on the next script line, or None
+        pageLock = None
+
         for i in range(index, len(lines)):
             s = lines[i]
 
@@ -320,6 +332,9 @@ class Screenplay:
                 elif key == "Start-Script":
                     startSeen = True
 
+                elif (key == "Page-Lock") and startSeen and pagelock.isValid(val):
+                    pageLock = val
+
                 else:
                     unknownConfigs = True
 
@@ -348,8 +363,9 @@ class Screenplay:
                         _("Line {} has invalid element type.".format(i + 1))
                     )
 
-                line = Line(lb, lt, text)
+                line = Line(lb, lt, text, pageLock)
                 sp.lines.append(line)
+                pageLock = None
 
                 if lb != LB_LAST:
                     prevType = lt
@@ -457,7 +473,7 @@ class Screenplay:
             start, end = self.page2lines(p)
 
             if doPages and (p != 1):
-                s = "%s %d. " % ("-" * 30, p)
+                s = "%s %s. " % ("-" * 30, self.pageLabels[p])
                 s += "-" * (60 - len(s))
                 output += "\n%s\n\n" % s
 
@@ -923,7 +939,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         if pageNr != 1:
             if doExtra:
-                self.headers.generatePML(pg, str(pageNr), cfg)
+                self.headers.generatePML(pg, self.getPageLabel(pageNr), cfg)
             y += self.headers.getNrOfLines() * 10
 
             if cfg.sceneContinueds and not self.isFirstLineOfScene(start):
@@ -1264,14 +1280,41 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         else:
             cursorOffset = -1
 
-        s = ls[line1].text
-        for i in range(line1 + 1, line2 + 1):
-            s += config.lb2str(ls[i - 1].lb)
+        # page locks in this paragraph, as (offset from the beginning of
+        # the paragraph, label) tuples
+        locks = []
+
+        s = ""
+        for i in range(line1, line2 + 1):
+            if i != line1:
+                s += config.lb2str(ls[i - 1].lb)
+
+            if ls[i].pageLock:
+                locks.append(
+                    (len(s) + getattr(ls[i], "pageLockCol", 0), ls[i].pageLock)
+                )
+
             s += ls[i].text
 
         tmp = Line(ls[line2].lb, ls[line1].lt, s)
         wrappedLines = self.wrapLine(tmp)
         ls[line1 : line2 + 1] = wrappedLines
+
+        # put the page locks back on the lines that now contain the text
+        # they were on
+        if locks:
+            for offset, label in locks:
+                i = line1
+
+                for ln in wrappedLines[:-1]:
+                    offset -= len(ln.text) + len(config.lb2str(ln.lb))
+
+                    if offset < 0:
+                        break
+
+                    i += 1
+
+                self.addPageLock(i, label)
 
         # adjust cursor position
         if cursorOffset != -1:
@@ -1592,24 +1635,60 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         return (pageCnt - 1) + min(1.0, units / (self.cfg.linesOnPage * 10))
 
+    # paginate the script. if pages are locked (some lines have a
+    # pageLock), each locked page starts at its line no matter what, which
+    # splits the script into segments that are paginated independently: if
+    # a segment no longer fits on its page, the rest goes onto A-pages
+    # (15A, 15B, ...), and if it has gotten shorter, the page just ends
+    # early.
     def paginate(self):
         # sfdlksjf = util.TimerDev("paginate")
 
         self.pages = [-1]
         self.pagesNoAdjust = [-1]
+        self.pageLabels = [""]
 
+        length = len(self.lines)
+        locks = self.getPageLocks()
+
+        if not locks:
+            self.paginateRange(0, length - 1)
+            self.pageLabels.extend(str(p) for p in range(1, len(self.pages)))
+
+        else:
+            if locks[0][0] != 0:
+                cnt = self.paginateRange(0, locks[0][0] - 1)
+                self.pageLabels.extend(pagelock.labelsBefore(locks[0][1], cnt))
+
+            for i, (line, label) in enumerate(locks):
+                if i + 1 < len(locks):
+                    end, nextLabel = locks[i + 1][0] - 1, locks[i + 1][1]
+                else:
+                    end, nextLabel = length - 1, None
+
+                cnt = self.paginateRange(line, end)
+                self.pageLabels.extend(pagelock.segmentLabels(label, nextLabel, cnt))
+
+        self.lastPaginated = time.time()
+
+    # paginate lines start - end (inclusive), appending to self.pages and
+    # self.pagesNoAdjust as if 'start' was the first line of the script
+    # and 'end' the last one, except that line 0 is the only one that
+    # starts a page without headers. returns the number of pages added.
+    def paginateRange(self, start, end):
         ls = self.lines
         cfg = self.cfg
 
-        length = len(ls)
-        lastBreak = -1
+        oldCnt = len(self.pages)
+        length = end + 1
+        lastBreak = start - 1
 
         # fast aliases for stuff
         lbl = LB_LAST
         ct = cfg.types
         hdrLines = self.headers.getNrOfLines()
 
-        i = 0
+        i = start
         while 1:
             lp = cfg.linesOnPage * 10
 
@@ -1745,7 +1824,86 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             i += 1
 
-        self.lastPaginated = time.time()
+        return len(self.pages) - oldCnt
+
+    # return a list of (line, label) tuples for the lines that start a
+    # locked page, in script order, skipping any that are out of order.
+    def getPageLocks(self):
+        locks = [
+            (i, ln.pageLock)
+            for i, ln in enumerate(self.lines)
+            if ln.pageLock and pagelock.isValid(ln.pageLock)
+        ]
+
+        return pagelock.orderedLocks(locks)
+
+    def hasPageLocks(self):
+        return any(ln.pageLock for ln in self.lines)
+
+    # lock every page to start where it starts now, with its current
+    # label, so later edits create A-pages / leave gaps instead of moving
+    # text to other pages. if pages are already locked, any A-pages
+    # become locked as well.
+    def lockPages(self):
+        u = undo.FullCopy(self)
+
+        self.paginate()
+
+        for ln in self.lines:
+            ln.pageLock = None
+
+        for p in range(1, len(self.pages)):
+            self.lines[self.pages[p - 1] + 1].pageLock = self.pageLabels[p]
+
+        self.paginate()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+    def unlockPages(self):
+        if not self.hasPageLocks():
+            return
+
+        u = undo.FullCopy(self)
+
+        for ln in self.lines:
+            ln.pageLock = None
+
+        self.paginate()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+    # add a page lock to the given line. if it already has one, the two
+    # pages are combined (e.g. "16-17").
+    def addPageLock(self, line, label):
+        ln = self.lines[line]
+
+        if ln.pageLock:
+            ln.pageLock = pagelock.combine(label, ln.pageLock)
+        else:
+            ln.pageLock = label
+
+    # lines first - last (inclusive) are about to be deleted or moved
+    # elsewhere, so move their page locks to the line after them. if there
+    # is no line after them, the locks are removed.
+    def movePageLocksForward(self, first, last):
+        ls = self.lines
+        label = None
+
+        for i in range(first, last + 1):
+            if ls[i].pageLock:
+                if label:
+                    label = pagelock.combine(label, ls[i].pageLock)
+                else:
+                    label = ls[i].pageLock
+
+                ls[i].pageLock = None
+
+        if label and (last + 1) < len(ls):
+            self.addPageLock(last + 1, label)
 
     def removeDanglingElement(self, line, lt, lastBreak):
         ls = self.lines
@@ -1851,6 +2009,18 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         pos = len(ln.text)
         ln.text += ls[line + 1].text
         ln.lb = ls[line + 1].lb
+
+        # the joined line's page lock now points into the middle of this
+        # line. rewrapPara uses pageLockCol to put it back on the right
+        # line.
+        label = ls[line + 1].pageLock
+
+        if label:
+            if ln.pageLock:
+                ln.pageLock = pagelock.combine(ln.pageLock, label)
+            else:
+                ln.pageLock = label
+                ln.pageLockCol = pos
 
         self.setLineTypes(line + 1, ln.lt)
         del ls[line + 1]
@@ -1961,14 +2131,29 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             util.clamp(self.pages[pageNr], 0, last),
         )
 
-    # return a list of all page numbers as strings.
+    # return the label of the given page (1-based index into self.pages),
+    # e.g. "16" or "15A". pageNr is clamped to the valid range.
+    def getPageLabel(self, pageNr):
+        return self.pageLabels[util.clamp(pageNr, 1, len(self.pageLabels) - 1)]
+
+    # return the label of the page the given line is on
+    def line2pageLabel(self, line):
+        return self.getPageLabel(self.line2page(line))
+
+    # return the page number (1-based index into self.pages) of the page
+    # with the given label (case-insensitive), or -1 if there's none.
+    def label2page(self, label):
+        label = pagelock.normalize(label)
+
+        for p in range(1, len(self.pageLabels)):
+            if self.pageLabels[p] == label:
+                return p
+
+        return -1
+
+    # return a list of all page labels, in order.
     def getPageNumbers(self):
-        pages = []
-
-        for p in range(1, len(self.pages)):
-            pages.append(str(p))
-
-        return pages
+        return self.pageLabels[1:]
 
     # return a list of all scene locations in a [(sceneNumber, startLine),
     # ...] format. if script does not start with a scene line, that scene
@@ -2069,7 +2254,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     end,
                     heading,
                     summary,
-                    self.line2page(start),
+                    self.line2pageLabel(start),
                 )
             )
 
@@ -2122,6 +2307,15 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         blocks = [self.lines[bounds[i] : bounds[i + 1]] for i in range(len(starts))]
 
         u = undo.AnyDifference(self)
+
+        # moving a scene is like cutting and pasting it: the pages it was
+        # locked to stay where they were, starting from whatever followed
+        # the scene.
+        if idx + 1 < len(blocks):
+            self.movePageLocksForward(starts[idx], bounds[idx + 1] - 1)
+        else:
+            for ln in blocks[idx]:
+                ln.pageLock = None
 
         blocks.insert(newIndex, blocks.pop(idx))
 
@@ -2478,6 +2672,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # line, because everything before that will get deleted
         # anyway) to that of the first element.
         self.setLineTypes(marked[1], ls[marked[0]].lt)
+
+        if del2 != -1:
+            self.movePageLocksForward(del1, del2)
 
         del ls[del1 : del2 + 1]
 
@@ -2934,12 +3131,29 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # (inclusive)
         cnt = 0
 
+        # page lock of removed lines, to be moved to the next line kept
+        label = None
+
         for i in range(len(lsOld)):
             l = lsOld[i]
 
             if l.lt not in tdict:
+                if label:
+                    if l.pageLock:
+                        l.pageLock = pagelock.combine(label, l.pageLock)
+                    else:
+                        l.pageLock = label
+
+                    label = None
+
                 lsNew.append(l)
             else:
+                if l.pageLock:
+                    if label:
+                        label = pagelock.combine(label, l.pageLock)
+                    else:
+                        label = l.pageLock
+
                 if i <= sl:
                     cnt += 1
 
@@ -3666,7 +3880,7 @@ class OutlineItem:
         # first action element. "" if neither exists.
         self.summary = summary
 
-        # page number the item starts on
+        # label of the page the item starts on, e.g. "16" or "15A"
         self.page = page
 
     def __eq__(self, other):

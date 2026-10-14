@@ -59,7 +59,7 @@ class CharacterReport(textreport.TextReport):
                     ci.wordCnt += len(words)
                     ci.wordCharCnt += reduce(lambda x, y: x + len(y), words, 0)
 
-                ci.pages.addPage(sp.line2page(i))
+                ci.pages.addPage(sp.line2pageLabel(i))
 
             else:
                 name = None

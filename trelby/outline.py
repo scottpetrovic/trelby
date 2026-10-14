@@ -153,7 +153,7 @@ class OutlinePanel(wx.Panel):
 
                 lc.SetItem(i, 0, it.sceneNr)
                 lc.SetItem(i, 1, it.heading)
-                lc.SetItem(i, 2, str(it.page))
+                lc.SetItem(i, 2, it.page)
                 lc.SetItem(i, 3, summary)
 
                 if it.lt == screenplay.ACTBREAK:

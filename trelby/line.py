@@ -8,7 +8,7 @@ from trelby.screenplay import ACTION, LB_LAST
 
 # one line in a screenplay
 class Line:
-    def __init__(self, lb=LB_LAST, lt=ACTION, text=""):
+    def __init__(self, lb=LB_LAST, lt=ACTION, text="", pageLock=None):
 
         # line break type
         self.lb = lb
@@ -19,6 +19,15 @@ class Line:
         # text
         self.text = text
 
+        # if not None, the page labeled with this string (e.g. "16" or
+        # "15A") is locked to start at this line. see
+        # Screenplay.paginate.
+        self.pageLock = pageLock
+
+    # return a copy of this line, including its page lock
+    def copy(self):
+        return Line(self.lb, self.lt, self.text, self.pageLock)
+
     def __str__(self):
         return config.lb2char(self.lb) + config.lt2char(self.lt) + self.text
 
@@ -27,7 +36,10 @@ class Line:
 
     def __ne__(self, other):
         return (
-            (self.lt != other.lt) or (self.lb != other.lb) or (self.text != other.text)
+            (self.lt != other.lt)
+            or (self.lb != other.lb)
+            or (self.text != other.text)
+            or (self.pageLock != other.pageLock)
         )
 
     def __eq__(self, other):

@@ -239,4 +239,13 @@ More line types are probably going to be added in the future without
 increasing the fileformat version number, so unknown line types should be
 converted to Action, and a warning given to user about this.
 
+Script lines can be preceded by config lines of the following type:
+
+"Page-Lock". Value: page label. The pages are locked, and the page with
+this label starts at the next line. Labels are of the form "16" (a page
+that existed when the pages were locked), "15A", "15B", ... (pages added
+after page 15), "A1", "B1", ... (pages added before page 1) or "16-17"
+(page 16 combined with page 17 after all of its text was deleted). Labels
+must be in increasing order; out-of-order ones are ignored.
+
 See sample.trelby for an example screenplay.

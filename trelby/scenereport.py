@@ -104,7 +104,7 @@ class SceneInfo:
         else:
             self.name = "(NO SCENE NAME)"
 
-        self.pages.addPage(sp.line2page(startLine))
+        self.pages.addPage(sp.line2pageLabel(startLine))
 
         line = startLine
 
@@ -123,7 +123,7 @@ class SceneInfo:
 
         # get number of action lines and store page information
         for i in range(startLine, endLine + 1):
-            self.pages.addPage(sp.line2page(i))
+            self.pages.addPage(sp.line2pageLabel(i))
 
             if ls[i].lt == screenplay.ACTION:
                 self.actionLines += 1

@@ -338,11 +338,11 @@ class MyCtrl(wx.Control):
 
         enterNext = self.gd.cfgGl.getType(cur.newTypeEnter).ti.name
 
-        page = self.sp.line2page(self.sp.line)
+        page = self.sp.line2pageLabel(self.sp.line)
         pageCnt = self.sp.line2page(len(self.sp.lines) - 1)
 
         self.gd.mainFrame.setElemTypeStatus(cur.lt, tabNext, enterNext)
-        self.gd.mainFrame.setPageStatus(page, pageCnt)
+        self.gd.mainFrame.setPageStatus(page, pageCnt, self.sp.hasPageLocks())
         self.gd.mainFrame.setLengthStatus(
             self.sp.getWordCount(), self.sp.getPageLength()
         )
@@ -471,7 +471,7 @@ class MyCtrl(wx.Control):
         dlg = wx.MessageDialog(
             self.gd.mainFrame,
             _("\"{}\" has a problem on page {}.").format(
-                self.fileNameDisplay, self.sp.line2page(line)
+                self.fileNameDisplay, self.sp.line2pageLabel(line)
             ),
             _("Script Problem"),
             wx.YES_NO | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_WARNING,
@@ -585,6 +585,16 @@ class MyCtrl(wx.Control):
 
     def OnPaginate(self):
         self.sp.paginate()
+        self.makeLineVisible(self.sp.line)
+        self.updateScreen()
+
+    def OnLockPages(self):
+        self.sp.lockPages()
+        self.makeLineVisible(self.sp.line)
+        self.updateScreen()
+
+    def OnUnlockPages(self):
+        self.sp.unlockPages()
         self.makeLineVisible(self.sp.line)
         self.updateScreen()
 
@@ -973,7 +983,7 @@ class MyCtrl(wx.Control):
         pages = self.sp.getPageNumbers()
 
         def validateFunc(s):
-            if s in pages:
+            if self.sp.label2page(s) != -1:
                 return ""
             else:
                 return _("Invalid page number.")
@@ -986,7 +996,7 @@ class MyCtrl(wx.Control):
         )
 
         if dlg.ShowModal() == wx.ID_OK:
-            page = int(dlg.input)
+            page = self.sp.label2page(dlg.input)
             self.sp.line = self.sp.page2lines(page)[0]
             self.sp.column = 0
 
