@@ -725,7 +725,19 @@ class MyCtrl(wx.Control):
         types = {self.sp.lines[i].lt for i in range(first, last + 1)}
         curLt = types.pop() if len(types) == 1 else None
 
-        m = self.gd.mainFrame.makeRightClickMenu(curLt, bool(self.sp.mark))
+        # dual dialogue works on the speech at the cursor, so it's only
+        # offered when there's no selection
+        dualState = None
+
+        if not marked:
+            toggle = self.sp.getDualToggle()
+
+            if toggle:
+                dualState = not toggle[1]
+
+        m = self.gd.mainFrame.makeRightClickMenu(
+            curLt, bool(self.sp.mark), dualState
+        )
         self.PopupMenu(m)
         m.Destroy()
 

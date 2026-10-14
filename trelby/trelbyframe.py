@@ -1344,7 +1344,9 @@ class MyFrame(wx.Frame):
 
     # build the editor's right-click menu. curLt is the type of the
     # element(s) it applies to, or None if they're of more than one type.
-    def makeRightClickMenu(self, curLt, withCut):
+    # dualState: None if dual dialogue can't be toggled at the cursor,
+    # otherwise whether the cursor is in a dual dialogue.
+    def makeRightClickMenu(self, curLt, withCut, dualState=None):
         types = (
             (ID_ELEM_TO_SCENE, screenplay.SCENE, "S", _("Scene")),
             (ID_ELEM_TO_ACTION, screenplay.ACTION, "A", _("Action")),
@@ -1373,6 +1375,12 @@ class MyFrame(wx.Frame):
                 switchMenu.Append(id, misc.mnemonic(key, name))
 
         m.AppendSubMenu(switchMenu, _("Switch type"))
+
+        if dualState is not None:
+            m.AppendCheckItem(ID_EDIT_DUAL_DIALOGUE, _("Dual dialogue")).Check(
+                dualState
+            )
+
         m.AppendSeparator()
 
         m.Append(ID_EDIT_SELECT_SCENE, _("Select scene"))

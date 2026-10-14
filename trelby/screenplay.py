@@ -1506,7 +1506,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
     # return (first, last) lines of the elements containing lines line1 -
     # line2 and the elements before and after them, extended to whole
-    # speeches.
+    # speeches and the dual dialogues they're in. a speech with the dual
+    # flag right after that is included too, since an edit can make it
+    # the right-hand column of a dual dialogue.
     def getSpeechRangeAround(self, line1, line2):
         ls = self.lines
 
@@ -1525,6 +1527,17 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         speech = self.getSpeechIndexes(last)
         if speech:
             last = speech[1]
+
+        block = self.getDualBlock(first)
+        if block:
+            first = block[0]
+
+        block = self.getDualBlock(last)
+        if block:
+            last = block[2]
+
+        if ((last + 1) < len(ls)) and self.hasDualFlag(last + 1):
+            last = self.getSpeechIndexes(last + 1)[1]
 
         return (first, last)
 
@@ -2244,6 +2257,41 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         u.setAfter(self)
         self.addUndo(u)
 
+    # return what toggleDualDialogue would do, as (block, makeDual), where
+    # block is the dual dialogue in the format of getDualBlockFromRight and
+    # makeDual is False if it would be made normal again, or None if
+    # toggling isn't possible at the cursor.
+    def getDualToggle(self):
+        ls = self.lines
+
+        speech = self.getSpeechIndexes(self.line)
+
+        if not speech:
+            return None
+
+        block = self.getDualBlock(self.line)
+
+        if block:
+            return (block, False)
+
+        for r in (speech[0], speech[1] + 1):
+            if (r >= len(ls)) or (ls[r].lt != CHARACTER):
+                continue
+
+            # don't take over a speech from another dual dialogue
+            if (r != speech[0]) and self.getDualBlock(r):
+                continue
+
+            old = ls[r].dual
+            ls[r].dual = True
+            block = self.getDualBlockFromRight(r)
+            ls[r].dual = old
+
+            if block:
+                return (block, True)
+
+        return None
+
     # if the cursor is in a dual dialogue, make its speeches normal again.
     # otherwise make the speech the cursor is in a dual dialogue with the
     # speech right before it, or failing that, the one right after it.
@@ -2251,34 +2299,12 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def toggleDualDialogue(self):
         ls = self.lines
 
-        speech = self.getSpeechIndexes(self.line)
+        toggle = self.getDualToggle()
 
-        if not speech:
+        if not toggle:
             return False
 
-        block = self.getDualBlock(self.line)
-        makeDual = not block
-
-        if makeDual:
-            for r in (speech[0], speech[1] + 1):
-                if (r >= len(ls)) or (ls[r].lt != CHARACTER):
-                    continue
-
-                # don't take over a speech from another dual dialogue
-                if (r != speech[0]) and self.getDualBlock(r):
-                    continue
-
-                old = ls[r].dual
-                ls[r].dual = True
-                block = self.getDualBlockFromRight(r)
-                ls[r].dual = old
-
-                if block:
-                    break
-
-            if not block:
-                return False
-
+        block, makeDual = toggle
         first, right, last = block
         elemCnt = self.elemsDistance(first, last) + 1
 
@@ -2481,7 +2507,13 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             return
 
-        u = undo.ManyElems(self, undo.CMD_MISC, self.line, 1, 2)
+        # splitting a speech can make it, or the speeches around it, part
+        # of a dual dialogue or take them out of one, so they're rewrapped
+        # too, and included in the undo
+        wrapFirst, wrapLast = self.getSpeechRangeAround(self.line, self.line)
+        wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+
+        u = undo.ManyElems(self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt + 1)
 
         if not self.acItems:
             if self.isAtEndOfParen():
@@ -2497,6 +2529,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         self.rewrapPara()
         self.rewrapPrevPara()
+        self.rewrapElems(wrapFirst, wrapCnt + 1)
         self.markChanged()
 
         u.setAfter(self)
@@ -3934,6 +3967,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def deleteBackwardCmd(self, cs):
         u = None
         mergeUndo = False
+        wrapCnt = 0
 
         # only merge with the previous item in undo history if:
         #   -we are not in middle of undo/redo
@@ -3962,9 +3996,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 # delete at start of the line of the first line of the
                 # element means "join up with previous element", so is a
                 # 2->1 change. otherwise we just delete a character from
-                # current element so no element count change.
+                # current element so no element count change. joining
+                # elements can make speeches part of a dual dialogue or
+                # take them out of one, so the speeches around are
+                # rewrapped too, and included in the undo.
                 if ln.lb == LB_LAST:
-                    u = undo.ManyElems(self, undo.CMD_MISC, self.line - 1, 2, 1)
+                    wrapFirst, wrapLast = self.getSpeechRangeAround(
+                        self.line - 1, self.line
+                    )
+                    wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+
+                    u = undo.ManyElems(
+                        self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt - 1
+                    )
                     mergeUndo = False
                 else:
                     if not mergeUndo:
@@ -3979,6 +4023,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         self.rewrapElem()
 
+        if wrapCnt:
+            self.rewrapElems(wrapFirst, wrapCnt - 1)
+
         if u:
             if mergeUndo:
                 self.addMergedUndo(u)
@@ -3989,6 +4036,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def deleteForwardCmd(self, cs):
         u = None
         mergeUndo = False
+        wrapCnt = 0
 
         # only merge with the previous item in undo history if:
         #   -we are not in middle of undo/redo
@@ -4017,9 +4065,17 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 # delete at end of the line of the last line of the
                 # element means "join up with next element", so is a 2->1
                 # change. otherwise we just delete a character from
-                # current element so no element count change.
+                # current element so no element count change. as in
+                # deleteBackwardCmd, the speeches around are rewrapped.
                 if ln.lb == LB_LAST:
-                    u = undo.ManyElems(self, undo.CMD_MISC, self.line, 2, 1)
+                    wrapFirst, wrapLast = self.getSpeechRangeAround(
+                        self.line, self.line + 1
+                    )
+                    wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+
+                    u = undo.ManyElems(
+                        self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt - 1
+                    )
                     mergeUndo = False
                 else:
                     if not mergeUndo:
@@ -4033,6 +4089,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 self.markChanged()
 
         self.rewrapElem()
+
+        if wrapCnt:
+            self.rewrapElems(wrapFirst, wrapCnt - 1)
 
         if u:
             if mergeUndo:

@@ -228,6 +228,31 @@ def testToggleOn():
     assert sp.lines == makeScript(dual=False).lines
 
 
+def testGetDualToggle():
+    # in a dual dialogue: would turn it off
+    sp = makeScript()
+    block = sp.getDualBlock(find(sp, "STEEL"))
+
+    for name in ("BRICK", "STEEL"):
+        sp.line = find(sp, name)
+        assert sp.getDualToggle() == (block, False)
+
+    # not in one: would turn it on, without changing anything
+    sp = makeScript(dual=False)
+    sp.line = find(sp, "BRICK")
+    block = (find(sp, "BRICK"), find(sp, "STEEL"), find(sp, "They glare") - 1)
+    assert sp.getDualToggle() == (block, True)
+    assert sp.lines == makeScript(dual=False).lines
+
+    # outside a speech, or with no speech to pair with
+    sp.line = 1
+    assert sp.getDualToggle() is None
+
+    sp = makeScript(extra=["#Dual-Dialogue ", "._ROCK", ".:Boys!"])
+    sp.line = find(sp, "ROCK")
+    assert sp.getDualToggle() is None
+
+
 def testToggleKeepsCursor():
     sp = makeScript(dual=False)
 
@@ -308,6 +333,96 @@ def testCutLeftSpeech():
     assertWidths(sp, steel, 0)
 
     sp._validate()
+
+
+# assert that every element in sp is wrapped the way loading the script
+# would wrap it, i.e. speeches fit their dual dialogue columns if they're
+# in one, and have normal widths otherwise
+def assertWrapped(sp):
+    assert sp.lines == u.loadString(sp.save().decode("UTF-8")).lines
+
+
+# run 'undo' and 'redo' on sp, checking that they restore the lines from
+# before and after the last command
+def assertUndoRedo(sp, before):
+    after = [ln.copy() for ln in sp.lines]
+
+    sp.cmd("undo")
+    assert sp.lines == before
+    sp._validate()
+
+    sp.cmd("redo")
+    assert sp.lines == after
+    sp._validate()
+
+
+def testBackspaceLeftCharacter():
+    # backspace at the start of BRICK's character joins it to the action
+    # before it, which ends the dual dialogue
+    sp = makeScript()
+    before = [ln.copy() for ln in sp.lines]
+
+    sp.line = find(sp, "BRICK")
+    sp.column = 0
+    sp.cmd("deleteBackward")
+
+    assert sp.lines[sp.line].text == "They get out of the car.BRICK"
+    assert sp.column == len("They get out of the car.")
+
+    steel = find(sp, "STEEL")
+    assert sp.getDualBlock(steel) is None
+    assertWidths(sp, steel, 0)
+    assertWrapped(sp)
+    sp._validate()
+
+    assertUndoRedo(sp, before)
+
+
+def testEnterLeftDialogue():
+    # Enter in the middle of BRICK's dialogue puts a new element between
+    # the speeches, which ends the dual dialogue
+    sp = makeScript()
+    before = [ln.copy() for ln in sp.lines]
+
+    sp.line = find(sp, "I said")
+    sp.column = len("I said ")
+    sp.cmd("splitElement")
+
+    assert sp.lines[sp.line].text.startswith("we'd")
+
+    assert sp.getDualBlock(find(sp, "BRICK")) is None
+    assert sp.getDualBlock(find(sp, "STEEL")) is None
+    assertWidths(sp, find(sp, "BRICK"), 0)
+    assertWidths(sp, find(sp, "STEEL"), 0)
+    assertWrapped(sp)
+    sp._validate()
+
+    assertUndoRedo(sp, before)
+
+
+def testDeleteForwardMakesPair():
+    # deleting an empty action between the speeches makes them the dual
+    # dialogue STEEL's flag asks for
+    lines = speechLines()
+    sp = loadLines(lines[:2] + [".."] + lines[2:])
+    before = [ln.copy() for ln in sp.lines]
+
+    steel = find(sp, "STEEL")
+    assert sp.getDualBlock(steel) is None
+
+    sp.line = find(sp, "I said")
+    sp.line = sp.getElemLastIndexFromLine(sp.line)
+    sp.column = len(sp.lines[sp.line].text)
+    sp.cmd("deleteForward")
+
+    assert sp.getDualBlock(find(sp, "STEEL"))
+    assertWidths(sp, find(sp, "BRICK"), 1)
+    assertWidths(sp, find(sp, "STEEL"), 2)
+    assertWrapped(sp)
+    assert sp.lines == loadLines(lines).lines
+    sp._validate()
+
+    assertUndoRedo(sp, before)
 
 
 def getTextOps(sp, pageNr=1):
