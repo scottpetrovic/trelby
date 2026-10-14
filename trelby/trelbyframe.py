@@ -50,10 +50,12 @@ class MyFrame(wx.Frame):
         fileMenu = wx.Menu()
         fileMenu.Append(ID_FILE_NEW, misc.mnemonic("N", _("New") + "\tCTRL-N"))
         fileMenu.Append(ID_FILE_OPEN, misc.mnemonic("O", _("Open") + "...\tCTRL-O"))
+        recentMenu = wx.Menu()
+        fileMenu.AppendSubMenu(recentMenu, misc.mnemonic("R", _("Open Recent")))
         fileMenu.Append(ID_FILE_SAVE, misc.mnemonic("S", _("Save") + "\tCTRL-S"))
         fileMenu.Append(ID_FILE_SAVE_AS, misc.mnemonic("A", _("Save As") + "..."))
         fileMenu.Append(ID_FILE_CLOSE, misc.mnemonic("C", _("Close\tCTRL-W")))
-        fileMenu.Append(ID_FILE_REVERT, misc.mnemonic("R", _("Revert")))
+        fileMenu.Append(ID_FILE_REVERT, misc.mnemonic("v", _("Revert")))
         fileMenu.AppendSeparator()
         fileMenu.Append(ID_FILE_IMPORT, misc.mnemonic("I", _("Import") + "..."))
         fileMenu.Append(ID_FILE_EXPORT, misc.mnemonic("E", _("Export") + "..."))
@@ -78,8 +80,6 @@ class MyFrame(wx.Frame):
 
         fileMenu.AppendSubMenu(tmp, misc.mnemonic("t", _("Settings")))
 
-        fileMenu.AppendSeparator()
-        # "most recently used" list comes in here
         fileMenu.AppendSeparator()
         fileMenu.Append(ID_FILE_EXIT, misc.mnemonic("x", _("Exit") + "\tCTRL-Q"))
 
@@ -279,7 +279,7 @@ class MyFrame(wx.Frame):
 
         vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND)
 
-        gd.mru.useMenu(fileMenu, 14)
+        gd.mru.useMenu(recentMenu)
 
         self.Bind(wx.EVT_MENU_HIGHLIGHT_ALL, self.OnMenuHighlight)
 
@@ -400,6 +400,7 @@ class MyFrame(wx.Frame):
             id=gd.mru.getIds()[0],
             id2=gd.mru.getIds()[1],
         )
+        self.Bind(wx.EVT_MENU, self.OnClearRecentFiles, id=gd.mru.clearId)
 
         self.Bind(
             wx.EVT_MENU_RANGE,
@@ -611,7 +612,25 @@ class MyFrame(wx.Frame):
 
     def OnMRUFile(self, event):
         i = event.GetId() - self.gd.mru.getIds()[0]
-        self.openScript(self.gd.mru.get(i))
+        filename = self.gd.mru.get(i)
+
+        if not os.path.exists(filename):
+            wx.MessageBox(
+                _(
+                    "File not found:\n\n{}\n\nIt has been removed from the recent files list."
+                ).format(filename),
+                _("Error"),
+                wx.OK,
+                self,
+            )
+            self.gd.mru.remove(i)
+
+            return
+
+        self.openScript(filename)
+
+    def OnClearRecentFiles(self, event=None):
+        self.gd.mru.clear()
 
     def OnOpen(self, event=None):
         dlg = wx.FileDialog(

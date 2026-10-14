@@ -1041,7 +1041,8 @@ class KeyDlgWidget(wx.Window):
         p.EndModal(wx.ID_OK)
 
 
-# handles the "Most recently used" list of files in a menu.
+# handles the "Most recently used" list of files, shown in its own menu
+# (File/Open Recent).
 class MRUFiles:
     def __init__(self, maxCount):
         # max number of items
@@ -1049,6 +1050,9 @@ class MRUFiles:
 
         # items (Unicode strings)
         self.items = []
+
+        # menu showing the items, set by useMenu
+        self.menu = None
 
         # contiguous menu ids. keep the refs alive so wx doesn't reuse them;
         # store plain ints since the code below does arithmetic on them.
@@ -1059,54 +1063,64 @@ class MRUFiles:
         self.firstId = int(self.idRefs[0])
         self.lastId = int(self.idRefs[-1])
 
-    # use given menu. this must be called before any "add" calls.
-    def useMenu(self, menu, menuPos):
-        # menu to use
+        # "Clear Recent Files" menu item
+        self.clearId = wx.NewIdRef()
+
+    # use given (dedicated) menu. its contents are owned by this object.
+    def useMenu(self, menu):
         self.menu = menu
-
-        # position in menu to add first item at
-        self.menuPos = menuPos
-
-        # if we already have items, add them to the menu (in reverse order
-        # to maintain the correct ordering)
-        tmp = self.items
-        tmp.reverse()
-        self.items = []
-
-        for it in tmp:
-            self.add(it)
+        self.updateMenu()
 
     # return (firstMenuId, lastMenuId).
     def getIds(self):
         return (self.firstId, self.lastId)
 
-    # add item.
+    # add item to top of list.
     def add(self, s):
-        # remove old menu items
-        for i in range(self.getCount()):
-            self.menu.Delete(self.firstId + i)
+        s = str(s)
 
         # if item already exists, remove it
-        try:
-            i = self.items.index(s)
-            del self.items[i]
-        except ValueError:
-            pass
+        if s in self.items:
+            self.items.remove(s)
 
-        # add item to top of list
-        self.items.insert(0, str(s))
+        self.items.insert(0, s)
 
         # prune overlong list
-        if self.getCount() > self.maxCount:
-            self.items = self.items[: self.maxCount]
+        del self.items[self.maxCount :]
 
-        # add new menu items
+        self.updateMenu()
+
+    # remove item number 'i'.
+    def remove(self, i):
+        del self.items[i]
+        self.updateMenu()
+
+    # remove all items.
+    def clear(self):
+        self.items = []
+        self.updateMenu()
+
+    # rebuild the menu from the current items.
+    def updateMenu(self):
+        if not self.menu:
+            return
+
+        for it in list(self.menu.GetMenuItems()):
+            self.menu.Delete(it)
+
+        if not self.items:
+            self.menu.Append(wx.ID_ANY, _("No recent files")).Enable(False)
+
         for i in range(self.getCount()):
-            self.menu.Insert(
-                self.menuPos + i,
+            self.menu.Append(
                 self.firstId + i,
-                "&%d %s" % (i + 1, os.path.basename(str(self.get(i)))),
+                "&%d %s" % (i + 1, os.path.basename(self.get(i))),
             )
+
+        self.menu.AppendSeparator()
+        self.menu.Append(self.clearId, _("Clear Recent Files")).Enable(
+            bool(self.items)
+        )
 
     # return number of items.
     def getCount(self):
