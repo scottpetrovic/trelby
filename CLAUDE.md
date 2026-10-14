@@ -36,6 +36,12 @@ It installs PyInstaller if needed, regenerates the `.gz` files, and builds `dist
 
 When the user asks for a "build", "Windows build" or "exe" to test changes, run the full test suite, then the script, then confirm the result. Check that `build/Trelby/PYZ-00.toc` lists any new `trelby.*` modules, and that the exe starts: launch it, then check that `tasklist //V //FI "IMAGENAME eq Trelby.exe" //FO LIST` shows a `Trelby - ...` window title rather than an error dialog. Leave it running for them, and give the path to `dist/Trelby/Trelby.exe`.
 
+## MCP server
+
+`trelby/mcpserver.py` is a stdio MCP server that reads and edits `.trelby` files without the GUI; the operations themselves are in `trelby/mcptools.py` (no MCP SDK dependency, tested in `tests/test_mcptools.py`). The `mcp` SDK is an optional extra (`pip install trelby[mcp]`, entry point `trelby-mcp`) and is not bundled in the exe. Run it from source with `.venv/Scripts/python -m trelby.mcpserver`; for a client config, use the venv's python as the command, `["-m", "trelby.mcpserver"]` as args and the repo root as cwd.
+
+Edits are made to the file on disk, so they don't reach a copy of the script open in the app. Every write needs the revision (content hash) from a previous read, and saves with a `.bak` backup.
+
 ## Code conventions worth knowing
 
 - Data files are found relative to the package: `misc.getFullPath("trelby/resources/...")` (uses `misc.progPath`, the parent of the `trelby/` package) or `trelby.__path__[0]`. Use these instead of hard-coded or CWD-relative paths, or the exe build breaks.

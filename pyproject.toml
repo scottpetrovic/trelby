@@ -21,12 +21,17 @@ dependencies = [
     "reportlab>=4.0,<6",
 ]
 
+[project.optional-dependencies]
+# for the MCP server (trelby-mcp), see trelby/mcpserver.py
+mcp = ["mcp>=2.3,<3"]
+
 [project.urls]
 Homepage = "https://www.trelby.org"
 Source = "https://github.com/trelby/trelby"
 
 [project.scripts]
 trelby = "trelby:trelby.main"
+trelby-mcp = "trelby.mcpserver:main"
 
 # configpages/, resources/ and locales/ have no __init__.py, so they are
 # picked up as namespace packages
