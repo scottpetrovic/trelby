@@ -92,6 +92,9 @@ class MyApp(wx.App):
             # various reasons, if no default config file yet exists
             util.writeToFile(gd.confFilename, cfgGl.save(), None)
 
+        # wx wants this done before any windows are created
+        config.applyAppearance(cfgGl.appearance)
+
         # cfgGl.scriptDir is the directory used on startup, while
         # misc.scriptDir is updated every time the user opens something in
         # a different directory.

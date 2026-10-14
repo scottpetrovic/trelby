@@ -370,6 +370,13 @@ class MyCtrl(wx.Control):
         if misc.scriptDir == oldCfgGl.scriptDir:
             misc.scriptDir = self.gd.cfgGl.scriptDir
 
+        # must be done before refreshGuiConfig, since the screen colors
+        # depend on whether the theme is dark.
+        appearanceChanged = self.gd.cfgGl.appearance != oldCfgGl.appearance
+
+        if appearanceChanged:
+            config.applyAppearance(self.gd.cfgGl.appearance)
+
         self.gd.cfgGl.recalc()
         self.refreshGuiConfig()
         self.gd.mainFrame.updateKbdCommands()
@@ -387,8 +394,12 @@ class MyCtrl(wx.Control):
         self.gd.mainFrame.statusCtrl.Refresh(False)
         self.gd.mainFrame.noFSBtn.Refresh(False)
         self.gd.mainFrame.toolBar.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
+        self.gd.mainFrame.toolBar.Refresh()
 
-        if self.gd.cfgGl.toolbarIconSize != oldCfgGl.toolbarIconSize:
+        # the toolbar icons' color depends on the theme
+        if appearanceChanged or (
+            self.gd.cfgGl.toolbarIconSize != oldCfgGl.toolbarIconSize
+        ):
             self.gd.mainFrame.fillToolBar()
             self.gd.mainFrame.SendSizeEvent()
             self.updateCommon()
@@ -397,6 +408,9 @@ class MyCtrl(wx.Control):
             util.writeToFile(
                 self.gd.confFilename, self.gd.cfgGl.save(), self.gd.mainFrame
             )
+
+        if appearanceChanged:
+            self.gd.mainFrame.onAppearanceChanged()
 
         self.gd.mainFrame.checkFonts()
 

@@ -150,6 +150,15 @@ class MyFrame(wx.Frame):
             ID_VIEW_ZOOM_RESET, misc.mnemonic("R", _("Reset zoom") + "\tCTRL-0")
         )
         viewMenu.AppendSeparator()
+
+        tmp = wx.Menu()
+        tmp.AppendRadioItem(
+            ID_VIEW_THEME_SYSTEM, misc.mnemonic("S", _("System default"))
+        )
+        tmp.AppendRadioItem(ID_VIEW_THEME_LIGHT, misc.mnemonic("L", _("Light")))
+        tmp.AppendRadioItem(ID_VIEW_THEME_DARK, misc.mnemonic("D", _("Dark")))
+        viewMenu.AppendSubMenu(tmp, misc.mnemonic("h", _("Theme")))
+
         viewMenu.Append(
             ID_VIEW_FULL_SCREEN, misc.mnemonic("F", _("Fullscreen") + "\tF11")
         )
@@ -234,6 +243,10 @@ class MyFrame(wx.Frame):
         self.menuBar.Append(toolsMenu, misc.mnemonic("l", _("Tools")))
         self.menuBar.Append(helpMenu, misc.mnemonic("H", _("Help")))
         self.SetMenuBar(self.menuBar)
+
+        # menu id for each config.APPEARANCE_* value, in order
+        self.themeIds = [ID_VIEW_THEME_SYSTEM, ID_VIEW_THEME_LIGHT, ID_VIEW_THEME_DARK]
+        self.menuBar.Check(self.themeIds[gd.cfgGl.appearance], True)
 
         self.toolBar = self.CreateToolBar(wx.TB_VERTICAL)
         self.fillToolBar()
@@ -341,6 +354,10 @@ class MyFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, self.OnZoomIn, id=ID_VIEW_ZOOM_IN)
             self.Bind(wx.EVT_MENU, self.OnZoomOut, id=ID_VIEW_ZOOM_OUT)
             self.Bind(wx.EVT_MENU, self.OnZoomReset, id=ID_VIEW_ZOOM_RESET)
+
+            for themeId in self.themeIds:
+                self.Bind(wx.EVT_MENU, self.OnThemeChange, id=themeId)
+
             self.Bind(wx.EVT_MENU, self.OnFindNextError, id=ID_SCRIPT_FIND_ERROR)
             self.Bind(wx.EVT_MENU, self.OnPaginate, id=ID_SCRIPT_PAGINATE)
             self.Bind(
@@ -807,6 +824,17 @@ class MyFrame(wx.Frame):
         for i in range(self.tabCtrl.getPageCount()):
             self.tabCtrl.getPage(i).showOutline(self.gd.showOutline)
 
+    def OnThemeChange(self, event):
+        cfgGl = copy.deepcopy(self.gd.cfgGl)
+        cfgGl.appearance = self.themeIds.index(event.GetId())
+
+        self.panel.ctrl.applyGlobalCfg(cfgGl)
+
+    # called after the theme in the global config has been changed and
+    # applied, e.g. from the settings dialog.
+    def onAppearanceChanged(self):
+        self.menuBar.Check(self.themeIds[self.gd.cfgGl.appearance], True)
+
     def OnViewModeDraft(self):
         self.menuBar.Check(ID_VIEW_STYLE_DRAFT, True)
         self.OnViewModeChange()
@@ -827,7 +855,7 @@ class MyFrame(wx.Frame):
             with open(filepath, "r") as svg_file:
                 svg_content = svg_file.read()
 
-            if wx.SystemSettings.GetAppearance().IsDark():
+            if config.isDarkAppearance():
                 svg_content = svg_content.replace("fill:#000000", "fill:#CCCCCC")
             svg_content = svg_content.encode()
 

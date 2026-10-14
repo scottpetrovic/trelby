@@ -60,6 +60,55 @@ PBI_REAL_AND_UNADJ = 2
 # for range checking above value
 PBI_FIRST, PBI_LAST = PBI_NONE, PBI_REAL_AND_UNADJ
 
+# application theme. do not change these values as they're saved to the
+# config file.
+APPEARANCE_SYSTEM = 0
+APPEARANCE_LIGHT = 1
+APPEARANCE_DARK = 2
+
+# for range checking above value
+APPEARANCE_FIRST, APPEARANCE_LAST = APPEARANCE_SYSTEM, APPEARANCE_DARK
+
+# colors used instead of the defaults when the dark theme is active. a
+# color the user has changed from its default is always used as is. the
+# per-element text colors (textSceneColor etc.) follow textColor.
+_darkColors = {
+    "textColor": (220, 220, 220),
+    "textHdrColor": (150, 150, 150),
+    "textBgColor": (40, 40, 40),
+    "workspaceColor": (28, 28, 28),
+    "pageBorderColor": (70, 70, 70),
+    "pageShadowColor": (15, 15, 15),
+    "selectedColor": (75, 80, 100),
+    "cursorColor": (110, 110, 230),
+    "autoCompFgColor": (230, 230, 230),
+    "autoCompBgColor": (85, 75, 35),
+    "noteColor": (80, 62, 50),
+    "pagebreakColor": (70, 70, 70),
+    "pagebreakNoAdjustColor": (70, 70, 70),
+    "tabTextColor": (220, 220, 220),
+    "tabBorderColor": (70, 70, 70),
+    "tabBarBgColor": (43, 43, 43),
+    "tabNonActiveBgColor": (58, 58, 58),
+}
+
+
+# make the application use the given APPEARANCE_* theme. the colors we draw
+# ourselves are picked up by the next ConfigGui created.
+def applyAppearance(appearance):
+    wx.GetApp().SetAppearance(
+        {
+            APPEARANCE_SYSTEM: wx.App.Appearance.System,
+            APPEARANCE_LIGHT: wx.App.Appearance.Light,
+            APPEARANCE_DARK: wx.App.Appearance.Dark,
+        }[appearance]
+    )
+
+
+# whether the application is currently using a dark theme
+def isDarkAppearance():
+    return wx.SystemSettings.GetAppearance().IsDark()
+
 # constants for identifying PDFFontInfos
 PDF_FONT_NORMAL = "Normal"
 PDF_FONT_BOLD = "Bold"
@@ -1158,6 +1207,15 @@ class ConfigGlobal:
         # size of the toolbar icons, in pixels (before DPI scaling)
         v.addInt("toolbarIconSize", 24, "ToolbarIconSize", 16, 48)
 
+        # application theme (APPEARANCE_*)
+        v.addInt(
+            "appearance",
+            APPEARANCE_SYSTEM,
+            "Appearance",
+            APPEARANCE_FIRST,
+            APPEARANCE_LAST,
+        )
+
         # how many lines to scroll per mouse wheel event
         v.addInt("mouseWheelLines", 4, "MouseWheelLines", 1, 50)
 
@@ -1420,11 +1478,20 @@ class ConfigGui:
 
             ConfigGui.constantsInited = True
 
+        dark = isDarkAppearance()
+
         # convert cfgGl.MyColor -> cfgGui.wx.Colour
         for it in cfgGl.cvars.color.values():
             c = getattr(cfgGl, it.name)
-            tmp = wx.Colour(c.r, c.g, c.b)
-            setattr(self, it.name, tmp)
+            rgb = (c.r, c.g, c.b)
+
+            if dark and rgb == (it.defVal.r, it.defVal.g, it.defVal.b):
+                if it.name.startswith("text") and rgb == (0, 0, 0):
+                    rgb = _darkColors["textColor"]
+                else:
+                    rgb = _darkColors.get(it.name, rgb)
+
+            setattr(self, it.name, wx.Colour(*rgb))
 
         # key = line type, value = wx.Colour
         self._lt2textColor = {}

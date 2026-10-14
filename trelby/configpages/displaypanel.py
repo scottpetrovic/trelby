@@ -57,6 +57,24 @@ class DisplayPanel(wx.Panel):
 
         vsizer.Add(hsizer, 0, wx.BOTTOM, 20)
 
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        hsizer.Add(
+            wx.StaticText(self, -1, _("Theme:")),
+            0,
+            wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
+            10,
+        )
+
+        # in config.APPEARANCE_* order
+        self.themeCombo = wx.Choice(
+            self, -1, choices=[_("System default"), _("Light"), _("Dark")]
+        )
+        self.Bind(wx.EVT_CHOICE, self.OnMisc, id=self.themeCombo.GetId())
+        hsizer.Add(self.themeCombo, 0)
+
+        vsizer.Add(hsizer, 0, wx.BOTTOM, 20)
+
         vsizer.Add(
             wx.StaticText(
                 self, -1, _("The settings below apply only to 'Draft' view mode.")
@@ -148,6 +166,7 @@ class DisplayPanel(wx.Panel):
 
     def OnMisc(self, event=None):
         self.cfg.toolbarIconSize = util.getSpinValue(self.iconSizeEntry)
+        self.cfg.appearance = self.themeCombo.GetSelection()
         self.cfg.fontYdelta = util.getSpinValue(self.spacingEntry)
         self.cfg.pbi = self.pbRb.GetSelection()
 
@@ -184,5 +203,6 @@ class DisplayPanel(wx.Panel):
 
     def cfg2gui(self):
         self.iconSizeEntry.SetValue(self.cfg.toolbarIconSize)
+        self.themeCombo.SetSelection(self.cfg.appearance)
         self.spacingEntry.SetValue(self.cfg.fontYdelta)
         self.pbRb.SetSelection(self.cfg.pbi)
