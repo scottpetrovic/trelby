@@ -1211,7 +1211,7 @@ class ConfigGlobal:
         v.addInt("fontYdelta", 18, "FontYDelta", 4, 125)
 
         # size of the toolbar icons, in pixels (before DPI scaling)
-        v.addInt("toolbarIconSize", 24, "ToolbarIconSize", 16, 48)
+        v.addInt("toolbarIconSize", 20, "ToolbarIconSize", 16, 48)
 
         # application theme (APPEARANCE_*)
         v.addInt(

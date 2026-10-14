@@ -1039,18 +1039,20 @@ class MyFrame(wx.Frame):
         )
 
     # status bar fields
-    SB_HELP = 0
-    SB_NEXT = 1
-    SB_WORDS = 2
-    SB_RUNTIME = 3
-    SB_PAGE = 4
-    SB_ZOOM = 5
+    SB_SPACER = 0
+    SB_HELP = 1
+    SB_NEXT = 2
+    SB_WORDS = 3
+    SB_RUNTIME = 4
+    SB_PAGE = 5
+    SB_ZOOM = 6
 
-    # the status bar at the bottom of the window. the help field shows the
-    # hovered toolbar tool's name (wx puts each tool's longHelp in field 0),
-    # then come the element types Enter / Tab would create, the script's
-    # word count and estimated running time, the current page and the zoom
-    # buttons.
+    # the status bar at the bottom of the window. a narrow, borderless
+    # spacer field keeps the text off the window's left edge. the help field
+    # shows the hovered menu item's or toolbar tool's help (wx puts it in
+    # the frame's status bar pane, set to SB_HELP below), then come the
+    # element types Enter / Tab would create, the script's word count and
+    # estimated running time, the current page and the zoom buttons.
     def createStatusBar(self):
         # created with one field, as splitting the still unsized bar into
         # all of them makes wx log SB_GETRECT errors; the rest are added
@@ -1092,8 +1094,13 @@ class MyFrame(wx.Frame):
         nextW = sb.GetTextExtent(_("Enter: %s    Tab: %s") % (longest, longest))[0]
         wordsW = sb.GetTextExtent(self.formatWordCount(999999))[0] + pad
         runtimeW = sb.GetTextExtent(self.formatRuntime(599))[0] + pad
-        widths = [-1, nextW + pad, wordsW, runtimeW, pageW, zoomW]
+        widths = [sb.FromDIP(6), -1, nextW + pad, wordsW, runtimeW, pageW, zoomW]
         sb.SetFieldsCount(len(widths), widths)
+
+        styles = [wx.SB_NORMAL] * len(widths)
+        styles[self.SB_SPACER] = wx.SB_FLAT
+        sb.SetStatusStyles(styles)
+        self.SetStatusBarPane(self.SB_HELP)
 
         sb.Bind(wx.EVT_SIZE, self.OnStatusBarSize)
 
