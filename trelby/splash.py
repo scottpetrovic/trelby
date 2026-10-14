@@ -41,14 +41,21 @@ class SplashWindow(wx.Frame):
         if self.pic.IsOk():
             w, h = (self.pic.GetWidth(), self.pic.GetHeight())
         else:
-            w, h = (375, 300)
+            w, h = (500, 400)
+
+        self.w, self.h = w, h
 
         util.setWH(self, w, h)
         self.CenterOnScreen()
 
-        self.textColor = wx.Colour(0, 0, 0)
+        # dark slate, matching the wordmark in logo.jpg
+        self.textColor = wx.Colour(52, 66, 82)
 
         self.font = util.createPixelFont(14, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+
+        self.versionFont = util.createPixelFont(
+            19, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
+        )
 
         self.quoteFont = util.createPixelFont(
             16, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
@@ -74,33 +81,38 @@ class SplashWindow(wx.Frame):
     def OnPaint(self, event):
         dc = wx.PaintDC(self)
 
-        dc.SetFont(self.font)
         dc.SetTextForeground(self.textColor)
 
         if self.pic.IsOk():
             dc.DrawBitmap(self.pic, 0, 0, False)
 
-        util.drawText(dc, "Version %s" % (misc.version), 200, 170, util.ALIGN_RIGHT)
+        # version and website in the empty top-right corner
+        dc.SetFont(self.versionFont)
+        util.drawText(dc, "Version %s" % (misc.version), self.w - 12, 10, util.ALIGN_RIGHT)
 
-        util.drawText(dc, "http://www.trelby.org/", 200, 185, util.ALIGN_RIGHT)
+        dc.SetFont(self.font)
+        util.drawText(dc, "http://www.trelby.org/", self.w - 12, 34, util.ALIGN_RIGHT)
 
+        # quote centered in the band below the wordmark, bottom-aligned
         if self.quote:
+            cx = self.w // 2
+
             dc.SetFont(self.sourceFont)
-            dc.DrawText(self.quote.source, 50, 280)
+            util.drawText(dc, "— " + self.quote.source, cx, self.h - 28, util.ALIGN_CENTER)
 
             dc.SetFont(self.quoteFont)
 
+            count = len(self.quote.lines)
             for i, line in enumerate(self.quote.lines):
-                x = 10
-                y = 260 - (len(self.quote.lines) - i - 1) * 17
+                y = self.h - 52 - (count - i - 1) * 18
 
                 if i == 0:
-                    dc.DrawText("“", x - 5, y)
+                    line = "“" + line
 
-                if i == (len(self.quote.lines) - 1):
+                if i == (count - 1):
                     line = line + "”"
 
-                dc.DrawText(line, x, y)
+                util.drawText(dc, line, cx, y, util.ALIGN_CENTER)
 
     def OnTimer(self, event):
         self.timer.Stop()
