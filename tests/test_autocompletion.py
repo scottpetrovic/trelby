@@ -76,17 +76,12 @@ def testRecentThenMostUsed():
     assert sp.acItems == ["BO", "AL", "CY"]
 
 
-def testScenesMostRecentFirst():
-    ls = [
-        Line(scr.LB_LAST, scr.SCENE, "INT. A - DAY"),
-        Line(scr.LB_LAST, scr.SCENE, "INT. B - DAY"),
-        Line(scr.LB_LAST, scr.SCENE, "INT. A - DAY"),
-        Line(scr.LB_LAST, scr.SCENE, "INT. C - DAY"),
-    ]
-    sp = makeScript(ls[:3], scr.SCENE)
-    sp.lines.append(ls[3])
-    sp.cmdChars("i")
-    assert sp.acItems == ["I", "INT. A - DAY", "INT. B - DAY", "INT. C - DAY"]
+def testLocationsMostRecentFirst():
+    ls = scenes("INT. A - DAY", "INT. B - DAY", "INT. A - DAY")
+    sp = makeScript(ls, scr.SCENE)
+    sp.lines += scenes("INT. C - DAY")
+    sp.cmdChars("int. ")
+    assert sp.acItems == ["INT. A - ", "INT. B - ", "INT. C - "]
 
 
 # script of the given speeches, with the cursor at the end of the last one
@@ -177,8 +172,8 @@ def testWrappedElementNotOffered():
     assert not sp.acItems
 
     sp.cmd("deleteBackward")
-    sp.cmdChars("i")
-    assert sp.acItems == ["I", "INT. KITCHEN - DAY"]
+    sp.cmdChars("int. ")
+    assert sp.acItems == ["INT. KITCHEN - "]
 
 
 def testNoCompletionOnWrappedLine():
@@ -192,3 +187,103 @@ def testNoCompletionOnWrappedLine():
 
     sp.cmdChars("j")
     assert not sp.acItems
+
+
+def scenes(*names):
+    return [Line(scr.LB_LAST, scr.SCENE, s) for s in names]
+
+
+def testScenePrefixes():
+    sp = makeScript(scenes("EXT. PARK - DAY", "EXT. PARK - NIGHT"), scr.SCENE)
+    sp.cmdChars("e")
+    assert sp.acItems == ["E", "EXT. ", "EST. "]
+
+    sp.cmd("deleteBackward")
+    sp.cmdChars("i")
+    assert sp.acItems == ["I", "INT. ", "INT./EXT. ", "I/E. "]
+
+
+def testSceneInParts():
+    sp = makeScript(
+        scenes("INT. KITCHEN - NIGHT", "EXT. KEEP - DAY", "INT. HALL - DAY"),
+        scr.SCENE,
+    )
+
+    # prefix: Enter fills it in and keeps going
+    sp.cmdChars("in")
+    assert sp.acItems[sp.acSel] == "INT. "
+    sp.cmd("splitElement")
+    assert sp.lines[sp.line].text == "INT. "
+    assert sp.lines[sp.line].lt == scr.SCENE
+
+    # locations, from any prefix, most recent first
+    assert sp.acItems == ["INT. HALL - ", "INT. KEEP - ", "INT. KITCHEN - "]
+    sp.cmdChars("k")
+    assert sp.acItems == ["INT. K", "INT. KEEP - ", "INT. KITCHEN - "]
+    sp.cmd("moveDown")
+    sp.cmd("tab")
+    assert sp.lines[sp.line].text == "INT. KITCHEN - "
+
+    # times: used ones first, then the defaults
+    assert sp.acItems[:4] == [
+        "INT. KITCHEN - DAY",
+        "INT. KITCHEN - NIGHT",
+        "INT. KITCHEN - CONTINUOUS",
+        "INT. KITCHEN - LATER",
+    ]
+    sp.cmdChars("n")
+    assert sp.acItems == ["INT. KITCHEN - N", "INT. KITCHEN - NIGHT"]
+
+    # a whole heading ends the element as usual
+    sp.cmd("splitElement")
+    assert sp.lines[sp.line - 1].text == "INT. KITCHEN - NIGHT"
+    assert sp.lines[sp.line].lt == scr.ACTION
+
+    # and the steps undo one at a time
+    sp.cmd("undo")
+    assert sp.lines[sp.line].text.upper() == "INT. KITCHEN - N"
+    sp.cmd("undo", count=2)
+    assert sp.lines[sp.line].text.upper() == "INT. K"
+
+
+def testSceneEndAcceptsPart():
+    sp = makeScript(scenes("INT. KITCHEN - NIGHT"), scr.SCENE)
+    sp.cmdChars("int. k")
+    sp.cmd("moveLineEnd")
+    assert sp.lines[sp.line].text == "INT. KITCHEN - "
+    assert sp.acItems[0] == "INT. KITCHEN - NIGHT"
+
+
+def testNewLocationHasNoList():
+    sp = makeScript(scenes("INT. KITCHEN - NIGHT"), scr.SCENE)
+    sp.cmdChars("int. z")
+    assert not sp.acItems
+
+
+def testOtherHeadingsCompleteWhole():
+    sp = makeScript(scenes("INSERT - LETTER", "INT. HALL - DAY"), scr.SCENE)
+    sp.cmdChars("in")
+    assert sp.acItems == ["IN", "INT. ", "INT./EXT. ", "INSERT - LETTER"]
+
+    sp.cmdChars("s")
+    assert sp.acItems == ["INS", "INSERT - LETTER"]
+    sp.cmd("splitElement")
+    assert sp.lines[sp.line - 1].text == "INSERT - LETTER"
+
+
+def testCharacterExtensions():
+    sp = makeScript(chars("JOHN", "MARY (O.S.)"))
+    sp.cmdChars("john (")
+    assert sp.acItems == [
+        "JOHN (",
+        "JOHN (O.S.)",
+        "JOHN (V.O.)",
+        "JOHN (O.C.)",
+        "JOHN (CONT'D)",
+    ]
+
+    sp.cmdChars("v")
+    assert sp.acItems == ["JOHN (V", "JOHN (V.O.)"]
+    sp.cmd("splitElement")
+    assert sp.lines[sp.line - 1].text == "JOHN (V.O.)"
+    assert sp.lines[sp.line].lt == scr.DIALOGUE

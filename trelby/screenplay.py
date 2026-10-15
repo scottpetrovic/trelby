@@ -3248,9 +3248,15 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # if what was typed isn't itself a match, offer it as the first
         # row, so a new name that's the start of an existing one (BOB vs
         # BOBBY) is one Up away. the best match stays selected, so Enter
-        # still completes.
+        # still completes. not after a space, where a word or a part of a
+        # scene heading (like "INT. ") has just been finished.
         typed = util.upper(text)
-        if self.acItems and typed.strip() and (typed not in self.acItems):
+        if (
+            self.acItems
+            and typed.strip()
+            and not typed[-1].isspace()
+            and (typed not in self.acItems)
+        ):
             self.acItems.insert(0, typed)
             self.acSel = 1
 
@@ -3277,42 +3283,51 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         if (ln.lt == CHARACTER) and not ln.text and self.isOnlyLineOfElem(self.line):
             cs.doAutoComp = cs.AC_REDO
 
+    # if the selected auto-completion item is only the start of a scene
+    # heading, like "INT. " or "INT. KITCHEN - ".
+    def isAutoCompPartial(self):
+        return (
+            bool(self.acItems)
+            and (self.lines[self.line].lt == SCENE)
+            and autocompletion.isPartial(self.acItems[self.acSel])
+        )
+
+    # put the selected auto-completion item in the current line. if it's
+    # only the start of a scene heading, show the list for the next part.
+    def acceptAutoComp(self, cs):
+        partial = self.isAutoCompPartial()
+
+        u = undo.SinglePara(self, undo.CMD_MISC, self.line)
+
+        self.lines[self.line].setText(self.acItems[self.acSel])
+        self.column = len(self.lines[self.line].text)
+        self.rewrapPara()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        if partial:
+            cs.doAutoComp = cs.AC_REDO
+
     # get a list of strings (single-line text elements for now) that start
-    # with 'text' (not case sensitive) and are of of type 'type'. also
-    # mixes in the type's default items from config. ignores current line.
-    # an exact match comes first, then the ones used above the current
-    # line, most recent first, then the rest, most used first. for
-    # characters, the one who spoke before the last speaker is put first,
-    # since dialogue usually goes back and forth.
+    # with 'text' (not case sensitive) and are of of type 'type', in the
+    # order to show them (see AutoCompletion.getMatches), but with an
+    # exact match first. also mixes in the type's default items from
+    # config. ignores current line.
     def getMatchingText(self, text, lt):
         text = util.upper(text)
-        t = self.autoCompletion.getType(lt)
         ls = self.lines
-
-        # how many times each text is used, and the last line above the
-        # current one it's used on
-        counts = {}
-        lastAbove = {}
+        uses = []
 
         for i in range(len(ls)):
             if (ls[i].lt == lt) and (i != self.line) and self.isOnlyLineOfElem(i):
-                upstr = util.upper(ls[i].text)
+                upstr = util.upper(ls[i].text).rstrip()
 
-                if upstr.strip():
-                    counts[upstr] = counts.get(upstr, 0) + 1
+                if upstr:
+                    uses.append((i, upstr))
 
-                    if i < self.line:
-                        lastAbove[upstr] = i
-
-        for s in t.items:
-            counts.setdefault(util.upper(s), 0)
-
-        order = sorted(counts, key=lambda s: (-lastAbove.get(s, -1), -counts[s], s))
-
-        if (lt == CHARACTER) and (len(order) > 1) and (order[1] in lastAbove):
-            order[0], order[1] = order[1], order[0]
-
-        mlist = [s for s in order if s.startswith(text)]
+        mlist = self.autoCompletion.getMatches(text, lt, uses, self.line)
 
         if text in mlist:
             mlist.remove(text)
@@ -4349,11 +4364,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
     def moveLineEndCmd(self, cs):
         if self.acItems:
-            self.lines[self.line].setText(self.acItems[self.acSel])
+            self.acceptAutoComp(cs)
         else:
             self.maybeMark(cs.mark)
-
-        self.column = len(self.lines[self.line].text)
+            self.column = len(self.lines[self.line].text)
 
     def moveLineStartCmd(self, cs):
         self.maybeMark(cs.mark)
@@ -4611,6 +4625,11 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.addUndo(u)
 
     def splitElementCmd(self, cs):
+        if self.isAutoCompPartial():
+            self.acceptAutoComp(cs)
+
+            return
+
         # with a selection, splitElement only clears it
         hadMark = bool(self.mark)
 
@@ -4628,6 +4647,11 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def tabCmd(self, cs):
         if self.mark:
             self.clearMark()
+
+            return
+
+        if self.isAutoCompPartial():
+            self.acceptAutoComp(cs)
 
             return
 
