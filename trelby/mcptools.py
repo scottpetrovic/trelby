@@ -27,6 +27,7 @@ import trelby.util as util
 from trelby.line import Line
 from trelby.screenplay import (
     ACTBREAK,
+    ACTION,
     CHARACTER,
     LB_FORCED,
     LB_LAST,
@@ -101,7 +102,15 @@ def revisionOf(data):
 # profiles, but not e.g. the cursor position.
 def linesRevision(sp):
     s = "\n".join(
-        "%s|%s|%s|%s" % (ln, ln.pageLock or "", int(ln.dual), ln.color or "")
+        "%s|%s|%s|%s|%s|%s"
+        % (
+            ln,
+            ln.pageLock or "",
+            int(ln.dual),
+            ln.color or "",
+            ln.fmt or "",
+            int(ln.centered),
+        )
         for ln in sp.lines
     )
 
@@ -331,6 +340,9 @@ def getElements(sp, first, last):
         if ln.lt == CHARACTER and ln.dual:
             elem["dual"] = True
 
+        if sp.hasCenteredFlag(start):
+            elem["centered"] = True
+
         ret.append(elem)
         i += 1
 
@@ -349,8 +361,8 @@ def parseColor(color):
     return s
 
 
-# convert a list of element dicts ({"type", "text", optional "color" and
-# "dual"}) to unwrapped lines. if needHeading is True, the first element
+# convert a list of element dicts ({"type", "text", optional "color",
+# "dual" and "centered"}) to unwrapped lines. if needHeading is True, the first element
 # must be a scene heading or act break.
 def buildLines(elements, needHeading):
     if not isinstance(elements, list) or not elements:
@@ -385,6 +397,10 @@ def buildLines(elements, needHeading):
         if dual and (lt != CHARACTER):
             raise ToolError("Only character elements can be marked dual.")
 
+        centered = bool(elem.get("centered"))
+        if centered and (lt != ACTION):
+            raise ToolError("Only action elements can be centered.")
+
         parts = util.fixNL(text).replace("\t", " ").split("\n")
 
         for i, part in enumerate(parts):
@@ -398,6 +414,7 @@ def buildLines(elements, needHeading):
                     part.strip(),
                     dual=dual and isFirst,
                     color=color if isFirst else None,
+                    centered=centered and isFirst,
                 )
             )
 

@@ -18,6 +18,7 @@ class Line:
         dual=False,
         color=None,
         fmt=None,
+        centered=False,
     ):
 
         # line break type
@@ -50,8 +51,13 @@ class Line:
         # format string (see textfmt), or None if it has none
         self.fmt = textfmt.compact(textfmt.fit(fmt, len(text))) if fmt else None
 
+        # True on the first line of an action element that's centered on
+        # the page. only meaningful on such lines; see
+        # Screenplay.isCentered.
+        self.centered = centered
+
     # return a copy of this line, including its page lock, dual flag,
-    # color and formatting
+    # color, formatting and centered flag
     def copy(self):
         return Line(
             self.lb,
@@ -61,6 +67,7 @@ class Line:
             self.dual,
             self.color,
             self.fmt,
+            self.centered,
         )
 
     # return the format string, exactly as long as the text
@@ -141,6 +148,7 @@ class Line:
             or (self.dual != other.dual)
             or (self.color != other.color)
             or (textfmt.compact(self.fmt) != textfmt.compact(other.fmt))
+            or (self.centered != other.centered)
         )
 
     def __eq__(self, other):

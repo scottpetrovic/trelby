@@ -139,6 +139,7 @@ class MyFrame(wx.Frame):
         editMenu.Append(
             ID_EDIT_UNDERLINE, misc.mnemonic("U", _("Underline") + "\tCTRL-U")
         )
+        editMenu.Append(ID_EDIT_CENTER, misc.mnemonic("t", _("Center action")))
         editMenu.AppendSeparator()
         editMenu.Append(ID_EDIT_INSERT_NBSP, _("Insert non-breaking space"))
         editMenu.Append(
@@ -370,6 +371,7 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnToggleBold, id=ID_EDIT_BOLD)
         self.Bind(wx.EVT_MENU, self.OnToggleItalic, id=ID_EDIT_ITALIC)
         self.Bind(wx.EVT_MENU, self.OnToggleUnderline, id=ID_EDIT_UNDERLINE)
+        self.Bind(wx.EVT_MENU, self.OnToggleCentered, id=ID_EDIT_CENTER)
         self.Bind(wx.EVT_MENU, self.OnFind, id=ID_EDIT_FIND)
         self.Bind(wx.EVT_MENU, self.OnDeleteElements, id=ID_EDIT_DELETE_ELEMENTS)
         self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_DRAFT)
@@ -924,6 +926,9 @@ class MyFrame(wx.Frame):
     def OnToggleUnderline(self, event=None):
         self.panel.ctrl.OnToggleFormat(textfmt.UNDERLINED)
 
+    def OnToggleCentered(self, event=None):
+        self.panel.ctrl.OnToggleCentered()
+
     def OnDeleteElements(self, event=None):
         self.panel.ctrl.OnDeleteElements()
 
@@ -979,6 +984,9 @@ class MyFrame(wx.Frame):
 
         if getattr(self, "formatBar", None):
             self.formatBar.Destroy()
+
+        if getattr(self, "alignBar", None):
+            self.alignBar.Destroy()
 
         def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
             bitmap = gutil.svgBitmap(iconFilename, size, pad)
@@ -1037,6 +1045,19 @@ class MyFrame(wx.Frame):
         )
         tb.AddControl(self.formatBar)
 
+        # centering, which applies to whole action elements
+        tb.AddSeparator()
+        self.alignBar = misc.MyFormatBar(
+            tb,
+            -1,
+            self.getCfgGui,
+            [(self.ALIGN_CENTER, _("Center"))],
+            lambda bit: self.OnAlignBar(),
+            lambda bit: _("Center the action on the page"),
+            height,
+        )
+        tb.AddControl(self.alignBar)
+
         # at the far right, next to where the outline view appears
         tb.AddStretchableSpace()
         addTB(ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
@@ -1059,7 +1080,6 @@ class MyFrame(wx.Frame):
             (screenplay.SHOT, _("Shot"), "ChangeToShot"),
             (screenplay.ACTBREAK, _("Act break"), "ChangeToActBreak"),
             (screenplay.NOTE, _("Note"), "ChangeToNote"),
-            (screenplay.CENTERED, _("Centered"), "ChangeToCentered"),
         ]
 
     # the toolbar's format toggles: textfmt bit, label, name, shortcut
@@ -1079,10 +1099,21 @@ class MyFrame(wx.Frame):
             if itemBit == bit:
                 return "%s (%s)" % (name, key)
 
+    # the align bar's item for centering, a bit that's not one of the
+    # textfmt ones
+    ALIGN_CENTER = 8
+
+    def OnAlignBar(self):
+        self.panel.ctrl.OnToggleCentered()
+        self.panel.ctrl.SetFocus()
+
     # show which of bold / italic / underline are on at the cursor or for
-    # the selection
-    def setFormatStatus(self, style):
+    # the selection, and whether the action there is centered (None if
+    # centering doesn't apply there)
+    def setFormatStatus(self, style, centered):
         self.formatBar.SetValue(style)
+        self.alignBar.Enable(centered is not None)
+        self.alignBar.SetValue(self.ALIGN_CENTER if centered else 0)
 
     def OnElemTypeBar(self, lt):
         self.panel.ctrl.changeType(lt)
@@ -1411,8 +1442,11 @@ class MyFrame(wx.Frame):
     # build the editor's right-click menu. curLt is the type of the
     # element(s) it applies to, or None if they're of more than one type.
     # dualState: None if dual dialogue can't be toggled at the cursor,
-    # otherwise whether the cursor is in a dual dialogue.
-    def makeRightClickMenu(self, curLt, withCut, dualState=None):
+    # otherwise whether the cursor is in a dual dialogue. centeredState is
+    # likewise for centering action elements.
+    def makeRightClickMenu(
+        self, curLt, withCut, dualState=None, centeredState=None
+    ):
         types = (
             (ID_ELEM_TO_SCENE, screenplay.SCENE, "S", _("Scene")),
             (ID_ELEM_TO_ACTION, screenplay.ACTION, "A", _("Action")),
@@ -1423,7 +1457,6 @@ class MyFrame(wx.Frame):
             (ID_ELEM_TO_SHOT, screenplay.SHOT, "o", _("Shot")),
             (ID_ELEM_TO_ACTBREAK, screenplay.ACTBREAK, "b", _("Act break")),
             (ID_ELEM_TO_NOTE, screenplay.NOTE, "N", _("Note")),
-            (ID_ELEM_TO_CENTERED, screenplay.CENTERED, "e", _("Centered")),
         )
 
         m = wx.Menu()
@@ -1446,6 +1479,11 @@ class MyFrame(wx.Frame):
         if dualState is not None:
             m.AppendCheckItem(ID_EDIT_DUAL_DIALOGUE, _("Dual dialogue")).Check(
                 dualState
+            )
+
+        if centeredState is not None:
+            m.AppendCheckItem(ID_EDIT_CENTER, _("Center action")).Check(
+                centeredState
             )
 
         m.AppendSeparator()

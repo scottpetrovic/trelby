@@ -448,7 +448,9 @@ class MyCtrl(wx.Control):
         pageCnt = self.sp.line2page(len(self.sp.lines) - 1)
 
         self.gd.mainFrame.setElemTypeStatus(cur.lt, tabNext, enterNext)
-        self.gd.mainFrame.setFormatStatus(self.sp.getFormatState())
+        self.gd.mainFrame.setFormatStatus(
+            self.sp.getFormatState(), self.sp.getCenteredState()
+        )
         self.gd.mainFrame.setPageStatus(page, pageCnt, self.sp.hasPageLocks())
         self.gd.mainFrame.setLengthStatus(
             self.sp.getWordCount(), self.sp.getPageLength()
@@ -508,6 +510,7 @@ class MyCtrl(wx.Control):
         self.gd.mainFrame.tabCtrl.Refresh(False)
         self.gd.mainFrame.elemTypeBar.Refresh(False)
         self.gd.mainFrame.formatBar.Refresh(False)
+        self.gd.mainFrame.alignBar.Refresh(False)
         self.gd.mainFrame.noFSBtn.Refresh(False)
         self.gd.mainFrame.toolBar.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         self.gd.mainFrame.toolBar.Refresh()
@@ -765,7 +768,7 @@ class MyCtrl(wx.Control):
                 dualState = not toggle[1]
 
         m = self.gd.mainFrame.makeRightClickMenu(
-            curLt, bool(self.sp.mark), dualState
+            curLt, bool(self.sp.mark), dualState, self.sp.getCenteredState()
         )
         self.PopupMenu(m)
         m.Destroy()
@@ -1299,6 +1302,14 @@ class MyCtrl(wx.Control):
         self.sp.toggleFormat(bit)
         self.updateScreen()
 
+    # center the action at the cursor or in the selection, or stop
+    # centering it
+    def OnToggleCentered(self):
+        self.clearAutoComp()
+
+        if self.sp.toggleCentered():
+            self.updateScreen()
+
     def OnFindNextError(self):
         self.clearAutoComp()
 
@@ -1528,9 +1539,6 @@ class MyCtrl(wx.Control):
 
     def cmdChangeToActBreak(self, cs):
         self.sp.toActBreakCmd(cs)
-
-    def cmdChangeToCentered(self, cs):
-        self.sp.toCenteredCmd(cs)
 
     def cmdChangeToTransition(self, cs):
         self.sp.toTransitionCmd(cs)

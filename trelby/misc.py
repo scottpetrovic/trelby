@@ -311,7 +311,13 @@ class MyElemTypeBar(wx.Control):
                     dc.SetPen(cfgGui.tabNonActiveBgPen)
                     dc.DrawRoundedRectangle(fillRect, radius - 1)
 
-                dc.SetTextForeground(cfgGui.tabTextColor)
+                if self.IsEnabled():
+                    dc.SetTextForeground(cfgGui.tabTextColor)
+                else:
+                    dc.SetTextForeground(
+                        wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT)
+                    )
+
                 dc.SetFont(self.itemFont(i, False))
 
             tw, th = dc.GetTextExtent(label)
@@ -357,11 +363,16 @@ class MyFormatBar(MyElemTypeBar):
         self.style = style
         self.Refresh(False)
 
+    def Enable(self, enable=True):
+        if enable != self.IsEnabled():
+            MyElemTypeBar.Enable(self, enable)
+            self.Refresh(False)
+
     def isSelected(self, i):
-        return bool(self.style & self.items[i][0])
+        return self.IsEnabled() and bool(self.style & self.items[i][0])
 
     def itemFont(self, i, selected):
-        return self.fonts[self.items[i][0]]
+        return self.fonts.get(self.items[i][0], self.font)
 
 
 # our own version of a tab control, which exists for two reasons: it does

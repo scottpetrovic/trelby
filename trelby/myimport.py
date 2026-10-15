@@ -395,11 +395,11 @@ def importFDX(fileName, frame):
             # contained a scriptnote
             if s or not addedNote:
                 lt = elemMap.get(et, screenplay.ACTION)
-
-                if (lt == screenplay.ACTION) and (para.get("Alignment") == "Center"):
-                    lt = screenplay.CENTERED
                 firstLine = len(lines)
                 addElem(lt, s, textfmt.compact(fmt))
+
+                if (lt == screenplay.ACTION) and (para.get("Alignment") == "Center"):
+                    lines[firstLine].centered = True
 
                 # in a DualDialogue, the second character's speech is the
                 # right-hand column
@@ -655,7 +655,10 @@ def importFountain(fileName, frame, titlePages):
             pass
 
         elif isCentered(s.strip()):
-            line.lt = screenplay.CENTERED
+            # an action, but centered. for now every centered line has the
+            # flag, so that the second pass can tell where they start and
+            # end.
+            line.centered = True
             line.text = s.strip()[1:-1].strip()
 
         elif s == TWOSPACE:
@@ -744,7 +747,7 @@ def importFountain(fileName, frame, titlePages):
             else:
                 ret.append(ln)
 
-        elif not isRetPrevType(ln.lt):
+        elif not isRetPrevType(ln.lt) or (ret[-1].centered != ln.centered):
             makeLastLBLast()
             ret.append(ln)
 
@@ -752,6 +755,12 @@ def importFountain(fileName, frame, titlePages):
             ret.append(ln)
 
     makeLastLBLast()
+
+    # the centered flag only goes on the first line of an element
+    for i in range(1, len(ret)):
+        if ret[i - 1].lb != screenplay.LB_LAST:
+            ret[i].centered = False
+
     return ret, titlePages
 
 

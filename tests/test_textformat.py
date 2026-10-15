@@ -140,11 +140,9 @@ def testLoadSave():
 
 
 def testUnknownInOldVersions():
-    # a format line is a config line older versions skip, and a centered
-    # line one they turn into action
-    sp = loadLines(["#Format 0-3:b", ".^THE END"])
+    # a format line is a config line older versions skip
+    sp = loadLines(["#Format 0-3:b", "..THE END"])
 
-    assert sp.lines[0].lt == scr.CENTERED
     assert sp.lines[0].fmt == "111" + "0" * 4
 
 
@@ -426,25 +424,35 @@ def loadCentered():
         [
             ".\\INT. HALL - NIGHT",
             "..The door opens.",
-            "|^THE END",
-            ".^for now",
+            "#Centered ",
+            "|.THE END",
+            "..for now",
+            "..Credits roll.",
         ]
     )
 
 
+# return the texts of the lines of centered actions
+def centeredTexts(sp):
+    return [ln.text for i, ln in enumerate(sp.lines) if sp.isCentered(i)]
+
+
 def testCenteredOffset():
     sp = loadCentered()
-    width = sp.cfg.getType(scr.CENTERED).width
+    width = sp.cfg.getType(scr.ACTION).width
 
-    assert sp.lines[2].lt == scr.CENTERED
+    assert sp.lines[2].lt == scr.ACTION
+    assert centeredTexts(sp) == ["THE END", "for now"]
     assert sp.getCenterOffset(1) == 0
     assert sp.getCenterOffset(2) == (width - 7) / 2.0
     assert sp.getCenterOffset(3) == (width - 7) / 2.0
+    assert sp.getCenterOffset(4) == 0
 
     pg = sp.generatePMLPage(mypager.Pager(sp.cfg), 1, True, True)
     x = {op.line: op.x for op in pg.ops if isinstance(op, pml.TextOp)}
 
     assert x[2] > x[1]
+    assert x[4] == x[1]
     sp._validate()
 
 
@@ -452,53 +460,143 @@ def testCenteredSaveLoad():
     sp = loadCentered()
     s = sp.save().decode("UTF-8")
 
-    assert "|^THE END\n.^for now\n" in s
-    assert u.loadString(s).lines[2].lt == scr.CENTERED
+    assert "#Centered \n|.THE END\n..for now\n..Credits" in s
+    assert s.count("#Centered") == 1
+    assert centeredTexts(u.loadString(s)) == ["THE END", "for now"]
+
+
+def testOldCenteredType():
+    # an early development version had a separate centered element type
+    sp = loadLines(["..x", "|^THE END", ".^for now"])
+
+    assert [ln.lt for ln in sp.lines] == [scr.ACTION] * 3
+    assert centeredTexts(sp) == ["THE END", "for now"]
+    assert sp.hasCenteredFlag(1)
+    assert not sp.lines[2].centered
+
+
+def testToggleCentered():
+    sp = loadCentered()
+
+    # on an action
+    sp.line = 1
+    assert sp.getCenteredState() is False
+    assert sp.toggleCentered()
+    assert centeredTexts(sp) == ["The door opens.", "THE END", "for now"]
+
+    # not on a scene heading
+    sp.line = 0
+    assert sp.getCenteredState() is None
+    assert not sp.toggleCentered()
+
+    # a selection over centered and uncentered actions centers them all,
+    # and then stops centering them all
+    select(sp, 2, 0, 0)
+    sp.line = 4
+    assert sp.getCenteredState() is False
+    sp.toggleCentered()
+    assert len(centeredTexts(sp)) == 4
+
+    assert sp.getCenteredState() is True
+    sp.toggleCentered()
+    assert centeredTexts(sp) == ["The door opens."]
+
+    sp.cmd("undo")
+    assert len(centeredTexts(sp)) == 4
+
+    sp.clearMark()
+    sp._validate()
+
+
+def testCenteredStaysWithElement():
+    sp = loadCentered()
+
+    # turning it into something else and back keeps it centered
+    sp.line = 2
+    sp.convertTypeTo(scr.TRANSITION, True)
+    assert centeredTexts(sp) == []
+
+    sp.convertTypeTo(scr.ACTION, True)
+    assert centeredTexts(sp) == ["THE END", "for now"]
+
+    # a new element after it isn't centered
+    sp.line = 3
+    sp.column = len(sp.lines[3].text)
+    sp.cmd("splitElement")
+    sp.cmdChars("Fade")
+    assert centeredTexts(sp) == ["THE END", "for now"]
+
+    sp._validate()
+
+
+def testCenteredCopyPaste():
+    sp = loadCentered()
+    select(sp, 2, 0, 6)
+    sp.line = 3
+    sp.column = 6
+    cd = sp.getSelectedAsCD(False)
+    sp.clearMark()
+
+    assert cd.lines[0].centered
+
+    sp.line = len(sp.lines) - 1
+    sp.column = len(sp.lines[sp.line].text)
+    sp.cmd("splitElement")
+    sp.paste(cd.lines)
+
+    assert centeredTexts(sp) == ["THE END", "for now"] * 2
+    sp._validate()
 
 
 def testCenteredText():
     sp = loadCentered()
-    width = sp.cfg.getType(scr.CENTERED).width
+    width = sp.cfg.getType(scr.ACTION).width
     lines = sp.generateText(False).split("\n")
 
     assert " " * int((width - 7) / 2.0) + "THE END" in lines
+    assert "Credits roll." in lines
+
+
+def testCenteredRTF():
+    s = loadCentered().generateRTF()
+
+    assert "\\qc THE END\\line for now}" in s
+    assert "\\qc The door" not in s
 
 
 def testCenteredFountain(tmp_path):
     s = loadCentered().generateFountain()
 
-    assert "\n>THE END<\n>for now<" in s
+    assert "\n>THE END<\n>for now<\n\nCredits roll." in s
 
-    lines = importFountain(tmp_path, s)
-    centered = [ln for ln in lines if ln.lt == scr.CENTERED]
+    # without the empty line between them
+    lines = importFountain(tmp_path, s.replace("<\n\nCredits", "<\nCredits"))
+    texts = [ln.text for ln in lines]
+    i = texts.index("THE END")
 
-    assert [ln.text for ln in centered] == ["THE END", "for now"]
-    assert centered[0].lb == scr.LB_FORCED
-    assert centered[1].lb == scr.LB_LAST
+    assert lines[i].lt == scr.ACTION
+    assert lines[i].centered and (lines[i].lb == scr.LB_FORCED)
+    assert not lines[i + 1].centered and (lines[i + 1].lb == scr.LB_LAST)
+
+    # the uncentered action right after it is an element of its own
+    assert lines[i + 2].text == "Credits roll."
+    assert not lines[i + 2].centered
 
 
 def testCenteredFDX(tmp_path):
     s = loadCentered().generateFDX()
 
-    assert b'<Paragraph Type="Action" Alignment="Center">' in s
+    assert s.count(b'<Paragraph Type="Action" Alignment="Center">') == 1
 
     path = tmp_path / "centered.fdx"
     path.write_bytes(s)
     lines = myimport.importFDX(str(path), mock.Mock())
 
-    assert [ln.text for ln in lines if ln.lt == scr.CENTERED] == [
-        "THE END",
-        "for now",
-    ]
+    texts = [ln.text for ln in lines]
+    i = texts.index("THE END")
 
-
-def testChangeToCentered():
-    sp = loadCentered()
-    sp.line = 1
-    sp.cmd("toCentered")
-
-    assert sp.lines[1].lt == scr.CENTERED
-    sp._validate()
+    assert lines[i].centered
+    assert not any(ln.centered for j, ln in enumerate(lines) if j != i)
 
 
 def testFormatState():

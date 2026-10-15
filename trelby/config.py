@@ -501,14 +501,6 @@ class Config:
         t.export.isItalic = True
         self.types[t.lt] = t
 
-        # each line is centered within the element's width; see
-        # Screenplay.getCenterOffset
-        t = Type(screenplay.CENTERED)
-        t.beforeSpacing = 10
-        t.indent = 0
-        t.width = 60
-        self.types[t.lt] = t
-
         # pdf font configs, key = PDF_FONT_*, value = PdfFontInfo
         self.pdfFonts = {}
 
@@ -764,13 +756,6 @@ class ConfigGlobal:
         t.prevTypeTab = screenplay.CHARACTER
         self.types[t.lt] = t
 
-        t = TypeGlobal(screenplay.CENTERED)
-        t.newTypeEnter = screenplay.ACTION
-        t.newTypeTab = screenplay.CHARACTER
-        t.nextTypeTab = screenplay.ACTION
-        t.prevTypeTab = screenplay.ACTION
-        self.types[t.lt] = t
-
         # keyboard commands. these must be in alphabetical order.
         self.commands = (
             []
@@ -797,10 +782,6 @@ class ConfigGlobal:
                     "ChangeToAction",
                     _("Change current element's style to action."),
                     [util.Key(ord("A"), alt=True).toInt()],
-                ),
-                Command(
-                    "ChangeToCentered",
-                    _("Change current element's style to centered."),
                 ),
                 Command(
                     "ChangeToCharacter",
@@ -1206,6 +1187,11 @@ class ConfigGlobal:
                     "ToggleBold",
                     _("Make the selected text, or the text typed next, bold or not."),
                     [util.Key(2, ctrl=True).toInt()],
+                    isMenu=True,
+                ),
+                Command(
+                    "ToggleCentered",
+                    _("Center the current action element, or stop centering it."),
                     isMenu=True,
                 ),
                 Command(
@@ -1766,7 +1752,6 @@ def _init():
         (screenplay.SHOT, "=", "Shot"),
         (screenplay.ACTBREAK, "@", "Act break"),
         (screenplay.NOTE, "%", "Note"),
-        (screenplay.CENTERED, "^", "Centered"),
     ):
 
         ti = TypeInfo(lt, char, name)

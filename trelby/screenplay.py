@@ -23,7 +23,6 @@ TRANSITION = 6
 SHOT = 7
 NOTE = 8
 ACTBREAK = 9
-CENTERED = 10
 
 import copy
 import difflib
@@ -253,6 +252,9 @@ class Screenplay:
             if color:
                 output += "#Scene-Color %s\n" % color
 
+            if self.hasCenteredFlag(i):
+                output += "#Centered \n"
+
             if ln.fmt:
                 output += "#Format %s\n" % textfmt.encode(ln.getFmt())
 
@@ -352,6 +354,9 @@ class Screenplay:
         # line, or None
         fmt = None
 
+        # whether to set the centered flag on the next script line
+        centered = False
+
         for i in range(index, len(lines)):
             s = lines[i]
 
@@ -399,6 +404,9 @@ class Screenplay:
                 elif (key == "Format") and startSeen:
                     fmt = val
 
+                elif (key == "Centered") and startSeen:
+                    centered = True
+
                 else:
                     unknownConfigs = True
 
@@ -411,6 +419,12 @@ class Screenplay:
                 lb = config.char2lb(s[0], False)
                 lt = config.char2lt(s[1], False)
                 text = util.toInputStr(util.fromUTF8(s[2:]))
+
+                # an early development version had a separate centered
+                # element type
+                if s[1] == "^":
+                    lt = ACTION
+                    centered = centered or not prevType
 
                 # convert unknown lb types into LB_SPACE
                 if lb == None:
@@ -428,6 +442,7 @@ class Screenplay:
                     )
 
                 line = Line(lb, lt, text, pageLock, dual, color)
+                line.centered = centered
 
                 if fmt:
                     line.fmt = textfmt.decode(fmt, len(text))
@@ -437,6 +452,7 @@ class Screenplay:
                 dual = False
                 color = None
                 fmt = None
+                centered = False
 
                 if lb != LB_LAST:
                     prevType = lt
@@ -642,7 +658,6 @@ class Screenplay:
             TRANSITION: "tr",
             NOTE: "nt",
             ACTBREAK: "ab",
-            CENTERED: "ce",
         }
 
         # html header for files
@@ -824,7 +839,6 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             TRANSITION: "Transition",
             NOTE: "Action",
             ACTBREAK: "New Act",
-            CENTERED: "Action",
         }
 
         # where to add paragraphs: 'content', or the DualDialogue element
@@ -852,7 +866,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 para = etree.SubElement(parent, "Paragraph")
                 para.set("Type", xmlMap[typ])
 
-                if typ == CENTERED:
+                if (typ == ACTION) and self.hasCenteredFlag(first):
                     para.set("Alignment", "Center")
 
             # a Text element for each run of differently formatted text
@@ -970,7 +984,6 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 SHOT,
                 ACTBREAK,
                 NOTE,
-                CENTERED,
             ):
                 if flines and flines[-1] != "":
                     flines.append("")
@@ -981,6 +994,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 # append a "." so it is forced as a scene line.
                 if not looksLikeScene(txt):
                     txt = "." + txt
+
+            elif (typ == ACTION) and self.hasCenteredFlag(first):
+                txt = "\n".join(">" + ln + "<" for ln in lns)
 
             elif typ == ACTION:
                 tmp = []
@@ -1007,7 +1023,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             elif typ == NOTE:
                 txt = "[[" + txt + "]]"
 
-            elif typ in (ACTBREAK, CENTERED):
+            elif typ == ACTBREAK:
                 txt = "\n".join(">" + ln + "<" for ln in lns)
 
             elif typ == SHOT:
@@ -1057,9 +1073,6 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             if tt.isUnderlined:
                 tmp += r" \ul"
 
-            if ti.lt == CENTERED:
-                tmp += r" \qc"
-
             # some hairy conversions going on here...
             tmp += r" \li%d\ri%d" % (
                 sf * t.indent * 144,
@@ -1094,6 +1107,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         while i < length:
             lt = ls[i].lt
             text = ""
+
+            # centered actions are only centered paragraphs, not a style
+            align = r"\qc " if self.hasCenteredFlag(i) else ""
 
             while 1:
                 ln = ls[i]
@@ -1130,7 +1146,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                         _("Unknown line break style {} in generateRTF".format(lb))
                     )
 
-            s += (r"{\pard \s%d " % lt) + text + "}{\\par}\n"
+            s += (r"{\pard \s%d " % lt) + align + text + "}{\\par}\n"
 
         s += "}"
 
@@ -1445,15 +1461,16 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         )
 
     # return how many characters (possibly a fraction of one) line i is
-    # indented by in addition to its type's indent: for a centered line,
-    # what centers it within the type's width, otherwise 0.
+    # indented by in addition to its type's indent: for a line of a
+    # centered action, what centers it within the action width, otherwise
+    # 0.
     def getCenterOffset(self, i):
-        ln = self.lines[i]
-
-        if ln.lt != CENTERED:
+        if not self.isCentered(i):
             return 0
 
-        return max(0, self.cfg.getType(CENTERED).width - len(ln.text)) / 2.0
+        width = self.cfg.getType(ACTION).width
+
+        return max(0, width - len(self.lines[i].text)) / 2.0
 
     # get topLine, clamping it to the valid range in the process.
     def getTopLine(self):
@@ -1639,6 +1656,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         firstOfElem = self.isFirstLineOfElem(line1)
         wrappedLines[0].dual = ls[line1].dual and firstOfElem
         wrappedLines[0].color = ls[line1].color if firstOfElem else None
+        wrappedLines[0].centered = ls[line1].centered and firstOfElem
 
         ls[line1 : line2 + 1] = wrappedLines
 
@@ -1766,6 +1784,71 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         return (self.lines[line].lb == LB_LAST) and (
             (line == 0) or (self.lines[line - 1].lb == LB_LAST)
         )
+
+    # return True if line i has the centered flag set where it means
+    # something, i.e. on the first line of an action element.
+    def hasCenteredFlag(self, i):
+        ln = self.lines[i]
+
+        return ln.centered and (ln.lt == ACTION) and self.isFirstLineOfElem(i)
+
+    # return True if line i is in a centered action element
+    def isCentered(self, i):
+        if self.lines[i].lt != ACTION:
+            return False
+
+        return self.hasCenteredFlag(self.getElemFirstIndexFromLine(i))
+
+    # return the first lines of the action elements in the selection, or
+    # with nothing selected, of the element at the cursor if it's one
+    def getActionsForCentering(self):
+        marked = self.getMarkedLines()
+        first, last = marked if marked else (self.line, self.line)
+
+        ret = []
+        i = self.getElemFirstIndexFromLine(first)
+
+        while i <= last:
+            if self.lines[i].lt == ACTION:
+                ret.append(i)
+
+            i = self.getElemLastIndexFromLine(i) + 1
+
+        return ret
+
+    # return None if centering can't be toggled at the cursor (no action
+    # element there or in the selection), otherwise whether all of those
+    # actions are centered
+    def getCenteredState(self):
+        starts = self.getActionsForCentering()
+
+        if not starts:
+            return None
+
+        return all(self.lines[i].centered for i in starts)
+
+    # center the action element at the cursor, or the ones in the
+    # selection, or if they all are already, stop centering them. returns
+    # False if there's no action element there.
+    def toggleCentered(self):
+        starts = self.getActionsForCentering()
+
+        if not starts:
+            return False
+
+        center = not self.getCenteredState()
+
+        u = undo.AnyDifference(self)
+
+        for i in starts:
+            self.lines[i].centered = center
+
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return True
 
     # return True if line i has the dual flag set where it means
     # something, i.e. on the first line of a character element.
@@ -3308,6 +3391,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     ln.text[c1 : c2 + 1],
                     dual=self.hasDualFlag(i) and (c1 == 0),
                     color=self.getSceneColor(i) if (c1 == 0) else None,
+                    centered=self.hasCenteredFlag(i) and (c1 == 0),
                     fmt=ln.sliceFmt(c1, c2 + 1),
                 )
             )
@@ -3426,7 +3510,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             ln = clines[i]
 
-            newLine = Line(LB_LAST, ln.lt, dual=ln.dual, color=ln.color)
+            newLine = Line(
+                LB_LAST, ln.lt, dual=ln.dual, color=ln.color, centered=ln.centered
+            )
 
             # (text, fmt) of the lines in this paragraph, and the
             # separators between them
@@ -3468,6 +3554,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             ln.lt = inLines[0].lt
             ln.dual = inLines[0].dual
             ln.color = inLines[0].color
+            ln.centered = inLines[0].centered
 
         if ln.fmt or inLines[0].fmt:
             fmt = ln.getFmt()
@@ -4744,9 +4831,6 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
     def toActBreakCmd(self, cs):
         self.convertTypeTo(ACTBREAK, True)
-
-    def toCenteredCmd(self, cs):
-        self.convertTypeTo(CENTERED, True)
 
     def toNoteCmd(self, cs):
         self.convertTypeTo(NOTE, True)

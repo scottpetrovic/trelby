@@ -75,6 +75,9 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[6]: dict of {index: fmt} for the lines that have formatting, or
 #   None if none do
 #
+#   tuple[7]: tuple of indexes of the lines that have the centered flag
+#   set, or None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
@@ -83,6 +86,7 @@ def lines2storage(lines):
     duals = tuple(i for i, ln in enumerate(lines) if ln.dual) or None
     colors = {i: ln.color for i, ln in enumerate(lines) if ln.color} or None
     fmts = {i: ln.fmt for i, ln in enumerate(lines) if ln.fmt} or None
+    centers = tuple(i for i, ln in enumerate(lines) if ln.centered) or None
 
     lines = [str(ln) for ln in lines]
     linesStr = "\n".join(lines)
@@ -96,9 +100,11 @@ def lines2storage(lines):
     locks = locks or None
 
     if len(linesStrCompressed) < len(linesStr):
-        return (len(lines), True, linesStrCompressed, locks, duals, colors, fmts)
+        data = (True, linesStrCompressed)
     else:
-        return (len(lines), False, linesStr.encode(), locks, duals, colors, fmts)
+        data = (False, linesStr.encode())
+
+    return (len(lines),) + data + (locks, duals, colors, fmts, centers)
 
 
 # see lines2storage.
@@ -128,6 +134,10 @@ def storage2lines(storage):
     if storage[6]:
         for i, fmt in storage[6].items():
             lines[i].fmt = fmt
+
+    if storage[7]:
+        for i in storage[7]:
+            lines[i].centered = True
 
     return lines
 

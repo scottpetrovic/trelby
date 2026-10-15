@@ -214,11 +214,30 @@ def testBadElements(small):
         [{"type": "scene", "text": "x", "color": "red"}],
         [{"type": "scene", "text": "x"}, {"type": "action", "text": "x", "color": "#ff0000"}],
         [{"type": "scene", "text": "x"}, {"type": "dialogue", "text": "x", "dual": True}],
+        [{"type": "scene", "text": "x"}, {"type": "shot", "text": "x", "centered": True}],
     ):
         with pytest.raises(m.ToolError):
             m.replaceScene(D(small), r, 1, bad)
 
     assert rev(small) == r
+
+
+def testCentered(small):
+    m.replaceScene(
+        D(small),
+        rev(small),
+        1,
+        [
+            {"type": "scene", "text": "int. kitchen - day"},
+            {"type": "action", "text": "THE END\nfor now", "centered": True},
+            {"type": "action", "text": "Credits roll."},
+        ],
+    )
+
+    assert elems(small, 1)[1:] == [
+        {"type": "action", "text": "THE END\nfor now", "centered": True},
+        {"type": "action", "text": "Credits roll."},
+    ]
 
 
 def testTypeNames():
