@@ -5,6 +5,7 @@ import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.titles as titles
 import trelby.util as util
+from trelby.textedit import TextEdit
 from trelby.titlespreview import TitlesPreview
 
 
@@ -26,6 +27,10 @@ class TitlesDlg(wx.Dialog):
 
         # whether some events are blocked
         self.block = False
+
+        # (TitleString, its original lines, wx.TextCtrl) while its text is
+        # being edited in the items list, or None
+        self.cellEdit = None
 
         self.setPage(0)
 
@@ -61,7 +66,9 @@ class TitlesDlg(wx.Dialog):
         vsizer.Add(self.stringsLc, 1, wx.EXPAND | wx.TOP, 5)
 
         tmp = wx.StaticText(
-            self, -1, _("Click an item in the preview to edit its text.")
+            self,
+            -1,
+            _("Double-click an item's text, or click it in the preview, to edit it."),
         )
         vsizer.Add(tmp, 0, wx.TOP, 20)
 
@@ -209,6 +216,10 @@ class TitlesDlg(wx.Dialog):
         self.Bind(
             wx.EVT_LIST_ITEM_SELECTED, self.OnStringsLc, id=self.stringsLc.GetId()
         )
+        self.Bind(
+            wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivateItem, id=self.stringsLc.GetId()
+        )
+        self.stringsLc.Bind(wx.EVT_KEY_DOWN, self.OnListKey)
 
         # list of widgets that are specific to editing the selected string
         self.widList = [
@@ -282,6 +293,7 @@ class TitlesDlg(wx.Dialog):
             btn.SetValue(a == align)
 
     def OnOK(self, event):
+        self.endCellEdit()
         self.titles.sort()
         self.EndModal(wx.ID_OK)
 
@@ -370,9 +382,162 @@ class TitlesDlg(wx.Dialog):
         if (self.tsIndex == -1) or self.block:
             return
 
+        self.setKind(titles.KINDS[self.kindChoice.GetSelection()])
+
+    # set the kind of the selected string
+    def setKind(self, kind):
         ts = self.titles.pages[self.pageIndex][self.tsIndex]
-        ts.kind = titles.KINDS[self.kindChoice.GetSelection()]
-        self.stringsLc.SetItem(self.tsIndex, 0, self.kindLabel(ts.kind))
+        ts.kind = kind
+        self.stringsLc.SetItem(self.tsIndex, 0, self.kindLabel(kind))
+        self.kindChoice.SetSelection(titles.KINDS.index(kind))
+
+    # an item in the list was double-clicked (or Enter was pressed on it):
+    # edit its type or its text, depending on the column
+    def OnActivateItem(self, event):
+        row = event.GetIndex()
+        lc = self.stringsLc
+
+        pos = lc.ScreenToClient(wx.GetMousePosition())
+        item, flags, col = lc.HitTestSubItem(pos)
+
+        if (item == row) and (col == 0):
+            self.showKindMenu(row)
+        else:
+            self.editCell(row)
+
+    def OnListKey(self, event):
+        if (event.GetKeyCode() == wx.WXK_F2) and (self.tsIndex != -1):
+            self.editCell(self.tsIndex)
+        else:
+            event.Skip()
+
+    # return the rectangle of cell ('row', 'col') in the items list
+    def getCellRect(self, row, col):
+        rect = wx.Rect()
+        self.stringsLc.GetSubItemRect(row, col, rect)
+
+        return rect
+
+    # pop up a menu of kinds over the type cell of 'row'
+    def showKindMenu(self, row):
+        menu = wx.Menu()
+
+        for kind in titles.KINDS:
+            item = menu.AppendRadioItem(wx.ID_ANY, self.kindLabel(kind))
+            item.Check(kind == self.titles.pages[self.pageIndex][row].kind)
+            self.Bind(wx.EVT_MENU, lambda ev, kind=kind: self.setKind(kind), item)
+
+        rect = self.getCellRect(row, 0)
+        self.stringsLc.PopupMenu(menu, rect.GetBottomLeft())
+        menu.Destroy()
+
+    # start editing the text of 'row' in place, in a text box over its
+    # text cell. Enter or clicking elsewhere keeps the changes, Escape
+    # undoes them, and Shift+Enter starts a new line.
+    def editCell(self, row):
+        self.endCellEdit()
+
+        lc = self.stringsLc
+        ts = self.titles.pages[self.pageIndex][row]
+
+        lc.EnsureVisible(row)
+        rect = self.getCellRect(row, 1)
+
+        ctrl = wx.TextCtrl(
+            lc, -1, style=wx.TE_MULTILINE | wx.TE_NO_VSCROLL | wx.BORDER_SIMPLE
+        )
+        ctrl.SetFont(lc.GetFont())
+        ctrl.SetValue("\n".join(ts.items))
+        ctrl.SetPosition(rect.GetTopLeft())
+
+        self.cellEdit = (ts, list(ts.items), ctrl)
+        self.sizeCellEditor()
+
+        ctrl.Bind(wx.EVT_TEXT, self.OnCellText)
+        ctrl.Bind(wx.EVT_CHAR_HOOK, self.OnCellKey)
+        ctrl.Bind(wx.EVT_KILL_FOCUS, self.OnCellKillFocus)
+
+        ctrl.SetFocus()
+        ctrl.SelectAll()
+
+    # make the cell editor tall enough for its lines (plus one, for long
+    # lines that wrap), but keep it within the list
+    def sizeCellEditor(self):
+        ts, orig, ctrl = self.cellEdit
+        lc = self.stringsLc
+
+        pos = ctrl.GetPosition()
+        lines = ctrl.GetValue().count("\n") + 2
+        h = ctrl.GetCharHeight() * lines + self.FromDIP(6)
+
+        # cover whole rows, not part of one
+        rowH = self.getCellRect(0, 1).height
+        h = -(-h // rowH) * rowH
+
+        h = min(h, lc.GetClientSize().height - pos.y)
+
+        ctrl.SetSize(lc.GetClientSize().width - pos.x, h)
+
+    # stop editing a list cell, keeping the changes unless 'cancel' is
+    # True. if 'ctrl' is given, only stop if that's the current editor.
+    # 'refocus' puts the focus back on the list.
+    def endCellEdit(self, cancel=False, ctrl=None, refocus=False):
+        if not self.cellEdit or (ctrl and (ctrl is not self.cellEdit[2])):
+            return
+
+        ts, orig, ctrl = self.cellEdit
+        self.cellEdit = None
+
+        if cancel:
+            ts.items = orig
+
+        self.cellTextChanged(ts)
+
+        # can't destroy it while it's handling an event
+        ctrl.Hide()
+        wx.CallAfter(lambda: ctrl and ctrl.Destroy())
+
+        if refocus:
+            self.stringsLc.SetFocus()
+
+    def OnCellText(self, event):
+        if not self.cellEdit:
+            return
+
+        ts, orig, ctrl = self.cellEdit
+
+        # filter the text the same way as editing in the preview does
+        ed = TextEdit([""])
+        ed.insert(ctrl.GetValue())
+        ts.items = ed.lines
+
+        self.cellTextChanged(ts)
+        self.sizeCellEditor()
+
+    # the text of 'ts' was changed in the list: update the preview, and the
+    # list row once the editor covering it is gone
+    def cellTextChanged(self, ts):
+        page = self.titles.pages[self.pageIndex]
+
+        if (ts in page) and not self.cellEdit:
+            self.stringsLc.SetItem(page.index(ts), 1, "--".join(ts.items))
+
+        self.previewCtrl.resetEdit()
+
+    def OnCellKey(self, event):
+        kc = event.GetKeyCode()
+
+        if kc == wx.WXK_ESCAPE:
+            self.endCellEdit(cancel=True, refocus=True)
+        elif (kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)) and not event.ShiftDown():
+            self.endCellEdit(refocus=True)
+        else:
+            event.Skip()
+
+    def OnCellKillFocus(self, event):
+        ctrl = event.GetEventObject()
+        wx.CallAfter(lambda: self and self.endCellEdit(ctrl=ctrl))
+        event.Skip()
 
     def OnAddPage(self, event):
         self.titles.pages.append([])
