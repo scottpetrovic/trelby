@@ -65,13 +65,21 @@ PBI_FIRST, PBI_LAST = PBI_NONE, PBI_REAL_AND_UNADJ
 APPEARANCE_SYSTEM = 0
 APPEARANCE_LIGHT = 1
 APPEARANCE_DARK = 2
+APPEARANCE_PARCHMENT = 3
+APPEARANCE_SOLARIZED_LIGHT = 4
+APPEARANCE_SOLARIZED_DARK = 5
+APPEARANCE_MONOKAI = 6
+APPEARANCE_DRACULA = 7
+APPEARANCE_NORD = 8
 
 # for range checking above value
-APPEARANCE_FIRST, APPEARANCE_LAST = APPEARANCE_SYSTEM, APPEARANCE_DARK
+APPEARANCE_FIRST, APPEARANCE_LAST = APPEARANCE_SYSTEM, APPEARANCE_NORD
 
-# colors used instead of the defaults when the dark theme is active. a
-# color the user has changed from its default is always used as is. the
-# per-element text colors (textSceneColor etc.) follow textColor.
+# colors used instead of the defaults when a theme is active. a color the
+# user has changed from its default is always used as is. the per-element
+# text colors (textSceneColor etc.) follow textColor. "accentColor" and
+# "accentTextColor", for the selected item in lists and toolbars we draw
+# ourselves, replace the system's highlight colors when given.
 _darkColors = {
     "textColor": (220, 220, 220),
     "textHdrColor": (150, 150, 150),
@@ -92,6 +100,156 @@ _darkColors = {
     "tabNonActiveBgColor": (58, 58, 58),
 }
 
+# warm yellow paper, like a legal pad
+_parchmentColors = {
+    "textColor": (35, 30, 20),
+    "textHdrColor": (140, 120, 80),
+    "textBgColor": (251, 233, 162),
+    "workspaceColor": (222, 202, 150),
+    "pageBorderColor": (200, 176, 118),
+    "pageShadowColor": (165, 140, 90),
+    "selectedColor": (238, 204, 120),
+    "cursorColor": (196, 150, 90),
+    "autoCompFgColor": (35, 30, 20),
+    "autoCompBgColor": (246, 226, 160),
+    "noteColor": (249, 206, 158),
+    "pagebreakColor": (226, 202, 140),
+    "pagebreakNoAdjustColor": (226, 202, 140),
+    "tabTextColor": (60, 45, 25),
+    "tabBorderColor": (200, 176, 118),
+    "tabBarBgColor": (234, 216, 168),
+    "tabNonActiveBgColor": (216, 194, 142),
+    "accentColor": (190, 120, 45),
+    "accentTextColor": (255, 255, 255),
+}
+
+# https://ethanschoonover.com/solarized/
+_solarizedLightColors = {
+    "textColor": (88, 110, 117),
+    "textHdrColor": (147, 161, 161),
+    "textBgColor": (253, 246, 227),
+    "workspaceColor": (238, 232, 213),
+    "pageBorderColor": (220, 213, 190),
+    "pageShadowColor": (200, 192, 168),
+    "selectedColor": (228, 220, 194),
+    "cursorColor": (38, 139, 210),
+    "autoCompFgColor": (88, 110, 117),
+    "autoCompBgColor": (238, 232, 213),
+    "noteColor": (250, 228, 204),
+    "pagebreakColor": (225, 218, 196),
+    "pagebreakNoAdjustColor": (225, 218, 196),
+    "tabTextColor": (88, 110, 117),
+    "tabBorderColor": (220, 213, 190),
+    "tabBarBgColor": (238, 232, 213),
+    "tabNonActiveBgColor": (222, 215, 192),
+    "accentColor": (38, 139, 210),
+    "accentTextColor": (253, 246, 227),
+}
+
+_solarizedDarkColors = {
+    "textColor": (147, 161, 161),
+    "textHdrColor": (88, 110, 117),
+    "textBgColor": (0, 43, 54),
+    "workspaceColor": (0, 33, 43),
+    "pageBorderColor": (20, 70, 82),
+    "pageShadowColor": (0, 22, 29),
+    "selectedColor": (20, 75, 90),
+    "cursorColor": (38, 139, 210),
+    "autoCompFgColor": (147, 161, 161),
+    "autoCompBgColor": (7, 54, 66),
+    "noteColor": (62, 54, 30),
+    "pagebreakColor": (20, 70, 82),
+    "pagebreakNoAdjustColor": (20, 70, 82),
+    "tabTextColor": (147, 161, 161),
+    "tabBorderColor": (20, 70, 82),
+    "tabBarBgColor": (0, 38, 48),
+    "tabNonActiveBgColor": (7, 54, 66),
+    "accentColor": (38, 139, 210),
+    "accentTextColor": (253, 246, 227),
+}
+
+_monokaiColors = {
+    "textColor": (248, 248, 242),
+    "textHdrColor": (117, 113, 94),
+    "textBgColor": (39, 40, 34),
+    "workspaceColor": (30, 31, 26),
+    "pageBorderColor": (62, 61, 50),
+    "pageShadowColor": (20, 20, 16),
+    "selectedColor": (73, 72, 62),
+    "cursorColor": (253, 151, 31),
+    "autoCompFgColor": (248, 248, 242),
+    "autoCompBgColor": (62, 61, 50),
+    "noteColor": (82, 66, 36),
+    "pagebreakColor": (62, 61, 50),
+    "pagebreakNoAdjustColor": (62, 61, 50),
+    "tabTextColor": (248, 248, 242),
+    "tabBorderColor": (62, 61, 50),
+    "tabBarBgColor": (30, 31, 26),
+    "tabNonActiveBgColor": (52, 53, 46),
+    "accentColor": (249, 38, 114),
+    "accentTextColor": (248, 248, 242),
+}
+
+# https://draculatheme.com/
+_draculaColors = {
+    "textColor": (248, 248, 242),
+    "textHdrColor": (98, 114, 164),
+    "textBgColor": (40, 42, 54),
+    "workspaceColor": (30, 31, 41),
+    "pageBorderColor": (68, 71, 90),
+    "pageShadowColor": (21, 22, 28),
+    "selectedColor": (68, 71, 90),
+    "cursorColor": (189, 147, 249),
+    "autoCompFgColor": (248, 248, 242),
+    "autoCompBgColor": (68, 71, 90),
+    "noteColor": (84, 58, 78),
+    "pagebreakColor": (68, 71, 90),
+    "pagebreakNoAdjustColor": (68, 71, 90),
+    "tabTextColor": (248, 248, 242),
+    "tabBorderColor": (68, 71, 90),
+    "tabBarBgColor": (33, 34, 44),
+    "tabNonActiveBgColor": (52, 55, 70),
+    "accentColor": (189, 147, 249),
+    "accentTextColor": (40, 42, 54),
+}
+
+# https://www.nordtheme.com/
+_nordColors = {
+    "textColor": (216, 222, 233),
+    "textHdrColor": (97, 110, 136),
+    "textBgColor": (46, 52, 64),
+    "workspaceColor": (36, 41, 51),
+    "pageBorderColor": (67, 76, 94),
+    "pageShadowColor": (26, 30, 37),
+    "selectedColor": (67, 76, 94),
+    "cursorColor": (136, 192, 208),
+    "autoCompFgColor": (216, 222, 233),
+    "autoCompBgColor": (59, 66, 82),
+    "noteColor": (90, 70, 66),
+    "pagebreakColor": (67, 76, 94),
+    "pagebreakNoAdjustColor": (67, 76, 94),
+    "tabTextColor": (216, 222, 233),
+    "tabBorderColor": (67, 76, 94),
+    "tabBarBgColor": (40, 45, 56),
+    "tabNonActiveBgColor": (59, 66, 82),
+    "accentColor": (136, 192, 208),
+    "accentTextColor": (46, 52, 64),
+}
+
+# key = APPEARANCE_* other than APPEARANCE_SYSTEM, value = (whether the
+# theme is dark, which picks the appearance of the rest of the application,
+# and the colors it uses instead of the defaults)
+_themes = {
+    APPEARANCE_LIGHT: (False, {}),
+    APPEARANCE_DARK: (True, _darkColors),
+    APPEARANCE_PARCHMENT: (False, _parchmentColors),
+    APPEARANCE_SOLARIZED_LIGHT: (False, _solarizedLightColors),
+    APPEARANCE_SOLARIZED_DARK: (True, _solarizedDarkColors),
+    APPEARANCE_MONOKAI: (True, _monokaiColors),
+    APPEARANCE_DRACULA: (True, _draculaColors),
+    APPEARANCE_NORD: (True, _nordColors),
+}
+
 # earlier default values of colors whose default has since changed. the
 # config file stores every color, so a color still at an old default is
 # moved to the new one when loaded, as the user never chose it.
@@ -103,18 +261,28 @@ _oldColorDefaults = {
 # make the application use the given APPEARANCE_* theme. the colors we draw
 # ourselves are picked up by the next ConfigGui created.
 def applyAppearance(appearance):
-    wx.GetApp().SetAppearance(
-        {
-            APPEARANCE_SYSTEM: wx.App.Appearance.System,
-            APPEARANCE_LIGHT: wx.App.Appearance.Light,
-            APPEARANCE_DARK: wx.App.Appearance.Dark,
-        }[appearance]
-    )
+    if appearance == APPEARANCE_SYSTEM:
+        a = wx.App.Appearance.System
+    elif _themes[appearance][0]:
+        a = wx.App.Appearance.Dark
+    else:
+        a = wx.App.Appearance.Light
+
+    wx.GetApp().SetAppearance(a)
 
 
 # whether the application is currently using a dark theme
 def isDarkAppearance():
     return wx.SystemSettings.GetAppearance().IsDark()
+
+
+# the colors the given APPEARANCE_* theme uses instead of the defaults, as
+# a dict of color name -> (r, g, b). must be called after applyAppearance.
+def themeColors(appearance):
+    if appearance == APPEARANCE_SYSTEM:
+        return _darkColors if isDarkAppearance() else {}
+
+    return _themes[appearance][1]
 
 # constants for identifying PDFFontInfos
 PDF_FONT_NORMAL = "Normal"
@@ -1581,18 +1749,18 @@ class ConfigGui:
 
             ConfigGui.constantsInited = True
 
-        dark = isDarkAppearance()
+        theme = themeColors(cfgGl.appearance)
 
         # convert cfgGl.MyColor -> cfgGui.wx.Colour
         for it in cfgGl.cvars.color.values():
             c = getattr(cfgGl, it.name)
             rgb = (c.r, c.g, c.b)
 
-            if dark and rgb == (it.defVal.r, it.defVal.g, it.defVal.b):
+            if theme and rgb == (it.defVal.r, it.defVal.g, it.defVal.b):
                 if it.name.startswith("text") and rgb == (0, 0, 0):
-                    rgb = _darkColors["textColor"]
+                    rgb = theme["textColor"]
                 else:
-                    rgb = _darkColors.get(it.name, rgb)
+                    rgb = theme.get(it.name, rgb)
 
             setattr(self, it.name, wx.Colour(*rgb))
 
@@ -1624,11 +1792,16 @@ class ConfigGui:
         self.notePen = wx.Pen(self.noteColor)
 
         # the theme's accent color, for the selected item in lists and
-        # toolbars we draw ourselves: the system's highlight color
-        self.accentColor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
-        self.accentTextColor = wx.SystemSettings.GetColour(
-            wx.SYS_COLOUR_HIGHLIGHTTEXT
-        )
+        # toolbars we draw ourselves: the system's highlight color, unless
+        # the theme has its own
+        if "accentColor" in theme:
+            self.accentColor = wx.Colour(*theme["accentColor"])
+            self.accentTextColor = wx.Colour(*theme["accentTextColor"])
+        else:
+            self.accentColor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+            self.accentTextColor = wx.SystemSettings.GetColour(
+                wx.SYS_COLOUR_HIGHLIGHTTEXT
+            )
         self.accentBrush = wx.Brush(self.accentColor)
         self.accentPen = wx.Pen(self.accentColor)
 

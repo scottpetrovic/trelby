@@ -16,7 +16,17 @@ class ThemePanel(wx.Panel):
             _("Theme"),
             style=wx.RA_SPECIFY_COLS,
             majorDimension=1,
-            choices=[_("System default"), _("Light"), _("Dark")],
+            choices=[
+                _("System default"),
+                _("Light"),
+                _("Dark"),
+                _("Parchment"),
+                _("Solarized Light"),
+                _("Solarized Dark"),
+                "Monokai",
+                "Dracula",
+                "Nord",
+            ],
         )
         vsizer.Add(self.themeRb, 0, wx.EXPAND | wx.BOTTOM, 10)
 
@@ -27,6 +37,17 @@ class ThemePanel(wx.Panel):
                 _(
                     "System default follows the light or dark mode setting\nof your operating system."
                 ),
+            ),
+            0,
+            wx.BOTTOM,
+            10,
+        )
+
+        vsizer.Add(
+            wx.StaticText(
+                self,
+                -1,
+                _("Colors you have changed on the Colors page\nare kept in every theme."),
             )
         )
 
