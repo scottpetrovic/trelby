@@ -1,5 +1,3 @@
-import copy
-
 import wx
 
 import trelby.gutil as gutil
@@ -11,7 +9,7 @@ from trelby.titlespreview import TitlesPreview
 
 
 class TitlesDlg(wx.Dialog):
-    def __init__(self, parent, titles, cfg, cfgGl):
+    def __init__(self, parent, titlePages, cfg, cfgGl):
         wx.Dialog.__init__(
             self,
             parent,
@@ -20,9 +18,11 @@ class TitlesDlg(wx.Dialog):
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
 
-        self.titles = titles
+        self.titles = titlePages
         self.cfg = cfg
         self.cfgGl = cfgGl
+
+        self.titles.guessKinds()
 
         # whether some events are blocked
         self.block = False
@@ -64,18 +64,23 @@ class TitlesDlg(wx.Dialog):
 
         vsizer2 = wx.BoxSizer(wx.VERTICAL)
 
-        tmp = wx.StaticText(self, -1, _("Strings:"))
+        tmp = wx.StaticText(self, -1, _("Items on this page:"))
         vsizer2.Add(tmp)
 
-        self.stringsLb = wx.ListBox(self, -1, size=(200, 150))
-        vsizer2.Add(self.stringsLb, 1, wx.EXPAND)
+        self.stringsLc = wx.ListCtrl(
+            self, -1, size=(200, 150), style=wx.LC_REPORT | wx.LC_SINGLE_SEL
+        )
+        self.stringsLc.AppendColumn(_("Type"), width=self.FromDIP(100))
+        self.stringsLc.AppendColumn(_("Text"), width=self.FromDIP(240))
+        self.stringsLc.Bind(wx.EVT_SIZE, self.OnListSize)
+        vsizer2.Add(self.stringsLc, 1, wx.EXPAND)
 
         hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.addBtn = gutil.createStockButton(self, _("Add"))
+        # pops up a menu of the kinds of strings to add
+        self.addBtn = wx.Button(self, -1, _("Add") + " ▾")
         hsizer2.Add(self.addBtn)
-        self.Bind(wx.EVT_BUTTON, self.OnAddString, id=self.addBtn.GetId())
-        gutil.btnDblClick(self.addBtn, self.OnAddString)
+        self.Bind(wx.EVT_BUTTON, self.OnAddMenu, id=self.addBtn.GetId())
 
         self.delBtn = gutil.createStockButton(self, _("Delete"))
         hsizer2.Add(self.delBtn, 0, wx.LEFT, 10)
@@ -87,11 +92,19 @@ class TitlesDlg(wx.Dialog):
         vsizer.Add(vsizer2, 1, wx.EXPAND)
 
         tmp = wx.StaticText(
-            self, -1, _("Click a string in the preview to edit its text.")
+            self, -1, _("Click an item in the preview to edit its text.")
         )
         vsizer.Add(tmp, 0, wx.TOP, 20)
 
-        gsizer = wx.FlexGridSizer(3, 2, 10, 10)
+        gsizer = wx.FlexGridSizer(4, 2, 10, 10)
+
+        gsizer.Add(wx.StaticText(self, -1, _("Type:")), 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.kindChoice = wx.Choice(
+            self, -1, choices=[self.kindLabel(k) for k in titles.KINDS]
+        )
+        self.Bind(wx.EVT_CHOICE, self.OnKind, id=self.kindChoice.GetId())
+        gsizer.Add(self.kindChoice)
 
         gsizer.Add(wx.StaticText(self, -1, _("Format:")), 0, wx.ALIGN_CENTER_VERTICAL)
 
@@ -196,10 +209,13 @@ class TitlesDlg(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
 
-        self.Bind(wx.EVT_LISTBOX, self.OnStringsLb, id=self.stringsLb.GetId())
+        self.Bind(
+            wx.EVT_LIST_ITEM_SELECTED, self.OnStringsLc, id=self.stringsLc.GetId()
+        )
 
         # list of widgets that are specific to editing the selected string
         self.widList = [
+            self.kindChoice,
             self.xEntry,
             self.yEntry,
             self.fontCombo,
@@ -299,21 +315,57 @@ class TitlesDlg(wx.Dialog):
         # some weird state
         event.Skip()
 
-    def OnStringsLb(self, event=None):
-        self.tsIndex = self.stringsLb.GetSelection()
+    # make the text column fill the rest of the list's width
+    def OnListSize(self, event):
+        lc = self.stringsLc
+        lc.SetColumnWidth(1, max(50, lc.GetClientSize().width - lc.GetColumnWidth(0)))
+        event.Skip()
+
+    def OnStringsLc(self, event):
+        if self.block:
+            return
+
+        self.tsIndex = event.GetIndex()
         self.updateStringGui()
+
+    # select row 'i' in the strings list, without handling it as a click
+    def selectRow(self, i):
+        self.block = True
+        self.stringsLc.Select(i)
+        self.stringsLc.Focus(i)
+        self.block = False
 
     # select string 'i' on the current page (called when it's clicked in
     # the preview)
     def selectString(self, i):
         self.tsIndex = i
-        self.stringsLb.SetSelection(i)
+        self.selectRow(i)
         self.updateStringGui()
 
     # the selected string's text was edited in the preview
     def onTextEdited(self):
         ts = self.titles.pages[self.pageIndex][self.tsIndex]
-        self.stringsLb.SetString(self.tsIndex, "--".join(ts.items))
+        self.stringsLc.SetItem(self.tsIndex, 1, "--".join(ts.items))
+
+    # return the name shown for title string kind 'kind'
+    def kindLabel(self, kind):
+        return {
+            titles.TITLE: _("Title"),
+            titles.BYLINE: _("Written by"),
+            titles.AUTHOR: _("Author"),
+            titles.BASED_ON: _("Based on"),
+            titles.DRAFT: _("Draft / date"),
+            titles.CONTACT: _("Contact"),
+            titles.COPYRIGHT: _("Copyright"),
+        }.get(kind, _("Text"))
+
+    def OnKind(self, event):
+        if (self.tsIndex == -1) or self.block:
+            return
+
+        ts = self.titles.pages[self.pageIndex][self.tsIndex]
+        ts.kind = titles.KINDS[self.kindChoice.GetSelection()]
+        self.stringsLc.SetItem(self.tsIndex, 0, self.kindLabel(ts.kind))
 
     def OnAddPage(self, event):
         self.titles.pages.append([])
@@ -344,22 +396,35 @@ class TitlesDlg(wx.Dialog):
 
         self.updateGui()
 
-    def OnAddString(self, event):
+    def OnAddMenu(self, event):
+        menu = wx.Menu()
+
+        for kind in titles.KINDS:
+            item = menu.Append(wx.ID_ANY, self.kindLabel(kind))
+            self.Bind(wx.EVT_MENU, lambda ev, kind=kind: self.addString(kind), item)
+
+        rect = self.addBtn.GetRect()
+        self.PopupMenu(menu, rect.GetBottomLeft())
+        menu.Destroy()
+
+    # add a new string of the given kind to the current page
+    def addString(self, kind):
         if self.pageIndex == -1:
             return
 
-        if self.tsIndex != -1:
-            ts = copy.deepcopy(self.titles.pages[self.pageIndex][self.tsIndex])
-            ts.y += util.getTextHeight(ts.size)
-        else:
-            ts = titles.TitleString(["new string"], 0.0, 100.0)
+        page = self.titles.pages[self.pageIndex]
+        ts = titles.makeString(kind, self.cfg.paperWidth, self.cfg.paperHeight)
 
-        self.titles.pages[self.pageIndex].append(ts)
-        self.tsIndex = len(self.titles.pages[self.pageIndex]) - 1
+        # don't put it right on top of an existing string
+        while any(abs(o.y - ts.y) < 1.0 for o in page):
+            ts.y += util.getTextHeight(ts.size)
+
+        page.append(ts)
+        self.tsIndex = len(page) - 1
 
         self.updateGui()
 
-        # so that typing replaces the copied / placeholder text
+        # so that typing replaces the placeholder text
         self.previewCtrl.SetFocus()
         self.previewCtrl.selectAllText()
 
@@ -374,7 +439,9 @@ class TitlesDlg(wx.Dialog):
 
     # update page/string listboxes and selection
     def updateGui(self):
-        self.stringsLb.Clear()
+        self.block = True
+        self.stringsLc.DeleteAllItems()
+        self.block = False
 
         pgCnt = len(self.titles.pages)
 
@@ -391,10 +458,12 @@ class TitlesDlg(wx.Dialog):
             self.delBtn.Enable(len(page) > 0)
 
             for s in page:
-                self.stringsLb.Append("--".join(s.items))
+                row = self.stringsLc.GetItemCount()
+                self.stringsLc.InsertItem(row, self.kindLabel(s.kind))
+                self.stringsLc.SetItem(row, 1, "--".join(s.items))
 
             if self.tsIndex != -1:
-                self.stringsLb.SetSelection(self.tsIndex)
+                self.selectRow(self.tsIndex)
         else:
             self.pageLabel.SetLabel(_("No pages."))
             self.addBtn.Disable()
@@ -419,6 +488,7 @@ class TitlesDlg(wx.Dialog):
             self.italicBtn.SetValue(False)
             self.underlinedBtn.SetValue(False)
             self.setAlignment(None)
+            self.kindChoice.SetSelection(wx.NOT_FOUND)
 
             return
 
@@ -436,6 +506,7 @@ class TitlesDlg(wx.Dialog):
         self.yEntry.SetValue("%.2f" % ts.y)
 
         self.setAlignment(ts.getAlignment())
+        self.kindChoice.SetSelection(titles.KINDS.index(ts.kind or titles.TEXT))
 
         util.reverseComboSelect(self.fontCombo, ts.font)
         self.sizeEntry.SetValue(ts.size)
