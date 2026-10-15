@@ -1971,15 +1971,23 @@ class MyCtrl(wx.Control):
 
         self.titleButtonRect = wx.Rect(x, y, bw, bh)
 
+    # draw the auto-completion list below the cursor line, or above it if
+    # there's no room below. posX is where the line's text starts.
     def drawAutoComp(self, dc, posX, cursorY, fi):
         ac = self.sp.acItems
         asel = self.sp.acSel
 
-        offset = 5
-        selBleed = 2
+        # space inside the border, around the items
+        pad = self.FromDIP(6)
+
+        # space around an item's text, inside its highlight
+        itemPadX = self.FromDIP(6)
+        itemPadY = self.FromDIP(3)
 
         # scroll bar width
-        sbw = 10
+        sbw = self.FromDIP(6)
+
+        radius = self.FromDIP(4)
 
         size = self.GetClientSize()
 
@@ -1993,59 +2001,59 @@ class MyCtrl(wx.Control):
         if endPos == len(ac):
             startPos = max(0, endPos - show)
 
-        w = 0
+        textW = 0
         for i in range(len(ac)):
-            tw = dc.GetTextExtent(ac[i])[0]
-            w = max(w, tw)
+            textW = max(textW, dc.GetTextExtent(ac[i])[0])
 
-        w += offset * 2
-        h = show * fi.fy + offset * 2
+        itemW = textW + itemPadX * 2
+        itemH = fi.fy + itemPadY * 2
+        listH = show * itemH
 
-        itemW = w - offset * 2 + selBleed * 2
+        w = itemW + pad * 2
+        h = listH + pad * 2
+
         if doSbw:
-            w += sbw + offset * 2
-            sbh = h - offset * 2 + selBleed * 2
+            w += sbw + pad
 
-        posY = cursorY + fi.fy + 5
+        # line the items' text up with the line's text, keeping the box
+        # inside the window
+        posX -= pad + itemPadX
+        posX = max(0, min(posX, size.width - w))
+
+        posY = cursorY + fi.fy + self.FromDIP(4)
 
         # if the box doesn't fit on the screen in the normal position, put
         # it above the current line. if it doesn't fit there either,
         # that's just too bad, we don't support window sizes that small.
         if (posY + h) > size.height:
-            posY = cursorY - h - 1
+            posY = cursorY - h - self.FromDIP(4)
 
         cfgGui = self.gd.cfgGui
 
         dc.SetPen(cfgGui.autoCompBorderPen)
         dc.SetBrush(cfgGui.autoCompBrush)
-        dc.DrawRectangle(posX, posY, w, h)
+        dc.DrawRoundedRectangle(posX, posY, w, h, radius)
+
+        dc.SetTextForeground(cfgGui.autoCompFgColor)
 
         for i in range(startPos, endPos):
-            if i == asel:
-                # the selected item in the theme's accent color, like the
-                # toolbar's element type
-                dc.SetPen(cfgGui.accentPen)
-                dc.SetBrush(cfgGui.accentBrush)
-                dc.DrawRoundedRectangle(
-                    posX + offset - selBleed,
-                    posY + offset + (i - startPos) * fi.fy - selBleed,
-                    itemW,
-                    fi.fy + selBleed * 2,
-                    3,
-                )
-                dc.SetTextForeground(cfgGui.accentTextColor)
-            else:
-                dc.SetTextForeground(cfgGui.autoCompFgColor)
+            x = posX + pad
+            y = posY + pad + (i - startPos) * itemH
 
-            dc.DrawText(ac[i], posX + offset, posY + offset + (i - startPos) * fi.fy)
+            if i == asel:
+                dc.SetPen(cfgGui.autoCompSelPen)
+                dc.SetBrush(cfgGui.autoCompSelBrush)
+                dc.DrawRoundedRectangle(x, y, itemW, itemH, radius - 1)
+
+            dc.DrawText(ac[i], x + itemPadX, y + itemPadY)
 
         if doSbw:
             dc.SetPen(cfgGui.autoCompBorderPen)
             dc.SetBrush(cfgGui.autoCompBorderBrush)
-            util.drawLine(dc, posX + w - offset * 2 - sbw, posY, 0, h)
-            dc.DrawRectangle(
-                posX + w - offset - sbw,
-                posY + offset - selBleed + int((float(startPos) / len(ac)) * sbh),
+            dc.DrawRoundedRectangle(
+                posX + w - pad - sbw,
+                posY + pad + int((float(startPos) / len(ac)) * listH),
                 sbw,
-                int((float(show) / len(ac)) * sbh),
+                max(sbw, int((float(show) / len(ac)) * listH)),
+                sbw // 2,
             )

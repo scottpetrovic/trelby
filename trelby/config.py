@@ -1643,6 +1643,15 @@ class ConfigGui:
         self.autoCompBorderPen = wx.Pen(self.autoCompBorderColor)
         self.autoCompBorderBrush = wx.Brush(self.autoCompBorderColor)
 
+        # the selected item: the accent color blended into the background,
+        # like the current scene in the outline, so the text stays as is
+        ac = self.accentColor
+        self.autoCompSelColor = wx.Colour(
+            *[int(b * 0.8 + a * 0.2) for a, b in zip(ac.Get(False), bg.Get(False))]
+        )
+        self.autoCompSelBrush = wx.Brush(self.autoCompSelColor)
+        self.autoCompSelPen = wx.Pen(self.autoCompSelColor)
+
         self.pagebreakPen = wx.Pen(self.pagebreakColor)
         self.pagebreakNoAdjustPen = wx.Pen(self.pagebreakNoAdjustColor, style=wx.DOT)
 
