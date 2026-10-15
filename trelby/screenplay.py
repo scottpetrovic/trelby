@@ -4252,10 +4252,13 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             firstReadFlag = False
             while True:
                 if t == "":  # empty line
-                    self.line += 1
+                    if l + 1 < len(self.lines):
+                        self.line += 1
                     return
 
-                if i + 1 == len(self.lines[l].text):  # end of line
+                # the cursor can sit after the last character, at column
+                # len(t), so test with >= rather than ==
+                if i + 1 >= len(t):  # end of line
                     if firstReadFlag == False:  # event started at the end of the line
                         if l + 1 == len(self.lines):
                             return
