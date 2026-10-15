@@ -9,6 +9,10 @@ import trelby.util as util
 # number to use with the layout mode margins we have.
 MAX_JUMP_DISTANCE = 17
 
+# extra space (pixels) above the first page, for the link to the title
+# pages (drawn by MyCtrl.OnPaint)
+TITLE_LINK_H = 22
+
 
 # a piece of text on screen.
 class TextString:
@@ -329,6 +333,9 @@ class ViewModeLayout(ViewMode):
                 else:
                     y = pageGap
 
+                    if pageNr == 1:
+                        y += TITLE_LINK_H
+
                 break
             else:
                 topOfPage = False
@@ -457,6 +464,11 @@ class ViewModeSideBySide(ViewMode):
 
         pagesDone = 0
 
+        # top of the row of pages
+        sy = pageGap
+        if pageNr == 1:
+            sy += TITLE_LINK_H
+
         while 1:
             if (pagesDone >= pageCnt) or (pageNr >= len(ctrl.sp.pages)):
                 break
@@ -474,7 +486,6 @@ class ViewModeSideBySide(ViewMode):
                 break
 
             sx = pageGap + pagesDone * (ctrl.pageW + pageGap)
-            sy = pageGap
 
             dp = DisplayPage(pageNr, sx, sy, sx + ctrl.pageW, sy + ctrl.pageH)
             dpages.append(dp)

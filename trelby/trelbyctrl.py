@@ -30,6 +30,7 @@ import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.spellcheckdlg as spellcheckdlg
 import trelby.titlesdlg as titlesdlg
 import trelby.util as util
+import trelby.viewmode as viewmode
 import trelby.watermarkdlg as watermarkdlg
 import trelby.worldbuildingdlg as worldbuildingdlg
 from trelby.error import TrelbyError
@@ -82,6 +83,10 @@ class MyCtrl(wx.Control):
         # in the status bar.
         self.autosaveTime = None
         self.autosaveError = None
+
+        # wx.Rect of the "Title pages" link above the first page, or None
+        # if it's not on screen. set by OnPaint.
+        self.titleLinkRect = None
 
         self.createEmptySp()
         self.updateScreen(redraw=False)
@@ -627,6 +632,11 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(self.sp.line)
 
     def OnLeftDown(self, event, mark=False):
+        if not mark and self.isOverTitleLink(event.GetPosition()):
+            self.gd.mainFrame.OnTitlesDlg()
+
+            return
+
         if not mark and self.isTripleClick(event.GetPosition()):
             self.lastDClick = None
             self.selectByClick(event, False)
@@ -713,6 +723,14 @@ class MyCtrl(wx.Control):
     def OnMotion(self, event):
         if event.LeftIsDown() and not self.clickSelectActive:
             self.OnLeftDown(event, mark=True)
+
+        if self.isOverTitleLink(event.GetPosition()):
+            self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        else:
+            self.SetCursor(wx.NullCursor)
+
+    def isOverTitleLink(self, pos):
+        return bool(self.titleLinkRect) and self.titleLinkRect.Contains(pos)
 
     def OnRightDown(self, event):
         pos = event.GetPosition()
@@ -1762,6 +1780,11 @@ class MyCtrl(wx.Control):
                 dc.DrawLine(dp.x1 + 1, dp.y2 + 1, dp.x2 + 1, dp.y2 + 1)
                 dc.DrawLine(dp.x2 + 1, dp.y1 + 1, dp.x2 + 1, dp.y2 + 2)
 
+        self.titleLinkRect = None
+
+        if dpages and (dpages[0].pageNr == 1):
+            self.drawTitleLink(dc, dpages[0])
+
         for t in strings:
             i = t.line
             y = t.y
@@ -1884,6 +1907,27 @@ class MyCtrl(wx.Control):
 
         if self.sp.acItems and (cursorY > 0):
             self.drawAutoComp(dc, posX, cursorY, acFi)
+
+    # draw the link that opens the title pages dialog, just above the
+    # top-left corner of the first page (dp), if there's room for it.
+    def drawTitleLink(self, dc, dp):
+        font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        font.SetUnderlined(True)
+        dc.SetFont(font)
+
+        text = _("Title pages")
+        tw, th = dc.GetTextExtent(text)
+
+        x = dp.x1
+        y = dp.y1 - th - 4
+
+        if y < 0:
+            return
+
+        dc.SetTextForeground(self.gd.cfgGui.textHdrColor)
+        dc.DrawText(text, x, y)
+
+        self.titleLinkRect = wx.Rect(x, y, tw, th)
 
     def drawAutoComp(self, dc, posX, cursorY, fi):
         ac = self.sp.acItems
