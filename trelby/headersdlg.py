@@ -10,7 +10,9 @@ import trelby.util as util
 
 class HeadersDlg(wx.Dialog):
     def __init__(self, parent, headers, cfg, cfgGl, applyFunc):
-        wx.Dialog.__init__(self, parent, -1, ("Headers"), style=wx.DEFAULT_DIALOG_STYLE)
+        wx.Dialog.__init__(
+            self, parent, -1, _("Page headers"), style=wx.DEFAULT_DIALOG_STYLE
+        )
 
         self.headers = headers
         self.cfg = cfg

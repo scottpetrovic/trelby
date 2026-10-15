@@ -145,7 +145,7 @@ class CfgDlg(wx.Dialog):
         if isGlobal:
             self.SetTitle(_("Settings"))
         else:
-            self.SetTitle(_("Page setup"))
+            self.SetTitle(_("Script settings"))
 
         self.addPages()
 

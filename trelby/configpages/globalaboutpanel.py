@@ -12,7 +12,7 @@ The settings here are independent of any script being worked on,
 and unique to this computer.
 
 None of the settings here have any effect on the generated PDF
-output for a script. See Page/Page setup for those."""
+output for a script. See Script/Script settings for those."""
         )
 
         AboutPanel.__init__(self, parent, id, cfg, s)

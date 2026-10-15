@@ -189,17 +189,42 @@ class MyFrame(wx.Frame):
             ID_VIEW_FULL_SCREEN, misc.mnemonic("F", _("Fullscreen") + "\tF11")
         )
 
-        # the script's own page format: the settings that end up in the PDF
-        pageMenu = wx.Menu()
-        pageMenu.Append(
-            ID_SCRIPT_SETTINGS_CHANGE, misc.mnemonic("S", _("Page setup") + "...")
+        # everything that is saved in the script file itself, as opposed to
+        # the global settings and tools
+        scriptMenu = wx.Menu()
+        scriptMenu.Append(
+            ID_SCRIPT_SETTINGS_CHANGE,
+            misc.mnemonic("S", _("Script settings") + "..."),
         )
-        pageMenu.Append(ID_SCRIPT_HEADERS, misc.mnemonic("H", _("Headers") + "..."))
-        pageMenu.Append(ID_SCRIPT_TITLES, misc.mnemonic("T", _("Title pages") + "..."))
-        pageMenu.AppendSeparator()
-        pageMenu.Append(ID_SCRIPT_PAGINATE, misc.mnemonic("P", _("Paginate")))
-        pageMenu.Append(ID_SCRIPT_LOCK_PAGES, misc.mnemonic("L", _("Lock pages")))
-        pageMenu.Append(ID_SCRIPT_UNLOCK_PAGES, misc.mnemonic("U", _("Unlock pages")))
+        scriptMenu.Append(
+            ID_SCRIPT_TITLES, misc.mnemonic("T", _("Title pages") + "...")
+        )
+        scriptMenu.Append(
+            ID_SCRIPT_HEADERS, misc.mnemonic("H", _("Page headers") + "...")
+        )
+        scriptMenu.AppendSeparator()
+        scriptMenu.Append(
+            ID_SCRIPT_CHARACTER_PROFILES,
+            misc.mnemonic("C", _("Character profiles") + "..."),
+        )
+        scriptMenu.Append(
+            ID_SCRIPT_LOCATIONS, misc.mnemonic("o", _("Locations") + "...")
+        )
+        scriptMenu.Append(
+            ID_SCRIPT_WORLD_BUILDING, misc.mnemonic("W", _("World building") + "...")
+        )
+        scriptMenu.Append(
+            ID_SCRIPT_AUTO_COMPLETION, misc.mnemonic("A", _("Auto-completion") + "...")
+        )
+        scriptMenu.Append(
+            ID_SCRIPT_SC_DICT, misc.mnemonic("d", _("Script dictionary") + "...")
+        )
+        scriptMenu.AppendSeparator()
+        scriptMenu.Append(ID_SCRIPT_PAGINATE, misc.mnemonic("P", _("Paginate")))
+        scriptMenu.Append(ID_SCRIPT_LOCK_PAGES, misc.mnemonic("L", _("Lock pages")))
+        scriptMenu.Append(
+            ID_SCRIPT_UNLOCK_PAGES, misc.mnemonic("U", _("Unlock pages"))
+        )
 
         reportsMenu = wx.Menu()
         reportsMenu.Append(
@@ -223,25 +248,9 @@ class MyFrame(wx.Frame):
             ID_TOOLS_SPELL_CHECK, misc.mnemonic("S", _("Spell checker") + "...")
         )
         toolsMenu.Append(
-            ID_SCRIPT_SC_DICT, misc.mnemonic("d", _("Script dictionary") + "...")
-        )
-        toolsMenu.Append(
             ID_SCRIPT_FIND_ERROR, misc.mnemonic("F", _("Find next error"))
         )
         toolsMenu.AppendSeparator()
-        toolsMenu.Append(
-            ID_SCRIPT_CHARACTER_PROFILES,
-            misc.mnemonic("r", _("Character profiles") + "..."),
-        )
-        toolsMenu.Append(
-            ID_SCRIPT_LOCATIONS, misc.mnemonic("L", _("Locations") + "...")
-        )
-        toolsMenu.Append(
-            ID_SCRIPT_WORLD_BUILDING, misc.mnemonic("W", _("World building") + "...")
-        )
-        toolsMenu.Append(
-            ID_SCRIPT_AUTO_COMPLETION, misc.mnemonic("A", _("Auto-completion") + "...")
-        )
         toolsMenu.Append(
             ID_TOOLS_NAME_DB, misc.mnemonic("N", _("Name database") + "...")
         )
@@ -272,7 +281,7 @@ class MyFrame(wx.Frame):
         self.menuBar.Append(fileMenu, misc.mnemonic("F", _("File")))
         self.menuBar.Append(editMenu, misc.mnemonic("E", _("Edit")))
         self.menuBar.Append(viewMenu, misc.mnemonic("V", _("View")))
-        self.menuBar.Append(pageMenu, misc.mnemonic("P", _("Page")))
+        self.menuBar.Append(scriptMenu, misc.mnemonic("S", _("Script")))
         self.menuBar.Append(reportsMenu, misc.mnemonic("R", _("Reports")))
         self.menuBar.Append(toolsMenu, misc.mnemonic("T", _("Tools")))
         self.menuBar.Append(helpMenu, misc.mnemonic("H", _("Help")))

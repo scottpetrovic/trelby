@@ -655,7 +655,7 @@
 	</sect1>
 
 	<sect1>
-	  <title>Page/Page setup</title>
+	  <title>Script/Script settings</title>
 
 	  <para>This edits the script format settings (see
 	  <xref linkend="format_settings"/>): paper size, element formatting,
@@ -666,44 +666,7 @@
 	</sect1>
 
 	<sect1>
-	  <title>Page/Headers</title>
-
-	  <para>'Headers' allows you to edit your script's headers. Headers
-	  are lines that are automatically added to the top of each page of
-	  the script, excluding title pages and the first page of the actual
-	  script.</para>
-
-	  <para>Topmost in the window is a setting for how many empty lines
-	  you want inserted after your header lines.</para>
-
-	  <para>After that is a listbox of all the strings in your headers.
-	  Select the text string you want to edit in this listbox, and use the
-	  add/delete buttons to add/delete text strings.</para>
-
-	  <para>Below the listbox are the settings for the selected string.
-	  You can adjust the string text, style, alignment, line and
-	  positioning.</para>
-
-	  <para>The text is first positioned according to the alignment
-	  setting, and then its horizontal starting position is adjusted by
-	  the number of characters given in 'X offset'. Note that this
-	  parameter can be negative, so for example, if you want your header
-	  string to start 2 characters before the left margin, select
-	  'Alignment: Left' and 'X offset: -2'.</para>
-
-	  <para>Any occurrences of '${PAGE}' in the text string will be
-	  replaced by the page number in the actual headers.</para>
-
-	  <para>Finally there are 'Preview' and 'Apply' buttons that you can
-	  use to preview your changes. 'Preview' opens up a sample page in
-	  your PDF viewer program, while 'Apply' applies the new headers to
-	  the open script, so you can e.g. see how the page count of the
-	  script would change.</para>
-
-	</sect1>
-
-	<sect1>
-	  <title>Page/Title pages</title>
+	  <title>Script/Title pages</title>
 
 	  <para>'Title pages' allows you to edit your script's title pages.
 	  You can have as many title pages as you want, or none at all.</para>
@@ -766,7 +729,94 @@
 	</sect1>
 
 	<sect1>
-	  <title>Page/Paginate</title>
+	  <title>Script/Page headers</title>
+
+	  <para>'Page headers' allows you to edit your script's headers. Headers
+	  are lines that are automatically added to the top of each page of
+	  the script, excluding title pages and the first page of the actual
+	  script.</para>
+
+	  <para>Topmost in the window is a setting for how many empty lines
+	  you want inserted after your header lines.</para>
+
+	  <para>After that is a listbox of all the strings in your headers.
+	  Select the text string you want to edit in this listbox, and use the
+	  add/delete buttons to add/delete text strings.</para>
+
+	  <para>Below the listbox are the settings for the selected string.
+	  You can adjust the string text, style, alignment, line and
+	  positioning.</para>
+
+	  <para>The text is first positioned according to the alignment
+	  setting, and then its horizontal starting position is adjusted by
+	  the number of characters given in 'X offset'. Note that this
+	  parameter can be negative, so for example, if you want your header
+	  string to start 2 characters before the left margin, select
+	  'Alignment: Left' and 'X offset: -2'.</para>
+
+	  <para>Any occurrences of '${PAGE}' in the text string will be
+	  replaced by the page number in the actual headers.</para>
+
+	  <para>Finally there are 'Preview' and 'Apply' buttons that you can
+	  use to preview your changes. 'Preview' opens up a sample page in
+	  your PDF viewer program, while 'Apply' applies the new headers to
+	  the open script, so you can e.g. see how the page count of the
+	  script would change.</para>
+
+	</sect1>
+
+	<sect1 id="locations_dlg">
+	  <title>Script/Locations</title>
+
+	  <para>This dialog allows you to define what scenes are part of the
+	  same location (see <xref linkend="location_rep"/>). The top listbox
+	  shows locations, separated by lines of "-----------", while the
+	  bottom listbox shows scenes not part of a user-specified location.
+	  In the middle are 'Add' and 'Delete' buttons for moving scenes
+	  between the two listboxes. The bottom listbox allows you to select
+	  many scenes at once.</para>
+
+	  <para>An example of how to use this dialog: select the scenes "INT.
+	  MOTEL ROOM - DAY", "INT. MOTEL ROOM - DAY - LATER" and "INT. MOTEL
+	  ROOM - NIGHT" in the bottom listbox, then click 'Add' which adds
+	  those three into a single location in the top listbox. Then, if you
+	  want to add more scenes to the same location, make sure one of the
+	  scenes for the location is selected in the top listbox, select the
+	  new scenes you want to add in the bottom listbox, and click 'Add'.
+	  If you want to add scenes to a new location, select one of the
+	  "-----------" lines in the top listbox as the destination before
+	  clicking 'Add'.</para>
+
+	</sect1>
+
+	<sect1 id="autocomp">
+	  <title>Script/Auto-completion</title>
+
+	  <para>Here you can define items to be added to the auto-completion
+	  lists for Scene, Character and Transition elements, and optionally
+	  disable auto-completion for any one of them.</para>
+
+	  <para>Transition auto-completes are pretty generic so by default
+	  there are a few of them here, but the Scene and Character lists are
+	  empty. The main use for them are TV shows, where you have a
+	  recurring cast of characters and locations, and it's nice to have
+	  them always available, even if they haven't yet been used in the
+	  current episode's script.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Script/Script dictionary</title>
+
+	  <para>This opens a dialog allowing you to edit the script-specific
+	  spell checker dictionary. Insert new words by entering them on
+	  separate lines, or delete existing words by deleting the lines they
+	  are on.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Script/Paginate</title>
 
 	  <para>'Paginate' simply repaginates the script. You normally don't
 	  need to run this if you have automatic repagination enabled, but the
@@ -776,7 +826,7 @@
 	</sect1>
 
 	<sect1>
-	  <title>Page/Lock pages, Page/Unlock pages</title>
+	  <title>Script/Lock pages, Script/Unlock pages</title>
 
 	  <para>'Lock pages' locks every page to start where it starts now,
 	  with its current page number. After that, adding text creates
@@ -871,16 +921,6 @@
 	</sect1>
 
 	<sect1>
-	  <title>Tools/Script dictionary</title>
-
-	  <para>This opens a dialog allowing you to edit the script-specific
-	  spell checker dictionary. Insert new words by entering them on
-	  separate lines, or delete existing words by deleting the lines they
-	  are on.</para>
-
-	</sect1>
-
-	<sect1>
 	  <title>Tools/Find next error</title>
 
 	  <para>'Find next error' searches through the script, starting from
@@ -943,46 +983,6 @@
 		</listitem>
 
 	  </itemizedlist>
-
-	</sect1>
-
-	<sect1 id="locations_dlg">
-	  <title>Tools/Locations</title>
-
-	  <para>This dialog allows you to define what scenes are part of the
-	  same location (see <xref linkend="location_rep"/>). The top listbox
-	  shows locations, separated by lines of "-----------", while the
-	  bottom listbox shows scenes not part of a user-specified location.
-	  In the middle are 'Add' and 'Delete' buttons for moving scenes
-	  between the two listboxes. The bottom listbox allows you to select
-	  many scenes at once.</para>
-
-	  <para>An example of how to use this dialog: select the scenes "INT.
-	  MOTEL ROOM - DAY", "INT. MOTEL ROOM - DAY - LATER" and "INT. MOTEL
-	  ROOM - NIGHT" in the bottom listbox, then click 'Add' which adds
-	  those three into a single location in the top listbox. Then, if you
-	  want to add more scenes to the same location, make sure one of the
-	  scenes for the location is selected in the top listbox, select the
-	  new scenes you want to add in the bottom listbox, and click 'Add'.
-	  If you want to add scenes to a new location, select one of the
-	  "-----------" lines in the top listbox as the destination before
-	  clicking 'Add'.</para>
-
-	</sect1>
-
-	<sect1 id="autocomp">
-	  <title>Tools/Auto-completion</title>
-
-	  <para>Here you can define items to be added to the auto-completion
-	  lists for Scene, Character and Transition elements, and optionally
-	  disable auto-completion for any one of them.</para>
-
-	  <para>Transition auto-completes are pretty generic so by default
-	  there are a few of them here, but the Scene and Character lists are
-	  empty. The main use for them are TV shows, where you have a
-	  recurring cast of characters and locations, and it's nice to have
-	  them always available, even if they haven't yet been used in the
-	  current episode's script.</para>
 
 	</sect1>
 
@@ -1285,7 +1285,7 @@
 		might want to increase this number. Note that automatic
 		repagination is only done when you modify the script, so you can't
 		just sit back and wait for the repagination to happen, you have to
-		keep making changes. (You can always use Page/Paginate if you
+		keep making changes. (You can always use Script/Paginate if you
 		want immediate repagination.)</para>
 
 		<para>'Lines to scroll per mouse wheel event' needs no
@@ -1314,7 +1314,7 @@
 	<sect1 id="format_settings">
 	  <title>Script format settings</title>
 
-	  <para>Script format settings are found in Page/Page setup. It
+	  <para>Script format settings are found in Script/Script settings. It
 	  has the same Apply/Cancel/OK buttons as the global settings
 	  dialog.</para>
 
