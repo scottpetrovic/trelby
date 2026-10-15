@@ -87,16 +87,10 @@ class TitlesDlg(wx.Dialog):
 
         vsizer.Add(vsizer2, 1, wx.EXPAND)
 
-        hsizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        hsizer.Add(wx.StaticText(self, -1, _("Text:")), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.textEntry = wx.TextCtrl(
-            self, -1, style=wx.TE_MULTILINE | wx.TE_DONTWRAP, size=(200, 75)
+        tmp = wx.StaticText(
+            self, -1, _("Click a string in the preview to edit its text.")
         )
-        hsizer.Add(self.textEntry, 1, wx.LEFT, 10)
-        self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.textEntry.GetId())
-
-        vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 20)
+        vsizer.Add(tmp, 0, wx.TOP, 20)
 
         # TODO: should use FlexGridSizer, like headersdlg, to get neater
         # layout
@@ -221,7 +215,6 @@ class TitlesDlg(wx.Dialog):
 
         # list of widgets that are specific to editing the selected string
         self.widList = [
-            self.textEntry,
             self.xEntry,
             self.alignCombo,
             self.yEntry,
@@ -234,7 +227,7 @@ class TitlesDlg(wx.Dialog):
 
         self.updateGui()
 
-        self.textEntry.SetFocus()
+        self.previewCtrl.SetFocus()
 
     def addCheckBox(self, name, parent, sizer, pad):
         cb = wx.CheckBox(parent, -1, name)
@@ -294,6 +287,11 @@ class TitlesDlg(wx.Dialog):
         self.stringsLb.SetSelection(i)
         self.updateStringGui()
 
+    # the selected string's text was edited in the preview
+    def onTextEdited(self):
+        ts = self.titles.pages[self.pageIndex][self.tsIndex]
+        self.stringsLb.SetString(self.tsIndex, "--".join(ts.items))
+
     def OnAddPage(self, event):
         self.titles.pages.append([])
         self.setPage(len(self.titles.pages) - 1)
@@ -338,6 +336,10 @@ class TitlesDlg(wx.Dialog):
 
         self.updateGui()
 
+        # so that typing replaces the copied / placeholder text
+        self.previewCtrl.SetFocus()
+        self.previewCtrl.selectAllText()
+
     def OnDeleteString(self, event):
         if (self.pageIndex == -1) or (self.tsIndex == -1):
             return
@@ -381,11 +383,12 @@ class TitlesDlg(wx.Dialog):
 
     # update selected string stuff
     def updateStringGui(self):
+        self.previewCtrl.resetEdit()
+
         if self.tsIndex == -1:
             for w in self.widList:
                 w.Disable()
 
-            self.textEntry.SetValue("")
             self.xEntry.SetValue("")
             self.yEntry.SetValue("")
             self.sizeEntry.SetValue(12)
@@ -404,8 +407,6 @@ class TitlesDlg(wx.Dialog):
 
         if ts.isCentered:
             self.xEntry.Disable()
-
-        self.textEntry.SetValue("\n".join(ts.items))
 
         self.xEntry.SetValue("%.2f" % ts.x)
         self.yEntry.SetValue("%.2f" % ts.y)
@@ -428,13 +429,6 @@ class TitlesDlg(wx.Dialog):
             return
 
         ts = self.titles.pages[self.pageIndex][self.tsIndex]
-
-        ts.items = [
-            util.toInputStr(s)
-            for s in misc.fromGUI(self.textEntry.GetValue()).split("\n")
-        ]
-
-        self.stringsLb.SetString(self.tsIndex, "--".join(ts.items))
 
         ts.x = util.str2float(self.xEntry.GetValue(), 0.0)
         ts.y = util.str2float(self.yEntry.GetValue(), 0.0)
