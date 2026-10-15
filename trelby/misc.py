@@ -16,7 +16,7 @@ if "TRELBY_TESTING" in os.environ:
 else:
     import wx
 
-TAB_BAR_HEIGHT = 24
+TAB_BAR_HEIGHT = 30
 
 version = "2.4.16.2"
 
@@ -458,11 +458,11 @@ class MyTabCtrl(wx.Window):
         # control, and within each tab
         self.paddingX = 10
 
-        # starting Y-pos of text in labels
-        self.textY = 5
-
         # width of a single tab
         self.tabWidth = 150
+
+        # x-pos of the center of a tab's close button, relative to the tab
+        self.closeX = self.tabWidth - 18
 
         # width, height, spacing, y-pos of arrows
         self.arrowWidth = 8
@@ -472,7 +472,6 @@ class MyTabCtrl(wx.Window):
 
         # initialized in OnPaint since we don't know our height yet
         self.font = None
-        self.boldFont = None
 
         self.SetMinSize(
             wx.Size(
@@ -627,7 +626,7 @@ class MyTabCtrl(wx.Window):
             page += self.firstTab
 
             if page < len(self.pages):
-                hitX = pageOffset >= (self.tabWidth - self.paddingX * 2)
+                hitX = pageOffset >= (self.closeX - self.paddingX)
 
                 if hitX:
                     panel = self.pages[page][0]
@@ -675,73 +674,83 @@ class MyTabCtrl(wx.Window):
 
         xpos = self.paddingX
 
-        tabW = self.tabWidth
-        tabH = h - 2
-        tabY = h - tabH
+        # each tab leaves a gap at its right edge, so tabs don't touch
+        tabGap = 3
+        tabW = self.tabWidth - tabGap
+        radius = 5
 
         if not self.font:
-            textH = h - self.textY - 1
             self.font = util.createPixelFont(
-                textH, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
+                h // 2, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
             )
-            self.boldFont = util.createPixelFont(
-                textH, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
-            )
+
+        dc.SetFont(self.font)
+        textH = dc.GetTextExtent("Ag")[1]
+
+        gc = wx.GraphicsContext.Create(dc)
+        borderPen = gc.CreatePen(
+            wx.GraphicsPenInfo(cfgGui.tabBorderColor, separatorLineThickness)
+        )
 
         maxTab = self.getLastVisibleTab()
 
         for i in range(self.firstTab, maxTab + 1):
-            dc.SetFont(self.font)
             p = self.pages[i]
+            selected = i == self.selected
 
-            if i == self.selected:
-                points = (
-                    (0, tabH),
-                    (4, 2),
-                    (6, 1),
-                    (tabW - 8, 1),
-                    (tabW - 6, 2),
-                    (tabW - 2, tabH),
-                )
-                dc.SetBrush(cfgGui.workspaceBrush)
+            # the selected tab is taller and covers the separator line, so
+            # it joins the script below it
+            if selected:
+                tabY = 2
+                bottom = h
+                brush = cfgGui.workspaceBrush
             else:
-                points = (
-                    (0, tabH - separatorLineThickness),
-                    (3, 3),
-                    (5, 2),
-                    (tabW - 8, 2),
-                    (tabW - 6, 3),
-                    (tabW - 2, tabH - separatorLineThickness),
-                )  # subtract its thickness to not cover the separator line
-                dc.SetBrush(cfgGui.tabNonActiveBgBrush)
+                tabY = 4
+                bottom = h - separatorLineThickness
+                brush = cfgGui.tabNonActiveBgBrush
 
-            dc.DestroyClippingRegion()
+            # outline: up the left side, around the rounded top corners,
+            # down the right side; the bottom stays open
+            path = gc.CreatePath()
+            path.MoveToPoint(xpos + 0.5, bottom)
+            path.AddArcToPoint(xpos + 0.5, tabY + 0.5, xpos + tabW / 2, tabY + 0.5, radius)
+            path.AddArcToPoint(
+                xpos + tabW - 0.5, tabY + 0.5, xpos + tabW - 0.5, bottom, radius
+            )
+            path.AddLineToPoint(xpos + tabW - 0.5, bottom)
 
-            # draw tab background
-            dc.SetClippingRegion(xpos, tabY, tabW, tabH)
-            dc.SetPen(wx.Pen(wx.NullPen))
-            dc.DrawPolygon(points, xpos, tabY)
+            gc.SetBrush(gc.CreateBrush(brush))
+            gc.FillPath(path)
+            gc.SetPen(borderPen)
+            gc.StrokePath(path)
 
-            # draw tab borders
+            textY = tabY + (h - tabY - textH) // 2
+
+            # clip the text to fit within the tab, leaving room for the
+            # close button
             dc.SetClippingRegion(
-                xpos, tabY, tabW, tabH - separatorLineThickness
-            )  # tab borders should never cross the seperator line
-            dc.SetPen(cfgGui.tabBorderPen)
-            dc.DrawLines(points, xpos, tabY)
-
-            # clip the text to fit within the tabs
-            dc.DestroyClippingRegion()
-            dc.SetClippingRegion(xpos, tabY, tabW - self.paddingX * 3, tabH)
-
-            dc.SetPen(cfgGui.tabTextPen)
+                xpos + self.paddingX, tabY, self.closeX - self.paddingX * 2, h - tabY
+            )
             dc.SetTextForeground(cfgGui.tabTextColor)
-            dc.DrawText(p[1], xpos + self.paddingX, self.textY)
-
+            dc.DrawText(p[1], xpos + self.paddingX, textY)
             dc.DestroyClippingRegion()
-            dc.SetFont(self.boldFont)
-            dc.DrawText("x", xpos + tabW - self.paddingX * 2, self.textY)
 
-            xpos += tabW
+            # close button; OnLeftDown takes clicks from paddingX left of
+            # its center to the end of the tab
+            cx = xpos + self.closeX
+            cy = textY + textH / 2
+            s = 3.5
+            gc.SetPen(
+                gc.CreatePen(
+                    wx.GraphicsPenInfo(cfgGui.tabTextColor, 1.5).Cap(wx.CAP_ROUND)
+                )
+            )
+            gc.StrokeLine(cx - s, cy - s, cx + s, cy + s)
+            gc.StrokeLine(cx - s, cy + s, cx + s, cy - s)
+
+            xpos += self.tabWidth
+
+        del gc
 
         # start of right arrow
         rx = w - 1 - self.paddingX - self.arrowWidth + 1
