@@ -150,6 +150,16 @@ class MyApp(wx.App):
 
 
 def main():
+    # Trelby.exe --mcp-bridge [--port N]: run as the stdio bridge to the MCP
+    # server in a running Trelby (see mcpserver.py), for exe users with no
+    # Python to run "python -m trelby.mcpserver --app" with
+    if sys.argv[1:2] == ["--mcp-bridge"]:
+        import trelby.mcpserver as mcpserver
+
+        mcpserver.main(["--app"] + sys.argv[2:])
+
+        return
+
     opts.init()
 
     myApp = MyApp(0)
