@@ -14,7 +14,11 @@ from trelby.titlespreview import TitlesPreview
 class TitlesDlg(wx.Dialog):
     def __init__(self, parent, titles, cfg, cfgGl):
         wx.Dialog.__init__(
-            self, parent, -1, _("Title pages"), style=wx.DEFAULT_DIALOG_STYLE
+            self,
+            parent,
+            -1,
+            _("Title pages"),
+            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
 
         self.titles = titles
@@ -65,7 +69,7 @@ class TitlesDlg(wx.Dialog):
         vsizer2.Add(tmp)
 
         self.stringsLb = wx.ListBox(self, -1, size=(200, 150))
-        vsizer2.Add(self.stringsLb)
+        vsizer2.Add(self.stringsLb, 1, wx.EXPAND)
 
         hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -81,13 +85,7 @@ class TitlesDlg(wx.Dialog):
 
         vsizer2.Add(hsizer2, 0, wx.TOP, 5)
 
-        hsizer.Add(vsizer2)
-
-        self.previewCtrl = TitlesPreview(self, self, self.cfg)
-        util.setWH(self.previewCtrl, 150, 150)
-        hsizer.Add(self.previewCtrl, 1, wx.EXPAND | wx.LEFT, 10)
-
-        vsizer.Add(hsizer, 0, wx.EXPAND)
+        vsizer.Add(vsizer2, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -177,15 +175,26 @@ class TitlesDlg(wx.Dialog):
         if misc.isWindows:
             pad = 5
 
-        self.addCheckBox("Bold", self, vsizer2, pad)
-        self.addCheckBox("Italic", self, vsizer2, pad)
-        self.addCheckBox("Underlined", self, vsizer2, pad)
+        self.addCheckBox("Bold", bsizer.GetStaticBox(), vsizer2, pad)
+        self.addCheckBox("Italic", bsizer.GetStaticBox(), vsizer2, pad)
+        self.addCheckBox("Underlined", bsizer.GetStaticBox(), vsizer2, pad)
 
         bsizer.Add(vsizer2)
 
         hsizerTop.Add(bsizer, 0, wx.LEFT, 20)
 
         vsizer.Add(hsizerTop, 0, wx.TOP, 10)
+
+        # controls on the left, live preview of the page on the right
+        mainSizer = wx.BoxSizer(wx.HORIZONTAL)
+        mainSizer.Add(vsizer, 0, wx.EXPAND)
+
+        self.previewCtrl = TitlesPreview(self, self, self.cfg)
+        self.previewCtrl.SetMinSize(wx.Size(380, 480))
+        mainSizer.Add(self.previewCtrl, 1, wx.EXPAND | wx.LEFT, 20)
+
+        topSizer = wx.BoxSizer(wx.VERTICAL)
+        topSizer.Add(mainSizer, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -200,9 +209,9 @@ class TitlesDlg(wx.Dialog):
         okBtn = gutil.createStockButton(self, "OK")
         hsizer.Add(okBtn, 0, wx.LEFT, 10)
 
-        vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 20)
+        topSizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 20)
 
-        util.finishWindow(self, vsizer)
+        util.finishWindow(self, topSizer)
 
         self.Bind(wx.EVT_BUTTON, self.OnPreview, id=self.previewBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
@@ -276,6 +285,13 @@ class TitlesDlg(wx.Dialog):
 
     def OnStringsLb(self, event=None):
         self.tsIndex = self.stringsLb.GetSelection()
+        self.updateStringGui()
+
+    # select string 'i' on the current page (called when it's clicked in
+    # the preview)
+    def selectString(self, i):
+        self.tsIndex = i
+        self.stringsLb.SetSelection(i)
         self.updateStringGui()
 
     def OnAddPage(self, event):

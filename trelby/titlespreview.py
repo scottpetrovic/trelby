@@ -1,101 +1,175 @@
 import wx
 
+import trelby.pml as pml
 import trelby.util as util
 
+# screen fonts that match the metrics of the PDF fonts
+FACE_NAMES = {
+    pml.COURIER: "Courier New",
+    pml.HELVETICA: "Arial",
+    pml.TIMES_ROMAN: "Times New Roman",
+}
 
+# distance from the top of the text to its baseline in the PDF output, as
+# a fraction of the font size (see pdf.PDFTextOp)
+BASELINE = 0.843
+
+# gap around the page, in pixels
+MARGIN = 12
+
+
+# live preview of the current title page. renders the actual text, and
+# selects a string when it's clicked.
 class TitlesPreview(wx.Window):
     def __init__(self, parent, ctrl, cfg):
-        wx.Window.__init__(self, parent, -1)
+        wx.Window.__init__(self, parent, -1, style=wx.FULL_REPAINT_ON_RESIZE)
 
         self.cfg = cfg
         self.ctrl = ctrl
 
-        self.Bind(wx.EVT_SIZE, self.OnSize)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        # list of (string index, wx.Rect) from the last paint, for hit
+        # testing
+        self.hitRects = []
+
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+
         self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
 
-    def OnSize(self, event):
-        size = self.GetClientSize()
-        self.screenBuf = wx.Bitmap(size.width, size.height)
-
-    def OnEraseBackground(self, event):
-        pass
-
-    def OnPaint(self, event):
-        dc = wx.BufferedPaintDC(self, self.screenBuf)
-
-        # widget size
+    # return (x, y, w, h) of the page in widget coordinates
+    def getPageRect(self):
         ww, wh = self.GetClientSize()
+        ww = max(1, ww - 2 * MARGIN)
+        wh = max(1, wh - 2 * MARGIN)
 
-        dc.SetBrush(wx.Brush(self.GetBackgroundColour()))
-        dc.SetPen(wx.Pen(self.GetBackgroundColour()))
-        dc.DrawRectangle(0, 0, ww, wh)
-
-        # aspect ratio of paper
         aspect = self.cfg.paperWidth / self.cfg.paperHeight
 
-        # calculate which way we can best fit the paper on screen
         h = wh
-        w = int(aspect * wh)
+        w = aspect * wh
 
         if w > ww:
             w = ww
-            h = int(ww / aspect)
+            h = ww / aspect
 
-        # offset of paper
-        ox = (ww - w) // 2
-        oy = (wh - h) // 2
+        x = MARGIN + (ww - w) / 2
+        y = MARGIN + (wh - h) / 2
 
-        dc.SetPen(wx.BLACK_PEN)
-        dc.SetBrush(wx.WHITE_BRUSH)
-        dc.DrawRectangle(ox, oy, w, h)
+        return (int(x), int(y), int(w), int(h))
 
-        if self.ctrl.pageIndex != -1:
-            page = self.ctrl.titles.pages[self.ctrl.pageIndex]
+    def OnLeftDown(self, event):
+        pos = event.GetPosition()
 
-            for i in range(len(page)):
-                ts = page[i]
+        for i, rect in reversed(self.hitRects):
+            if rect.Contains(pos):
+                self.ctrl.selectString(i)
 
-                # text height in mm
-                textHinMM = util.getTextHeight(ts.size)
+                return
 
-                textH = int((textHinMM / self.cfg.paperHeight) * h)
-                textH = max(1, textH)
-                y = ts.y
+    def OnPaint(self, event):
+        self.draw(wx.AutoBufferedPaintDC(self))
 
-                for line in ts.items:
-                    # people may have empty lines in between non-empty
-                    # lines to achieve double spaced lines; don't draw a
-                    # rectangle for lines consisting of nothing but
-                    # whitespace
+    def draw(self, dc):
+        dc.SetBackground(
+            wx.Brush(wx.SystemSettings.GetColour(wx.SYS_COLOUR_APPWORKSPACE))
+        )
+        dc.Clear()
 
-                    if line.strip():
-                        textW = int(
-                            (
-                                util.getTextWidth(line, ts.getStyle(), ts.size)
-                                / self.cfg.paperWidth
-                            )
-                            * w
-                        )
-                        textW = max(1, textW)
+        ox, oy, w, h = self.getPageRect()
 
-                        if ts.isCentered:
-                            xp = w // 2 - textW // 2
-                        else:
-                            xp = int((ts.x / self.cfg.paperWidth) * w)
+        gc = wx.GraphicsContext.Create(dc)
 
-                        if ts.isRightJustified:
-                            xp -= textW
+        # page with a drop shadow
+        gc.SetPen(wx.TRANSPARENT_PEN)
+        gc.SetBrush(wx.Brush(wx.Colour(0, 0, 0, 60)))
+        gc.DrawRectangle(ox + 3, oy + 3, w, h)
 
-                        if i == self.ctrl.tsIndex:
-                            dc.SetPen(wx.RED_PEN)
-                            dc.SetBrush(wx.RED_BRUSH)
-                        else:
-                            dc.SetPen(wx.BLACK_PEN)
-                            dc.SetBrush(wx.BLACK_BRUSH)
+        gc.SetPen(wx.Pen(wx.Colour(160, 160, 160)))
+        gc.SetBrush(wx.WHITE_BRUSH)
+        gc.DrawRectangle(ox, oy, w, h)
 
-                        yp = int((y / self.cfg.paperHeight) * h)
+        self.hitRects = []
 
-                        dc.DrawRectangle(ox + xp, oy + yp, textW, textH)
+        if self.ctrl.pageIndex == -1:
+            return
 
-                    y += textHinMM
+        # pixels per mm
+        scale = w / self.cfg.paperWidth
+
+        page = self.ctrl.titles.pages[self.ctrl.pageIndex]
+
+        for i, ts in enumerate(page):
+            self.drawString(gc, ts, i, ox, oy, scale)
+
+    # draw title string 'ts' (index 'i' on the page), with the page at
+    # (ox, oy) and 'scale' pixels per mm, and record its bounding box in
+    # self.hitRects.
+    def drawString(self, gc, ts, i, ox, oy, scale):
+        flags = wx.FONTFLAG_DEFAULT
+
+        if ts.isBold:
+            flags |= wx.FONTFLAG_BOLD
+
+        if ts.isItalic:
+            flags |= wx.FONTFLAG_ITALIC
+
+        if ts.isUnderlined:
+            flags |= wx.FONTFLAG_UNDERLINED
+
+        sizeMM = util.getTextHeight(ts.size)
+        fontPx = max(1.0, sizeMM * scale)
+
+        gc.SetFont(gc.CreateFont(fontPx, FACE_NAMES[ts.font], flags, wx.BLACK))
+
+        # (x, y, width) of each line, and the box around them all
+        lines = []
+        x1 = y1 = 1e9
+        x2 = y2 = -1e9
+
+        pageW = self.cfg.paperWidth * scale
+
+        y = ts.y
+
+        for line in ts.items:
+            tw, th, descent, lead = gc.GetFullTextExtent(line)
+
+            if ts.isCentered:
+                xp = pageW / 2 - tw / 2
+            else:
+                xp = ts.x * scale
+
+                if ts.isRightJustified:
+                    xp -= tw
+
+            xp += ox
+
+            # line up the baseline with where the PDF puts it
+            baseline = oy + (y + BASELINE * sizeMM) * scale
+            yp = baseline - (th - descent)
+
+            lines.append((line, xp, yp))
+
+            x1 = min(x1, xp)
+            x2 = max(x2, xp + tw)
+            y1 = min(y1, oy + y * scale)
+            y2 = max(y2, oy + (y + sizeMM) * scale)
+
+            y += sizeMM
+
+        if not lines:
+            return
+
+        # make empty strings clickable too
+        if x2 - x1 < 6:
+            x1 -= 3
+            x2 = x1 + 6
+
+        rect = wx.Rect(int(x1) - 2, int(y1) - 1, int(x2 - x1) + 5, int(y2 - y1) + 3)
+        self.hitRects.append((i, rect))
+
+        if i == self.ctrl.tsIndex:
+            gc.SetPen(wx.Pen(wx.Colour(80, 140, 220)))
+            gc.SetBrush(wx.Brush(wx.Colour(80, 140, 220, 45)))
+            gc.DrawRectangle(rect.x, rect.y, rect.width, rect.height)
+
+        for line, xp, yp in lines:
+            gc.DrawText(line, xp, yp)
