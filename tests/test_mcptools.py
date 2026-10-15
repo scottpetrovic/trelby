@@ -669,3 +669,34 @@ def testLiveFailedProfileEditChangesNothing():
 
     assert m.listScenes(d)["revision"] == r
     assert not d.sp.canUndo()
+
+
+def testLiveRenameUndoesProfile():
+    d = live()
+    sp = d.sp
+
+    m.setCharacterProfile(d, m.listScenes(d)["revision"], "John", "Waits.")
+    m.setCharacterProfile(d, m.listScenes(d)["revision"], "Alice", "Unseen.")
+
+    m.renameCharacter(d, m.listScenes(d)["revision"], "John", "Jack")
+    assert sp.characterProfiles.get("JACK").notes == "Waits."
+
+    # a profile of a character that isn't in the script can be renamed too
+    m.renameCharacter(d, m.listScenes(d)["revision"], "Alice", "Ann")
+    assert sp.characterProfiles.get("ANN").notes == "Unseen."
+
+    # undoing a rename renames the profile back, in the same step as the
+    # script
+    sp.cmd("undo")
+    assert sp.characterProfiles.get("ALICE").notes == "Unseen."
+    assert not sp.characterProfiles.get("ANN")
+
+    sp.cmd("undo")
+    assert sp.characterProfiles.get("JOHN").notes == "Waits."
+    assert not sp.characterProfiles.get("JACK")
+    assert len(m.search(d, "john")["matches"]) == 3
+
+    sp.cmd("redo")
+    assert sp.characterProfiles.get("JACK").notes == "Waits."
+    assert m.search(d, "john")["matches"] == []
+    sp._validate()

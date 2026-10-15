@@ -31,6 +31,7 @@ from trelby.line import Line
 # paste                  AnyDifference
 # (MCP) world building   WorldBuildingText
 # (MCP) char. profiles   CharacterProfiles
+# renameCharacters       RenameCharacters (a FullCopy)
 
 
 # extremely rough estimate for the base memory usage of a single undo
@@ -207,6 +208,35 @@ class FullCopy(Base):
     def setAfter(self, sp):
         self.linesAfter = lines2storage(sp.lines)
         self.setEndPos(sp)
+
+
+# renaming characters: a FullCopy of the lines, plus the character
+# profiles that were renamed, as a list of (old name, new name). undo
+# renames those profiles back.
+class RenameCharacters(FullCopy):
+    def __init__(self, sp, profileRenames):
+        FullCopy.__init__(self, sp)
+
+        self.profileRenames = profileRenames
+
+    def undo(self, sp):
+        FullCopy.undo(self, sp)
+        renameProfiles(sp, [(new, old) for old, new in self.profileRenames])
+
+    def redo(self, sp):
+        FullCopy.redo(self, sp)
+        renameProfiles(sp, self.profileRenames)
+
+
+# rename character profiles, given a list of (old name, new name). all
+# the profiles are looked up before any is renamed, so names can be
+# swapped.
+def renameProfiles(sp, renames):
+    found = [(sp.characterProfiles.get(old), new) for old, new in renames]
+
+    for prof, new in found:
+        if prof:
+            prof.name = new
 
 
 # stores a single modified paragraph

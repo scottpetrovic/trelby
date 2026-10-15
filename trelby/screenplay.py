@@ -3731,14 +3731,26 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     # character cues are renamed keeping any extension like "(V.O.)", and
     # the names are also replaced where they're mentioned in other
     # elements, matching the case they were written in. all renames are
-    # done in one pass, so names can be swapped. returns a (cues,
-    # mentions) tuple of how many of each were renamed.
-    def renameCharacters(self, renames):
+    # done in one pass, so names can be swapped. if renameProfiles is
+    # True, the characters' profiles are renamed too, in the same undo
+    # step. returns a (cues, mentions) tuple of how many of each were
+    # renamed.
+    def renameCharacters(self, renames, renameProfiles=False):
         normalize = characterprofiles.normalizeName
 
         renames = {k: v for k, v in renames.items() if k and v and (k != v)}
         if not renames:
             return (0, 0)
+
+        # (old name, new name) of the profiles to rename
+        profileRenames = []
+
+        if renameProfiles:
+            for old, new in renames.items():
+                prof = self.characterProfiles.get(old)
+
+                if prof:
+                    profileRenames.append((prof.name, new))
 
         # the names of the other characters are matched too, but left as
         # they are, so that renaming MARY doesn't touch "Mary" in mentions
@@ -3808,12 +3820,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     changes.append((i, text))
                     mentions += lineMentions
 
-        if not changes:
+        if not changes and not profileRenames:
             return (cues, mentions)
 
         self.clearAutoComp()
 
-        u = undo.FullCopy(self)
+        u = undo.RenameCharacters(self, profileRenames)
+
+        undo.renameProfiles(self, profileRenames)
 
         for i, text in changes:
             self.lines[i].text = text

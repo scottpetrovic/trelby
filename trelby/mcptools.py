@@ -731,11 +731,7 @@ def renameCharacter(doc, revision, oldName, newName):
         if (old not in names) and not prof:
             raise ToolError("Character '%s' was not found." % old)
 
-        if prof:
-            prof.name = new
-            sp.markChanged()
-
-        counts["cues"], counts["mentions"] = sp.renameCharacters({old: new})
+        counts["cues"], counts["mentions"] = sp.renameCharacters({old: new}, True)
 
         return None
 
