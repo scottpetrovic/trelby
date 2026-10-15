@@ -1,6 +1,8 @@
 import asyncio
 import shutil
 import socket
+import subprocess
+import sys
 
 import pytest
 
@@ -134,3 +136,18 @@ def testArgs():
     for bad in (["--port", "1"], ["--app", "--port"], ["--app", "--port", "x"], ["-x"]):
         with pytest.raises(SystemExit):
             mcpserver.main(bad)
+
+
+
+# Trelby.exe --mcp-bridge runs the bridge instead of the app. it's given
+# a bad argument here, so it stops right after parsing them.
+def testExeBridgeArg():
+    res = subprocess.run(
+        [sys.executable, "trelby.py", "--mcp-bridge", "--bad"],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    assert res.returncode == 2
+    assert "usage:" in res.stderr

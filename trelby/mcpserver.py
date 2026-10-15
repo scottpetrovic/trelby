@@ -9,10 +9,11 @@
 #
 #  python -m trelby.mcpserver --app [--port N]
 #   a stdio bridge to the server in the app, for clients like Claude
-#   Desktop that can only start servers, not connect to them.
+#   Desktop that can only start servers, not connect to them. the exe runs
+#   it as "Trelby.exe --mcp-bridge [--port N]" (see trelby.main).
 #
 # the actual operations are in mcptools.py. the MCP SDK is an optional
-# dependency (pip install trelby[mcp]).
+# dependency (pip install trelby[mcp]), always bundled in the exe.
 
 import sys
 import threading
@@ -383,7 +384,8 @@ def makeBridgeServer(port):
 
 def usage():
     print(
-        "usage: python -m trelby.mcpserver [--app [--port N]]\n\n"
+        "usage: python -m trelby.mcpserver [--app [--port N]]\n"
+        "       Trelby.exe --mcp-bridge [--port N]   (same as --app)\n\n"
         "Without --app, works on .trelby files on disk. With --app, connects "
         "to the scripts open in a running Trelby (default port %d)." % DEFAULT_PORT,
         file=sys.stderr,

@@ -42,13 +42,13 @@ AI assistants can read and edit scripts over MCP, with one set of tools (`makeSe
 
 - **Files on disk:** `.venv/Scripts/python -m trelby.mcpserver` (stdio). Every write saves the file with a `.bak` backup, and doesn't reach a copy of the script open in the app.
 - **In the app:** Settings → MCP Server turns on an HTTP server at `http://127.0.0.1:7789/mcp` (`trelby/mcpapp.py`, off by default, `mcpEnabled` / `mcpPort` in the global config). It edits the open scripts live: the `path` argument picks a script, defaulting to the active tab. Calls run in the GUI thread via `wx.CallAfter`; edits are undoable and refused while a modal dialog is open.
-- **Bridge:** `python -m trelby.mcpserver --app [--port N]` is a stdio server that forwards to the app, for Claude Desktop, which can only start servers. The settings page has a button that copies its config entry.
+- **Bridge:** `python -m trelby.mcpserver --app [--port N]` is a stdio server that forwards to the app, for Claude Desktop, which can only start servers. The exe runs it as `Trelby.exe --mcp-bridge [--port N]` (checked in `trelby.trelby.main` before any wx startup; stdio works even though the exe is windowed). The settings page has a button that copies its config entry, in whichever form is running.
 
 The operations are in `trelby/mcptools.py`, which needs neither the MCP SDK nor wx: `FileDoc` (file on disk) and `LiveDoc` (script in memory, with undo; `mcpapp.AppDoc` adds the GUI refresh). Every write needs the revision (a content hash) from an earlier read. Tests: `tests/test_mcptools.py`, `tests/test_mcpserver.py`.
 
-The `mcp` SDK is an optional extra (`pip install trelby[mcp]`, entry point `trelby-mcp`); without it the app runs normally and the settings page says the server isn't available. It isn't set up for the exe build.
+The `mcp` SDK is an optional extra (`pip install trelby[mcp]`, entry point `trelby-mcp`); without it the app runs normally and the settings page says the server isn't available. The exe always bundles it (about 25 MB of the ~125 MB `dist/Trelby/`): `tools/build-exe.sh` installs it if missing and fails if the lazily imported MCP/uvicorn modules are missing from `PYZ-00.toc`. To test the exe's server without touching your real settings, run it with `--test` from the repo root and add `MCP/Enabled:True` (and `MCP/Port:N` if a source Trelby already holds 7789) to `.trelby/default.conf`.
 
-For a stdio client config, use the venv's python as the command, `["-m", "trelby.mcpserver"]` (plus `"--app"` for the bridge) as args, and `PYTHONPATH` set to the repo root in `env` (Claude Desktop has no `cwd` option, and trelby isn't pip-installed in the venv). Claude Desktop rewrites its config file while running, so quit it fully (tray → Quit) before editing `claude_desktop_config.json`.
+For a stdio client config, use the venv's python as the command, `["-m", "trelby.mcpserver"]` (plus `"--app"` for the bridge) as args, and `PYTHONPATH` set to the repo root in `env` (Claude Desktop has no `cwd` option, and trelby isn't pip-installed in the venv). For the exe it's just `Trelby.exe` with `["--mcp-bridge", "--port", "N"]`. Claude Desktop rewrites its config file while running, so quit it fully (tray → Quit) before editing `claude_desktop_config.json`.
 
 ## Code conventions worth knowing
 
