@@ -86,7 +86,7 @@ class MyCtrl(wx.Control):
 
         # wx.Rect of the "Title pages" link above the first page, or None
         # if it's not on screen. set by OnPaint.
-        self.titleLinkRect = None
+        self.titleButtonRect = None
 
         self.createEmptySp()
         self.updateScreen(redraw=False)
@@ -632,7 +632,7 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(self.sp.line)
 
     def OnLeftDown(self, event, mark=False):
-        if not mark and self.isOverTitleLink(event.GetPosition()):
+        if not mark and self.isOverTitleButton(event.GetPosition()):
             self.gd.mainFrame.OnTitlesDlg()
 
             return
@@ -724,13 +724,13 @@ class MyCtrl(wx.Control):
         if event.LeftIsDown() and not self.clickSelectActive:
             self.OnLeftDown(event, mark=True)
 
-        if self.isOverTitleLink(event.GetPosition()):
+        if self.isOverTitleButton(event.GetPosition()):
             self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
         else:
             self.SetCursor(wx.NullCursor)
 
-    def isOverTitleLink(self, pos):
-        return bool(self.titleLinkRect) and self.titleLinkRect.Contains(pos)
+    def isOverTitleButton(self, pos):
+        return bool(self.titleButtonRect) and self.titleButtonRect.Contains(pos)
 
     def OnRightDown(self, event):
         pos = event.GetPosition()
@@ -1780,10 +1780,10 @@ class MyCtrl(wx.Control):
                 dc.DrawLine(dp.x1 + 1, dp.y2 + 1, dp.x2 + 1, dp.y2 + 1)
                 dc.DrawLine(dp.x2 + 1, dp.y1 + 1, dp.x2 + 1, dp.y2 + 2)
 
-        self.titleLinkRect = None
+        self.titleButtonRect = None
 
         if dpages and (dpages[0].pageNr == 1):
-            self.drawTitleLink(dc, dpages[0])
+            self.drawTitleButton(dc, dpages[0])
 
         for t in strings:
             i = t.line
@@ -1908,26 +1908,30 @@ class MyCtrl(wx.Control):
         if self.sp.acItems and (cursorY > 0):
             self.drawAutoComp(dc, posX, cursorY, acFi)
 
-    # draw the link that opens the title pages dialog, just above the
-    # top-left corner of the first page (dp), if there's room for it.
-    def drawTitleLink(self, dc, dp):
-        font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
-        font.SetUnderlined(True)
-        dc.SetFont(font)
+    # draw the button that opens the title pages dialog, centered just
+    # above the first page (dp), if there's room for it.
+    def drawTitleButton(self, dc, dp):
+        dc.SetFont(wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT))
 
-        text = _("Title pages")
+        text = _("Manage title page")
         tw, th = dc.GetTextExtent(text)
 
-        x = dp.x1
-        y = dp.y1 - th - 4
+        bw = tw + 40
+        bh = th + 16
+        x = (dp.x1 + dp.x2 - bw) // 2
+        y = dp.y1 - bh - 8
 
         if y < 0:
             return
 
-        dc.SetTextForeground(self.gd.cfgGui.textHdrColor)
-        dc.DrawText(text, x, y)
+        dc.SetPen(self.gd.cfgGui.pageBorderPen)
+        dc.SetBrush(self.gd.cfgGui.textBgBrush)
+        dc.DrawRoundedRectangle(x, y, bw, bh, 4)
 
-        self.titleLinkRect = wx.Rect(x, y, tw, th)
+        dc.SetTextForeground(self.gd.cfgGui.textColor)
+        dc.DrawText(text, x + (bw - tw) // 2, y + (bh - th) // 2)
+
+        self.titleButtonRect = wx.Rect(x, y, bw, bh)
 
     def drawAutoComp(self, dc, posX, cursorY, fi):
         ac = self.sp.acItems
