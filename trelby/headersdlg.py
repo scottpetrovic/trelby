@@ -85,7 +85,7 @@ class HeadersDlg(wx.Dialog):
 
         hsizerTop = wx.BoxSizer(wx.HORIZONTAL)
 
-        gsizer = wx.FlexGridSizer(3, 2, 5, 0)
+        gsizer = wx.FlexGridSizer(4, 2, 5, 0)
 
         gsizer.Add(
             wx.StaticText(self, -1, _("Header line:")), 0, wx.ALIGN_CENTER_VERTICAL
@@ -113,37 +113,20 @@ class HeadersDlg(wx.Dialog):
         gsizer.Add(
             wx.StaticText(self, -1, _("Alignment:")), 0, wx.ALIGN_CENTER_VERTICAL
         )
-        self.alignCombo = wx.ComboBox(self, -1, style=wx.CB_READONLY)
 
-        for it in [
-            (_("Left"), util.ALIGN_LEFT),
-            (_("Center"), util.ALIGN_CENTER),
-            (_("Right"), util.ALIGN_RIGHT),
-        ]:
-            self.alignCombo.Append(it[0], it[1])
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.alignBtns = gutil.addAlignToggles(self, hsizer, self.OnMisc)
+        gsizer.Add(hsizer)
 
-        gsizer.Add(self.alignCombo)
-        self.Bind(wx.EVT_COMBOBOX, self.OnMisc, id=self.alignCombo.GetId())
+        gsizer.Add(wx.StaticText(self, -1, _("Format:")), 0, wx.ALIGN_CENTER_VERTICAL)
+
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.boldBtn, self.italicBtn, self.underlinedBtn = gutil.addStyleToggles(
+            self, hsizer, self.OnMisc
+        )
+        gsizer.Add(hsizer)
 
         hsizerTop.Add(gsizer)
-
-        bsizer = wx.StaticBoxSizer(wx.StaticBox(self, -1, _("Style")), wx.HORIZONTAL)
-
-        vsizer2 = wx.BoxSizer(wx.VERTICAL)
-
-        # wxGTK adds way more space by default than wxMSW between the
-        # items, have to adjust for that
-        pad = 0
-        if misc.isWindows:
-            pad = 5
-
-        self.addCheckBox("Bold", self, vsizer2, pad)
-        self.addCheckBox("Italic", self, vsizer2, pad)
-        self.addCheckBox("Underlined", self, vsizer2, pad)
-
-        bsizer.Add(vsizer2)
-
-        hsizerTop.Add(bsizer, 0, wx.LEFT, 40)
 
         vsizer.Add(hsizerTop, 0, wx.TOP, 20)
 
@@ -178,22 +161,15 @@ class HeadersDlg(wx.Dialog):
         self.widList = [
             self.textEntry,
             self.xoffEntry,
-            self.alignCombo,
             self.lineEntry,
-            self.boldCb,
-            self.italicCb,
-            self.underlinedCb,
-        ]
+            self.boldBtn,
+            self.italicBtn,
+            self.underlinedBtn,
+        ] + list(self.alignBtns.values())
 
         self.updateGui()
 
         self.textEntry.SetFocus()
-
-    def addCheckBox(self, name, parent, sizer, pad):
-        cb = wx.CheckBox(parent, -1, name)
-        self.Bind(wx.EVT_CHECKBOX, self.OnMisc, id=cb.GetId())
-        sizer.Add(cb, 0, wx.TOP, pad)
-        setattr(self, name.lower() + "Cb", cb)
 
     def OnOK(self, event):
         self.EndModal(wx.ID_OK)
@@ -292,9 +268,10 @@ class HeadersDlg(wx.Dialog):
             self.textEntry.SetValue("")
             self.lineEntry.SetValue(1)
             self.xoffEntry.SetValue(0)
-            self.boldCb.SetValue(False)
-            self.italicCb.SetValue(False)
-            self.underlinedCb.SetValue(False)
+            self.boldBtn.SetValue(False)
+            self.italicBtn.SetValue(False)
+            self.underlinedBtn.SetValue(False)
+            gutil.setAlignment(self.alignBtns, None)
 
             return
 
@@ -308,12 +285,12 @@ class HeadersDlg(wx.Dialog):
         self.textEntry.SetValue(h.text)
         self.xoffEntry.SetValue(h.xoff)
 
-        util.reverseComboSelect(self.alignCombo, h.align)
+        gutil.setAlignment(self.alignBtns, h.align)
         self.lineEntry.SetValue(h.line)
 
-        self.boldCb.SetValue(h.isBold)
-        self.italicCb.SetValue(h.isItalic)
-        self.underlinedCb.SetValue(h.isUnderlined)
+        self.boldBtn.SetValue(h.isBold)
+        self.italicBtn.SetValue(h.isItalic)
+        self.underlinedBtn.SetValue(h.isUnderlined)
 
         self.block = False
 
@@ -330,8 +307,8 @@ class HeadersDlg(wx.Dialog):
 
         h.xoff = util.getSpinValue(self.xoffEntry)
         h.line = util.getSpinValue(self.lineEntry)
-        h.align = self.alignCombo.GetClientData(self.alignCombo.GetSelection())
+        h.align = gutil.getAlignment(self.alignBtns)
 
-        h.isBold = self.boldCb.GetValue()
-        h.isItalic = self.italicCb.GetValue()
-        h.isUnderlined = self.underlinedCb.GetValue()
+        h.isBold = self.boldBtn.GetValue()
+        h.isItalic = self.italicBtn.GetValue()
+        h.isUnderlined = self.underlinedBtn.GetValue()

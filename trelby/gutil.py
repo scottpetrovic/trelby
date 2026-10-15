@@ -100,6 +100,121 @@ def createStockButton(parent, label):
         return wx.Button(parent, -1, label)
 
 
+# add a small toggle button showing 'label' in the given font style to
+# 'sizer', calling handler(event) when it's toggled, and return it
+def addToggle(
+    parent,
+    sizer,
+    label,
+    tip,
+    handler,
+    weight=wx.FONTWEIGHT_NORMAL,
+    style=wx.FONTSTYLE_NORMAL,
+    underlined=False,
+):
+    size = parent.FromDIP(wx.Size(30, 28))
+    btn = wx.ToggleButton(parent, -1, label, size=size)
+    btn.SetToolTip(tip)
+
+    font = btn.GetFont()
+    font.SetWeight(weight)
+    font.SetStyle(style)
+    font.SetUnderlined(underlined)
+    btn.SetFont(font)
+
+    btn.Bind(wx.EVT_TOGGLEBUTTON, handler)
+    sizer.Add(btn, 0, wx.RIGHT, 2)
+
+    return btn
+
+
+# add bold / italic / underlined toggles to 'sizer', calling
+# handler(event) when one is toggled, and return them as a (bold,
+# italic, underlined) tuple
+def addStyleToggles(parent, sizer, handler):
+    return (
+        addToggle(parent, sizer, "B", _("Bold"), handler, wx.FONTWEIGHT_BOLD),
+        addToggle(
+            parent, sizer, "I", _("Italic"), handler, style=wx.FONTSTYLE_ITALIC
+        ),
+        addToggle(parent, sizer, "U", _("Underlined"), handler, underlined=True),
+    )
+
+
+# add left / center / right alignment toggles to 'sizer', which work like
+# radio buttons, and return them as a {util.ALIGN_*: button} dict.
+# handler(event) is called after one is clicked.
+def addAlignToggles(parent, sizer, handler):
+    btns = {}
+
+    def onAlign(event):
+        for btn in btns.values():
+            btn.SetValue(btn is event.GetEventObject())
+
+        handler(event)
+
+    for align, tip in [
+        (util.ALIGN_LEFT, _("Align left")),
+        (util.ALIGN_CENTER, _("Center")),
+        (util.ALIGN_RIGHT, _("Align right")),
+    ]:
+        btn = addToggle(parent, sizer, "", tip, onAlign)
+        btn.SetBitmap(makeAlignBitmap(btn, align))
+        btns[align] = btn
+
+    return btns
+
+
+# return the alignment selected in alignment toggles made by
+# addAlignToggles
+def getAlignment(btns):
+    for align, btn in btns.items():
+        if btn.GetValue():
+            return align
+
+    return util.ALIGN_LEFT
+
+
+# select 'align' in alignment toggles made by addAlignToggles, or none of
+# them if it's None
+def setAlignment(btns, align):
+    for a, btn in btns.items():
+        btn.SetValue(a == align)
+
+
+# return an icon for alignment button 'btn': four lines of text, aligned
+# as 'align'
+def makeAlignBitmap(btn, align):
+    size = btn.FromDIP(16)
+    bmp = wx.Bitmap.FromRGBA(size, size, 0, 0, 0, 0)
+
+    dc = wx.MemoryDC(bmp)
+    gc = wx.GraphicsContext.Create(dc)
+
+    gc.SetPen(wx.TRANSPARENT_PEN)
+    gc.SetBrush(wx.Brush(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNTEXT)))
+
+    thick = max(1, size // 8)
+    gap = (size - 4 * thick) / 5
+
+    for i, frac in enumerate([1.0, 0.6, 0.85, 0.5]):
+        w = round(size * frac)
+
+        if align == util.ALIGN_CENTER:
+            x = (size - w) / 2
+        elif align == util.ALIGN_RIGHT:
+            x = size - w
+        else:
+            x = 0
+
+        gc.DrawRectangle(x, gap + i * (thick + gap), w, thick)
+
+    del gc
+    dc.SelectObject(wx.NullBitmap)
+
+    return bmp
+
+
 # wxWidgets has a bug in 2.6 on wxGTK2 where double clicking on a button
 # does not send two wx.EVT_BUTTON events, only one. since the wxWidgets
 # maintainers do not seem interested in fixing this

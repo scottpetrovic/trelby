@@ -85,27 +85,13 @@ class TitlesDlg(wx.Dialog):
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.boldBtn = self.addToggle(hsizer, "B", _("Bold"), wx.FONTWEIGHT_BOLD)
-        self.italicBtn = self.addToggle(
-            hsizer, "I", _("Italic"), style=wx.FONTSTYLE_ITALIC
-        )
-        self.underlinedBtn = self.addToggle(
-            hsizer, "U", _("Underlined"), underlined=True
+        self.boldBtn, self.italicBtn, self.underlinedBtn = (
+            gutil.addStyleToggles(self, hsizer, self.OnMisc)
         )
 
         hsizer.AddSpacer(12)
 
-        # alignment buttons, which work like radio buttons
-        self.alignBtns = {}
-
-        for align, tip in [
-            (util.ALIGN_LEFT, _("Align left")),
-            (util.ALIGN_CENTER, _("Center")),
-            (util.ALIGN_RIGHT, _("Align right")),
-        ]:
-            btn = self.addToggle(hsizer, "", tip, handler=self.OnAlign)
-            btn.SetBitmap(makeAlignBitmap(btn, align))
-            self.alignBtns[align] = btn
+        self.alignBtns = gutil.addAlignToggles(self, hsizer, self.OnMisc)
 
         gsizer.Add(hsizer)
 
@@ -241,51 +227,6 @@ class TitlesDlg(wx.Dialog):
         gutil.btnDblClick(btn, handler)
 
         return btn
-
-    # add a small toggle button showing 'label' in the given font style
-    # to 'sizer', and return it. 'handler' defaults to OnMisc.
-    def addToggle(
-        self,
-        sizer,
-        label,
-        tip,
-        weight=wx.FONTWEIGHT_NORMAL,
-        style=wx.FONTSTYLE_NORMAL,
-        underlined=False,
-        handler=None,
-    ):
-        size = self.FromDIP(wx.Size(30, 28))
-        btn = wx.ToggleButton(self, -1, label, size=size)
-        btn.SetToolTip(tip)
-
-        font = btn.GetFont()
-        font.SetWeight(weight)
-        font.SetStyle(style)
-        font.SetUnderlined(underlined)
-        btn.SetFont(font)
-
-        btn.Bind(wx.EVT_TOGGLEBUTTON, handler or self.OnMisc)
-        sizer.Add(btn, 0, wx.RIGHT, 2)
-
-        return btn
-
-    # an alignment button was clicked: make it the only one pressed
-    def OnAlign(self, event):
-        for btn in self.alignBtns.values():
-            btn.SetValue(btn is event.GetEventObject())
-
-        self.OnMisc()
-
-    def getAlignment(self):
-        for align, btn in self.alignBtns.items():
-            if btn.GetValue():
-                return align
-
-        return util.ALIGN_LEFT
-
-    def setAlignment(self, align):
-        for a, btn in self.alignBtns.items():
-            btn.SetValue(a == align)
 
     def OnOK(self, event):
         self.endCellEdit()
@@ -652,7 +593,7 @@ class TitlesDlg(wx.Dialog):
             self.boldBtn.SetValue(False)
             self.italicBtn.SetValue(False)
             self.underlinedBtn.SetValue(False)
-            self.setAlignment(None)
+            gutil.setAlignment(self.alignBtns, None)
             self.kindChoice.SetSelection(wx.NOT_FOUND)
 
             return
@@ -670,7 +611,7 @@ class TitlesDlg(wx.Dialog):
         self.xEntry.SetValue("%.2f" % ts.x)
         self.yEntry.SetValue("%.2f" % ts.y)
 
-        self.setAlignment(ts.getAlignment())
+        gutil.setAlignment(self.alignBtns, ts.getAlignment())
         self.kindChoice.SetSelection(titles.KINDS.index(ts.kind or titles.TEXT))
 
         util.reverseComboSelect(self.fontCombo, ts.font)
@@ -693,7 +634,7 @@ class TitlesDlg(wx.Dialog):
         ts.x = util.str2float(self.xEntry.GetValue(), 0.0)
         ts.y = util.str2float(self.yEntry.GetValue(), 0.0)
 
-        ts.setAlignment(self.getAlignment())
+        ts.setAlignment(gutil.getAlignment(self.alignBtns))
         self.xEntry.Enable(not ts.isCentered)
 
         ts.size = util.getSpinValue(self.sizeEntry)
@@ -704,36 +645,3 @@ class TitlesDlg(wx.Dialog):
         ts.isUnderlined = self.underlinedBtn.GetValue()
 
         self.previewCtrl.Refresh()
-
-
-# return an icon for alignment button 'btn': four lines of text, aligned
-# as 'align'
-def makeAlignBitmap(btn, align):
-    size = btn.FromDIP(16)
-    bmp = wx.Bitmap.FromRGBA(size, size, 0, 0, 0, 0)
-
-    dc = wx.MemoryDC(bmp)
-    gc = wx.GraphicsContext.Create(dc)
-
-    gc.SetPen(wx.TRANSPARENT_PEN)
-    gc.SetBrush(wx.Brush(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNTEXT)))
-
-    thick = max(1, size // 8)
-    gap = (size - 4 * thick) / 5
-
-    for i, frac in enumerate([1.0, 0.6, 0.85, 0.5]):
-        w = round(size * frac)
-
-        if align == util.ALIGN_CENTER:
-            x = (size - w) / 2
-        elif align == util.ALIGN_RIGHT:
-            x = size - w
-        else:
-            x = 0
-
-        gc.DrawRectangle(x, gap + i * (thick + gap), w, thick)
-
-    del gc
-    dc.SelectObject(wx.NullBitmap)
-
-    return bmp
