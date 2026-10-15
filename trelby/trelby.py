@@ -98,8 +98,12 @@ class MyApp(wx.App):
             # various reasons, if no default config file yet exists
             util.writeToFile(gd.confFilename, cfgGl.save(), None)
 
+        # errors are shown on the Theme settings page
+        for err in config.loadCustomThemes():
+            print("Skipped theme file", err, file=sys.stderr)
+
         # wx wants this done before any windows are created
-        config.applyAppearance(cfgGl.appearance)
+        config.applyAppearance(cfgGl.theme)
 
         # cfgGl.scriptDir is the directory used on startup, while
         # misc.scriptDir is updated every time the user opens something in

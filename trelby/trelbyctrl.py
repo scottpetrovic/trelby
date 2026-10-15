@@ -503,11 +503,14 @@ class MyCtrl(wx.Control):
             misc.scriptDir = self.gd.cfgGl.scriptDir
 
         # must be done before refreshGuiConfig, since the screen colors
-        # depend on whether the theme is dark.
-        appearanceChanged = self.gd.cfgGl.appearance != oldCfgGl.appearance
+        # depend on whether the theme is dark. compares Theme objects, as
+        # reloading the custom themes can change one under the same name.
+        appearanceChanged = (
+            config.findTheme(self.gd.cfgGl.theme) is not self.gd.cfgGui.themeChoice
+        )
 
         if appearanceChanged:
-            config.applyAppearance(self.gd.cfgGl.appearance)
+            config.applyAppearance(self.gd.cfgGl.theme)
 
         self.gd.cfgGl.recalc()
         self.refreshGuiConfig()

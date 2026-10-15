@@ -1165,6 +1165,85 @@
 		operating system. Themes only affect the display, the PDF output is
 		always black on white.</para>
 
+		<para>You can also make your own themes. A theme is a file
+		ending in .json in the 'themes' folder of the &trelby; settings
+		folder ('Trelby\conf\themes' in your user folder on Windows,
+		'~/.config/trelby/themes' on Linux). Click 'Open themes folder' to
+		open it. The easiest way to start is to pick the theme closest to
+		what you want and click 'Export...', which saves it as a theme file
+		in that folder, named after the file. Edit the file in any text
+		editor, then click 'Reload' to see your theme in the list. Themes
+		are also read when &trelby; starts.</para>
+
+		<para>A theme file looks like this (most colors left out):</para>
+
+		<screen>
+{
+    "name": "My Theme",
+    "dark": false,
+    "colors": {
+        "text": "#000000",
+        "textBg": "#ffffff",
+        "workspace": [237, 237, 237],
+        "scene": "#1e4b8c"
+    }
+}
+		</screen>
+
+		<variablelist>
+
+		  <varlistentry>
+			<term>name</term>
+			<listitem>
+
+			  <para>The name shown in the list. If left out, the file's
+			  name is used. It can't be the name of another theme. Your
+			  choice of theme is saved by name, so if you remove a theme
+			  file, System default is used until it's back.</para>
+
+			</listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+			<term>dark</term>
+			<listitem>
+
+			  <para>true if the theme is dark, so that the rest of
+			  &trelby; (menus, dialogs and toolbar icons) uses its dark
+			  appearance too, false if not.</para>
+
+			</listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+			<term>colors</term>
+			<listitem>
+
+			  <para>Each color is either "#rrggbb" in hexadecimal, as in
+			  web pages, or [red, green, blue] with values from 0 to 255.
+			  These colors are required: text, textHdr (page headers),
+			  textBg (the page), workspace (around the pages), pageBorder,
+			  pageShadow, selected, cursor, autoCompFg and autoCompBg (the
+			  auto-completion list), note (the background of notes),
+			  pagebreak, pagebreakNoAdjust, tabText, tabBorder, tabBarBg and
+			  tabNonActiveBg.</para>
+
+			  <para>These are optional: the text colors of scene, action,
+			  character, dialogue, parenthetical, transition, shot,
+			  actBreak and noteText, which default to text; and accent and
+			  accentText, for the selected item in lists, which go
+			  together and default to the operating system's highlight
+			  colors.</para>
+
+			</listitem>
+		  </varlistentry>
+
+		</variablelist>
+
+		<para>A theme file with an error, such as a missing color or a
+		misspelled color name, is skipped, and the Theme page says what is
+		wrong with it.</para>
+
 	  </sect2>
 
 	  <sect2 id="display_cfg">

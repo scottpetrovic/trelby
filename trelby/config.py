@@ -61,32 +61,22 @@ PBI_REAL_AND_UNADJ = 2
 # for range checking above value
 PBI_FIRST, PBI_LAST = PBI_NONE, PBI_REAL_AND_UNADJ
 
-# application theme. do not change these values as they're saved to the
-# config file.
-APPEARANCE_SYSTEM = 0
-APPEARANCE_LIGHT = 1
-APPEARANCE_DARK = 2
-APPEARANCE_PARCHMENT = 3
-APPEARANCE_SOLARIZED_LIGHT = 4
-APPEARANCE_SOLARIZED_DARK = 5
-APPEARANCE_MONOKAI = 6
-APPEARANCE_DRACULA = 7
-APPEARANCE_NORD = 8
+# the name of the "System default" theme setting, which uses themes.LIGHT or
+# themes.DARK following the operating system
+THEME_SYSTEM = ""
 
-# for range checking above value
-APPEARANCE_FIRST, APPEARANCE_LAST = APPEARANCE_SYSTEM, APPEARANCE_NORD
-
-# key = APPEARANCE_* other than APPEARANCE_SYSTEM, value = themes.Theme
-_themes = {
-    APPEARANCE_LIGHT: themes.LIGHT,
-    APPEARANCE_DARK: themes.DARK,
-    APPEARANCE_PARCHMENT: themes.PARCHMENT,
-    APPEARANCE_SOLARIZED_LIGHT: themes.SOLARIZED_LIGHT,
-    APPEARANCE_SOLARIZED_DARK: themes.SOLARIZED_DARK,
-    APPEARANCE_MONOKAI: themes.MONOKAI,
-    APPEARANCE_DRACULA: themes.DRACULA,
-    APPEARANCE_NORD: themes.NORD,
-}
+# the theme names saved as Appearance:N by older versions, indexed by N
+_oldAppearances = [
+    THEME_SYSTEM,
+    "Light",
+    "Dark",
+    "Parchment",
+    "Solarized Light",
+    "Solarized Dark",
+    "Monokai",
+    "Dracula",
+    "Nord",
+]
 
 # key = line type, value = the name of its text color in a theme
 _lt2themeElem = {
@@ -102,12 +92,36 @@ _lt2themeElem = {
 }
 
 
-# make the application use the given APPEARANCE_* theme. the colors we draw
+# the folder custom theme files are read from
+def themesDir():
+    return os.path.join(misc.confPath, "themes")
+
+
+# (re)load the custom themes from themesDir. returns a list of error
+# messages for the files that were skipped.
+def loadCustomThemes():
+    return themes.loadCustom(themesDir())
+
+
+# the themes.Theme the given theme setting names, or None for the system
+# default. a theme that doesn't exist (e.g. a custom theme whose file has
+# been removed) also gives the system default, while the setting keeps the
+# name in case the theme comes back.
+def findTheme(name):
+    if name == THEME_SYSTEM:
+        return None
+
+    return themes.find(name)
+
+
+# make the application use the given theme setting. the colors we draw
 # ourselves are picked up by the next ConfigGui created.
-def applyAppearance(appearance):
-    if appearance == APPEARANCE_SYSTEM:
+def applyAppearance(name):
+    theme = findTheme(name)
+
+    if theme is None:
         a = wx.App.Appearance.System
-    elif _themes[appearance].dark:
+    elif theme.dark:
         a = wx.App.Appearance.Dark
     else:
         a = wx.App.Appearance.Light
@@ -120,13 +134,15 @@ def isDarkAppearance():
     return wx.SystemSettings.GetAppearance().IsDark()
 
 
-# the themes.Theme for the given APPEARANCE_*. must be called after
+# the themes.Theme for the given theme setting. must be called after
 # applyAppearance.
-def getTheme(appearance):
-    if appearance == APPEARANCE_SYSTEM:
+def getTheme(name):
+    theme = findTheme(name)
+
+    if theme is None:
         return themes.DARK if isDarkAppearance() else themes.LIGHT
 
-    return _themes[appearance]
+    return theme
 
 
 # constants for identifying PDFFontInfos
@@ -1303,14 +1319,9 @@ class ConfigGlobal:
         # size of the toolbar icons, in pixels (before DPI scaling)
         v.addInt("toolbarIconSize", 20, "ToolbarIconSize", 16, 48)
 
-        # application theme (APPEARANCE_*)
-        v.addInt(
-            "appearance",
-            APPEARANCE_SYSTEM,
-            "Appearance",
-            APPEARANCE_FIRST,
-            APPEARANCE_LAST,
-        )
+        # application theme: the name of a built-in or custom theme, or
+        # THEME_SYSTEM
+        v.addStrUnicode("theme", THEME_SYSTEM, "Theme")
 
         # how many lines to scroll per mouse wheel event
         v.addInt("mouseWheelLines", 4, "MouseWheelLines", 1, 50)
@@ -1373,6 +1384,13 @@ class ConfigGlobal:
     # ignores any errors, and always leaves config in an ok state.
     def load(self, s):
         vals = self.cvars.makeVals(s)
+
+        # older versions saved the theme as Appearance:N
+        if ("Theme" not in vals) and ("Appearance" in vals):
+            n = util.str2int(vals["Appearance"], 0)
+
+            if 0 <= n < len(_oldAppearances):
+                vals["Theme"] = _oldAppearances[n]
 
         self.cvars.load(vals, "", self)
 
@@ -1534,7 +1552,11 @@ class ConfigGui:
 
             ConfigGui.constantsInited = True
 
-        theme = getTheme(cfgGl.appearance)
+        theme = getTheme(cfgGl.theme)
+
+        # the theme setting's themes.Theme, None for the system default, to
+        # tell when the theme needs applying again (see applyGlobalCfg)
+        self.themeChoice = findTheme(cfgGl.theme)
 
         # the theme's colors, e.g. "textBg" -> self.textBgColor
         for name in themes.COLORS:

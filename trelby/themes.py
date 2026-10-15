@@ -1,6 +1,10 @@
 # the color themes for the screen. a theme is plain data, a name and a
-# dict of color name -> (r, g, b), so themes could also be read from files.
-# the PDF output is always black on white.
+# dict of color name -> (r, g, b). besides the built-in themes below, the
+# user can add their own as JSON files (see loadCustom). the PDF output is
+# always black on white.
+
+import json
+import os
 
 # the colors every theme must define
 COLORS = [
@@ -44,28 +48,50 @@ OPTIONAL = ELEMENTS + ["accent", "accentText"]
 
 
 class Theme:
-    # name is in English, translated when shown. dark is whether the rest
-    # of the application should use its dark appearance.
-    def __init__(self, name, dark, colors):
+    # name is in English, translated when shown (unless it's a custom
+    # theme). dark is whether the rest of the application should use its
+    # dark appearance. path is the file a custom theme was loaded from, None
+    # for a built-in one.
+    def __init__(self, name, dark, colors, path=None):
         missing = set(COLORS) - set(colors)
         unknown = set(colors) - set(COLORS) - set(OPTIONAL)
 
-        if missing or unknown:
+        if missing:
             raise ValueError(
-                "theme %s: missing colors %s, unknown colors %s"
-                % (name, sorted(missing), sorted(unknown))
+                _("missing colors: {}").format(", ".join(sorted(missing)))
+            )
+
+        if unknown:
+            raise ValueError(
+                _("unknown colors: {}").format(", ".join(sorted(unknown)))
             )
 
         if ("accent" in colors) != ("accentText" in colors):
-            raise ValueError("theme %s: accent needs accentText" % name)
+            raise ValueError(_("'accent' and 'accentText' go together"))
+
+        for key, rgb in colors.items():
+            if not _isRgb(rgb):
+                raise ValueError(_("color '{}' is not (r, g, b)").format(key))
 
         self.name = name
         self.dark = dark
         self.colors = colors
+        self.path = path
 
     # the (r, g, b) text color of the given element (see ELEMENTS)
     def elementColor(self, elem):
         return self.colors.get(elem, self.colors["text"])
+
+    def isBuiltin(self):
+        return self.path is None
+
+
+def _isRgb(rgb):
+    return (
+        isinstance(rgb, tuple)
+        and len(rgb) == 3
+        and all(type(c) is int and 0 <= c <= 255 for c in rgb)
+    )
 
 
 LIGHT = Theme(
@@ -323,3 +349,176 @@ NORD = Theme(
         "actBreak": (235, 203, 139),
     },
 )
+
+# in the order they're listed in the settings
+BUILTIN = [
+    LIGHT,
+    DARK,
+    PARCHMENT,
+    SOLARIZED_LIGHT,
+    SOLARIZED_DARK,
+    MONOKAI,
+    DRACULA,
+    NORD,
+]
+
+_HEX = "0123456789abcdefABCDEF"
+
+# the custom themes, from the last loadCustom
+_custom = []
+
+
+# the custom themes, sorted by name
+def getCustom():
+    return list(_custom)
+
+
+# all themes, built-in ones first
+def getAll():
+    return BUILTIN + _custom
+
+
+# the theme with the given name, or None
+def find(name):
+    for t in getAll():
+        if t.name == name:
+            return t
+
+    return None
+
+
+# load the custom themes from the *.json files in the given directory,
+# replacing the ones loaded before. a file that can't be used is skipped.
+# returns a list of error messages, one per skipped file.
+def loadCustom(dirName):
+    global _custom
+
+    _custom = []
+    errors = []
+
+    try:
+        filenames = sorted(f for f in os.listdir(dirName) if f.endswith(".json"))
+    except FileNotFoundError:
+        filenames = []
+    except OSError as e:
+        return [_("Can't read the themes folder '{}': {}").format(dirName, e)]
+
+    # theme names in lowercase, so names that differ only by case don't
+    # get mixed up
+    names = {t.name.lower() for t in BUILTIN}
+
+    for filename in filenames:
+        path = os.path.join(dirName, filename)
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                t = fromJson(f.read(), os.path.splitext(filename)[0], path)
+        except UnicodeDecodeError:
+            errors.append("{}: {}".format(filename, _("not UTF-8 text")))
+            continue
+        except (OSError, ValueError) as e:
+            errors.append("{}: {}".format(filename, e))
+            continue
+
+        if t.name.lower() in names:
+            errors.append(
+                "{}: {}".format(
+                    filename,
+                    _("there's already a theme named '{}'").format(t.name),
+                )
+            )
+            continue
+
+        names.add(t.name.lower())
+        _custom.append(t)
+
+    _custom.sort(key=lambda t: t.name.lower())
+
+    return errors
+
+
+# parse a theme file (see toJson for the format). the name defaults to
+# 'defName'. raises ValueError with a message for the user if the file
+# isn't a valid theme.
+def fromJson(s, defName, path=None):
+    try:
+        d = json.loads(s)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            _("not valid JSON (line {}, column {}: {})").format(
+                e.lineno, e.colno, e.msg
+            )
+        )
+
+    if not isinstance(d, dict):
+        raise ValueError(_("the file should contain a JSON object, {...}"))
+
+    unknown = set(d) - {"name", "dark", "colors"}
+    if unknown:
+        raise ValueError(
+            _("unknown settings: {}").format(", ".join(sorted(unknown)))
+        )
+
+    name = d.get("name", defName)
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError(_("'name' should be a non-empty string"))
+
+    dark = d.get("dark")
+    if not isinstance(dark, bool):
+        raise ValueError(_("'dark' should be true or false"))
+
+    colors = d.get("colors")
+    if not isinstance(colors, dict):
+        raise ValueError(_("'colors' should be a JSON object, {...}"))
+
+    rgbs = {}
+    for key, val in colors.items():
+        rgb = parseColor(val)
+
+        if rgb is None:
+            raise ValueError(
+                _(
+                    "color '{}' should be \"#rrggbb\" or [r, g, b] (0-255), not {}"
+                ).format(key, json.dumps(val))
+            )
+
+        rgbs[key] = rgb
+
+    return Theme(name.strip(), dark, rgbs, path)
+
+
+# a color from a theme file, "#rrggbb" or [r, g, b], as (r, g, b), or None
+# if it isn't one
+def parseColor(val):
+    if isinstance(val, str):
+        if len(val) == 7 and val[0] == "#" and all(c in _HEX for c in val[1:]):
+            return tuple(int(val[i : i + 2], 16) for i in (1, 3, 5))
+
+    elif isinstance(val, list) and len(val) == 3:
+        if all(type(c) is int and 0 <= c <= 255 for c in val):
+            return tuple(val)
+
+    return None
+
+
+# the theme as the contents of a theme file, under the given name:
+#
+# {
+#     "name": "My Theme",
+#     "dark": false,
+#     "colors": {
+#         "text": "#000000",
+#         ...
+#     }
+# }
+def toJson(theme, name):
+    colors = {
+        key: "#%02x%02x%02x" % theme.colors[key]
+        for key in COLORS + OPTIONAL
+        if key in theme.colors
+    }
+
+    return (
+        json.dumps({"name": name, "dark": theme.dark, "colors": colors}, indent=4)
+        + "\n"
+    )
