@@ -43,9 +43,11 @@ revision it is based on, and is refused if the script has changed since, so
 read again (list_scenes / read_scenes) after an error like that. Edits return
 the new revision and the new list of scenes, whose indexes may have shifted.
 
-A script can also have world building notes (get_world_building): the
-writer's free-text notes about the story's world. When they exist, read them
-before writing or changing scenes and keep the script consistent with them.
+A script can also have world building notes (get_world_building), the
+writer's free-text notes about the story's world, and character profiles
+(get_character_profiles) with notes about each character. When they exist,
+read them before writing or changing scenes and keep the script consistent
+with them.
 """
 
 FILE_INSTRUCTIONS = (
@@ -159,8 +161,8 @@ def makeServer(run, inApp):
     @server.tool(annotations=READ)
     async def get_script_info(*, path: Path) -> Result:
         """Return the title page and statistics (pages, words, scenes,
-        characters) of a script, and whether it has world building notes
-        (see get_world_building)."""
+        characters) of a script, its number of character profiles, and
+        whether it has world building notes (see get_world_building)."""
         return await run("get_script_info", {"path": path})
 
     @server.tool(annotations=READ)
@@ -336,6 +338,61 @@ def makeServer(run, inApp):
         change the script's scenes."""
         return await run(
             "set_world_building", {"path": path, "revision": revision, "text": text}
+        )
+
+    @server.tool(annotations=READ)
+    async def get_character_profiles(
+        *,
+        path: Path,
+        name: Annotated[
+            Optional[str],
+            Field(description="Character to return the profile of; default = all."),
+        ] = None,
+    ) -> Result:
+        """Return the character profiles: the writer's notes about each
+        character (background, personality, look, arcs, ...), how many
+        photos each has, and whether the character speaks in the script.
+        Read a character's profile before writing them, and keep their
+        behavior and details consistent with it."""
+        return await run("get_character_profiles", {"path": path, "name": name})
+
+    @server.tool(annotations=EDIT)
+    async def set_character_profile(
+        *,
+        path: Path,
+        revision: Revision,
+        name: Annotated[
+            str,
+            Field(
+                description="Character name; case and extensions like "
+                "(V.O.) are ignored."
+            ),
+        ],
+        notes: Annotated[
+            str,
+            Field(
+                description="The complete new notes. They replace the old "
+                "ones, so to add to them, include the existing text."
+            ),
+        ],
+    ) -> Result:
+        """Create a character's profile, or replace its notes (the free
+        text shown in Tools > Character profiles). Photos are kept. To
+        rename a character, use rename_character instead."""
+        return await run(
+            "set_character_profile",
+            {"path": path, "revision": revision, "name": name, "notes": notes},
+        )
+
+    @server.tool(annotations=EDIT)
+    async def delete_character_profile(
+        *, path: Path, revision: Revision, name: str
+    ) -> Result:
+        """Delete a character's profile, including its notes and photos.
+        The character's lines in the script are not touched."""
+        return await run(
+            "delete_character_profile",
+            {"path": path, "revision": revision, "name": name},
         )
 
     if not inApp:

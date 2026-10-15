@@ -97,8 +97,8 @@ def revisionOf(data):
 
 
 # revision of a script in memory: covers everything the tools can see or
-# change in the script's text and world building notes, but not e.g. the
-# cursor position.
+# change in the script's text, world building notes and character
+# profiles, but not e.g. the cursor position.
 def linesRevision(sp):
     s = "\n".join(
         "%s|%s|%s|%s" % (ln, ln.pageLock or "", int(ln.dual), ln.color or "")
@@ -107,6 +107,9 @@ def linesRevision(sp):
 
     if sp.worldBuilding.text:
         s += "\0" + sp.worldBuilding.text
+
+    for prof in sp.characterProfiles.profiles:
+        s += "\0%s\0%s\0%d" % (prof.name, prof.notes, len(prof.photos))
 
     return revisionOf(s.encode("UTF-8"))
 
@@ -466,6 +469,7 @@ def getInfo(doc):
             "scenes": sum(1 for item in outline if item.lt == SCENE),
             "act_breaks": sum(1 for item in outline if item.lt == ACTBREAK),
             "characters": len(characters),
+            "character_profiles": len(sp.characterProfiles.profiles),
             "has_world_building": bool(sp.worldBuilding.text.strip()),
         }
     )
@@ -777,6 +781,108 @@ def setWorldBuilding(doc, revision, text):
     return {"revision": rev, "length": len(sp.worldBuilding.text)}
 
 
+def profileDict(prof, scriptNames):
+    name = characterprofiles.normalizeName(prof.name)
+
+    return {
+        "name": name,
+        "notes": prof.notes,
+        "photos": len(prof.photos),
+        "in_script": name in scriptNames,
+    }
+
+
+def scriptNamesOf(sp):
+    return {characterprofiles.normalizeName(n) for n in sp.getCharacterNames()}
+
+
+# return the character profiles, or only the one for 'name'.
+def getCharacterProfiles(doc, name=None):
+    sp, rev = doc.read()
+    names = scriptNamesOf(sp)
+
+    if name is None:
+        profs = sp.characterProfiles.profiles
+    else:
+        prof = sp.characterProfiles.get(name)
+
+        if not prof:
+            raise ToolError(
+                "There is no profile for '%s'."
+                % characterprofiles.normalizeName(name)
+            )
+
+        profs = [prof]
+
+    return {"revision": rev, "profiles": [profileDict(p, names) for p in profs]}
+
+
+# do a write that changes the character profiles, as one undo step.
+# edit(sp) changes sp.characterProfiles and returns the result to
+# include.
+def writeProfiles(doc, revision, edit):
+    ret = {}
+
+    def wrapper(sp):
+        u = undo.CharacterProfiles(sp)
+        ret.update(edit(sp))
+        u.setAfter(sp)
+        sp.addUndo(u)
+
+        return None
+
+    ret["revision"] = doc.write(revision, wrapper, True)[1]
+
+    return ret
+
+
+# create a profile for 'name' or replace its notes. photos are kept.
+def setCharacterProfile(doc, revision, name, notes):
+    name = characterprofiles.normalizeName(name)
+
+    if not name:
+        raise ToolError("Character names can't be empty.")
+
+    if not isinstance(notes, str):
+        raise ToolError("The notes must be a string.")
+
+    notes = util.fixNL(notes)
+
+    def edit(sp):
+        profiles = sp.characterProfiles
+        prof = profiles.get(name)
+        created = prof is None
+
+        if created:
+            prof = characterprofiles.CharacterProfile(name)
+            profiles.profiles.append(prof)
+            profiles.sort()
+
+        prof.notes = notes
+
+        return {"created": created, "profile": profileDict(prof, scriptNamesOf(sp))}
+
+    return writeProfiles(doc, revision, edit)
+
+
+# delete the profile for 'name', including its photos. the character
+# itself stays in the script.
+def deleteCharacterProfile(doc, revision, name):
+    name = characterprofiles.normalizeName(name)
+
+    def edit(sp):
+        prof = sp.characterProfiles.get(name)
+
+        if not prof:
+            raise ToolError("There is no profile for '%s'." % name)
+
+        sp.characterProfiles.profiles.remove(prof)
+
+        return {"deleted": name}
+
+    return writeProfiles(doc, revision, edit)
+
+
 # create a new .trelby file containing the given elements.
 def createScript(path, elements):
     init()
@@ -822,4 +928,11 @@ OPS = {
     ),
     "get_world_building": lambda d, a: getWorldBuilding(d),
     "set_world_building": lambda d, a: setWorldBuilding(d, a["revision"], a["text"]),
+    "get_character_profiles": lambda d, a: getCharacterProfiles(d, a.get("name")),
+    "set_character_profile": lambda d, a: setCharacterProfile(
+        d, a["revision"], a["name"], a["notes"]
+    ),
+    "delete_character_profile": lambda d, a: deleteCharacterProfile(
+        d, a["revision"], a["name"]
+    ),
 }

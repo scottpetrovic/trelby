@@ -102,6 +102,46 @@ def testWorldBuildingTools(script):
     assert res.structured_content["has_world_building"]
 
 
+def testCharacterProfileTools(script):
+    server = mcpserver.makeFileServer()
+
+    names = set(toolNames(server))
+    assert {
+        "get_character_profiles",
+        "set_character_profile",
+        "delete_character_profile",
+    } <= names
+    assert "name" not in schema(server, "get_character_profiles").get("required", [])
+
+    res = call(server, "get_character_profiles", {"path": script})
+    assert not res.is_error
+
+    res = call(
+        server,
+        "set_character_profile",
+        {
+            "path": script,
+            "revision": res.structured_content["revision"],
+            "name": "Zed",
+            "notes": "Mysterious.",
+        },
+    )
+    assert not res.is_error
+
+    res = call(server, "get_character_profiles", {"path": script, "name": "zed"})
+    assert res.structured_content["profiles"][0]["notes"] == "Mysterious."
+
+    res = call(
+        server,
+        "delete_character_profile",
+        {"path": script, "revision": res.structured_content["revision"], "name": "Zed"},
+    )
+    assert not res.is_error
+
+    msg = callError(server, "get_character_profiles", {"path": script, "name": "Zed"})
+    assert "no profile" in msg
+
+
 def testAppServerArgs():
     calls = []
 

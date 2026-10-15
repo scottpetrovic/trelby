@@ -327,6 +327,81 @@ def testWorldBuilding(small):
     assert not os.path.exists(small + ".bak")
 
 
+def testCharacterProfiles(small):
+    assert m.getCharacterProfiles(D(small))["profiles"] == []
+    assert m.getInfo(D(small))["character_profiles"] == 0
+
+    res = m.setCharacterProfile(D(small), rev(small), "mary (o.s.)", "A cook.\r\nKind.")
+    assert res["created"]
+    assert res["profile"] == {
+        "name": "MARY",
+        "notes": "A cook.\nKind.",
+        "photos": 0,
+        "in_script": True,
+    }
+    assert res["revision"] == rev(small)
+
+    res = m.setCharacterProfile(D(small), rev(small), "Alice", "Never seen.")
+    assert res["created"]
+    assert not res["profile"]["in_script"]
+
+    res = m.setCharacterProfile(D(small), rev(small), "Mary", "A chef.")
+    assert not res["created"]
+
+    profs = m.getCharacterProfiles(D(small))["profiles"]
+    assert [(p["name"], p["notes"]) for p in profs] == [
+        ("ALICE", "Never seen."),
+        ("MARY", "A chef."),
+    ]
+    assert m.getCharacterProfiles(D(small), "mary")["profiles"][0]["notes"] == (
+        "A chef."
+    )
+    assert m.listCharacters(D(small))["characters"][1]["has_profile"]
+    assert m.getInfo(D(small))["character_profiles"] == 2
+
+    with pytest.raises(m.ToolError, match="no profile"):
+        m.getCharacterProfiles(D(small), "John")
+
+    with pytest.raises(m.ToolError, match="empty"):
+        m.setCharacterProfile(D(small), rev(small), " (V.O.)", "x")
+
+    with pytest.raises(m.ToolError, match="changed"):
+        m.setCharacterProfile(D(small), res["revision"][::-1], "Mary", "x")
+
+    res = m.deleteCharacterProfile(D(small), rev(small), "alice")
+    assert res["deleted"] == "ALICE"
+    assert [p["name"] for p in m.getCharacterProfiles(D(small))["profiles"]] == [
+        "MARY"
+    ]
+
+    with pytest.raises(m.ToolError, match="no profile"):
+        m.deleteCharacterProfile(D(small), rev(small), "alice")
+
+    # the scenes are untouched
+    assert elems(small, 1)[2]["text"] == "MARY"
+
+
+def testCharacterProfileKeepsPhotos(small):
+    m.setCharacterProfile(D(small), rev(small), "Mary", "A cook.")
+
+    with open(small, encoding="UTF-8") as f:
+        s = f.read()
+
+    with open(small, "w", encoding="UTF-8") as f:
+        f.write(
+            s.replace(
+                "Profile/1/Notes",
+                "Profile/1/Photos:1\nProfile/1/Photo/1:AAAA\nProfile/1/Notes",
+            )
+        )
+
+    m.setCharacterProfile(D(small), rev(small), "Mary", "A chef.")
+    prof = m.getCharacterProfiles(D(small))["profiles"][0]
+
+    assert prof["notes"] == "A chef."
+    assert prof["photos"] == 1
+
+
 def testExport(small, tmp_path):
     text = m.export(D(small), "text")["content"]
     assert "KITCHEN" in text
@@ -540,4 +615,57 @@ def testLiveWorldBuildingNotWritable():
         m.setWorldBuilding(Readonly(d.sp), m.listScenes(d)["revision"], "x")
 
     assert d.sp.worldBuilding.text == ""
+    assert not d.sp.canUndo()
+
+
+def testLiveCharacterProfiles():
+    d = live()
+    sp = d.sp
+    old = m.listScenes(d)["revision"]
+
+    res = m.setCharacterProfile(d, old, "Mary", "A cook.")
+    assert sp.characterProfiles.get("MARY").notes == "A cook."
+    assert sp.isModified()
+
+    # the revision covers the profiles
+    assert res["revision"] == m.listScenes(d)["revision"] != old
+
+    with pytest.raises(m.ToolError, match="changed"):
+        m.deleteScene(d, old, 1)
+
+    res = m.setCharacterProfile(d, res["revision"], "Mary", "A chef.")
+    m.deleteCharacterProfile(d, res["revision"], "Mary")
+    assert sp.characterProfiles.profiles == []
+
+    # each change is one undo step
+    sp.cmd("undo")
+    assert sp.characterProfiles.get("MARY").notes == "A chef."
+
+    sp.cmd("undo")
+    assert sp.characterProfiles.get("MARY").notes == "A cook."
+
+    sp.cmd("undo")
+    assert sp.characterProfiles.profiles == []
+    assert m.listScenes(d)["revision"] == old
+    assert not sp.canUndo()
+
+    sp.cmd("redo")
+    assert sp.characterProfiles.get("MARY").notes == "A cook."
+
+    # undo history isn't shared with the live profiles
+    sp.characterProfiles.get("MARY").notes = "changed"
+    sp.cmd("undo")
+    sp.cmd("redo")
+    assert sp.characterProfiles.get("MARY").notes == "A cook."
+    sp._validate()
+
+
+def testLiveFailedProfileEditChangesNothing():
+    d = live()
+    r = m.listScenes(d)["revision"]
+
+    with pytest.raises(m.ToolError, match="no profile"):
+        m.deleteCharacterProfile(d, r, "Mary")
+
+    assert m.listScenes(d)["revision"] == r
     assert not d.sp.canUndo()

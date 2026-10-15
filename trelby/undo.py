@@ -1,3 +1,4 @@
+import copy
 import zlib
 
 from trelby.line import Line
@@ -29,6 +30,7 @@ from trelby.line import Line
 # cut                    AnyDifference
 # paste                  AnyDifference
 # (MCP) world building   WorldBuildingText
+# (MCP) char. profiles   CharacterProfiles
 
 
 # extremely rough estimate for the base memory usage of a single undo
@@ -317,6 +319,32 @@ class WorldBuildingText(Base):
 
     def redo(self, sp):
         sp.worldBuilding.text = self.textAfter
+
+
+# a change to the script's character profiles, which are not part of the
+# lines. the cursor is left where it is.
+class CharacterProfiles(Base):
+    def __init__(self, sp):
+        Base.__init__(self, sp, CMD_MISC)
+
+        # photos are immutable bytes, so these copies share them
+        self.before = copy.deepcopy(sp.characterProfiles)
+
+    def setAfter(self, sp):
+        self.after = copy.deepcopy(sp.characterProfiles)
+        self.setEndPos(sp)
+
+    def memoryUsed(self):
+        return BASE_MEMORY_USAGE + sum(
+            len(p.name) + len(p.notes)
+            for p in self.before.profiles + self.after.profiles
+        )
+
+    def undo(self, sp):
+        sp.characterProfiles = copy.deepcopy(self.before)
+
+    def redo(self, sp):
+        sp.characterProfiles = copy.deepcopy(self.after)
 
 
 # Our own implementation of difflib.SequenceMatcher, since the actual one
