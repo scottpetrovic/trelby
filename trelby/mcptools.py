@@ -97,12 +97,16 @@ def revisionOf(data):
 
 
 # revision of a script in memory: covers everything the tools can see or
-# change in the script's text, but not e.g. the cursor position.
+# change in the script's text and world building notes, but not e.g. the
+# cursor position.
 def linesRevision(sp):
     s = "\n".join(
         "%s|%s|%s|%s" % (ln, ln.pageLock or "", int(ln.dual), ln.color or "")
         for ln in sp.lines
     )
+
+    if sp.worldBuilding.text:
+        s += "\0" + sp.worldBuilding.text
 
     return revisionOf(s.encode("UTF-8"))
 
@@ -462,6 +466,7 @@ def getInfo(doc):
             "scenes": sum(1 for item in outline if item.lt == SCENE),
             "act_breaks": sum(1 for item in outline if item.lt == ACTBREAK),
             "characters": len(characters),
+            "has_world_building": bool(sp.worldBuilding.text.strip()),
         }
     )
 
@@ -736,6 +741,42 @@ def renameCharacter(doc, revision, oldName, newName):
     return ret
 
 
+def getWorldBuilding(doc):
+    sp, rev = doc.read()
+
+    return {"revision": rev, "text": sp.worldBuilding.text}
+
+
+# replace the script's world building notes with the given text, like
+# editing them in Tools > World building does.
+def setWorldBuilding(doc, revision, text):
+    if not isinstance(text, str):
+        raise ToolError("The text must be a string.")
+
+    text = util.fixNL(text)
+
+    sp, current = doc.read()
+
+    if revision != current:
+        raise staleError(revision, current)
+
+    # nothing to save, or to undo
+    if text == sp.worldBuilding.text:
+        return {"revision": current, "length": len(text)}
+
+    def edit(sp):
+        u = undo.WorldBuildingText(sp)
+        sp.worldBuilding.text = text
+        u.setAfter(sp)
+        sp.addUndo(u)
+
+        return None
+
+    sp, rev = doc.write(revision, edit, True)
+
+    return {"revision": rev, "length": len(sp.worldBuilding.text)}
+
+
 # create a new .trelby file containing the given elements.
 def createScript(path, elements):
     init()
@@ -779,4 +820,6 @@ OPS = {
     "rename_character": lambda d, a: renameCharacter(
         d, a["revision"], a["old_name"], a["new_name"]
     ),
+    "get_world_building": lambda d, a: getWorldBuilding(d),
+    "set_world_building": lambda d, a: setWorldBuilding(d, a["revision"], a["text"]),
 }

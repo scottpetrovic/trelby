@@ -42,6 +42,10 @@ Every result includes the script's revision. Every edit must be given the
 revision it is based on, and is refused if the script has changed since, so
 read again (list_scenes / read_scenes) after an error like that. Edits return
 the new revision and the new list of scenes, whose indexes may have shifted.
+
+A script can also have world building notes (get_world_building): the
+writer's free-text notes about the story's world. When they exist, read them
+before writing or changing scenes and keep the script consistent with them.
 """
 
 FILE_INSTRUCTIONS = (
@@ -155,7 +159,8 @@ def makeServer(run, inApp):
     @server.tool(annotations=READ)
     async def get_script_info(*, path: Path) -> Result:
         """Return the title page and statistics (pages, words, scenes,
-        characters) of a script."""
+        characters) of a script, and whether it has world building notes
+        (see get_world_building)."""
         return await run("get_script_info", {"path": path})
 
     @server.tool(annotations=READ)
@@ -301,6 +306,36 @@ def makeServer(run, inApp):
                 "old_name": old_name,
                 "new_name": new_name,
             },
+        )
+
+    @server.tool(annotations=READ)
+    async def get_world_building(*, path: Path) -> Result:
+        """Return the script's world building notes: free text the writer
+        keeps about the story's world (places, history, cultures, rules of
+        magic or technology, ...). get_script_info's has_world_building
+        says whether there are any. Read them before writing or revising
+        scenes, and keep new material consistent with them."""
+        return await run("get_world_building", {"path": path})
+
+    @server.tool(annotations=EDIT)
+    async def set_world_building(
+        *,
+        path: Path,
+        revision: Revision,
+        text: Annotated[
+            str,
+            Field(
+                description="The complete new notes. They replace the old "
+                "ones, so to add to them, include the existing text."
+            ),
+        ],
+    ) -> Result:
+        """Replace the script's world building notes (the free text shown
+        in Tools > World building). Use it to record facts about the world
+        that scenes establish, so later scenes stay consistent. Doesn't
+        change the script's scenes."""
+        return await run(
+            "set_world_building", {"path": path, "revision": revision, "text": text}
         )
 
     if not inApp:

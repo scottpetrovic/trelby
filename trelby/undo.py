@@ -28,6 +28,7 @@ from trelby.line import Line
 # convertTypeTo          ManyElems(N, N)
 # cut                    AnyDifference
 # paste                  AnyDifference
+# (MCP) world building   WorldBuildingText
 
 
 # extremely rough estimate for the base memory usage of a single undo
@@ -294,6 +295,28 @@ class AnyDifference(Base):
         sp.line, sp.column = self.endPos.line, self.endPos.column
 
         sp.lines[self.a : self.b] = storage2lines(self.inserted)
+
+
+# a change to the text of the script's world building notes, which are
+# not part of the lines. the cursor is left where it is.
+class WorldBuildingText(Base):
+    def __init__(self, sp):
+        Base.__init__(self, sp, CMD_MISC)
+
+        self.textBefore = sp.worldBuilding.text
+
+    def setAfter(self, sp):
+        self.textAfter = sp.worldBuilding.text
+        self.setEndPos(sp)
+
+    def memoryUsed(self):
+        return BASE_MEMORY_USAGE + len(self.textBefore) + len(self.textAfter)
+
+    def undo(self, sp):
+        sp.worldBuilding.text = self.textBefore
+
+    def redo(self, sp):
+        sp.worldBuilding.text = self.textAfter
 
 
 # Our own implementation of difflib.SequenceMatcher, since the actual one

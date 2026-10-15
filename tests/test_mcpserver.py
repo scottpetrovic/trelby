@@ -75,6 +75,33 @@ def testFileServer(script):
     assert "changed" in msg
 
 
+def testWorldBuildingTools(script):
+    server = mcpserver.makeFileServer()
+
+    assert {"get_world_building", "set_world_building"} <= set(toolNames(server))
+    assert "text" in schema(server, "set_world_building")["required"]
+
+    res = call(server, "get_world_building", {"path": script})
+    assert not res.is_error
+
+    res = call(
+        server,
+        "set_world_building",
+        {
+            "path": script,
+            "revision": res.structured_content["revision"],
+            "text": "It always rains.",
+        },
+    )
+    assert not res.is_error
+
+    res = call(server, "get_world_building", {"path": script})
+    assert res.structured_content["text"] == "It always rains."
+
+    res = call(server, "get_script_info", {"path": script})
+    assert res.structured_content["has_world_building"]
+
+
 def testAppServerArgs():
     calls = []
 

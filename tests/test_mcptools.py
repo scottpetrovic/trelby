@@ -115,6 +115,7 @@ def testInfo(sample):
     assert info["pages"] == 4
     assert info["words"] > 0
     assert info["characters"] > 0
+    assert not info["has_world_building"]
 
 
 def testListCharacters(small):
@@ -292,6 +293,40 @@ def testRenameCharacter(small):
         m.renameCharacter(D(small), rev(small), "Nobody", "Somebody")
 
 
+def testWorldBuilding(small):
+    res = m.getWorldBuilding(D(small))
+    assert res["text"] == ""
+    assert res["revision"] == rev(small)
+
+    text = "The town floods every spring.\r\nMagic costs memories."
+    res = m.setWorldBuilding(D(small), rev(small), text)
+    assert res["revision"] == rev(small)
+    assert os.path.exists(small + ".bak")
+
+    assert m.getWorldBuilding(D(small))["text"] == (
+        "The town floods every spring.\nMagic costs memories."
+    )
+    assert m.getInfo(D(small))["has_world_building"]
+
+    # the scenes are untouched
+    assert elems(small, 1)[2]["text"] == "MARY"
+
+    # the old revision is stale now
+    with pytest.raises(m.ToolError, match="changed"):
+        m.setWorldBuilding(D(small), res["revision"][::-1], "x")
+
+    with pytest.raises(m.ToolError, match="string"):
+        m.setWorldBuilding(D(small), rev(small), None)
+
+    # setting the same text again changes nothing
+    os.remove(small + ".bak")
+    r = rev(small)
+    assert m.setWorldBuilding(D(small), r, m.getWorldBuilding(D(small))["text"])[
+        "revision"
+    ] == r
+    assert not os.path.exists(small + ".bak")
+
+
 def testExport(small, tmp_path):
     text = m.export(D(small), "text")["content"]
     assert "KITCHEN" in text
@@ -459,4 +494,50 @@ def testLiveFailedEditChangesNothing():
         m.replaceScene(d, r, 1, [{"type": "action", "text": "x"}])
 
     assert m.listScenes(d)["revision"] == r
+    assert not d.sp.canUndo()
+
+
+def testLiveWorldBuilding():
+    d = live()
+    sp = d.sp
+    old = m.listScenes(d)["revision"]
+
+    res = m.setWorldBuilding(d, old, "Two moons.")
+    assert sp.worldBuilding.text == "Two moons."
+    assert sp.isModified()
+
+    # the revision covers the notes, so scene edits based on the old one
+    # are refused
+    assert res["revision"] == m.listScenes(d)["revision"] != old
+
+    with pytest.raises(m.ToolError, match="changed"):
+        m.deleteScene(d, old, 1)
+
+    m.setWorldBuilding(d, res["revision"], "Three moons.")
+
+    # each change is one undo step
+    sp.cmd("undo")
+    assert m.getWorldBuilding(d)["text"] == "Two moons."
+
+    sp.cmd("undo")
+    assert m.getWorldBuilding(d)["text"] == ""
+    assert m.listScenes(d)["revision"] == old
+    assert not sp.canUndo()
+
+    sp.cmd("redo")
+    assert m.getWorldBuilding(d)["text"] == "Two moons."
+    sp._validate()
+
+
+def testLiveWorldBuildingNotWritable():
+    d = live()
+
+    class Readonly(m.LiveDoc):
+        def checkWritable(self):
+            raise m.ToolError("busy")
+
+    with pytest.raises(m.ToolError, match="busy"):
+        m.setWorldBuilding(Readonly(d.sp), m.listScenes(d)["revision"], "x")
+
+    assert d.sp.worldBuilding.text == ""
     assert not d.sp.canUndo()
