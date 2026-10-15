@@ -292,8 +292,6 @@ class MyElemTypeBar(wx.Control):
         dc.SetPen(cfgGui.tabBorderPen)
         dc.DrawRoundedRectangle(group, radius)
 
-        selBgColor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
-        selTextColor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHTTEXT)
 
         inset = self.FromDIP(2)
 
@@ -305,10 +303,10 @@ class MyElemTypeBar(wx.Control):
             fillRect = wx.Rect(rect).Deflate(inset)
 
             if self.isSelected(i):
-                dc.SetBrush(wx.Brush(selBgColor))
-                dc.SetPen(wx.Pen(selBgColor))
+                dc.SetBrush(cfgGui.accentBrush)
+                dc.SetPen(cfgGui.accentPen)
                 dc.DrawRoundedRectangle(fillRect, radius - 1)
-                dc.SetTextForeground(selTextColor)
+                dc.SetTextForeground(cfgGui.accentTextColor)
                 dc.SetFont(self.itemFont(i, True))
             else:
                 if (i == self.hover) and not self.disabled:

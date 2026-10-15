@@ -2014,35 +2014,34 @@ class MyCtrl(wx.Control):
         if (posY + h) > size.height:
             posY = cursorY - h - 1
 
-        dc.SetPen(self.gd.cfgGui.autoCompPen)
-        dc.SetBrush(self.gd.cfgGui.autoCompBrush)
-        dc.DrawRectangle(posX, posY, w, h)
+        cfgGui = self.gd.cfgGui
 
-        dc.SetTextForeground(self.gd.cfgGui.autoCompFgColor)
+        dc.SetPen(cfgGui.autoCompBorderPen)
+        dc.SetBrush(cfgGui.autoCompBrush)
+        dc.DrawRectangle(posX, posY, w, h)
 
         for i in range(startPos, endPos):
             if i == asel:
-                dc.SetPen(self.gd.cfgGui.autoCompRevPen)
-                dc.SetBrush(self.gd.cfgGui.autoCompRevBrush)
-                dc.SetTextForeground(self.gd.cfgGui.autoCompBgColor)
-                dc.DrawRectangle(
+                # the selected item in the theme's accent color, like the
+                # toolbar's element type
+                dc.SetPen(cfgGui.accentPen)
+                dc.SetBrush(cfgGui.accentBrush)
+                dc.DrawRoundedRectangle(
                     posX + offset - selBleed,
                     posY + offset + (i - startPos) * fi.fy - selBleed,
                     itemW,
                     fi.fy + selBleed * 2,
+                    3,
                 )
-                dc.SetTextForeground(self.gd.cfgGui.autoCompBgColor)
-                dc.SetPen(self.gd.cfgGui.autoCompPen)
-                dc.SetBrush(self.gd.cfgGui.autoCompBrush)
+                dc.SetTextForeground(cfgGui.accentTextColor)
+            else:
+                dc.SetTextForeground(cfgGui.autoCompFgColor)
 
             dc.DrawText(ac[i], posX + offset, posY + offset + (i - startPos) * fi.fy)
 
-            if i == asel:
-                dc.SetTextForeground(self.gd.cfgGui.autoCompFgColor)
-
         if doSbw:
-            dc.SetPen(self.gd.cfgGui.autoCompPen)
-            dc.SetBrush(self.gd.cfgGui.autoCompRevBrush)
+            dc.SetPen(cfgGui.autoCompBorderPen)
+            dc.SetBrush(cfgGui.autoCompBorderBrush)
             util.drawLine(dc, posX + w - offset * 2 - sbw, posY, 0, h)
             dc.DrawRectangle(
                 posX + w - offset - sbw,

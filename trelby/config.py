@@ -82,7 +82,7 @@ _darkColors = {
     "selectedColor": (75, 80, 100),
     "cursorColor": (110, 110, 230),
     "autoCompFgColor": (230, 230, 230),
-    "autoCompBgColor": (85, 75, 35),
+    "autoCompBgColor": (55, 55, 55),
     "noteColor": (80, 62, 50),
     "pagebreakColor": (70, 70, 70),
     "pagebreakNoAdjustColor": (70, 70, 70),
@@ -90,6 +90,13 @@ _darkColors = {
     "tabBorderColor": (70, 70, 70),
     "tabBarBgColor": (43, 43, 43),
     "tabNonActiveBgColor": (58, 58, 58),
+}
+
+# earlier default values of colors whose default has since changed. the
+# config file stores every color, so a color still at an old default is
+# moved to the new one when loaded, as the user never chose it.
+_oldColorDefaults = {
+    "autoCompBgColor": [(255, 240, 168)],
 }
 
 
@@ -1367,9 +1374,9 @@ class ConfigGlobal:
         )
         v.addColor(
             "autoCompBg",
-            255,
-            240,
-            168,
+            242,
+            242,
+            242,
             "AutoCompletionBG",
             _("Auto-completion background"),
         )
@@ -1409,6 +1416,12 @@ class ConfigGlobal:
         vals = self.cvars.makeVals(s)
 
         self.cvars.load(vals, "", self)
+
+        for name, olds in _oldColorDefaults.items():
+            c = getattr(self, name)
+
+            if (c.r, c.g, c.b) in olds:
+                setattr(self, name, copy.deepcopy(self.cvars.getDefault(name)))
 
         for t in self.types.values():
             t.load(vals, "Element/")
@@ -1610,10 +1623,25 @@ class ConfigGui:
         self.noteBrush = wx.Brush(self.noteColor)
         self.notePen = wx.Pen(self.noteColor)
 
-        self.autoCompPen = wx.Pen(self.autoCompFgColor)
+        # the theme's accent color, for the selected item in lists and
+        # toolbars we draw ourselves: the system's highlight color
+        self.accentColor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+        self.accentTextColor = wx.SystemSettings.GetColour(
+            wx.SYS_COLOUR_HIGHLIGHTTEXT
+        )
+        self.accentBrush = wx.Brush(self.accentColor)
+        self.accentPen = wx.Pen(self.accentColor)
+
         self.autoCompBrush = wx.Brush(self.autoCompBgColor)
-        self.autoCompRevPen = wx.Pen(self.autoCompBgColor)
-        self.autoCompRevBrush = wx.Brush(self.autoCompFgColor)
+
+        # border and scroll bar, a third of the way from the background to
+        # the text
+        fg, bg = self.autoCompFgColor, self.autoCompBgColor
+        self.autoCompBorderColor = wx.Colour(
+            *[(2 * b + f) // 3 for f, b in zip(fg.Get(False), bg.Get(False))]
+        )
+        self.autoCompBorderPen = wx.Pen(self.autoCompBorderColor)
+        self.autoCompBorderBrush = wx.Brush(self.autoCompBorderColor)
 
         self.pagebreakPen = wx.Pen(self.pagebreakColor)
         self.pagebreakNoAdjustPen = wx.Pen(self.pagebreakNoAdjustColor, style=wx.DOT)
