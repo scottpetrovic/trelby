@@ -618,8 +618,15 @@ class MyFrame(wx.Frame):
 
         return newPanel
 
-    def setTitle(self, text):
-        self.SetTitle("Trelby - %s" % text)
+    # show the current script's name in the window title. if ctrl is
+    # given, only does anything if that's the current script.
+    def updateTitle(self, ctrl=None):
+        panel = getattr(self, "panel", None)
+
+        if not panel or ((ctrl is not None) and (ctrl is not panel.ctrl)):
+            return
+
+        self.SetTitle("Trelby - %s" % panel.ctrl.getTitleText())
 
     def setTabText(self, panel, text):
         i = self.findPage(panel)
@@ -722,7 +729,7 @@ class MyFrame(wx.Frame):
         self.panel = self.tabCtrl.getPage(page)
         self.panel.ctrl.SetFocus()
         self.panel.ctrl.updateCommon()
-        self.setTitle(self.panel.ctrl.fileNameDisplay)
+        self.updateTitle()
         self.updateAutosaveStatus()
 
         # also called when a script is opened or closed

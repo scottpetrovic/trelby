@@ -213,8 +213,8 @@ class MyCtrl(wx.Control):
         if util.writeToFile(
             fileName, self.sp.save(), self.gd.mainFrame, backup=True
         ):
-            self.setFile(fileName)
             self.sp.markChanged(False)
+            self.setFile(fileName)
             self.gd.mru.add(fileName)
             self.removeRecovery()
 
@@ -342,7 +342,6 @@ class MyCtrl(wx.Control):
             self.setDisplayName("untitled")
 
         self.setTabText()
-        self.gd.mainFrame.setTitle(self.fileNameDisplay)
 
     def setDisplayName(self, name):
         i = 1
@@ -370,8 +369,23 @@ class MyCtrl(wx.Control):
 
         self.fileNameDisplay = tmp
 
+    # set the tab text and, if this is the current script, the window
+    # title
     def setTabText(self):
-        self.gd.mainFrame.setTabText(self.panel, self.fileNameDisplay)
+        self.shownModified = self.sp.isModified()
+        self.gd.mainFrame.setTabText(self.panel, self.getTitleText())
+        self.gd.mainFrame.updateTitle(self)
+
+    # the script's name for its tab and the window title, with a "*" if it
+    # has unsaved changes
+    def getTitleText(self):
+        return self.fileNameDisplay + ("*" if self.sp.isModified() else "")
+
+    # update the tab text and window title if the script has been modified
+    # or saved since they were last set
+    def updateModifiedMark(self):
+        if self.sp.isModified() != self.shownModified:
+            self.setTabText()
 
     # texts = self.gd.vm.getScreen(self, False)[0], or None, in which case it's
     # called in this function.
@@ -426,6 +440,7 @@ class MyCtrl(wx.Control):
 
     def updateScreen(self, redraw=True, setCommon=True):
         self.adjustScrollBar()
+        self.updateModifiedMark()
 
         if setCommon:
             self.updateCommon()
