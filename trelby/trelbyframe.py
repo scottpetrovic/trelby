@@ -966,6 +966,9 @@ class MyFrame(wx.Frame):
 
     # (re)create the toolbar's tools, with icons at the size set in the
     # global config.
+    # names of the controls fillToolBar puts in the toolbar
+    TB_CONTROLS = ("elemTypeBar", "formatBar", "alignBar")
+
     def fillToolBar(self):
         tb = self.toolBar
         size = wx.Size(self.gd.cfgGl.toolbarIconSize, self.gd.cfgGl.toolbarIconSize)
@@ -978,18 +981,15 @@ class MyFrame(wx.Frame):
         tb.ClearTools()
         tb.SetToolBitmapSize(paddedSize)
 
-        # ClearTools normally destroys controls along with their tools
-        if getattr(self, "elemTypeBar", None):
-            self.elemTypeBar.Destroy()
+        # ClearTools normally destroys controls along with their tools, but
+        # not always, so destroy any that are left. a destroyed wx object
+        # is false.
+        controls = [getattr(self, name, None) for name in self.TB_CONTROLS]
+        controls += getattr(self, "tbDividers", [])
 
-        if getattr(self, "formatBar", None):
-            self.formatBar.Destroy()
-
-        if getattr(self, "alignBar", None):
-            self.alignBar.Destroy()
-
-        for d in getattr(self, "tbDividers", []):
-            d.Destroy()
+        for c in controls:
+            if c:
+                c.Destroy()
 
         self.tbDividers = []
 
