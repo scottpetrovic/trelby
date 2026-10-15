@@ -3234,9 +3234,25 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         lt = ls[self.line].lt
         t = self.autoCompletion.getType(lt)
 
-        if t and t.enabled:
-            self.acItems = self.getMatchingText(ls[self.line].text, lt)
-            self.acSel = 0
+        # completing replaces the line's text, which would mangle an
+        # element that has wrapped onto more than one line
+        if not (t and t.enabled and self.isOnlyLineOfElem(self.line)):
+            self.acItems = None
+
+            return
+
+        text = ls[self.line].text
+        self.acItems = self.getMatchingText(text, lt)
+        self.acSel = 0
+
+        # if what was typed isn't itself a match, offer it as the first
+        # row, so a new name that's the start of an existing one (BOB vs
+        # BOBBY) is one Up away. the best match stays selected, so Enter
+        # still completes.
+        typed = util.upper(text)
+        if self.acItems and typed.strip() and (typed not in self.acItems):
+            self.acItems.insert(0, typed)
+            self.acSel = 1
 
     # page up (dir == -1) or page down (dir == 1) was pressed and we're in
     # auto-comp mode, handle it.
@@ -3255,6 +3271,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     # get a list of strings (single-line text elements for now) that start
     # with 'text' (not case sensitive) and are of of type 'type'. also
     # mixes in the type's default items from config. ignores current line.
+    # an exact match comes first, then the nearest match above the current
+    # line, then the rest sorted.
     def getMatchingText(self, text, lt):
         text = util.upper(text)
         t = self.autoCompletion.getType(lt)
@@ -3263,10 +3281,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         last = None
 
         for i in range(len(ls)):
-            if (ls[i].lt == lt) and (ls[i].lb == LB_LAST):
+            if (ls[i].lt == lt) and self.isOnlyLineOfElem(i):
                 upstr = util.upper(ls[i].text)
 
-                if upstr.startswith(text) and i != self.line:
+                if upstr.strip() and upstr.startswith(text) and i != self.line:
                     matches[upstr] = None
                     if i < self.line:
                         last = upstr
@@ -3285,6 +3303,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         if last:
             mlist.insert(0, last)
+
+        if text in mlist:
+            mlist.remove(text)
+            mlist.insert(0, text)
 
         return mlist
 
