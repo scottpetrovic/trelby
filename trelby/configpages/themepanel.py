@@ -37,17 +37,6 @@ class ThemePanel(wx.Panel):
                 _(
                     "System default follows the light or dark mode setting\nof your operating system."
                 ),
-            ),
-            0,
-            wx.BOTTOM,
-            10,
-        )
-
-        vsizer.Add(
-            wx.StaticText(
-                self,
-                -1,
-                _("Colors you have changed on the Colors page\nare kept in every theme."),
             )
         )
 

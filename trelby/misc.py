@@ -127,21 +127,6 @@ def mnemonic(key, label):
 # TODO: move all GUI stuff to gutil
 
 
-class MyColorSample(wx.Window):
-    def __init__(self, parent, id, size):
-        wx.Window.__init__(self, parent, id, size=size)
-
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-
-    def OnPaint(self, event):
-        dc = wx.PaintDC(self)
-
-        w, h = self.GetClientSize()
-        br = wx.Brush(self.GetBackgroundColour())
-        dc.SetBrush(br)
-        dc.DrawRectangle(0, 0, w, h)
-
-
 # Custom "exit fullscreen" button for our tab bar. Used so that we have
 # full control over the button's size.
 class MyFSButton(wx.Window):

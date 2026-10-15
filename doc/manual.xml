@@ -1157,22 +1157,13 @@
 	  <sect2>
 		<title>Theme</title>
 
-		<para>Chooses whether &trelby; uses a light or dark theme. 'System
-		default' follows the light or dark mode setting of your operating
-		system.</para>
-
-	  </sect2>
-
-	  <sect2>
-		<title>Colors</title>
-
-		<para>Color configuration. These only affect the display, the PDF
-		output is always black on white.</para>
-
-		<para>The 'Use per-element-type colors' checkbox controls whether
-		to use the same text color for all element types (Text foreground)
-		or whether to use the per-element color settings (Text foreground
-		for Action, Text foreground for Character, etc.). </para>
+		<para>Chooses the colors &trelby; uses on screen: Light, Dark,
+		Parchment, Solarized Light, Solarized Dark, Monokai, Dracula or
+		Nord. Each theme also gives scene headings, character names and
+		other element types their own text colors. 'System default' uses
+		Light or Dark, following the light or dark mode setting of your
+		operating system. Themes only affect the display, the PDF output is
+		always black on white.</para>
 
 	  </sect2>
 

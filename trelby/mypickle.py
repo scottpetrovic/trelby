@@ -16,7 +16,6 @@ class Vars:
     # make various dictionaries pointing to the config variables.
     def makeDicts(self):
         self.all = self.getDict()
-        self.color = self.getDict(ColorVar)
         self.numeric = self.getDict(NumericVar)
         self.stringLatin1 = self.getDict(StrLatin1Var)
 
@@ -90,11 +89,6 @@ class Vars:
     def addBool(self, *params):
         self.addVar(BoolVar(*params))
 
-    def addColor(self, name, r, g, b, name2, descr):
-        self.addVar(
-            ColorVar(name + "Color", util.MyColor(r, g, b), "Color/" + name2, descr)
-        )
-
     def addFloat(self, *params):
         self.addVar(FloatVar(*params))
 
@@ -136,26 +130,6 @@ class BoolVar(ConfVar):
 
     def fromStr(self, vals, val, prefix):
         return val == "True"
-
-
-class ColorVar(ConfVar):
-    def __init__(self, name, defVal, name2, descr):
-        ConfVar.__init__(self, name, defVal, name2)
-        self.descr = descr
-
-    def toStr(self, val, prefix):
-        return "%s:%d,%d,%d\n" % (prefix, val.r, val.g, val.b)
-
-    def fromStr(self, vals, val, prefix):
-        v = val.split(",")
-        if len(v) != 3:
-            return copy.deepcopy(self.defVal)
-
-        r = util.str2int(v[0], 0, 0, 255)
-        g = util.str2int(v[1], 0, 0, 255)
-        b = util.str2int(v[2], 0, 0, 255)
-
-        return util.MyColor(r, g, b)
 
 
 class NumericVar(ConfVar):

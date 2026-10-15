@@ -1,52 +1,64 @@
+import pytest
+
 import tests.u as u
 import trelby.config as config
-
-# tests for colors whose default has changed
-
-
-def bg(s):
-    u.init()
-    cfg = config.ConfigGlobal()
-    cfg.load(s)
-    c = cfg.autoCompBgColor
-
-    return (c.r, c.g, c.b)
-
-
-def testOldDefaultMovesToNew():
-    assert bg("Color/AutoCompletionBG:255,240,168\n") == (242, 242, 242)
-
-
-def testChosenColorIsKept():
-    assert bg("Color/AutoCompletionBG:10,20,30\n") == (10, 20, 30)
-
+import trelby.themes as themes
 
 # tests for the color themes
 
 
-def testThemesSetEveryColor():
-    u.init()
-    names = set(config.ConfigGlobal().cvars.color.keys())
-
-    for appearance, (dark, colors) in config._themes.items():
-        if appearance == config.APPEARANCE_LIGHT:
-            continue
-
-        # every screen color, apart from the per-element text colors that
-        # follow textColor
-        themed = set(colors) - {"accentColor", "accentTextColor"}
-        assert themed <= names
-        assert themed == set(config._darkColors)
-
-        assert ("accentColor" in colors) == ("accentTextColor" in colors)
-
-
 def testEveryAppearanceIsATheme():
-    themes = set(config._themes) | {config.APPEARANCE_SYSTEM}
+    appearances = set(config._themes) | {config.APPEARANCE_SYSTEM}
 
-    assert themes == set(
+    assert appearances == set(
         range(config.APPEARANCE_FIRST, config.APPEARANCE_LAST + 1)
     )
+
+
+def testThemeColorsAreValid():
+    for theme in config._themes.values():
+        for rgb in theme.colors.values():
+            assert len(rgb) == 3
+            assert all(0 <= c <= 255 for c in rgb)
+
+
+def testEveryElementHasAThemeColor():
+    u.init()
+
+    assert set(config._lt2themeElem) == {t.lt for t in config.getTIs()}
+    assert set(config._lt2themeElem.values()) == set(themes.ELEMENTS)
+
+
+def testElementColorDefaultsToText():
+    colors = dict(themes.LIGHT.colors, scene=(1, 2, 3))
+    colors.pop("action", None)
+    t = themes.Theme("Test", False, colors)
+
+    assert t.elementColor("scene") == (1, 2, 3)
+    assert t.elementColor("action") == colors["text"]
+
+
+def testThemeNeedsEveryColor():
+    colors = dict(themes.LIGHT.colors)
+    del colors["textBg"]
+
+    with pytest.raises(ValueError):
+        themes.Theme("Test", False, colors)
+
+
+def testThemeRejectsUnknownColors():
+    with pytest.raises(ValueError):
+        themes.Theme("Test", False, dict(themes.LIGHT.colors, bogus=(0, 0, 0)))
+
+
+def testThemeAccentNeedsAccentText():
+    with pytest.raises(ValueError):
+        themes.Theme("Test", False, dict(themes.LIGHT.colors, accent=(0, 0, 0)))
+
+
+def testSceneHeadingsAreColored():
+    for theme in config._themes.values():
+        assert theme.elementColor("scene") != theme.colors["text"]
 
 
 def testThemeAppearanceIsSaved():
@@ -58,3 +70,17 @@ def testThemeAppearanceIsSaved():
     cfg2 = config.ConfigGlobal()
     cfg2.load(cfg.save())
     assert cfg2.appearance == config.APPEARANCE_MONOKAI
+
+
+def testOldColorSettingsAreIgnored():
+    u.init()
+    cfg = config.ConfigGlobal()
+    cfg.load(
+        "Color/TextBG:10,20,30\nUseCustomElemColors:True\nAppearance:%d\n"
+        % config.APPEARANCE_NORD
+    )
+    s = cfg.save()
+
+    assert cfg.appearance == config.APPEARANCE_NORD
+    assert "Color/" not in s
+    assert "UseCustomElemColors" not in s

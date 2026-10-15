@@ -1909,11 +1909,7 @@ class MyCtrl(wx.Control):
 
             if len(t.text) != 0:
                 if t.line != -1:
-                    if self.gd.cfgGl.useCustomElemColors:
-                        color = self.gd.cfgGui.lt2textColor(ls[t.line].lt)
-                    else:
-                        color = self.gd.cfgGui.textColor
-
+                    color = self.gd.cfgGui.lt2textColor(ls[t.line].lt)
                     uli = ulines
                 else:
                     color = self.gd.cfgGui.textHdrColor

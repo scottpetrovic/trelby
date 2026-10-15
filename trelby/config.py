@@ -8,6 +8,7 @@ import trelby.misc as misc
 import trelby.mypickle as mypickle
 import trelby.pml as pml
 import trelby.screenplay as screenplay
+import trelby.themes as themes
 import trelby.util as util
 from trelby.error import ConfigError
 
@@ -75,186 +76,29 @@ APPEARANCE_NORD = 8
 # for range checking above value
 APPEARANCE_FIRST, APPEARANCE_LAST = APPEARANCE_SYSTEM, APPEARANCE_NORD
 
-# colors used instead of the defaults when a theme is active. a color the
-# user has changed from its default is always used as is. the per-element
-# text colors (textSceneColor etc.) follow textColor. "accentColor" and
-# "accentTextColor", for the selected item in lists and toolbars we draw
-# ourselves, replace the system's highlight colors when given.
-_darkColors = {
-    "textColor": (220, 220, 220),
-    "textHdrColor": (150, 150, 150),
-    "textBgColor": (40, 40, 40),
-    "workspaceColor": (28, 28, 28),
-    "pageBorderColor": (70, 70, 70),
-    "pageShadowColor": (15, 15, 15),
-    "selectedColor": (75, 80, 100),
-    "cursorColor": (110, 110, 230),
-    "autoCompFgColor": (230, 230, 230),
-    "autoCompBgColor": (55, 55, 55),
-    "noteColor": (80, 62, 50),
-    "pagebreakColor": (70, 70, 70),
-    "pagebreakNoAdjustColor": (70, 70, 70),
-    "tabTextColor": (220, 220, 220),
-    "tabBorderColor": (70, 70, 70),
-    "tabBarBgColor": (43, 43, 43),
-    "tabNonActiveBgColor": (58, 58, 58),
-}
-
-# warm yellow paper, like a legal pad
-_parchmentColors = {
-    "textColor": (35, 30, 20),
-    "textHdrColor": (140, 120, 80),
-    "textBgColor": (251, 233, 162),
-    "workspaceColor": (222, 202, 150),
-    "pageBorderColor": (200, 176, 118),
-    "pageShadowColor": (165, 140, 90),
-    "selectedColor": (238, 204, 120),
-    "cursorColor": (196, 150, 90),
-    "autoCompFgColor": (35, 30, 20),
-    "autoCompBgColor": (246, 226, 160),
-    "noteColor": (249, 206, 158),
-    "pagebreakColor": (226, 202, 140),
-    "pagebreakNoAdjustColor": (226, 202, 140),
-    "tabTextColor": (60, 45, 25),
-    "tabBorderColor": (200, 176, 118),
-    "tabBarBgColor": (234, 216, 168),
-    "tabNonActiveBgColor": (216, 194, 142),
-    "accentColor": (190, 120, 45),
-    "accentTextColor": (255, 255, 255),
-}
-
-# https://ethanschoonover.com/solarized/
-_solarizedLightColors = {
-    "textColor": (88, 110, 117),
-    "textHdrColor": (147, 161, 161),
-    "textBgColor": (253, 246, 227),
-    "workspaceColor": (238, 232, 213),
-    "pageBorderColor": (220, 213, 190),
-    "pageShadowColor": (200, 192, 168),
-    "selectedColor": (228, 220, 194),
-    "cursorColor": (38, 139, 210),
-    "autoCompFgColor": (88, 110, 117),
-    "autoCompBgColor": (238, 232, 213),
-    "noteColor": (250, 228, 204),
-    "pagebreakColor": (225, 218, 196),
-    "pagebreakNoAdjustColor": (225, 218, 196),
-    "tabTextColor": (88, 110, 117),
-    "tabBorderColor": (220, 213, 190),
-    "tabBarBgColor": (238, 232, 213),
-    "tabNonActiveBgColor": (222, 215, 192),
-    "accentColor": (38, 139, 210),
-    "accentTextColor": (253, 246, 227),
-}
-
-_solarizedDarkColors = {
-    "textColor": (147, 161, 161),
-    "textHdrColor": (88, 110, 117),
-    "textBgColor": (0, 43, 54),
-    "workspaceColor": (0, 33, 43),
-    "pageBorderColor": (20, 70, 82),
-    "pageShadowColor": (0, 22, 29),
-    "selectedColor": (20, 75, 90),
-    "cursorColor": (38, 139, 210),
-    "autoCompFgColor": (147, 161, 161),
-    "autoCompBgColor": (7, 54, 66),
-    "noteColor": (62, 54, 30),
-    "pagebreakColor": (20, 70, 82),
-    "pagebreakNoAdjustColor": (20, 70, 82),
-    "tabTextColor": (147, 161, 161),
-    "tabBorderColor": (20, 70, 82),
-    "tabBarBgColor": (0, 38, 48),
-    "tabNonActiveBgColor": (7, 54, 66),
-    "accentColor": (38, 139, 210),
-    "accentTextColor": (253, 246, 227),
-}
-
-_monokaiColors = {
-    "textColor": (248, 248, 242),
-    "textHdrColor": (117, 113, 94),
-    "textBgColor": (39, 40, 34),
-    "workspaceColor": (30, 31, 26),
-    "pageBorderColor": (62, 61, 50),
-    "pageShadowColor": (20, 20, 16),
-    "selectedColor": (73, 72, 62),
-    "cursorColor": (253, 151, 31),
-    "autoCompFgColor": (248, 248, 242),
-    "autoCompBgColor": (62, 61, 50),
-    "noteColor": (82, 66, 36),
-    "pagebreakColor": (62, 61, 50),
-    "pagebreakNoAdjustColor": (62, 61, 50),
-    "tabTextColor": (248, 248, 242),
-    "tabBorderColor": (62, 61, 50),
-    "tabBarBgColor": (30, 31, 26),
-    "tabNonActiveBgColor": (52, 53, 46),
-    "accentColor": (249, 38, 114),
-    "accentTextColor": (248, 248, 242),
-}
-
-# https://draculatheme.com/
-_draculaColors = {
-    "textColor": (248, 248, 242),
-    "textHdrColor": (98, 114, 164),
-    "textBgColor": (40, 42, 54),
-    "workspaceColor": (30, 31, 41),
-    "pageBorderColor": (68, 71, 90),
-    "pageShadowColor": (21, 22, 28),
-    "selectedColor": (68, 71, 90),
-    "cursorColor": (189, 147, 249),
-    "autoCompFgColor": (248, 248, 242),
-    "autoCompBgColor": (68, 71, 90),
-    "noteColor": (84, 58, 78),
-    "pagebreakColor": (68, 71, 90),
-    "pagebreakNoAdjustColor": (68, 71, 90),
-    "tabTextColor": (248, 248, 242),
-    "tabBorderColor": (68, 71, 90),
-    "tabBarBgColor": (33, 34, 44),
-    "tabNonActiveBgColor": (52, 55, 70),
-    "accentColor": (189, 147, 249),
-    "accentTextColor": (40, 42, 54),
-}
-
-# https://www.nordtheme.com/
-_nordColors = {
-    "textColor": (216, 222, 233),
-    "textHdrColor": (97, 110, 136),
-    "textBgColor": (46, 52, 64),
-    "workspaceColor": (36, 41, 51),
-    "pageBorderColor": (67, 76, 94),
-    "pageShadowColor": (26, 30, 37),
-    "selectedColor": (67, 76, 94),
-    "cursorColor": (136, 192, 208),
-    "autoCompFgColor": (216, 222, 233),
-    "autoCompBgColor": (59, 66, 82),
-    "noteColor": (90, 70, 66),
-    "pagebreakColor": (67, 76, 94),
-    "pagebreakNoAdjustColor": (67, 76, 94),
-    "tabTextColor": (216, 222, 233),
-    "tabBorderColor": (67, 76, 94),
-    "tabBarBgColor": (40, 45, 56),
-    "tabNonActiveBgColor": (59, 66, 82),
-    "accentColor": (136, 192, 208),
-    "accentTextColor": (46, 52, 64),
-}
-
-# key = APPEARANCE_* other than APPEARANCE_SYSTEM, value = (whether the
-# theme is dark, which picks the appearance of the rest of the application,
-# and the colors it uses instead of the defaults)
+# key = APPEARANCE_* other than APPEARANCE_SYSTEM, value = themes.Theme
 _themes = {
-    APPEARANCE_LIGHT: (False, {}),
-    APPEARANCE_DARK: (True, _darkColors),
-    APPEARANCE_PARCHMENT: (False, _parchmentColors),
-    APPEARANCE_SOLARIZED_LIGHT: (False, _solarizedLightColors),
-    APPEARANCE_SOLARIZED_DARK: (True, _solarizedDarkColors),
-    APPEARANCE_MONOKAI: (True, _monokaiColors),
-    APPEARANCE_DRACULA: (True, _draculaColors),
-    APPEARANCE_NORD: (True, _nordColors),
+    APPEARANCE_LIGHT: themes.LIGHT,
+    APPEARANCE_DARK: themes.DARK,
+    APPEARANCE_PARCHMENT: themes.PARCHMENT,
+    APPEARANCE_SOLARIZED_LIGHT: themes.SOLARIZED_LIGHT,
+    APPEARANCE_SOLARIZED_DARK: themes.SOLARIZED_DARK,
+    APPEARANCE_MONOKAI: themes.MONOKAI,
+    APPEARANCE_DRACULA: themes.DRACULA,
+    APPEARANCE_NORD: themes.NORD,
 }
 
-# earlier default values of colors whose default has since changed. the
-# config file stores every color, so a color still at an old default is
-# moved to the new one when loaded, as the user never chose it.
-_oldColorDefaults = {
-    "autoCompBgColor": [(255, 240, 168)],
+# key = line type, value = the name of its text color in a theme
+_lt2themeElem = {
+    screenplay.SCENE: "scene",
+    screenplay.ACTION: "action",
+    screenplay.CHARACTER: "character",
+    screenplay.DIALOGUE: "dialogue",
+    screenplay.PAREN: "parenthetical",
+    screenplay.TRANSITION: "transition",
+    screenplay.SHOT: "shot",
+    screenplay.ACTBREAK: "actBreak",
+    screenplay.NOTE: "noteText",
 }
 
 
@@ -263,7 +107,7 @@ _oldColorDefaults = {
 def applyAppearance(appearance):
     if appearance == APPEARANCE_SYSTEM:
         a = wx.App.Appearance.System
-    elif _themes[appearance][0]:
+    elif _themes[appearance].dark:
         a = wx.App.Appearance.Dark
     else:
         a = wx.App.Appearance.Light
@@ -276,13 +120,14 @@ def isDarkAppearance():
     return wx.SystemSettings.GetAppearance().IsDark()
 
 
-# the colors the given APPEARANCE_* theme uses instead of the defaults, as
-# a dict of color name -> (r, g, b). must be called after applyAppearance.
-def themeColors(appearance):
+# the themes.Theme for the given APPEARANCE_*. must be called after
+# applyAppearance.
+def getTheme(appearance):
     if appearance == APPEARANCE_SYSTEM:
-        return _darkColors if isDarkAppearance() else {}
+        return themes.DARK if isDarkAppearance() else themes.LIGHT
 
-    return _themes[appearance][1]
+    return _themes[appearance]
+
 
 # constants for identifying PDFFontInfos
 PDF_FONT_NORMAL = "Normal"
@@ -1495,10 +1340,6 @@ class ConfigGlobal:
         # whether to overwrite selected text on typing
         v.addBool("overwriteSelectionOnInsert", True, "OverwriteSelectionOnInsert")
 
-        # whether to use per-elem-type colors (textSceneColor etc.)
-        # instead of using textColor for all elem types
-        v.addBool("useCustomElemColors", False, "UseCustomElemColors")
-
         # page break indicators to show
         v.addInt("pbi", PBI_REAL, "PageBreakIndicators", PBI_FIRST, PBI_LAST)
 
@@ -1526,56 +1367,6 @@ class ConfigGlobal:
         # default script directory
         v.addStrUnicode("scriptDir", misc.progPath, "DefaultScriptDirectory")
 
-        # colors
-        v.addColor("text", 0, 0, 0, "TextFG", _("Text foreground"))
-        v.addColor(
-            "textHdr", 128, 128, 128, "TextHeadersFG", _("Text foreground (headers)")
-        )
-        v.addColor("textBg", 255, 255, 255, "TextBG", _("Text background"))
-        v.addColor("workspace", 237, 237, 237, "Workspace", _("Workspace"))
-        v.addColor("pageBorder", 202, 202, 202, "PageBorder", _("Page border"))
-        v.addColor("pageShadow", 153, 153, 153, "PageShadow", _("Page shadow"))
-        v.addColor("selected", 200, 200, 200, "Selected", _("Selection"))
-        v.addColor("cursor", 135, 135, 253, "Cursor", _("Cursor"))
-        v.addColor(
-            "autoCompFg", 0, 0, 0, "AutoCompletionFG", _("Auto-completion foreground")
-        )
-        v.addColor(
-            "autoCompBg",
-            242,
-            242,
-            242,
-            "AutoCompletionBG",
-            _("Auto-completion background"),
-        )
-        v.addColor("note", 255, 237, 223, "ScriptNote", _("Script note"))
-        v.addColor("pagebreak", 221, 221, 221, "PageBreakLine", _("Page-break line"))
-        v.addColor(
-            "pagebreakNoAdjust",
-            221,
-            221,
-            221,
-            "PageBreakNoAdjustLine",
-            _("Page-break (original, not adjusted) line"),
-        )
-
-        v.addColor("tabText", 50, 50, 50, "TabText", _("Tab text"))
-        v.addColor("tabBorder", 202, 202, 202, "TabBorder", _("Tab border"))
-        v.addColor("tabBarBg", 221, 217, 215, "TabBarBG", _("Tab bar background"))
-        v.addColor(
-            "tabNonActiveBg", 180, 180, 180, "TabNonActiveBg", _("Tab, non-active")
-        )
-
-        for t in getTIs():
-            v.addColor(
-                "text%s" % t.name,
-                0,
-                0,
-                0,
-                "Text%sFG" % t.name,
-                _("Text foreground for {}".format(t.name)),
-            )
-
         v.makeDicts()
 
     # load config from string 's'. does not throw any exceptions, silently
@@ -1584,12 +1375,6 @@ class ConfigGlobal:
         vals = self.cvars.makeVals(s)
 
         self.cvars.load(vals, "", self)
-
-        for name, olds in _oldColorDefaults.items():
-            c = getattr(self, name)
-
-            if (c.r, c.g, c.b) in olds:
-                setattr(self, name, copy.deepcopy(self.cvars.getDefault(name)))
 
         for t in self.types.values():
             t.load(vals, "Element/")
@@ -1749,26 +1534,17 @@ class ConfigGui:
 
             ConfigGui.constantsInited = True
 
-        theme = themeColors(cfgGl.appearance)
+        theme = getTheme(cfgGl.appearance)
 
-        # convert cfgGl.MyColor -> cfgGui.wx.Colour
-        for it in cfgGl.cvars.color.values():
-            c = getattr(cfgGl, it.name)
-            rgb = (c.r, c.g, c.b)
-
-            if theme and rgb == (it.defVal.r, it.defVal.g, it.defVal.b):
-                if it.name.startswith("text") and rgb == (0, 0, 0):
-                    rgb = theme["textColor"]
-                else:
-                    rgb = theme.get(it.name, rgb)
-
-            setattr(self, it.name, wx.Colour(*rgb))
+        # the theme's colors, e.g. "textBg" -> self.textBgColor
+        for name in themes.COLORS:
+            setattr(self, name + "Color", wx.Colour(*theme.colors[name]))
 
         # key = line type, value = wx.Colour
-        self._lt2textColor = {}
-
-        for t in getTIs():
-            self._lt2textColor[t.lt] = getattr(self, "text%sColor" % t.name)
+        self._lt2textColor = {
+            lt: wx.Colour(*theme.elementColor(elem))
+            for lt, elem in _lt2themeElem.items()
+        }
 
         self.textPen = wx.Pen(self.textColor)
         self.textHdrPen = wx.Pen(self.textHdrColor)
@@ -1794,9 +1570,9 @@ class ConfigGui:
         # the theme's accent color, for the selected item in lists and
         # toolbars we draw ourselves: the system's highlight color, unless
         # the theme has its own
-        if "accentColor" in theme:
-            self.accentColor = wx.Colour(*theme["accentColor"])
-            self.accentTextColor = wx.Colour(*theme["accentTextColor"])
+        if "accent" in theme.colors:
+            self.accentColor = wx.Colour(*theme.colors["accent"])
+            self.accentTextColor = wx.Colour(*theme.colors["accentText"])
         else:
             self.accentColor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
             self.accentTextColor = wx.SystemSettings.GetColour(

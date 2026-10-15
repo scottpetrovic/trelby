@@ -7,7 +7,6 @@ import trelby.config as config
 import trelby.gutil as gutil
 import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.util as util
-from trelby.configpages.colorspanel import ColorsPanel
 from trelby.configpages.displaypanel import DisplayPanel
 from trelby.configpages.draftpanel import DraftPanel
 from trelby.configpages.elementsglobalpanel import ElementsGlobalPanel
@@ -200,7 +199,6 @@ class CfgDlg(wx.Dialog):
         if self.isGlobal:
             self.AddPage(ThemePanel, _("Theme"))
             self.AddPage(GlobalAboutPanel, _("About"))
-            self.AddPage(ColorsPanel, _("Colors"))
             self.AddPage(DisplayPanel, _("Display"))
             self.AddPage(DraftPanel, _("Continuous Mode"))
             self.AddPage(ElementsGlobalPanel, _("Elements"))
