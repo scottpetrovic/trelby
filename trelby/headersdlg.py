@@ -3,15 +3,18 @@ import wx
 import trelby.gutil as gutil
 import trelby.headers as headers
 import trelby.misc as misc
-import trelby.pdf as pdf
-import trelby.pml as pml
 import trelby.util as util
+from trelby.headerspreview import HeadersPreview
 
 
 class HeadersDlg(wx.Dialog):
     def __init__(self, parent, headers, cfg, cfgGl, applyFunc):
         wx.Dialog.__init__(
-            self, parent, -1, _("Page headers"), style=wx.DEFAULT_DIALOG_STYLE
+            self,
+            parent,
+            -1,
+            _("Page headers"),
+            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
 
         self.headers = headers
@@ -132,15 +135,24 @@ class HeadersDlg(wx.Dialog):
 
         vsizer.Add(hsizerTop, 0, wx.TOP, 20)
 
+        # controls on the left, live preview of the top of a page on the
+        # right
+        mainSizer = wx.BoxSizer(wx.HORIZONTAL)
+        mainSizer.Add(vsizer, 0, wx.EXPAND)
+
+        self.previewCtrl = HeadersPreview(self, self, self.cfg)
+        self.previewCtrl.SetMinSize(self.FromDIP(wx.Size(560, 300)))
+        mainSizer.Add(self.previewCtrl, 1, wx.EXPAND | wx.LEFT, 20)
+
+        topSizer = wx.BoxSizer(wx.VERTICAL)
+        topSizer.Add(mainSizer, 1, wx.EXPAND)
+
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         hsizer.Add((1, 1), 1)
 
-        previewBtn = gutil.createStockButton(self, _("Preview"))
-        hsizer.Add(previewBtn)
-
         applyBtn = gutil.createStockButton(self, _("Apply"))
-        hsizer.Add(applyBtn, 0, wx.LEFT, 10)
+        hsizer.Add(applyBtn)
 
         cancelBtn = gutil.createStockButton(self, _("Cancel"))
         hsizer.Add(cancelBtn, 0, wx.LEFT, 10)
@@ -148,11 +160,10 @@ class HeadersDlg(wx.Dialog):
         okBtn = gutil.createStockButton(self, "OK")
         hsizer.Add(okBtn, 0, wx.LEFT, 10)
 
-        vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 20)
+        topSizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 20)
 
-        util.finishWindow(self, vsizer)
+        util.finishWindow(self, topSizer)
 
-        self.Bind(wx.EVT_BUTTON, self.OnPreview, id=previewBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnApply, id=applyBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
@@ -182,39 +193,12 @@ class HeadersDlg(wx.Dialog):
     def OnApply(self, event):
         self.applyFunc(self.headers)
 
-    def OnPreview(self, event):
-        doc = pml.Document(self.cfg.paperWidth, self.cfg.paperHeight)
-
-        pg = pml.Page(doc)
-        self.headers.generatePML(pg, "42", self.cfg)
-
-        fs = self.cfg.fontSize
-        chY = util.getTextHeight(fs)
-
-        y = self.cfg.marginTop + self.headers.getNrOfLines() * chY
-
-        pg.add(
-            pml.TextOp(
-                "Mindy runs away from the dinosaur, but trips on" " the power",
-                self.cfg.marginLeft,
-                y,
-                fs,
-            )
-        )
-
-        pg.add(
-            pml.TextOp(
-                "cord. The raptor approaches her slowly.",
-                self.cfg.marginLeft,
-                y + chY,
-                fs,
-            )
-        )
-
-        doc.add(pg)
-
-        tmp = pdf.generate(doc)
-        gutil.showTempPDF(tmp, self.cfgGl, self)
+    # select header string 'i' (called when it's clicked in the preview)
+    def selectHeader(self, i):
+        self.hdrIndex = i
+        self.stringsLb.SetSelection(i)
+        self.updateHeaderGui()
+        self.textEntry.SetFocus()
 
     def OnKillFocus(self, event):
         self.OnMisc()
@@ -274,6 +258,7 @@ class HeadersDlg(wx.Dialog):
             self.italicBtn.SetValue(False)
             self.underlinedBtn.SetValue(False)
             gutil.setAlignment(self.alignBtns, None)
+            self.previewCtrl.Refresh()
 
             return
 
@@ -296,10 +281,16 @@ class HeadersDlg(wx.Dialog):
 
         self.block = False
 
-    def OnMisc(self, event=None):
-        self.headers.emptyLinesAfter = util.getSpinValue(self.elinesEntry)
+        self.previewCtrl.Refresh()
 
-        if (self.hdrIndex == -1) or self.block:
+    def OnMisc(self, event=None):
+        if self.block:
+            return
+
+        self.headers.emptyLinesAfter = util.getSpinValue(self.elinesEntry)
+        self.previewCtrl.Refresh()
+
+        if self.hdrIndex == -1:
             return
 
         h = self.headers.hdrs[self.hdrIndex]

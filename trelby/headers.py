@@ -61,18 +61,9 @@ class HeaderString:
         self.isItalic = False
         self.isUnderlined = False
 
-    def generatePML(self, page, pageNr, cfg):
-        fl = 0
-
-        if self.isBold:
-            fl |= pml.BOLD
-
-        if self.isItalic:
-            fl |= pml.ITALIC
-
-        if self.isUnderlined:
-            fl |= pml.UNDERLINED
-
+    # return (x, y) of the string on the page, in mm. x is the left edge,
+    # center or right edge depending on the alignment, and y the top.
+    def getPos(self, cfg):
         if self.align == util.ALIGN_LEFT:
             x = cfg.marginLeft
         elif self.align == util.ALIGN_CENTER:
@@ -87,9 +78,29 @@ class HeaderString:
 
         y = cfg.marginTop + (self.line - 1) * util.getTextHeight(fs)
 
-        text = self.text.replace("${PAGE}", pageNr)
+        return (x, y)
 
-        page.add(pml.TextOp(text, x, y, fs, fl, self.align))
+    # return the text with page number 'pageNr' (a string) filled in
+    def getText(self, pageNr):
+        return self.text.replace("${PAGE}", pageNr)
+
+    def generatePML(self, page, pageNr, cfg):
+        fl = 0
+
+        if self.isBold:
+            fl |= pml.BOLD
+
+        if self.isItalic:
+            fl |= pml.ITALIC
+
+        if self.isUnderlined:
+            fl |= pml.UNDERLINED
+
+        x, y = self.getPos(cfg)
+
+        page.add(
+            pml.TextOp(self.getText(pageNr), x, y, cfg.fontSize, fl, self.align)
+        )
 
     # parse information from s, which must be a string created by __str__,
     # and set object state accordingly. keeps default settings on any
