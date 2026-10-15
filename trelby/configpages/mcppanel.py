@@ -77,20 +77,17 @@ class MCPPanel(wx.Panel):
         )
 
         # Claude Desktop can only start servers, so it needs the stdio
-        # bridge, which needs Python with trelby importable. that's not
-        # the case for the exe.
-        self.desktopBtn = None
-
-        if not getattr(sys, "frozen", False):
-            self.desktopBtn = wx.Button(self, -1, _("Copy Claude Desktop config"))
-            self.desktopBtn.SetToolTip(
-                _(
-                    "Copy the claude_desktop_config.json entry that connects "
-                    "Claude Desktop to Trelby"
-                )
+        # bridge: "python -m trelby.mcpserver --app" from source, or
+        # "Trelby.exe --mcp-bridge" for the exe.
+        self.desktopBtn = wx.Button(self, -1, _("Copy Claude Desktop config"))
+        self.desktopBtn.SetToolTip(
+            _(
+                "Copy the claude_desktop_config.json entry that connects "
+                "Claude Desktop to Trelby"
             )
-            vsizer.Add(self.desktopBtn, 0, wx.BOTTOM, 10)
-            self.Bind(wx.EVT_BUTTON, self.OnCopyDesktop, id=self.desktopBtn.GetId())
+        )
+        vsizer.Add(self.desktopBtn, 0, wx.BOTTOM, 10)
+        self.Bind(wx.EVT_BUTTON, self.OnCopyDesktop, id=self.desktopBtn.GetId())
 
         self.statusText = wx.StaticText(self, -1, "")
         vsizer.Add(self.statusText, 0, wx.TOP, 5)
@@ -120,22 +117,21 @@ class MCPPanel(wx.Panel):
         self.urlEntry.SetValue(mcpapp.url(self.cfg.mcpPort))
 
     def OnCopyDesktop(self, event):
-        # the directory trelby is imported from
-        root = os.path.dirname(os.path.abspath(trelby.__path__[0]))
+        port = ["--port", str(self.cfg.mcpPort)]
 
-        entry = {
-            "trelby-app": {
+        if getattr(sys, "frozen", False):
+            server = {"command": sys.executable, "args": ["--mcp-bridge"] + port}
+        else:
+            # the directory trelby is imported from
+            root = os.path.dirname(os.path.abspath(trelby.__path__[0]))
+
+            server = {
                 "command": sys.executable,
-                "args": [
-                    "-m",
-                    "trelby.mcpserver",
-                    "--app",
-                    "--port",
-                    str(self.cfg.mcpPort),
-                ],
+                "args": ["-m", "trelby.mcpserver", "--app"] + port,
                 "env": {"PYTHONPATH": root},
             }
-        }
+
+        entry = {"trelby-app": server}
 
         # the inside of the "mcpServers" object, ready to be pasted in
         text = json.dumps(entry, indent=2)[1:-1].strip("\n")
