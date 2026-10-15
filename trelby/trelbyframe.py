@@ -1053,7 +1053,7 @@ class MyFrame(wx.Frame):
             self.getCfgGui,
             [(self.ALIGN_CENTER, _("Center"))],
             lambda bit: self.OnAlignBar(),
-            lambda bit: _("Center the action on the page"),
+            lambda bit: self.getAlignToolTip(),
             height,
         )
         tb.AddControl(self.alignBar)
@@ -1103,6 +1103,18 @@ class MyFrame(wx.Frame):
     # textfmt ones
     ALIGN_CENTER = 8
 
+    def getAlignToolTip(self):
+        if self.alignBar.disabled:
+            return _(
+                "Centering is only for Action elements. Put the cursor in"
+                " an action, or select one, to center it."
+            )
+
+        return _(
+            "Center this action on the page, e.g. THE END or a title card."
+            " Only Action elements can be centered."
+        )
+
     def OnAlignBar(self):
         self.panel.ctrl.OnToggleCentered()
         self.panel.ctrl.SetFocus()
@@ -1112,7 +1124,7 @@ class MyFrame(wx.Frame):
     # centering doesn't apply there)
     def setFormatStatus(self, style, centered):
         self.formatBar.SetValue(style)
-        self.alignBar.Enable(centered is not None)
+        self.alignBar.setDisabled(centered is None)
         self.alignBar.SetValue(self.ALIGN_CENTER if centered else 0)
 
     def OnElemTypeBar(self, lt):

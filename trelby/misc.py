@@ -194,6 +194,11 @@ class MyElemTypeBar(wx.Control):
         self.selected = -1
         self.hover = -1
 
+        # if True, the items are greyed out and clicking them does
+        # nothing. unlike a disabled window, this still shows tooltips,
+        # which can say why.
+        self.disabled = False
+
         self.font = self.GetFont()
         self.boldFont = self.font.Bold()
 
@@ -254,7 +259,7 @@ class MyElemTypeBar(wx.Control):
     def OnLeftDown(self, event):
         i = self.itemAt(event.GetPosition())
 
-        if i != -1:
+        if (i != -1) and not self.disabled:
             self.onSelect(self.items[i][0])
 
     def OnMotion(self, event):
@@ -306,12 +311,12 @@ class MyElemTypeBar(wx.Control):
                 dc.SetTextForeground(selTextColor)
                 dc.SetFont(self.itemFont(i, True))
             else:
-                if i == self.hover:
+                if (i == self.hover) and not self.disabled:
                     dc.SetBrush(cfgGui.tabNonActiveBgBrush)
                     dc.SetPen(cfgGui.tabNonActiveBgPen)
                     dc.DrawRoundedRectangle(fillRect, radius - 1)
 
-                if self.IsEnabled():
+                if not self.disabled:
                     dc.SetTextForeground(cfgGui.tabTextColor)
                 else:
                     dc.SetTextForeground(
@@ -363,13 +368,20 @@ class MyFormatBar(MyElemTypeBar):
         self.style = style
         self.Refresh(False)
 
-    def Enable(self, enable=True):
-        if enable != self.IsEnabled():
-            MyElemTypeBar.Enable(self, enable)
-            self.Refresh(False)
+    # grey the items out or not (see MyElemTypeBar.disabled)
+    def setDisabled(self, disabled):
+        if disabled == self.disabled:
+            return
+
+        self.disabled = disabled
+        self.Refresh(False)
+
+        # the tooltip can depend on it
+        if self.hover != -1:
+            self.SetToolTip(self.getToolTip(self.items[self.hover][0]))
 
     def isSelected(self, i):
-        return self.IsEnabled() and bool(self.style & self.items[i][0])
+        return not self.disabled and bool(self.style & self.items[i][0])
 
     def itemFont(self, i, selected):
         return self.fonts.get(self.items[i][0], self.font)
