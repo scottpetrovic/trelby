@@ -47,6 +47,7 @@ import trelby.spellcheck as spellcheck
 import trelby.titles as titles
 import trelby.undo as undo
 import trelby.util as util
+import trelby.worldbuilding as worldbuilding
 from trelby.line import Line
 
 
@@ -59,6 +60,7 @@ class Screenplay:
         self.titles = titles.Titles()
         self.scDict = spellcheck.Dict()
         self.characterProfiles = characterprofiles.CharacterProfiles()
+        self.worldBuilding = worldbuilding.WorldBuilding()
 
         self.lines = [Line(LB_LAST, SCENE)]
 
@@ -167,6 +169,7 @@ class Screenplay:
         sp.titles = copy.deepcopy(self.titles)
         sp.scDict = copy.deepcopy(self.scDict)
         sp.characterProfiles = copy.deepcopy(self.characterProfiles)
+        sp.worldBuilding = copy.deepcopy(self.worldBuilding)
 
         sp.lines = [ln.copy() for ln in self.lines]
 
@@ -209,6 +212,12 @@ class Screenplay:
             output += "#Begin-Character-Profiles \n"
             output += self.characterProfiles.save()
             output += "#End-Character-Profiles \n"
+
+        # likewise only written when there's something in it
+        if self.worldBuilding.hasInfo():
+            output += "#Begin-World-Building \n"
+            output += self.worldBuilding.save()
+            output += "#End-World-Building \n"
 
         pgs = self.titles.pages
         for pg in range(len(pgs)):
@@ -298,6 +307,10 @@ class Screenplay:
         s, index = Screenplay.getConfigPart(lines, "Character-Profiles", index)
         if s:
             sp.characterProfiles.load(s)
+
+        s, index = Screenplay.getConfigPart(lines, "World-Building", index)
+        if s:
+            sp.worldBuilding.load(s)
 
         # used to keep track that element type only changes after a
         # LB_LAST line.

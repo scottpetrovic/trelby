@@ -31,6 +31,7 @@ import trelby.spellcheckdlg as spellcheckdlg
 import trelby.titlesdlg as titlesdlg
 import trelby.util as util
 import trelby.watermarkdlg as watermarkdlg
+import trelby.worldbuildingdlg as worldbuildingdlg
 from trelby.error import TrelbyError
 from trelby.ids import ID_EDIT_REDO, ID_EDIT_UNDO, idToLTMap
 from trelby.line import Line
@@ -861,6 +862,18 @@ class MyCtrl(wx.Control):
                 self.sp.paginate()
                 self.makeLineVisible(self.sp.line)
                 self.updateScreen()
+
+        dlg.Destroy()
+
+    def OnWorldBuildingDlg(self):
+        dlg = worldbuildingdlg.WorldBuildingDlg(
+            self.gd.mainFrame, copy.deepcopy(self.sp.worldBuilding)
+        )
+
+        if dlg.ShowModal() == wx.ID_OK:
+            if dlg.worldBuilding.text != self.sp.worldBuilding.text:
+                self.sp.worldBuilding = dlg.worldBuilding
+                self.sp.markChanged()
 
         dlg.Destroy()
 

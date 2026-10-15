@@ -138,6 +138,14 @@ The following config sections exists and appear in the file in this order:
   Unknown Profile/N/... values are kept as-is when saving.
 
 
+ World-Building (optional, only present if it has any text):
+
+  Text (string): Free-form notes about the world the story is set in,
+  escaped like the character profile notes.
+
+  Unknown values are kept as-is when saving.
+
+
 After this (in version 1 files after "#Version 1") there is more
 configuration, but in a different syntax, that is mostly due to historical
 accidents.

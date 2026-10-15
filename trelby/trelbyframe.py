@@ -229,6 +229,9 @@ class MyFrame(wx.Frame):
             ID_SCRIPT_LOCATIONS, misc.mnemonic("L", _("Locations") + "...")
         )
         toolsMenu.Append(
+            ID_SCRIPT_WORLD_BUILDING, misc.mnemonic("W", _("World building") + "...")
+        )
+        toolsMenu.Append(
             ID_SCRIPT_AUTO_COMPLETION, misc.mnemonic("A", _("Auto-completion") + "...")
         )
         toolsMenu.Append(
@@ -384,6 +387,7 @@ class MyFrame(wx.Frame):
             self.OnCharacterProfilesDlg,
             id=ID_SCRIPT_CHARACTER_PROFILES,
         )
+        self.Bind(wx.EVT_MENU, self.OnWorldBuildingDlg, id=ID_SCRIPT_WORLD_BUILDING)
         self.Bind(wx.EVT_MENU, self.OnTitlesDlg, id=ID_SCRIPT_TITLES)
         self.Bind(
             wx.EVT_MENU,
@@ -1265,6 +1269,9 @@ class MyFrame(wx.Frame):
 
     def OnCharacterProfilesDlg(self, event=None):
         self.panel.ctrl.OnCharacterProfilesDlg()
+
+    def OnWorldBuildingDlg(self, event=None):
+        self.panel.ctrl.OnWorldBuildingDlg()
 
     def OnSpellCheckerDictionaryDlg(self, event=None):
         dlg = spellcheckcfgdlg.SCDictDlg(self, copy.deepcopy(self.gd.scDict), True)

@@ -1213,6 +1213,11 @@ class ConfigGlobal:
                 ),
                 Command("Watermark", _("Export the current script as watermarked PDFs."), isMenu=True),
                 Command(
+                    "WorldBuildingDlg",
+                    _("Open the world building dialog."),
+                    isMenu=True,
+                ),
+                Command(
                     "ZoomIn",
                     _("Zoom in."),
                     [util.Key(ord("="), ctrl=True).toInt()],
