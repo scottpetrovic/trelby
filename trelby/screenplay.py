@@ -3268,41 +3268,51 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             else:
                 self.acSel = (self.acSel + self.acMax) % len(self.acItems)
 
+    # if the cursor is in a new, empty character element, show the
+    # auto-completion list right away, so the next speaker can be picked
+    # without typing anything.
+    def offerAutoComp(self, cs):
+        ln = self.lines[self.line]
+
+        if (ln.lt == CHARACTER) and not ln.text and self.isOnlyLineOfElem(self.line):
+            cs.doAutoComp = cs.AC_REDO
+
     # get a list of strings (single-line text elements for now) that start
     # with 'text' (not case sensitive) and are of of type 'type'. also
     # mixes in the type's default items from config. ignores current line.
-    # an exact match comes first, then the nearest match above the current
-    # line, then the rest sorted.
+    # an exact match comes first, then the ones used above the current
+    # line, most recent first, then the rest, most used first. for
+    # characters, the one who spoke before the last speaker is put first,
+    # since dialogue usually goes back and forth.
     def getMatchingText(self, text, lt):
         text = util.upper(text)
         t = self.autoCompletion.getType(lt)
         ls = self.lines
-        matches = {}
-        last = None
+
+        # how many times each text is used, and the last line above the
+        # current one it's used on
+        counts = {}
+        lastAbove = {}
 
         for i in range(len(ls)):
-            if (ls[i].lt == lt) and self.isOnlyLineOfElem(i):
+            if (ls[i].lt == lt) and (i != self.line) and self.isOnlyLineOfElem(i):
                 upstr = util.upper(ls[i].text)
 
-                if upstr.strip() and upstr.startswith(text) and i != self.line:
-                    matches[upstr] = None
+                if upstr.strip():
+                    counts[upstr] = counts.get(upstr, 0) + 1
+
                     if i < self.line:
-                        last = upstr
+                        lastAbove[upstr] = i
 
         for s in t.items:
-            upstr = util.upper(s)
+            counts.setdefault(util.upper(s), 0)
 
-            if upstr.startswith(text):
-                matches[upstr] = None
+        order = sorted(counts, key=lambda s: (-lastAbove.get(s, -1), -counts[s], s))
 
-        if last:
-            del matches[last]
+        if (lt == CHARACTER) and (len(order) > 1) and (order[1] in lastAbove):
+            order[0], order[1] = order[1], order[0]
 
-        mlist = list(matches.keys())
-        mlist.sort()
-
-        if last:
-            mlist.insert(0, last)
+        mlist = [s for s in order if s.startswith(text)]
 
         if text in mlist:
             mlist.remove(text)
@@ -4601,8 +4611,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.addUndo(u)
 
     def splitElementCmd(self, cs):
+        # with a selection, splitElement only clears it
+        hadMark = bool(self.mark)
+
         tcfg = self.cfgGl.getType(self.lines[self.line].lt)
         self.splitElement(tcfg.newTypeEnter)
+
+        if not hadMark:
+            self.offerAutoComp(cs)
 
     def setMarkCmd(self, cs):
         self.setMark(self.line, self.column)
@@ -4622,6 +4638,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         else:
             self.convertTypeTo(tcfg.nextTypeTab, True)
 
+        self.offerAutoComp(cs)
+
     # switch current element to prevTypeTab.
     def toPrevTypeTabCmd(self, cs):
         if self.mark:
@@ -4631,6 +4649,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         tcfg = self.cfgGl.getType(self.lines[self.line].lt)
         self.convertTypeTo(tcfg.prevTypeTab, True)
+        self.offerAutoComp(cs)
 
     # add character cs.char if it's a valid one.
     def addCharCmd(self, cs):
@@ -4840,7 +4859,11 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.convertTypeTo(ACTION, True)
 
     def toCharacterCmd(self, cs):
+        hadMark = bool(self.mark)
         self.convertTypeTo(CHARACTER, True)
+
+        if not hadMark:
+            self.offerAutoComp(cs)
 
     def toDialogueCmd(self, cs):
         self.convertTypeTo(DIALOGUE, True)
