@@ -17,6 +17,7 @@ import trelby.cfgdlg as cfgdlg
 import trelby.charmapdlg as charmapdlg
 import trelby.commandsdlg as commandsdlg
 import trelby.gutil as gutil
+import trelby.mcpapp as mcpapp
 import trelby.menubar as menubar
 import trelby.misc as misc
 import trelby.namesdlg as namesdlg
@@ -1443,6 +1444,7 @@ class MyFrame(wx.Frame):
 
             util.writeToFile(self.gd.stateFilename, self.gd.save(), self)
             util.removeTempFiles(misc.tmpPrefix)
+            mcpapp.shutdown()
             self.Destroy()
             self.myApp.ExitMainLoop()
         else:

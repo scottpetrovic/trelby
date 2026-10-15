@@ -18,6 +18,7 @@ import trelby.finddlg as finddlg
 import trelby.gutil as gutil
 import trelby.headersdlg as headersdlg
 import trelby.locationsdlg as locationsdlg
+import trelby.mcpapp as mcpapp
 import trelby.misc as misc
 import trelby.myimport as myimport
 import trelby.opts as opts
@@ -512,6 +513,12 @@ class MyCtrl(wx.Control):
 
         if self.gd.cfgGl.autosaveInterval != oldCfgGl.autosaveInterval:
             self.gd.mainFrame.updateAutosaveTimer()
+
+        if (self.gd.cfgGl.mcpEnabled, self.gd.cfgGl.mcpPort) != (
+            oldCfgGl.mcpEnabled,
+            oldCfgGl.mcpPort,
+        ):
+            mcpapp.configure(self.gd, self.gd.mainFrame)
 
         if writeCfg:
             util.writeToFile(

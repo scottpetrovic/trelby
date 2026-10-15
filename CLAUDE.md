@@ -38,9 +38,17 @@ When the user asks for a "build", "Windows build" or "exe" to test changes, run 
 
 ## MCP server
 
-`trelby/mcpserver.py` is a stdio MCP server that reads and edits `.trelby` files without the GUI; the operations themselves are in `trelby/mcptools.py` (no MCP SDK dependency, tested in `tests/test_mcptools.py`). The `mcp` SDK is an optional extra (`pip install trelby[mcp]`, entry point `trelby-mcp`) and is not bundled in the exe. Run it from source with `.venv/Scripts/python -m trelby.mcpserver`; for a client config, use the venv's python as the command, `["-m", "trelby.mcpserver"]` as args and `PYTHONPATH` set to the repo root in `env` (Claude Desktop has no `cwd` option, and trelby isn't pip-installed in the venv). Claude Desktop rewrites its config file while running, so quit it fully (tray → Quit) before editing `claude_desktop_config.json`.
+AI assistants can read and edit scripts over MCP, with one set of tools (`makeServer` in `trelby/mcpserver.py`) served three ways:
 
-Edits are made to the file on disk, so they don't reach a copy of the script open in the app. Every write needs the revision (content hash) from a previous read, and saves with a `.bak` backup.
+- **Files on disk:** `.venv/Scripts/python -m trelby.mcpserver` (stdio). Every write saves the file with a `.bak` backup, and doesn't reach a copy of the script open in the app.
+- **In the app:** Settings → MCP Server turns on an HTTP server at `http://127.0.0.1:7789/mcp` (`trelby/mcpapp.py`, off by default, `mcpEnabled` / `mcpPort` in the global config). It edits the open scripts live: the `path` argument picks a script, defaulting to the active tab. Calls run in the GUI thread via `wx.CallAfter`; edits are undoable and refused while a modal dialog is open.
+- **Bridge:** `python -m trelby.mcpserver --app [--port N]` is a stdio server that forwards to the app, for Claude Desktop, which can only start servers. The settings page has a button that copies its config entry.
+
+The operations are in `trelby/mcptools.py`, which needs neither the MCP SDK nor wx: `FileDoc` (file on disk) and `LiveDoc` (script in memory, with undo; `mcpapp.AppDoc` adds the GUI refresh). Every write needs the revision (a content hash) from an earlier read. Tests: `tests/test_mcptools.py`, `tests/test_mcpserver.py`.
+
+The `mcp` SDK is an optional extra (`pip install trelby[mcp]`, entry point `trelby-mcp`); without it the app runs normally and the settings page says the server isn't available. It isn't set up for the exe build.
+
+For a stdio client config, use the venv's python as the command, `["-m", "trelby.mcpserver"]` (plus `"--app"` for the bridge) as args, and `PYTHONPATH` set to the repo root in `env` (Claude Desktop has no `cwd` option, and trelby isn't pip-installed in the venv). Claude Desktop rewrites its config file while running, so quit it fully (tray → Quit) before editing `claude_desktop_config.json`.
 
 ## Code conventions worth knowing
 

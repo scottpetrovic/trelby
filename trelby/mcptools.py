@@ -1,16 +1,16 @@
-# operations on .trelby files for the MCP server (see mcpserver.py).
-# everything here loads a script from disk, works on the Screenplay and
-# writes it back, without any GUI, so that this module doesn't depend on
-# the MCP SDK and could also be used by a server running inside the app.
+# operations behind the MCP server (see mcpserver.py). they work on a
+# document, which is either a .trelby file on disk (FileDoc, here) or a
+# script open in the app (AppDoc, in mcpapp.py), and don't depend on the
+# MCP SDK or the GUI.
 #
 # the script is divided into parts: part 0 is whatever comes before the
 # first scene heading / act break (often empty), and part n (1-based) is
 # the n:th scene or act break, i.e. item n in the outline.
 #
-# every read returns the file's revision (a hash of its contents), and
-# every write must be given the revision it was based on. if the file has
-# changed in between, the write is refused, so that edits are never made
-# using part numbers that have since shifted.
+# every read returns the document's revision (a hash of its contents),
+# and every write must be given the revision it was based on. if the
+# script has changed in between, the write is refused, so that edits are
+# never made using part numbers that have since shifted.
 
 import hashlib
 import os
@@ -22,6 +22,7 @@ import trelby.error as error
 import trelby.misc as misc
 import trelby.screenplay as screenplay
 import trelby.translations as translations
+import trelby.undo as undo
 import trelby.util as util
 from trelby.line import Line
 from trelby.screenplay import (
@@ -46,7 +47,7 @@ EXPORT_FORMATS = {
 MAX_MATCHES = 200
 
 
-# an error caused by the request (bad arguments, changed file, ...),
+# an error caused by the request (bad arguments, changed script, ...),
 # whose message is meant to be shown to the client.
 class ToolError(Exception):
     pass
@@ -55,6 +56,8 @@ class ToolError(Exception):
 _cfgGl = None
 
 
+# initialize what's needed to load scripts without the app. not needed
+# (or wanted) when running inside the app.
 def init():
     global _cfgGl
 
@@ -93,6 +96,24 @@ def revisionOf(data):
     return hashlib.sha256(data).hexdigest()[:16]
 
 
+# revision of a script in memory: covers everything the tools can see or
+# change in the script's text, but not e.g. the cursor position.
+def linesRevision(sp):
+    s = "\n".join(
+        "%s|%s|%s|%s" % (ln, ln.pageLock or "", int(ln.dual), ln.color or "")
+        for ln in sp.lines
+    )
+
+    return revisionOf(s.encode("UTF-8"))
+
+
+def staleError(revision, current):
+    return ToolError(
+        "The script has changed since revision '%s' was read (it is now "
+        "'%s'). Read it again before making changes." % (revision, current)
+    )
+
+
 def checkPath(path, mustExist=True):
     if not path or not os.path.isabs(path):
         raise ToolError("Path must be absolute: '%s'." % path)
@@ -108,45 +129,58 @@ def checkPath(path, mustExist=True):
     return path
 
 
-# load the script at path. returns (Screenplay, revision).
-def load(path):
-    init()
-    path = checkPath(path)
+# a .trelby file on disk. every operation loads it, and every write saves
+# it back, keeping the old file as path + ".bak".
+#
+# documents have these methods:
+#
+#  read(): return (Screenplay, revision). the Screenplay must not be
+#   modified.
+#
+#  write(revision, edit, ownUndo): check the revision, call edit(sp) to
+#   modify the script, store the result and return (Screenplay, new
+#   revision). edit returns the (first, last) range of lines it inserted
+#   or joined, which need to be rewrapped, or None. ownUndo is True if
+#   edit uses a Screenplay method that records its own undo information.
+#   if edit raises ToolError, it must not have modified anything.
+#
+#  describe(sp): return a dict of information about the document.
+class FileDoc:
+    def __init__(self, path):
+        self.path = checkPath(path)
 
-    try:
-        with open(path, "rb") as f:
-            data = f.read()
-    except OSError as e:
-        raise ToolError("Can't read '%s': %s." % (path, e.strerror or e))
+    def read(self):
+        init()
 
-    try:
-        sp = screenplay.Screenplay.load(data.decode("UTF-8"), _cfgGl)[0]
-    except (UnicodeDecodeError, error.TrelbyError) as e:
-        raise ToolError("Can't load '%s': %s" % (path, e))
+        try:
+            with open(self.path, "rb") as f:
+                data = f.read()
+        except OSError as e:
+            raise ToolError("Can't read '%s': %s." % (self.path, e.strerror or e))
 
-    return (sp, revisionOf(data))
+        try:
+            sp = screenplay.Screenplay.load(data.decode("UTF-8"), _cfgGl)[0]
+        except (UnicodeDecodeError, error.TrelbyError) as e:
+            raise ToolError("Can't load '%s': %s" % (self.path, e))
+
+        return (sp, revisionOf(data))
+
+    def write(self, revision, edit, ownUndo=False):
+        sp, current = self.read()
+
+        if revision != current:
+            raise staleError(revision, current)
+
+        edit(sp)
+
+        return (sp, save(sp, self.path))
+
+    def describe(self, sp):
+        return {"path": self.path}
 
 
-# load the script at path for modification, checking that it is still at
-# the given revision.
-def loadForWrite(path, revision):
-    sp, current = load(path)
-
-    if revision != current:
-        raise ToolError(
-            "The script has changed since revision '%s' was read (it is now "
-            "'%s'). Read it again before making changes." % (revision, current)
-        )
-
-    return sp
-
-
-# reformat and save the script, keeping the old file as path + ".bak".
-# returns the new revision.
+# reformat and save the script. returns the new revision.
 def save(sp, path, backup=True):
-    if not sp.lines:
-        sp.lines = [Line(LB_LAST, SCENE)]
-
     # some edits (moveSceneTo, renameCharacters) add undo history, which
     # reformatAll refuses to run with. nobody can undo here anyway.
     sp.firstUndo = sp.lastUndo = sp.currentUndo = None
@@ -164,6 +198,66 @@ def save(sp, path, backup=True):
         raise ToolError("Can't write '%s': %s." % (path, e.strerror or e))
 
     return revisionOf(data)
+
+
+# a script in memory that has undo history, like one open in the app.
+# edits are recorded for undo and rewrapped in place, and the cursor is
+# moved to the start of the change. mcpapp.AppDoc adds updating the
+# screen.
+class LiveDoc:
+    def __init__(self, sp):
+        self.sp = sp
+
+    def read(self):
+        return (self.sp, linesRevision(self.sp))
+
+    def describe(self, sp):
+        return {
+            "modified": sp.isModified(),
+            "cursor_scene": partOfLine(sp, sp.line),
+        }
+
+    # raise ToolError if the script can't be edited right now
+    def checkWritable(self):
+        pass
+
+    # called after the script has been changed
+    def changed(self):
+        pass
+
+    def write(self, revision, edit, ownUndo=False):
+        self.checkWritable()
+
+        sp = self.sp
+        current = linesRevision(sp)
+
+        if revision != current:
+            raise staleError(revision, current)
+
+        sp.clearAutoComp()
+        sp.clearMark()
+
+        u = None if ownUndo else undo.AnyDifference(sp)
+
+        changedLines = edit(sp)
+
+        if changedLines:
+            sp.rewrapSpeechesAround(*changedLines)
+            sp.line = min(changedLines[0], len(sp.lines) - 1)
+            sp.column = 0
+
+        sp.validatePos()
+
+        if u:
+            u.setAfter(sp)
+            sp.addUndo(u)
+
+        sp.markChanged()
+        sp.paginate()
+
+        self.changed()
+
+        return (sp, linesRevision(sp))
 
 
 # return a list of (first, last) line ranges for the script's parts. part
@@ -191,6 +285,15 @@ def getPart(sp, index, allowOpening=True):
         )
 
     return parts[index]
+
+
+# return the index of the part containing the given line.
+def partOfLine(sp, line):
+    for idx, (first, last) in enumerate(getParts(sp)):
+        if first <= line <= last:
+            return idx
+
+    return 0
 
 
 # return the elements on lines first - last as a list of dicts.
@@ -331,8 +434,8 @@ def getOutline(sp):
     return ret
 
 
-def getInfo(path):
-    sp, rev = load(path)
+def getInfo(doc):
+    sp, rev = doc.read()
 
     titles = []
     for page in sp.titles.pages:
@@ -348,27 +451,31 @@ def getInfo(path):
     }
     characters.discard("")
 
-    return {
-        "path": os.path.normpath(path),
-        "revision": rev,
-        "title_page": titles,
-        "pages": len(sp.pages) - 1,
-        "page_length": round(sp.getPageLength(), 2),
-        "words": sp.getWordCount(),
-        "scenes": sum(1 for item in outline if item.lt == SCENE),
-        "act_breaks": sum(1 for item in outline if item.lt == ACTBREAK),
-        "characters": len(characters),
-    }
+    ret = doc.describe(sp)
+    ret.update(
+        {
+            "revision": rev,
+            "title_page": titles,
+            "pages": len(sp.pages) - 1,
+            "page_length": round(sp.getPageLength(), 2),
+            "words": sp.getWordCount(),
+            "scenes": sum(1 for item in outline if item.lt == SCENE),
+            "act_breaks": sum(1 for item in outline if item.lt == ACTBREAK),
+            "characters": len(characters),
+        }
+    )
+
+    return ret
 
 
-def listScenes(path):
-    sp, rev = load(path)
+def listScenes(doc):
+    sp, rev = doc.read()
 
     return {"revision": rev, "scenes": getOutline(sp)}
 
 
-def readScenes(path, first, last=None):
-    sp, rev = load(path)
+def readScenes(doc, first, last=None):
+    sp, rev = doc.read()
 
     if last is None:
         last = first
@@ -389,8 +496,8 @@ def readScenes(path, first, last=None):
     return {"revision": rev, "scenes": scenes}
 
 
-def listCharacters(path):
-    sp, rev = load(path)
+def listCharacters(doc):
+    sp, rev = doc.read()
 
     chars = {}
     charType = typeName(CHARACTER)
@@ -420,11 +527,11 @@ def listCharacters(path):
     return {"revision": rev, "characters": ret}
 
 
-def search(path, query, caseSensitive=False):
+def search(doc, query, caseSensitive=False):
     if not query:
         raise ToolError("Search text can't be empty.")
 
-    sp, rev = load(path)
+    sp, rev = doc.read()
 
     if not caseSensitive:
         query = query.lower()
@@ -448,7 +555,7 @@ def search(path, query, caseSensitive=False):
 
 # export the script. if outputPath is given, the result is written there,
 # otherwise it is returned (not possible for PDF).
-def export(path, fmt, outputPath=None):
+def export(doc, fmt, outputPath=None):
     fmt = str(fmt).lower()
 
     if fmt not in EXPORT_FORMATS:
@@ -469,7 +576,7 @@ def export(path, fmt, outputPath=None):
         if outputPath.lower().endswith(".trelby"):
             raise ToolError("Exporting over a .trelby file is not allowed.")
 
-    sp, rev = load(path)
+    sp, rev = doc.read()
 
     try:
         if fmt == "pdf":
@@ -501,89 +608,102 @@ def export(path, fmt, outputPath=None):
     return {"revision": rev, "format": fmt, "output_path": outputPath}
 
 
-def afterWrite(sp, path, backup=True):
-    rev = save(sp, path, backup)
+# do a write and return the new revision and outline.
+def write(doc, revision, edit, ownUndo=False):
+    sp, rev = doc.write(revision, edit, ownUndo)
 
     return {"revision": rev, "scenes": getOutline(sp)}
 
 
 # replace part 'index' with the given elements. a scene / act break being
 # replaced keeps its color unless the new heading says otherwise.
-def replaceScene(path, revision, index, elements):
-    sp = loadForWrite(path, revision)
-    first, last = getPart(sp, index)
+def replaceScene(doc, revision, index, elements):
+    def edit(sp):
+        first, last = getPart(sp, index)
+        lines = buildLines(elements, index > 0)
 
-    lines = buildLines(elements, index > 0)
+        if (index > 0) and ("color" not in elements[0]):
+            lines[0].color = sp.getSceneColor(first)
 
-    if (index > 0) and ("color" not in elements[0]):
-        lines[0].color = sp.getSceneColor(first)
+        # like cut + paste: page locks on the replaced lines move to the
+        # line after them
+        if last >= first:
+            sp.movePageLocksForward(first, last)
 
-    # like cut + paste: page locks on the replaced lines move to the line
-    # after them
-    if last >= first:
-        sp.movePageLocksForward(first, last)
+        sp.lines[first : last + 1] = lines
 
-    sp.lines[first : last + 1] = lines
+        return (first, first + len(lines) - 1)
 
-    return afterWrite(sp, path)
+    return write(doc, revision, edit)
 
 
 # insert elements before part 'position' (1 - number of parts, or one
 # more to append at the end).
-def insertScenes(path, revision, position, elements):
-    sp = loadForWrite(path, revision)
-    parts = getParts(sp)
+def insertScenes(doc, revision, position, elements):
+    def edit(sp):
+        parts = getParts(sp)
 
-    if not isinstance(position, int) or not (1 <= position <= len(parts)):
-        raise ToolError(
-            "Position %s is out of range; valid positions are 1 - %d."
-            % (position, len(parts))
-        )
+        if not isinstance(position, int) or not (1 <= position <= len(parts)):
+            raise ToolError(
+                "Position %s is out of range; valid positions are 1 - %d."
+                % (position, len(parts))
+            )
 
-    lines = buildLines(elements, True)
+        lines = buildLines(elements, True)
 
-    if position < len(parts):
-        at = parts[position][0]
-    else:
-        at = len(sp.lines)
+        if position < len(parts):
+            at = parts[position][0]
+        else:
+            at = len(sp.lines)
 
-    sp.lines[at:at] = lines
+        sp.lines[at:at] = lines
 
-    return afterWrite(sp, path)
+        return (at, at + len(lines) - 1)
 
-
-def deleteScene(path, revision, index):
-    sp = loadForWrite(path, revision)
-    first, last = getPart(sp, index)
-
-    if last < first:
-        raise ToolError("There is nothing before the first scene to delete.")
-
-    sp.movePageLocksForward(first, last)
-    del sp.lines[first : last + 1]
-
-    return afterWrite(sp, path)
+    return write(doc, revision, edit)
 
 
-def moveScene(path, revision, index, newIndex):
-    sp = loadForWrite(path, revision)
-    first = getPart(sp, index, False)[0]
-    getPart(sp, newIndex, False)
+def deleteScene(doc, revision, index):
+    def edit(sp):
+        first, last = getPart(sp, index)
 
-    if index == newIndex:
-        raise ToolError("The scene is already at index %d." % index)
+        if last < first:
+            raise ToolError("There is nothing before the first scene to delete.")
 
-    if not sp.moveSceneTo(first, newIndex - 1):
-        raise ToolError("Moving scene %d to %d failed." % (index, newIndex))
+        sp.movePageLocksForward(first, last)
+        del sp.lines[first : last + 1]
 
-    return afterWrite(sp, path)
+        if not sp.lines:
+            sp.lines = [Line(LB_LAST, SCENE)]
+
+        # the elements around the gap may need rewrapping, e.g. if they
+        # end up in a dual dialogue
+        first = min(first, len(sp.lines) - 1)
+
+        return (max(first - 1, 0), first)
+
+    return write(doc, revision, edit)
+
+
+def moveScene(doc, revision, index, newIndex):
+    def edit(sp):
+        first = getPart(sp, index, False)[0]
+        getPart(sp, newIndex, False)
+
+        if index == newIndex:
+            raise ToolError("The scene is already at index %d." % index)
+
+        if not sp.moveSceneTo(first, newIndex - 1):
+            raise ToolError("Moving scene %d to %d failed." % (index, newIndex))
+
+        return None
+
+    return write(doc, revision, edit, True)
 
 
 # rename a character in cues and in mentions in other text, like renaming
 # a character profile in the app does. also renames the profile.
-def renameCharacter(path, revision, oldName, newName):
-    sp = loadForWrite(path, revision)
-
+def renameCharacter(doc, revision, oldName, newName):
     old = characterprofiles.normalizeName(oldName)
     new = characterprofiles.normalizeName(newName)
 
@@ -593,22 +713,30 @@ def renameCharacter(path, revision, oldName, newName):
     if old == new:
         raise ToolError("The new name is the same as the old one.")
 
-    prof = sp.characterProfiles.get(old)
-    if prof:
-        prof.name = new
+    counts = {}
 
-    cues, mentions = sp.renameCharacters({old: new})
+    def edit(sp):
+        names = {characterprofiles.normalizeName(n) for n in sp.getCharacterNames()}
+        prof = sp.characterProfiles.get(old)
 
-    if not (cues or mentions or prof):
-        raise ToolError("Character '%s' was not found." % old)
+        if (old not in names) and not prof:
+            raise ToolError("Character '%s' was not found." % old)
 
-    ret = afterWrite(sp, path)
-    ret.update({"cues_renamed": cues, "mentions_renamed": mentions})
+        if prof:
+            prof.name = new
+            sp.markChanged()
+
+        counts["cues"], counts["mentions"] = sp.renameCharacters({old: new})
+
+        return None
+
+    ret = write(doc, revision, edit, True)
+    ret.update({"cues_renamed": counts["cues"], "mentions_renamed": counts["mentions"]})
 
     return ret
 
 
-# create a new script containing the given elements.
+# create a new .trelby file containing the given elements.
 def createScript(path, elements):
     init()
     path = checkPath(path, False)
@@ -622,4 +750,33 @@ def createScript(path, elements):
     sp = screenplay.Screenplay(_cfgGl)
     sp.lines = buildLines(elements, False)
 
-    return afterWrite(sp, path, False)
+    rev = save(sp, path, False)
+
+    return {"revision": rev, "scenes": getOutline(sp)}
+
+
+# the operations on documents, by MCP tool name. each takes a document and
+# a dict of the tool's other arguments.
+OPS = {
+    "get_script_info": lambda d, a: getInfo(d),
+    "list_scenes": lambda d, a: listScenes(d),
+    "read_scenes": lambda d, a: readScenes(d, a["first"], a.get("last")),
+    "list_characters": lambda d, a: listCharacters(d),
+    "search_script": lambda d, a: search(
+        d, a["query"], a.get("case_sensitive", False)
+    ),
+    "export_script": lambda d, a: export(d, a["format"], a.get("output_path")),
+    "replace_scene": lambda d, a: replaceScene(
+        d, a["revision"], a["index"], a["elements"]
+    ),
+    "insert_scenes": lambda d, a: insertScenes(
+        d, a["revision"], a["position"], a["elements"]
+    ),
+    "delete_scene": lambda d, a: deleteScene(d, a["revision"], a["index"]),
+    "move_scene": lambda d, a: moveScene(
+        d, a["revision"], a["index"], a["new_index"]
+    ),
+    "rename_character": lambda d, a: renameCharacter(
+        d, a["revision"], a["old_name"], a["new_name"]
+    ),
+}

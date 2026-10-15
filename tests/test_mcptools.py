@@ -6,6 +6,8 @@ import pytest
 import tests.u as u
 import trelby.mcptools as m
 
+D = m.FileDoc
+
 # tests for the operations behind the MCP server
 
 
@@ -46,7 +48,7 @@ def sample(tmp_path):
 
 
 def rev(path):
-    return m.listScenes(path)["revision"]
+    return m.listScenes(D(path))["revision"]
 
 
 def headings(res):
@@ -54,11 +56,11 @@ def headings(res):
 
 
 def elems(path, index):
-    return m.readScenes(path, index)["scenes"][0]["elements"]
+    return m.readScenes(D(path), index)["scenes"][0]["elements"]
 
 
 def testListScenes(small):
-    scenes = m.listScenes(small)["scenes"]
+    scenes = m.listScenes(D(small))["scenes"]
 
     assert [s["index"] for s in scenes] == [0, 1, 2, 3, 4]
     assert scenes[0]["type"] == "opening"
@@ -72,14 +74,14 @@ def testListScenes(small):
 
 
 def testNoOpening(sample):
-    scenes = m.listScenes(sample)["scenes"]
+    scenes = m.listScenes(D(sample))["scenes"]
 
     assert scenes[0]["index"] == 1
     assert len(scenes) == 13
 
 
 def testReadScenes(small):
-    res = m.readScenes(small, 0, 1)
+    res = m.readScenes(D(small), 0, 1)
 
     assert res["scenes"][0]["elements"] == [{"type": "transition", "text": "Fade in:"}]
     assert res["scenes"][1]["elements"] == [
@@ -90,10 +92,10 @@ def testReadScenes(small):
     ]
 
     with pytest.raises(m.ToolError):
-        m.readScenes(small, 5)
+        m.readScenes(D(small), 5)
 
     with pytest.raises(m.ToolError):
-        m.readScenes(small, 2, 1)
+        m.readScenes(D(small), 2, 1)
 
 
 def testReadJoinsWrappedLines(sample):
@@ -106,7 +108,7 @@ def testReadJoinsWrappedLines(sample):
 
 
 def testInfo(sample):
-    info = m.getInfo(sample)
+    info = m.getInfo(D(sample))
 
     assert info["title_page"][0] == "THE KOALA INCIDENT"
     assert info["scenes"] == 13
@@ -116,7 +118,7 @@ def testInfo(sample):
 
 
 def testListCharacters(small):
-    chars = m.listCharacters(small)["characters"]
+    chars = m.listCharacters(D(small))["characters"]
 
     assert [c["name"] for c in chars] == ["JOHN", "MARY"]
     assert chars[0]["scenes"] == [4]
@@ -124,39 +126,39 @@ def testListCharacters(small):
 
 
 def testSearch(small):
-    matches = m.search(small, "mary")["matches"]
+    matches = m.search(D(small), "mary")["matches"]
 
     assert [(x["index"], x["type"]) for x in matches] == [
         (1, "action"),
         (1, "character"),
         (2, "action"),
     ]
-    assert len(m.search(small, "mary", True)["matches"]) == 0
+    assert len(m.search(D(small), "mary", True)["matches"]) == 0
 
     with pytest.raises(m.ToolError):
-        m.search(small, "")
+        m.search(D(small), "")
 
 
 def testPaths(small, tmp_path):
     with pytest.raises(m.ToolError, match="absolute"):
-        m.listScenes("small.trelby")
+        m.listScenes(D("small.trelby"))
 
     with pytest.raises(m.ToolError, match="not found"):
-        m.listScenes(str(tmp_path / "missing.trelby"))
+        m.listScenes(D(str(tmp_path / "missing.trelby")))
 
     with pytest.raises(m.ToolError, match="Not a .trelby"):
-        m.listScenes(str(tmp_path / "small.txt"))
+        m.listScenes(D(str(tmp_path / "small.txt")))
 
 
 def testStaleRevision(small):
     old = rev(small)
-    m.deleteScene(small, old, 2)
+    m.deleteScene(D(small), old, 2)
 
     with open(small, "rb") as f:
         before = f.read()
 
     with pytest.raises(m.ToolError, match="changed"):
-        m.deleteScene(small, old, 1)
+        m.deleteScene(D(small), old, 1)
 
     with open(small, "rb") as f:
         assert f.read() == before
@@ -164,7 +166,7 @@ def testStaleRevision(small):
 
 def testReplaceScene(small):
     res = m.replaceScene(
-        small,
+        D(small),
         rev(small),
         2,
         [
@@ -180,21 +182,24 @@ def testReplaceScene(small):
 
 
 def testReplaceKeepsColor(small):
-    m.replaceScene(small, rev(small), 1, [{"type": "scene", "text": "INT. HALL"}])
+    m.replaceScene(D(small), rev(small), 1, [{"type": "scene", "text": "INT. HALL"}])
     assert elems(small, 1)[0]["color"] == "#ffb3b3"
 
     m.replaceScene(
-        small, rev(small), 1, [{"type": "scene", "text": "INT. HALL", "color": None}]
+        D(small),
+        rev(small),
+        1,
+        [{"type": "scene", "text": "INT. HALL", "color": None}],
     )
     assert "color" not in elems(small, 1)[0]
 
 
 def testReplaceNeedsHeading(small):
     with pytest.raises(m.ToolError, match="first element"):
-        m.replaceScene(small, rev(small), 1, [{"type": "action", "text": "x"}])
+        m.replaceScene(D(small), rev(small), 1, [{"type": "action", "text": "x"}])
 
     # but the opening can be anything
-    m.replaceScene(small, rev(small), 0, [{"type": "action", "text": "Dark."}])
+    m.replaceScene(D(small), rev(small), 0, [{"type": "action", "text": "Dark."}])
     assert elems(small, 0) == [{"type": "action", "text": "Dark."}]
 
 
@@ -210,7 +215,7 @@ def testBadElements(small):
         [{"type": "scene", "text": "x"}, {"type": "dialogue", "text": "x", "dual": True}],
     ):
         with pytest.raises(m.ToolError):
-            m.replaceScene(small, r, 1, bad)
+            m.replaceScene(D(small), r, 1, bad)
 
     assert rev(small) == r
 
@@ -227,7 +232,7 @@ def testInsertScenes(small):
         {"type": "scene", "text": "EXT. CAVE - NIGHT"},
     ]
 
-    res = m.insertScenes(small, rev(small), 2, new)
+    res = m.insertScenes(D(small), rev(small), 2, new)
     assert headings(res)[1:5] == [
         "INT. KITCHEN - DAY",
         "INT. CAVE - NIGHT",
@@ -236,28 +241,31 @@ def testInsertScenes(small):
     ]
 
     res = m.insertScenes(
-        small, rev(small), len(res["scenes"]), [{"type": "scene", "text": "THE END"}]
+        D(small),
+        rev(small),
+        len(res["scenes"]),
+        [{"type": "scene", "text": "THE END"}],
     )
     assert headings(res)[-1] == "THE END"
 
     with pytest.raises(m.ToolError, match="out of range"):
-        m.insertScenes(small, rev(small), 0, new)
+        m.insertScenes(D(small), rev(small), 0, new)
 
 
 def testDeleteScene(small):
-    res = m.deleteScene(small, rev(small), 1)
+    res = m.deleteScene(D(small), rev(small), 1)
 
     assert headings(res)[1] == "EXT. GARDEN - NIGHT"
 
-    res = m.deleteScene(small, rev(small), 0)
+    res = m.deleteScene(D(small), rev(small), 0)
     assert res["scenes"][0]["index"] == 1
 
     with pytest.raises(m.ToolError, match="nothing before"):
-        m.deleteScene(small, rev(small), 0)
+        m.deleteScene(D(small), rev(small), 0)
 
 
 def testMoveScene(small):
-    res = m.moveScene(small, rev(small), 1, 4)
+    res = m.moveScene(D(small), rev(small), 1, 4)
 
     assert headings(res)[1:] == [
         "EXT. GARDEN - NIGHT",
@@ -269,11 +277,11 @@ def testMoveScene(small):
 
     for bad in ((1, 1), (0, 2), (1, 5)):
         with pytest.raises(m.ToolError):
-            m.moveScene(small, rev(small), *bad)
+            m.moveScene(D(small), rev(small), *bad)
 
 
 def testRenameCharacter(small):
-    res = m.renameCharacter(small, rev(small), "john", "Jack")
+    res = m.renameCharacter(D(small), rev(small), "john", "Jack")
 
     assert res["cues_renamed"] == 1
     assert res["mentions_renamed"] == 2
@@ -281,26 +289,26 @@ def testRenameCharacter(small):
     assert elems(small, 2)[1]["text"] == "Jack waits for Mary."
 
     with pytest.raises(m.ToolError, match="not found"):
-        m.renameCharacter(small, rev(small), "Nobody", "Somebody")
+        m.renameCharacter(D(small), rev(small), "Nobody", "Somebody")
 
 
 def testExport(small, tmp_path):
-    text = m.export(small, "text")["content"]
+    text = m.export(D(small), "text")["content"]
     assert "KITCHEN" in text
 
-    assert "<FinalDraft" in m.export(small, "fdx")["content"]
+    assert "<FinalDraft" in m.export(D(small), "fdx")["content"]
 
     with pytest.raises(m.ToolError, match="output path"):
-        m.export(small, "pdf")
+        m.export(D(small), "pdf")
 
     with pytest.raises(m.ToolError, match="Unknown format"):
-        m.export(small, "docx")
+        m.export(D(small), "docx")
 
     with pytest.raises(m.ToolError):
-        m.export(small, "text", str(tmp_path / "other.trelby"))
+        m.export(D(small), "text", str(tmp_path / "other.trelby"))
 
     out = str(tmp_path / "small.pdf")
-    m.export(small, "pdf", out)
+    m.export(D(small), "pdf", out)
 
     with open(out, "rb") as f:
         assert f.read(4) == b"%PDF"
@@ -324,3 +332,131 @@ def testCreateScript(tmp_path):
 
     with pytest.raises(m.ToolError, match="already exists"):
         m.createScript(path, [{"type": "scene", "text": "x"}])
+
+
+# scripts open in the app are edited in memory, with undo
+
+
+LONG = "A sentence long enough to need wrapping over several lines. " * 4
+
+
+def live():
+    sp = u.loadString("\n".join(SMALL))
+    sp.markChanged(False)
+
+    return m.LiveDoc(sp)
+
+
+def testLiveReplace():
+    d = live()
+    sp = d.sp
+
+    res = m.replaceScene(
+        d,
+        m.listScenes(d)["revision"],
+        2,
+        [
+            {"type": "scene", "text": "EXT. GARDEN - DAWN"},
+            {"type": "action", "text": LONG + "\nLast line."},
+            {"type": "character", "text": "JOHN"},
+            {"type": "dialogue", "text": LONG},
+        ],
+    )
+    sp._validate()
+
+    assert headings(res)[2] == "EXT. GARDEN - DAWN"
+    assert res["revision"] == m.listScenes(d)["revision"]
+    assert m.readScenes(d, 2)["scenes"][0]["elements"][1]["text"] == (
+        LONG.strip() + "\nLast line."
+    )
+
+    # the cursor is put at the start of the change
+    assert m.getInfo(d)["cursor_scene"] == 2
+    assert m.getInfo(d)["modified"]
+
+    sp.cmd("undo")
+    sp._validate()
+    assert headings(m.listScenes(d))[2] == "EXT. GARDEN - NIGHT"
+
+    sp.cmd("redo")
+    sp._validate()
+    assert headings(m.listScenes(d))[2] == "EXT. GARDEN - DAWN"
+
+
+def testLiveOwnUndo():
+    d = live()
+    sp = d.sp
+
+    m.moveScene(d, m.listScenes(d)["revision"], 1, 4)
+    m.renameCharacter(d, m.listScenes(d)["revision"], "John", "Jack")
+    sp._validate()
+
+    assert headings(m.listScenes(d))[4] == "INT. KITCHEN - DAY"
+    assert m.search(d, "john")["matches"] == []
+
+    # each edit is one undo step
+    sp.cmd("undo")
+    assert len(m.search(d, "john")["matches"]) == 3
+    assert headings(m.listScenes(d))[4] == "INT. KITCHEN - DAY"
+
+    sp.cmd("undo")
+    sp._validate()
+    assert headings(m.listScenes(d))[1] == "INT. KITCHEN - DAY"
+
+
+def testLiveDeleteAndInsert():
+    d = live()
+    sp = d.sp
+
+    m.deleteScene(d, m.listScenes(d)["revision"], 1)
+    sp._validate()
+
+    res = m.insertScenes(
+        d,
+        m.listScenes(d)["revision"],
+        len(m.listScenes(d)["scenes"]),
+        [{"type": "scene", "text": "INT. END"}, {"type": "action", "text": LONG}],
+    )
+    sp._validate()
+    assert headings(res)[-1] == "INT. END"
+
+    # everything can be deleted, leaving an empty script
+    for _ in range(len(res["scenes"]) - 1):
+        m.deleteScene(d, m.listScenes(d)["revision"], 1)
+
+    m.deleteScene(d, m.listScenes(d)["revision"], 0)
+    sp._validate()
+    assert len(sp.lines) == 1
+
+
+def testLiveStale():
+    d = live()
+    old = m.listScenes(d)["revision"]
+
+    # typing changes the revision, but moving the cursor doesn't
+    d.sp.line = 3
+    assert m.listScenes(d)["revision"] == old
+
+    d.sp.cmd("addChar", char="x")
+    assert m.listScenes(d)["revision"] != old
+
+    with pytest.raises(m.ToolError, match="changed"):
+        m.deleteScene(d, old, 1)
+
+
+def testLiveFailedEditChangesNothing():
+    d = live()
+    r = m.listScenes(d)["revision"]
+
+    class Readonly(m.LiveDoc):
+        def checkWritable(self):
+            raise m.ToolError("busy")
+
+    with pytest.raises(m.ToolError, match="busy"):
+        m.deleteScene(Readonly(d.sp), r, 1)
+
+    with pytest.raises(m.ToolError):
+        m.replaceScene(d, r, 1, [{"type": "action", "text": "x"}])
+
+    assert m.listScenes(d)["revision"] == r
+    assert not d.sp.canUndo()

@@ -1291,6 +1291,12 @@ class ConfigGlobal:
         # page break indicators to show
         v.addInt("pbi", PBI_REAL, "PageBreakIndicators", PBI_FIRST, PBI_LAST)
 
+        # whether to run the MCP server that lets AI assistants read and
+        # edit the open scripts (see mcpapp.py), and the localhost port it
+        # listens on. the default port must match mcpserver.DEFAULT_PORT.
+        v.addBool("mcpEnabled", False, "MCP/Enabled")
+        v.addInt("mcpPort", 7789, "MCP/Port", 1024, 65535)
+
         # whether to show PDFs in the built-in viewer (where the platform
         # supports it) instead of the external viewer program below
         v.addBool("pdfUseBuiltinViewer", True, "PDF/UseBuiltinViewer")

@@ -9,6 +9,7 @@ import wx
 
 import trelby
 import trelby.config as config
+import trelby.mcpapp as mcpapp
 import trelby.misc as misc
 import trelby.opts as opts
 import trelby.util as util
@@ -137,6 +138,10 @@ class MyApp(wx.App):
         self.SetTopWindow(mainFrame)
 
         mainFrame.checkFonts()
+
+        # start the MCP server if it's turned on. before offering recovery,
+        # since calls queued after that wait until its dialog is closed.
+        wx.CallAfter(mcpapp.configure, gd, mainFrame)
 
         # after the main window is up, so the question has a parent
         wx.CallAfter(mainFrame.offerRecovery)

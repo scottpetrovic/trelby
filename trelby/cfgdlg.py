@@ -17,6 +17,7 @@ from trelby.configpages.formattingpanel import FormattingPanel
 # import config pages
 from trelby.configpages.globalaboutpanel import GlobalAboutPanel
 from trelby.configpages.keyboardpanel import KeyboardPanel
+from trelby.configpages.mcppanel import MCPPanel
 from trelby.configpages.miscpanel import MiscPanel
 from trelby.configpages.paperpanel import PaperPanel
 from trelby.configpages.pdffontspanel import PDFFontsPanel
@@ -204,6 +205,7 @@ class CfgDlg(wx.Dialog):
             self.AddPage(DraftPanel, _("Continuous Mode"))
             self.AddPage(ElementsGlobalPanel, _("Elements"))
             self.AddPage(KeyboardPanel, _("Keyboard"))
+            self.AddPage(MCPPanel, _("MCP Server"))
             self.AddPage(MiscPanel, _("Misc"))
             self.AddPage(PDFViewerPanel, "PDF")
         else:
