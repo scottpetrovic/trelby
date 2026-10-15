@@ -31,41 +31,26 @@ class TitlesDlg(wx.Dialog):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.pageLabel = wx.StaticText(self, -1, "")
-        vsizer.Add(self.pageLabel, 0, wx.ADJUST_MINSIZE)
-
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        tmp = wx.Button(self, -1, _("Add"))
-        hsizer.Add(tmp)
-        self.Bind(wx.EVT_BUTTON, self.OnAddPage, id=tmp.GetId())
-        gutil.btnDblClick(tmp, self.OnAddPage)
+        hsizer.Add(
+            wx.StaticText(self, -1, _("Items on this page:")),
+            0,
+            wx.ALIGN_CENTER_VERTICAL,
+        )
+        hsizer.AddStretchSpacer()
 
-        self.delPageBtn = wx.Button(self, -1, _("Delete"))
-        hsizer.Add(self.delPageBtn, 0, wx.LEFT, 10)
-        self.Bind(wx.EVT_BUTTON, self.OnDeletePage, id=self.delPageBtn.GetId())
-        gutil.btnDblClick(self.delPageBtn, self.OnDeletePage)
+        # pops up a menu of the kinds of strings to add
+        self.addBtn = wx.Button(self, -1, _("Add") + " ▾")
+        hsizer.Add(self.addBtn)
+        self.Bind(wx.EVT_BUTTON, self.OnAddMenu, id=self.addBtn.GetId())
 
-        self.moveBtn = wx.Button(self, -1, _("Move"))
-        hsizer.Add(self.moveBtn, 0, wx.LEFT, 10)
-        self.Bind(wx.EVT_BUTTON, self.OnMovePage, id=self.moveBtn.GetId())
-        gutil.btnDblClick(self.moveBtn, self.OnMovePage)
+        self.delBtn = gutil.createStockButton(self, _("Delete"))
+        hsizer.Add(self.delBtn, 0, wx.LEFT, 10)
+        self.Bind(wx.EVT_BUTTON, self.OnDeleteString, id=self.delBtn.GetId())
+        gutil.btnDblClick(self.delBtn, self.OnDeleteString)
 
-        self.nextBtn = wx.Button(self, -1, _("Next"))
-        hsizer.Add(self.nextBtn, 0, wx.LEFT, 10)
-        self.Bind(wx.EVT_BUTTON, self.OnNextPage, id=self.nextBtn.GetId())
-        gutil.btnDblClick(self.nextBtn, self.OnNextPage)
-
-        vsizer.Add(hsizer, 0, wx.TOP, 5)
-
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
-
-        hsizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        vsizer2 = wx.BoxSizer(wx.VERTICAL)
-
-        tmp = wx.StaticText(self, -1, _("Items on this page:"))
-        vsizer2.Add(tmp)
+        vsizer.Add(hsizer, 0, wx.EXPAND)
 
         self.stringsLc = wx.ListCtrl(
             self, -1, size=(200, 150), style=wx.LC_REPORT | wx.LC_SINGLE_SEL
@@ -73,23 +58,7 @@ class TitlesDlg(wx.Dialog):
         self.stringsLc.AppendColumn(_("Type"), width=self.FromDIP(100))
         self.stringsLc.AppendColumn(_("Text"), width=self.FromDIP(240))
         self.stringsLc.Bind(wx.EVT_SIZE, self.OnListSize)
-        vsizer2.Add(self.stringsLc, 1, wx.EXPAND)
-
-        hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
-
-        # pops up a menu of the kinds of strings to add
-        self.addBtn = wx.Button(self, -1, _("Add") + " ▾")
-        hsizer2.Add(self.addBtn)
-        self.Bind(wx.EVT_BUTTON, self.OnAddMenu, id=self.addBtn.GetId())
-
-        self.delBtn = gutil.createStockButton(self, _("Delete"))
-        hsizer2.Add(self.delBtn, 0, wx.LEFT, 10)
-        self.Bind(wx.EVT_BUTTON, self.OnDeleteString, id=self.delBtn.GetId())
-        gutil.btnDblClick(self.delBtn, self.OnDeleteString)
-
-        vsizer2.Add(hsizer2, 0, wx.TOP, 5)
-
-        vsizer.Add(vsizer2, 1, wx.EXPAND)
+        vsizer.Add(self.stringsLc, 1, wx.EXPAND | wx.TOP, 5)
 
         tmp = wx.StaticText(
             self, -1, _("Click an item in the preview to edit its text.")
@@ -181,9 +150,37 @@ class TitlesDlg(wx.Dialog):
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)
         mainSizer.Add(vsizer, 0, wx.EXPAND)
 
+        # page controls above the preview
+        pvSizer = wx.BoxSizer(wx.VERTICAL)
+
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.addPageBtn = self.addPageButton(hsizer, _("Add page"), self.OnAddPage, 0)
+        self.delPageBtn = self.addPageButton(
+            hsizer, _("Delete page"), self.OnDeletePage
+        )
+        self.moveBtn = self.addPageButton(hsizer, _("Move page"), self.OnMovePage)
+        self.moveBtn.SetToolTip(_("Move this page one place later"))
+
+        hsizer.AddStretchSpacer()
+
+        self.prevBtn = self.addPageButton(
+            hsizer, "◂ " + _("Previous"), self.OnPrevPage, 20
+        )
+
+        self.pageLabel = wx.StaticText(self, -1, "", style=wx.ALIGN_CENTER_HORIZONTAL)
+        self.pageLabel.SetMinSize(wx.Size(self.FromDIP(90), -1))
+        hsizer.Add(self.pageLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 10)
+
+        self.nextBtn = self.addPageButton(hsizer, _("Next") + " ▸", self.OnNextPage)
+
+        pvSizer.Add(hsizer, 0, wx.EXPAND)
+
         self.previewCtrl = TitlesPreview(self, self, self.cfg)
         self.previewCtrl.SetMinSize(wx.Size(380, 480))
-        mainSizer.Add(self.previewCtrl, 1, wx.EXPAND | wx.LEFT, 20)
+        pvSizer.Add(self.previewCtrl, 1, wx.EXPAND | wx.TOP, 5)
+
+        mainSizer.Add(pvSizer, 1, wx.EXPAND | wx.LEFT, 20)
 
         topSizer = wx.BoxSizer(wx.VERTICAL)
         topSizer.Add(mainSizer, 1, wx.EXPAND)
@@ -228,6 +225,16 @@ class TitlesDlg(wx.Dialog):
         self.updateGui()
 
         self.previewCtrl.SetFocus()
+
+    # add a page control button to 'sizer', 'gap' pixels from the
+    # previous one, and return it
+    def addPageButton(self, sizer, label, handler, gap=10):
+        btn = wx.Button(self, -1, label)
+        sizer.Add(btn, 0, wx.LEFT, gap)
+        self.Bind(wx.EVT_BUTTON, handler, id=btn.GetId())
+        gutil.btnDblClick(btn, handler)
+
+        return btn
 
     # add a small toggle button showing 'label' in the given font style
     # to 'sizer', and return it. 'handler' defaults to OnMisc.
@@ -391,6 +398,11 @@ class TitlesDlg(wx.Dialog):
 
         self.updateGui()
 
+    def OnPrevPage(self, event):
+        self.setPage((self.pageIndex - 1) % len(self.titles.pages))
+
+        self.updateGui()
+
     def OnNextPage(self, event):
         self.setPage((self.pageIndex + 1) % len(self.titles.pages))
 
@@ -447,6 +459,7 @@ class TitlesDlg(wx.Dialog):
 
         self.delPageBtn.Enable(pgCnt > 0)
         self.moveBtn.Enable(pgCnt > 1)
+        self.prevBtn.Enable(pgCnt > 1)
         self.nextBtn.Enable(pgCnt > 1)
         self.previewBtn.Enable(pgCnt > 0)
 
