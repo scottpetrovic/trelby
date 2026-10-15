@@ -342,6 +342,51 @@ class MyElemTypeBar(wx.Control):
                 dc.DrawLine(rect.x, rect.y + dy, rect.x, rect.bottom - dy + 1)
 
 
+# a vertical line between groups of tools in the toolbar
+class MyToolbarDivider(wx.Control):
+    def __init__(self, parent, getCfgGui, height):
+        wx.Control.__init__(self, parent, -1, style=wx.BORDER_NONE)
+
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.getCfgGui = getCfgGui
+
+        size = wx.Size(self.FromDIP(13), height)
+        self.SetMinSize(size)
+        self.SetSize(size)
+
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+
+    def AcceptsFocus(self):
+        return False
+
+    def OnPaint(self, event):
+        cfgGui = self.getCfgGui()
+
+        dc = wx.AutoBufferedPaintDC(self)
+        w, h = self.GetClientSize()
+
+        dc.SetBrush(cfgGui.tabBarBgBrush)
+        dc.SetPen(cfgGui.tabBarBgPen)
+        dc.DrawRectangle(0, 0, w, h)
+
+        # halfway between the group borders and the text, so that it
+        # stands out in both light and dark themes
+        a = cfgGui.tabBorderColor
+        b = cfgGui.tabTextColor
+        color = wx.Colour(
+            (a.Red() + b.Red()) // 2,
+            (a.Green() + b.Green()) // 2,
+            (a.Blue() + b.Blue()) // 2,
+        )
+
+        # a filled rectangle rather than a line, for an exact width
+        lw = self.FromDIP(2)
+        dy = h // 5
+        dc.SetBrush(wx.Brush(color))
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.DrawRectangle((w - lw) // 2, dy, lw, h - dy * 2)
+
+
 # the toolbar's bold / italic / underline toggles, drawn like the element
 # type bar but with any number of items on at once. items are (bit, label)
 # tuples, where bit is textfmt.BOLD etc., and each label is drawn in the

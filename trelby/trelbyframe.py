@@ -988,6 +988,23 @@ class MyFrame(wx.Frame):
         if getattr(self, "alignBar", None):
             self.alignBar.Destroy()
 
+        for d in getattr(self, "tbDividers", []):
+            d.Destroy()
+
+        self.tbDividers = []
+
+        # height of the controls in the toolbar
+        height = max(
+            tb.FromDIP(paddedSize.height), tb.GetCharHeight() + tb.FromDIP(12)
+        )
+
+        # a vertical line between groups of tools. the toolbar's own
+        # separators don't show against its background color.
+        def addDivider():
+            d = misc.MyToolbarDivider(tb, self.getCfgGui, height)
+            tb.AddControl(d)
+            self.tbDividers.append(d)
+
         def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
             bitmap = gutil.svgBitmap(iconFilename, size, pad)
             tool = tb.AddTool(id, "", bitmap, shortHelp=toolTip, kind=kind)
@@ -1001,26 +1018,23 @@ class MyFrame(wx.Frame):
         addTB(ID_FILE_SAVE_AS, "saveas.svg", _("Save as") + "...")
         addTB(ID_FILE_CLOSE, "close.svg", _("Close file"))
 
-        tb.AddSeparator()
+        addDivider()
 
         addTB(ID_FILE_IMPORT, "import.svg", _("Import file") + "...")
         addTB(ID_FILE_EXPORT, "export.svg", _("Export file"))
 
-        tb.AddSeparator()
+        addDivider()
 
         addTB(ID_EDIT_UNDO, "undo.svg", _("Undo"))
         addTB(ID_EDIT_REDO, "redo.svg", _("Redo"))
 
-        tb.AddSeparator()
+        addDivider()
 
         addTB(ID_EDIT_FIND, "find.svg", _("Find / Replace"))
         addTB(ID_TOOLBAR_VIEWS, "view.svg", _("View mode"))
 
-        tb.AddSeparator()
+        addDivider()
 
-        height = max(
-            tb.FromDIP(paddedSize.height), tb.GetCharHeight() + tb.FromDIP(12)
-        )
         self.elemTypeBar = misc.MyElemTypeBar(
             tb,
             -1,
@@ -1033,7 +1047,7 @@ class MyFrame(wx.Frame):
         tb.AddControl(self.elemTypeBar)
 
         # bold / italic / underline, which go on top of any element type
-        tb.AddSeparator()
+        addDivider()
         self.formatBar = misc.MyFormatBar(
             tb,
             -1,
@@ -1046,7 +1060,7 @@ class MyFrame(wx.Frame):
         tb.AddControl(self.formatBar)
 
         # centering, which applies to whole action elements
-        tb.AddSeparator()
+        addDivider()
         self.alignBar = misc.MyFormatBar(
             tb,
             -1,

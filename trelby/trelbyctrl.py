@@ -511,6 +511,9 @@ class MyCtrl(wx.Control):
         self.gd.mainFrame.elemTypeBar.Refresh(False)
         self.gd.mainFrame.formatBar.Refresh(False)
         self.gd.mainFrame.alignBar.Refresh(False)
+
+        for d in self.gd.mainFrame.tbDividers:
+            d.Refresh(False)
         self.gd.mainFrame.noFSBtn.Refresh(False)
         self.gd.mainFrame.toolBar.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         self.gd.mainFrame.toolBar.Refresh()
