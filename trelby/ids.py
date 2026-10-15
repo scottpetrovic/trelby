@@ -10,6 +10,9 @@ ID_EDIT_COPY_TO_CB_FMT = wx.NewIdRef()
 ID_EDIT_CUT = wx.NewIdRef()
 ID_EDIT_DELETE_ELEMENTS = wx.NewIdRef()
 ID_EDIT_DUAL_DIALOGUE = wx.NewIdRef()
+ID_EDIT_BOLD = wx.NewIdRef()
+ID_EDIT_ITALIC = wx.NewIdRef()
+ID_EDIT_UNDERLINE = wx.NewIdRef()
 ID_EDIT_FIND = wx.NewIdRef()
 ID_EDIT_GOTO_SCENE = wx.NewIdRef()
 ID_EDIT_GOTO_PAGE = wx.NewIdRef()
@@ -84,6 +87,7 @@ ID_ELEM_TO_PAREN = wx.NewIdRef()
 ID_ELEM_TO_SCENE = wx.NewIdRef()
 ID_ELEM_TO_SHOT = wx.NewIdRef()
 ID_ELEM_TO_ACTBREAK = wx.NewIdRef()
+ID_ELEM_TO_CENTERED = wx.NewIdRef()
 ID_ELEM_TO_TRANSITION = wx.NewIdRef()
 
 idToLTMap = {
@@ -96,4 +100,5 @@ idToLTMap = {
     ID_ELEM_TO_SHOT: screenplay.SHOT,
     ID_ELEM_TO_ACTBREAK: screenplay.ACTBREAK,
     ID_ELEM_TO_NOTE: screenplay.NOTE,
+    ID_ELEM_TO_CENTERED: screenplay.CENTERED,
 }

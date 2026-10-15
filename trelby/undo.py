@@ -72,6 +72,9 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[5]: dict of {index: color} for the lines that have a color, or
 #   None if none do
 #
+#   tuple[6]: dict of {index: fmt} for the lines that have formatting, or
+#   None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
@@ -79,6 +82,7 @@ def lines2storage(lines):
     locks = {i: ln.pageLock for i, ln in enumerate(lines) if ln.pageLock}
     duals = tuple(i for i, ln in enumerate(lines) if ln.dual) or None
     colors = {i: ln.color for i, ln in enumerate(lines) if ln.color} or None
+    fmts = {i: ln.fmt for i, ln in enumerate(lines) if ln.fmt} or None
 
     lines = [str(ln) for ln in lines]
     linesStr = "\n".join(lines)
@@ -92,9 +96,9 @@ def lines2storage(lines):
     locks = locks or None
 
     if len(linesStrCompressed) < len(linesStr):
-        return (len(lines), True, linesStrCompressed, locks, duals, colors)
+        return (len(lines), True, linesStrCompressed, locks, duals, colors, fmts)
     else:
-        return (len(lines), False, linesStr.encode(), locks, duals, colors)
+        return (len(lines), False, linesStr.encode(), locks, duals, colors, fmts)
 
 
 # see lines2storage.
@@ -120,6 +124,10 @@ def storage2lines(storage):
     if storage[5]:
         for i, color in storage[5].items():
             lines[i].color = color
+
+    if storage[6]:
+        for i, fmt in storage[6].items():
+            lines[i].fmt = fmt
 
     return lines
 

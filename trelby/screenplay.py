@@ -23,6 +23,7 @@ TRANSITION = 6
 SHOT = 7
 NOTE = 8
 ACTBREAK = 9
+CENTERED = 10
 
 import copy
 import difflib
@@ -44,6 +45,7 @@ import trelby.pagelock as pagelock
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.spellcheck as spellcheck
+import trelby.textfmt as textfmt
 import trelby.titles as titles
 import trelby.undo as undo
 import trelby.util as util
@@ -99,6 +101,11 @@ class Screenplay:
 
         # max nr of auto comp items displayed at once
         self.acMax = 10
+
+        # (line, column, style): the style (see textfmt) to type text in
+        # at that cursor position, set by toggling bold etc. with nothing
+        # selected, or None. see getTypingStyle.
+        self.typingStyle = None
 
         # True if script has had changes done to it after
         # load/save/creation.
@@ -246,6 +253,9 @@ class Screenplay:
             if color:
                 output += "#Scene-Color %s\n" % color
 
+            if ln.fmt:
+                output += "#Format %s\n" % textfmt.encode(ln.getFmt())
+
             output += str(ln) + "\n"
 
         return output.encode("UTF-8")
@@ -338,6 +348,10 @@ class Screenplay:
         # color to set on the next script line, or None
         color = None
 
+        # formatting (as saved by textfmt.encode) to set on the next script
+        # line, or None
+        fmt = None
+
         for i in range(index, len(lines)):
             s = lines[i]
 
@@ -382,6 +396,9 @@ class Screenplay:
                 elif (key == "Scene-Color") and startSeen and isValidColor(val):
                     color = val.lower()
 
+                elif (key == "Format") and startSeen:
+                    fmt = val
+
                 else:
                     unknownConfigs = True
 
@@ -411,10 +428,15 @@ class Screenplay:
                     )
 
                 line = Line(lb, lt, text, pageLock, dual, color)
+
+                if fmt:
+                    line.fmt = textfmt.decode(fmt, len(text))
+
                 sp.lines.append(line)
                 pageLock = None
                 dual = False
                 color = None
+                fmt = None
 
                 if lb != LB_LAST:
                     prevType = lt
@@ -598,6 +620,8 @@ class Screenplay:
                 if text and self.needsExtraParenIndent(i):
                     text = " " + text
 
+                text = " " * int(self.getCenterOffset(i)) + text
+
                 output += " " * tcfg.indent + text + "\n"
 
         return str(output)
@@ -618,6 +642,7 @@ class Screenplay:
             TRANSITION: "tr",
             NOTE: "nt",
             ACTBREAK: "ab",
+            CENTERED: "ce",
         }
 
         # html header for files
@@ -679,7 +704,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             if text and self.needsExtraParenIndent(i):
                 text = " " + text
 
-            text = " " * tcfg.indent + text
+            text = " " * (tcfg.indent + int(self.getCenterOffset(i))) + text
 
             # do we need space before this line?
             lineSpaces = self.getSpacingBefore(i) // 10
@@ -697,23 +722,60 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                 continue
 
-            # and now the line text
+            # and now the line text, with bold / italic / underlined runs
+            # in spans
             para = etree.SubElement(content, "pre")
             para.set("class", htmlMap[line.lt])
-            para.text = str(text)
+
+            # text has the indent in front of the line's own text
+            pad = len(text) - len(line.text)
+            fmt = "0" * pad + line.getFmt() if line.fmt else None
+            prev = None
+
+            for a, b, style in textfmt.runs(fmt, len(text)):
+                part = str(text[a:b])
+
+                if style:
+                    prev = etree.SubElement(para, "span")
+                    prev.set(
+                        "style",
+                        ";".join(
+                            css
+                            for bit, css in (
+                                (textfmt.BOLD, "font-weight:bold"),
+                                (textfmt.ITALIC, "font-style:italic"),
+                                (textfmt.UNDERLINED, "text-decoration:underline"),
+                            )
+                            if style & bit
+                        ),
+                    )
+                    prev.text = part
+                elif prev is None:
+                    para.text = part
+                else:
+                    prev.tail = part
+
+            if not text:
+                para.text = ""
 
         bodyText = etree.tostring(content, encoding="UTF-8", pretty_print=True).decode()
 
         return htmlHeader + bodyText + htmlFooter
 
     # Return screenplay as list of tuples of the form (elType, elText,
-    # firstLine), where firstLine is the index of the element's first line.
+    # firstLine, fmt), where firstLine is the index of the element's first
+    # line and fmt is the format string for elText (see textfmt), or None.
     # forced linebreaks are represented as \n characters.
     def getElementsAsList(self):
         ls = self.lines
         eleList = []
         curLine = ""
         firstLine = 0
+
+        # (text, fmt) of the element's lines and the separators between
+        # them, for its format string
+        parts = []
+        seps = []
 
         for i, line in enumerate(ls):
             lineType = line.lt
@@ -723,15 +785,23 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 lineText = util.upper(lineText)
 
             curLine += lineText
+            parts.append((lineText, line.fmt))
 
             if line.lb == LB_LAST:
-                eleList.append((lineType, curLine, firstLine))
+                fmt = textfmt.join(parts, seps)
+                eleList.append((lineType, curLine, firstLine, fmt))
                 curLine = ""
                 firstLine = i + 1
+                parts = []
+                seps = []
             elif line.lb == LB_SPACE:
                 curLine += " "
+                seps.append(" ")
             elif line.lb == LB_FORCED:
                 curLine += "\n"
+                seps.append("\n")
+            else:
+                seps.append("")
 
         return eleList
 
@@ -754,6 +824,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             TRANSITION: "Transition",
             NOTE: "Action",
             ACTBREAK: "New Act",
+            CENTERED: "Action",
         }
 
         # where to add paragraphs: 'content', or the DualDialogue element
@@ -761,7 +832,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         parent = content
         dualEnd = -1
 
-        for typ, txt, first in eleList:
+        for typ, txt, first, fmt in eleList:
             if typ == CHARACTER:
                 block = self.getDualBlock(first)
 
@@ -781,8 +852,26 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 para = etree.SubElement(parent, "Paragraph")
                 para.set("Type", xmlMap[typ])
 
-            paratxt = etree.SubElement(para, "Text")
-            paratxt.text = str(txt)
+                if typ == CENTERED:
+                    para.set("Alignment", "Center")
+
+            # a Text element for each run of differently formatted text
+            for a, b, style in textfmt.runs(fmt, len(txt)) or [(0, 0, 0)]:
+                paratxt = etree.SubElement(para, "Text")
+                paratxt.text = str(txt[a:b])
+
+                flags = [
+                    name
+                    for bit, name in (
+                        (textfmt.BOLD, "Bold"),
+                        (textfmt.ITALIC, "Italic"),
+                        (textfmt.UNDERLINED, "Underline"),
+                    )
+                    if style & bit
+                ]
+
+                if flags:
+                    paratxt.set("Style", "+".join(flags))
 
             if self.getElemLastIndexFromLine(first) >= dualEnd:
                 parent = content
@@ -860,11 +949,29 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 else:
                     generateTitleString("Contact:", titleLine.items, 0, "", "")
 
-        for typ, txt, first in eleList:
-            lns = txt.split("\n")
+        for typ, txt, first, fmt in eleList:
+            # formatting as markup, a line at a time, since it can't span
+            # lines
+            pos = 0
+            lns = []
+
+            for ln in txt.split("\n"):
+                lns.append(textfmt.toMarkup(ln, fmt and fmt[pos : pos + len(ln)]))
+                pos += len(ln) + 1
+
+            txt = "\n".join(lns)
 
             # ensure last element of flines is empty for some types.
-            if typ in (SCENE, ACTION, CHARACTER, TRANSITION, SHOT, ACTBREAK, NOTE):
+            if typ in (
+                SCENE,
+                ACTION,
+                CHARACTER,
+                TRANSITION,
+                SHOT,
+                ACTBREAK,
+                NOTE,
+                CENTERED,
+            ):
                 if flines and flines[-1] != "":
                     flines.append("")
 
@@ -900,8 +1007,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             elif typ == NOTE:
                 txt = "[[" + txt + "]]"
 
-            elif typ == ACTBREAK:
-                txt = ">" + txt + "<"
+            elif typ in (ACTBREAK, CENTERED):
+                txt = "\n".join(">" + ln + "<" for ln in lns)
 
             elif typ == SHOT:
                 txt += TWOSPACE
@@ -950,6 +1057,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             if tt.isUnderlined:
                 tmp += r" \ul"
 
+            if ti.lt == CENTERED:
+                tmp += r" \qc"
+
             # some hairy conversions going on here...
             tmp += r" \li%d\ri%d" % (
                 sf * t.indent * 144,
@@ -981,8 +1091,6 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         length = len(ls)
         i = 0
 
-        magicslash = "TRELBY-MAGIC-SLASH"
-
         while i < length:
             lt = ls[i].lt
             text = ""
@@ -992,12 +1100,29 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 i += 1
 
                 lb = ln.lb
-                text += ln.text
+
+                # bold / italic / underlined runs go in groups of their own
+                for a, b, style in textfmt.runs(ln.fmt, len(ln.text)):
+                    part = util.escapeRTF(ln.text[a:b])
+
+                    if style:
+                        codes = "".join(
+                            code
+                            for bit, code in (
+                                (textfmt.BOLD, r"\b"),
+                                (textfmt.ITALIC, r"\i"),
+                                (textfmt.UNDERLINED, r"\ul"),
+                            )
+                            if style & bit
+                        )
+                        part = "{%s %s}" % (codes, part)
+
+                    text += part
 
                 if lb in (LB_SPACE, LB_NONE):
                     text += config.lb2str(lb)
                 elif lb == LB_FORCED:
-                    text += magicslash + "line "
+                    text += r"\line "
                 elif lb == LB_LAST:
                     break
                 else:
@@ -1005,11 +1130,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                         _("Unknown line break style {} in generateRTF".format(lb))
                     )
 
-            s += (
-                (r"{\pard \s%d " % lt)
-                + util.escapeRTF(text).replace(magicslash, "\\")
-                + "}{\\par}\n"
-            )
+            s += (r"{\pard \s%d " % lt) + text + "}{\\par}\n"
 
         s += "}"
 
@@ -1185,6 +1306,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 text = line.text
 
             extraIndent = 1 if self.needsExtraParenIndent(i) else 0
+            extraIndent += self.getCenterOffset(i)
 
             to = pml.TextOp(
                 text,
@@ -1193,6 +1315,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 fs,
                 typ,
                 line=i,
+                fmt=line.fmt,
             )
 
             pg.add(to)
@@ -1321,6 +1444,17 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             )
         )
 
+    # return how many characters (possibly a fraction of one) line i is
+    # indented by in addition to its type's indent: for a centered line,
+    # what centers it within the type's width, otherwise 0.
+    def getCenterOffset(self, i):
+        ln = self.lines[i]
+
+        if ln.lt != CENTERED:
+            return 0
+
+        return max(0, self.cfg.getType(CENTERED).width - len(ln.text)) / 2.0
+
     # get topLine, clamping it to the valid range in the process.
     def getTopLine(self):
         self._topLine = util.clamp(self._topLine, 0, len(self.lines) - 1)
@@ -1375,8 +1509,20 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         isParen = line.lt == PAREN
 
-        # text remaining to be wrapped
+        # text remaining to be wrapped, and its format string (or None)
         text = line.text
+        fmt = line.getFmt() if line.fmt else None
+
+        # add a line with text[a:b] and lb, and drop text[:c] from what's
+        # left to be wrapped
+        def add(lb, a, b, c):
+            nonlocal text, fmt
+
+            ret.append(Line(lb, line.lt, text[a:b], fmt=fmt and fmt[a:b]))
+            text = text[c:]
+
+            if fmt:
+                fmt = fmt[c:]
 
         while 1:
             # reduce parenthetical width by 1 from second line onwards
@@ -1386,7 +1532,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 w = width
 
             if len(text) <= w:
-                ret.append(Line(line.lb, line.lt, text))
+                add(line.lb, 0, len(text), len(text))
                 break
             else:
                 i = text.rfind(" ", 0, w + 1)
@@ -1413,20 +1559,17 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                         i += 1
 
                     if i == len(text):
-                        ret.append(Line(line.lb, line.lt, text))
+                        add(line.lb, 0, len(text), len(text))
 
                         break
                     else:
-                        ret.append(Line(LB_SPACE, line.lt, text[0 : i - 1]))
-                        text = text[i:]
+                        add(LB_SPACE, 0, i - 1, i)
 
                 elif i >= 0:
-                    ret.append(Line(LB_SPACE, line.lt, text[0:i]))
-                    text = text[i + 1 :]
+                    add(LB_SPACE, 0, i, i + 1)
 
                 else:
-                    ret.append(Line(LB_NONE, line.lt, text[0:w]))
-                    text = text[w:]
+                    add(LB_NONE, 0, w, w)
 
         return ret
 
@@ -1475,7 +1618,12 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             s += ls[i].text
 
-        tmp = Line(ls[line2].lb, ls[line1].lt, s)
+        fmt = textfmt.join(
+            [(ls[i].text, ls[i].fmt) for i in range(line1, line2 + 1)],
+            [config.lb2str(ls[i].lb) for i in range(line1, line2)],
+        )
+
+        tmp = Line(ls[line2].lb, ls[line1].lt, s, fmt=fmt)
 
         # speeches in a dual dialogue are wrapped to fit their column
         width = None
@@ -2447,7 +2595,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             # if changing away from PAREN containing only "()", remove it
             if (first == last) and (ls[first].lt == PAREN) and (ls[first].text == "()"):
-                ls[first].text = ""
+                ls[first].setText("")
 
                 if first == self.line:
                     self.column = 0
@@ -2461,7 +2609,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 and (ls[first].lt == PAREN)
                 and (len(ls[first].text) == 0)
             ):
-                ls[first].text = "()"
+                ls[first].setText("()")
 
                 if first == self.line:
                     self.column = 1
@@ -2501,7 +2649,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         ln = ls[line]
 
         pos = len(ln.text)
-        ln.text += ls[line + 1].text
+        ln.appendLine(ls[line + 1])
         ln.lb = ls[line + 1].lb
 
         # the joined line's page lock now points into the middle of this
@@ -2529,8 +2677,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         s = ln.text
         preStr = s[: self.column]
         postStr = s[self.column :]
-        newLine = Line(ln.lb, ln.lt, postStr)
-        ln.text = preStr
+        newLine = Line(ln.lb, ln.lt, postStr, fmt=ln.sliceFmt(self.column))
+        ln.setText(preStr, ln.sliceFmt(0, self.column))
         ln.lb = LB_FORCED
         self.lines.insert(self.line + 1, newLine)
 
@@ -2560,7 +2708,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             if self.isAtEndOfParen():
                 self.column += 1
         else:
-            ls[self.line].text = self.acItems[self.acSel]
+            ls[self.line].setText(self.acItems[self.acSel])
             self.column = len(ls[self.line].text)
 
         self.splitLine()
@@ -2579,8 +2727,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     # delete character at given position and optionally position
     # cursor there.
     def deleteChar(self, line, column, posCursor=True):
-        s = self.lines[line].text
-        self.lines[line].text = s[:column] + s[column + 1 :]
+        self.lines[line].deleteText(column, column + 1)
 
         if posCursor:
             self.column = column
@@ -3145,6 +3292,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     ln.text[c1 : c2 + 1],
                     dual=self.hasDualFlag(i) and (c1 == 0),
                     color=self.getSceneColor(i) if (c1 == 0) else None,
+                    fmt=ln.sliceFmt(c1, c2 + 1),
                 )
             )
 
@@ -3164,7 +3312,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             c1, c2 = self.getMarkedColumns(i, marked)
 
             ln = ls[i]
-            ln.text = ln.text[0:c1] + ln.text[c2 + 1 :]
+            ln.deleteText(c1, c2 + 1)
 
             if i == marked[0]:
                 endCol = c1
@@ -3264,16 +3412,25 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             newLine = Line(LB_LAST, ln.lt, dual=ln.dual, color=ln.color)
 
+            # (text, fmt) of the lines in this paragraph, and the
+            # separators between them
+            parts = []
+            seps = []
+
             while 1:
                 ln = clines[i]
                 i += 1
 
                 newLine.text += ln.text
+                parts.append((ln.text, ln.fmt))
 
                 if ln.lb in (LB_LAST, LB_FORCED):
                     break
 
                 newLine.text += config.lb2str(ln.lb)
+                seps.append(config.lb2str(ln.lb))
+
+            newLine.fmt = textfmt.join(parts, seps)
 
             newLine.lb = ln.lb
             inLines.append(newLine)
@@ -3296,7 +3453,15 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             ln.dual = inLines[0].dual
             ln.color = inLines[0].color
 
-        ln.text = ln.text[: self.column] + inLines[0].text + ln.text[self.column :]
+        if ln.fmt or inLines[0].fmt:
+            fmt = ln.getFmt()
+            ln.setText(
+                ln.text[: self.column] + inLines[0].text + ln.text[self.column :],
+                fmt[: self.column] + inLines[0].getFmt() + fmt[self.column :],
+            )
+        else:
+            ln.text = ln.text[: self.column] + inLines[0].text + ln.text[self.column :]
+
         self.column += len(inLines[0].text)
 
         if len(inLines) != 1:
@@ -3798,7 +3963,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         cues = 0
         mentions = 0
 
-        # (line, new text) for every changed line
+        # (line, new text, new format string) for every changed line
         changes = []
 
         for i, ln in enumerate(self.lines):
@@ -3809,15 +3974,25 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     idx = ln.text.find("(")
                     ext = (" " + ln.text[idx:].strip()) if idx != -1 else ""
 
-                    changes.append((i, new + ext))
+                    # the name gets the style of its first letter, and the
+                    # extension keeps its own
+                    fmt = None
+
+                    if ln.fmt:
+                        fmt = textfmt.char(textfmt.styleAt(ln.fmt, 0)) * len(new)
+
+                        if ext:
+                            fmt += "0" + textfmt.fit(ln.sliceFmt(idx), len(ext) - 1)
+
+                    changes.append((i, new + ext, fmt))
                     cues += 1
 
             else:
                 lineMentions = 0
-                text = pattern.sub(replaceMention, ln.text)
+                text, fmt = textfmt.sub(pattern, replaceMention, ln.text, ln.fmt)
 
                 if lineMentions:
-                    changes.append((i, text))
+                    changes.append((i, text, fmt))
                     mentions += lineMentions
 
         if not changes and not profileRenames:
@@ -3829,12 +4004,12 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         undo.renameProfiles(self, profileRenames)
 
-        for i, text in changes:
-            self.lines[i].text = text
+        for i, text, fmt in changes:
+            self.lines[i].setText(text, fmt)
 
         # rewrap changed paragraphs from the bottom up, so that the line
         # numbers of the ones still to do stay valid
-        paras = {self.getParaFirstIndexFromLine(i) for i, _text in changes}
+        paras = {self.getParaFirstIndexFromLine(i) for i, _text, _fmt in changes}
 
         for line in sorted(paras, reverse=True):
             self.rewrapPara(line)
@@ -3876,6 +4051,12 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def cmdPost(self, cs):
         # TODO: is this needed?
         self.column = min(self.column, len(self.lines[self.line].text))
+
+        # a typing style only lasts while the cursor stays where it was set
+        ts = self.typingStyle
+
+        if ts and ((ts[0] != self.line) or (ts[1] != self.column)):
+            self.typingStyle = None
 
         if cs.doAutoComp == cs.AC_DEL:
             self.clearAutoComp()
@@ -4017,7 +4198,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
     def moveLineEndCmd(self, cs):
         if self.acItems:
-            self.lines[self.line].text = self.acItems[self.acSel]
+            self.lines[self.line].setText(self.acItems[self.acSel])
         else:
             self.maybeMark(cs.mark)
 
@@ -4389,8 +4570,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     if doIt:
                         s = util.replace(s, "I", self.column - 1, 1)
 
+        style, isSet = self.getTypingStyle()
+        ln = ls[self.line]
+        fmt = ln.getFmt() if (ln.fmt or style) else None
+
         s = s[: self.column] + char + s[self.column :]
-        ls[self.line].text = s
+
+        if fmt is None:
+            ln.text = s
+        else:
+            ln.setText(
+                s, fmt[: self.column] + textfmt.char(style) + fmt[self.column :]
+            )
+
         self.column += 1
 
         tmp = s.upper()
@@ -4403,10 +4595,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             and self.isOnlyLineOfElem(self.line)
         ):
             ls[self.line].lt = PAREN
-            ls[self.line].text = "()"
+            ls[self.line].setText("()")
 
         self.rewrapPara()
         self.markChanged()
+
+        # keep typing in the style that was set
+        if isSet:
+            self.typingStyle = (self.line, self.column, style)
 
         cs.doAutoComp = cs.AC_REDO
 
@@ -4415,6 +4611,74 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         else:
             u.setAfter(self)
             self.addUndo(u)
+
+    # return (style, isSet) for text typed at the cursor: the style set
+    # with toggleFormat at this cursor position (isSet = True), or else
+    # that of the character before the cursor in the same paragraph.
+    def getTypingStyle(self):
+        ts = self.typingStyle
+
+        if ts and (ts[0] == self.line) and (ts[1] == self.column):
+            return (ts[2], True)
+
+        ls = self.lines
+        ln = ls[self.line]
+
+        if self.column > 0:
+            return (textfmt.styleAt(ln.fmt, self.column - 1), False)
+
+        if (self.line > 0) and (ls[self.line - 1].lb in (LB_SPACE, LB_NONE)):
+            prev = ls[self.line - 1]
+
+            return (textfmt.styleAt(prev.fmt, len(prev.text) - 1), False)
+
+        return (0, False)
+
+    # toggle a formatting bit (textfmt.BOLD etc.) on the selected text:
+    # set it if any of it doesn't have it, otherwise clear it. with
+    # nothing selected, toggles it for text typed at the cursor. the
+    # selection stays as it is.
+    def toggleFormat(self, bit):
+        marked = self.getMarkedLines()
+
+        if not marked:
+            style = self.getTypingStyle()[0] ^ bit
+            self.typingStyle = (self.line, self.column, style)
+
+            return
+
+        ls = self.lines
+
+        # whether all the selected text has the bit already
+        allSet = True
+
+        for i in range(marked[0], marked[1] + 1):
+            c1, c2 = self.getMarkedColumns(i, marked)
+            fmt = ls[i].getFmt()[c1 : c2 + 1]
+
+            if not all((ord(c) - 48) & bit for c in fmt):
+                allSet = False
+
+                break
+
+        u = undo.AnyDifference(self)
+
+        for i in range(marked[0], marked[1] + 1):
+            c1, c2 = self.getMarkedColumns(i, marked)
+            ln = ls[i]
+            fmt = ln.getFmt()
+            part = "".join(
+                textfmt.char(
+                    ((ord(c) - 48) & ~bit) if allSet else ((ord(c) - 48) | bit)
+                )
+                for c in fmt[c1 : c2 + 1]
+            )
+            ln.fmt = textfmt.compact(fmt[:c1] + part + fmt[c2 + 1 :])
+
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
 
     def toSceneCmd(self, cs):
         self.convertTypeTo(SCENE, True)
@@ -4439,6 +4703,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
     def toActBreakCmd(self, cs):
         self.convertTypeTo(ACTBREAK, True)
+
+    def toCenteredCmd(self, cs):
+        self.convertTypeTo(CENTERED, True)
 
     def toNoteCmd(self, cs):
         self.convertTypeTo(NOTE, True)
@@ -4584,6 +4851,13 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             # LB_SPACE instead
             if ln.lb == LB_NONE:
                 assert not ln.text.endswith(" ")
+
+            # format strings go with the text exactly, and are None if
+            # there's no formatting
+            if ln.fmt is not None:
+                assert len(ln.fmt) == len(ln.text)
+                assert ln.fmt == textfmt.compact(ln.fmt)
+                assert not ln.fmt.strip("01234567")
 
             if prevType:
                 assert ln.lt == prevType

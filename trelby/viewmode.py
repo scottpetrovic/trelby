@@ -16,7 +16,7 @@ TITLE_BUTTON_H = 44
 
 # a piece of text on screen.
 class TextString:
-    def __init__(self, line, text, x, y, fi, isUnderlined):
+    def __init__(self, line, text, x, y, fi, isUnderlined, fmt=None):
 
         # if this object is a screenplay line, this is the index of the
         # corresponding line in the Screenplay.lines list. otherwise this
@@ -31,6 +31,10 @@ class TextString:
         self.text = text
         self.fi = fi
         self.isUnderlined = isUnderlined
+
+        # format string for bold / italic / underlined parts of the text
+        # (see textfmt), or None
+        self.fmt = fmt
 
 
 # a page shown on screen.
@@ -248,15 +252,17 @@ class ViewModeDraft(ViewMode):
             fi = cfgGui.tt2fi(tcfg.screen)
 
             extraIndent = 1 if ctrl.sp.needsExtraParenIndent(i) else 0
+            extraIndent += ctrl.sp.getCenterOffset(i)
 
             texts.append(
                 TextString(
                     i,
                     text,
-                    cox + marginLeft + (tcfg.indent + extraIndent) * fi.fx,
+                    int(cox + marginLeft + (tcfg.indent + extraIndent) * fi.fx),
                     y,
                     fi,
                     tcfg.screen.isUnderlined,
+                    l.fmt,
                 )
             )
 
@@ -395,6 +401,7 @@ class ViewModeLayout(ViewMode):
                         ypos,
                         cfgGui.fonts[op.flags & 3],
                         op.flags & pml.UNDERLINED,
+                        op.fmt,
                     )
                 )
 
@@ -502,6 +509,7 @@ class ViewModeSideBySide(ViewMode):
                         int(sy + op.y * mm2p),
                         cfgGui.fonts[op.flags & 3],
                         op.flags & pml.UNDERLINED,
+                        op.fmt,
                     )
                 )
 

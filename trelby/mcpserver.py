@@ -36,7 +36,7 @@ A script is divided into numbered parts: index 0 is anything before the first
 scene heading (e.g. FADE IN:), possibly empty, and index 1, 2, ... are the
 scenes and act breaks in order, as returned by list_scenes. A part is a list
 of elements, each with a type (scene, action, character, dialogue,
-parenthetical, transition, shot, note, act break) and text.
+parenthetical, transition, shot, note, act break, centered) and text.
 
 Every result includes the script's revision. Every edit must be given the
 revision it is based on, and is refused if the script has changed since, so
@@ -101,6 +101,7 @@ class Element(BaseModel):
         "shot",
         "note",
         "act break",
+        "centered",
     ]
     text: str = Field(
         description="Element text. Use \\n for a forced line break; normal "

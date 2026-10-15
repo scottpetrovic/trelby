@@ -501,6 +501,14 @@ class Config:
         t.export.isItalic = True
         self.types[t.lt] = t
 
+        # each line is centered within the element's width; see
+        # Screenplay.getCenterOffset
+        t = Type(screenplay.CENTERED)
+        t.beforeSpacing = 10
+        t.indent = 0
+        t.width = 60
+        self.types[t.lt] = t
+
         # pdf font configs, key = PDF_FONT_*, value = PdfFontInfo
         self.pdfFonts = {}
 
@@ -756,6 +764,13 @@ class ConfigGlobal:
         t.prevTypeTab = screenplay.CHARACTER
         self.types[t.lt] = t
 
+        t = TypeGlobal(screenplay.CENTERED)
+        t.newTypeEnter = screenplay.ACTION
+        t.newTypeTab = screenplay.CHARACTER
+        t.nextTypeTab = screenplay.ACTION
+        t.prevTypeTab = screenplay.ACTION
+        self.types[t.lt] = t
+
         # keyboard commands. these must be in alphabetical order.
         self.commands = (
             []
@@ -782,6 +797,10 @@ class ConfigGlobal:
                     "ChangeToAction",
                     _("Change current element's style to action."),
                     [util.Key(ord("A"), alt=True).toInt()],
+                ),
+                Command(
+                    "ChangeToCentered",
+                    _("Change current element's style to centered."),
                 ),
                 Command(
                     "ChangeToCharacter",
@@ -1184,6 +1203,23 @@ class ConfigGlobal:
                 ),
                 Command("TitlesDlg", _("Open the titles dialog."), isMenu=True),
                 Command(
+                    "ToggleBold",
+                    _("Make the selected text, or the text typed next, bold or not."),
+                    [util.Key(2, ctrl=True).toInt()],
+                    isMenu=True,
+                ),
+                Command(
+                    "ToggleItalic",
+                    _(
+                        "Make the selected text, or the text typed next, italic"
+                        " or not."
+                    ),
+                    # CTRL+I comes in as the same key code as CTRL+Tab, so
+                    # it's only a menu accelerator (see MyFrame), which
+                    # sees the two apart
+                    isMenu=True,
+                ),
+                Command(
                     "ToggleOutline",
                     _("Show or hide the outline view."),
                     isMenu=True,
@@ -1191,6 +1227,15 @@ class ConfigGlobal:
                 Command(
                     "ToggleShowFormatting",
                     _("Toggle 'Show formatting' display."),
+                    isMenu=True,
+                ),
+                Command(
+                    "ToggleUnderline",
+                    _(
+                        "Make the selected text, or the text typed next,"
+                        " underlined or not."
+                    ),
+                    [util.Key(21, ctrl=True).toInt()],
                     isMenu=True,
                 ),
                 Command(
@@ -1721,6 +1766,7 @@ def _init():
         (screenplay.SHOT, "=", "Shot"),
         (screenplay.ACTBREAK, "@", "Act break"),
         (screenplay.NOTE, "%", "Note"),
+        (screenplay.CENTERED, "^", "Centered"),
     ):
 
         ti = TypeInfo(lt, char, name)

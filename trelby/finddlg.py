@@ -410,8 +410,8 @@ class FindDlg(wx.Dialog):
         sp = self.ctrl.sp
         u = undo.SinglePara(sp, undo.CMD_MISC, self.searchLine)
 
-        ls[self.searchLine].text = util.replace(
-            ls[self.searchLine].text, value, self.searchColumn, self.searchWidth
+        ls[self.searchLine].replaceText(
+            self.searchColumn, self.searchWidth, util.toInputStr(value)
         )
 
         sp.rewrapPara(sp.getParaFirstIndexFromLine(self.searchLine))

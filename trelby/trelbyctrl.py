@@ -28,6 +28,7 @@ import trelby.screenplay as screenplay
 import trelby.spellcheck as spellcheck
 import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.spellcheckdlg as spellcheckdlg
+import trelby.textfmt as textfmt
 import trelby.titlesdlg as titlesdlg
 import trelby.util as util
 import trelby.viewmode as viewmode
@@ -1289,6 +1290,13 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(self.sp.line)
         self.updateScreen()
 
+    # toggle a formatting bit (textfmt.BOLD etc.) on the selected text, or
+    # for the text typed next
+    def OnToggleFormat(self, bit):
+        self.clearAutoComp()
+        self.sp.toggleFormat(bit)
+        self.updateScreen()
+
     def OnFindNextError(self):
         self.clearAutoComp()
 
@@ -1518,6 +1526,9 @@ class MyCtrl(wx.Control):
 
     def cmdChangeToActBreak(self, cs):
         self.sp.toActBreakCmd(cs)
+
+    def cmdChangeToCentered(self, cs):
+        self.sp.toCenteredCmd(cs)
 
     def cmdChangeToTransition(self, cs):
         self.sp.toTransitionCmd(cs)
@@ -1822,14 +1833,17 @@ class MyCtrl(wx.Control):
                     dc.DrawRectangle(t.x + c1 * fx, y, (c2 - c1 + 1) * fx, lineh)
 
                 if self.gd.mainFrame.showFormatting:
+                    # a centered line's text doesn't start at its margin
+                    lx = int(t.x - self.sp.getCenterOffset(i) * fx)
+
                     dc.SetPen(self.gd.cfgGui.bluePen)
-                    util.drawLine(dc, t.x, y, 0, lineh)
+                    util.drawLine(dc, lx, y, 0, lineh)
 
                     extraIndent = 1 if self.sp.needsExtraParenIndent(i) else 0
 
                     util.drawLine(
                         dc,
-                        t.x + (self.sp.cfg.getType(l.lt).width - extraIndent) * fx,
+                        lx + (self.sp.cfg.getType(l.lt).width - extraIndent) * fx,
                         y,
                         0,
                         lineh,
@@ -1866,29 +1880,40 @@ class MyCtrl(wx.Control):
                     dc.DrawRectangle(t.x + self.sp.column * fx, y, fx, fi.fy)
 
             if len(t.text) != 0:
-                # tl = texts.get(fi.font)
-                if fi.font not in texts:
-                    # if tl == None:
-                    tl = ([], [], [])
-                    texts.append((fi.font, tl))
-
-                tl[0].append(t.text)
-                tl[1].append((t.x, y))
                 if t.line != -1:
                     if self.gd.cfgGl.useCustomElemColors:
-                        tl[2].append(self.gd.cfgGui.lt2textColor(ls[t.line].lt))
+                        color = self.gd.cfgGui.lt2textColor(ls[t.line].lt)
                     else:
-                        tl[2].append(self.gd.cfgGui.textColor)
+                        color = self.gd.cfgGui.textColor
+
+                    uli = ulines
                 else:
-                    tl[2].append(self.gd.cfgGui.textHdrColor)
+                    color = self.gd.cfgGui.textHdrColor
+                    uli = ulinesHdr
 
                 if t.isUnderlined:
-                    if t.line != -1:
-                        uli = ulines
-                    else:
-                        uli = ulinesHdr
-
                     uli.append((t.x, y + lineh - 1, len(t.text) * fx - 1))
+
+                # bold / italic / underlined parts of the text are drawn
+                # separately, each in its own font
+                if t.fmt:
+                    fonts = self.gd.cfgGui.fonts
+                    base = fonts.index(fi)
+
+                    parts = []
+
+                    for a, b, style in textfmt.runs(t.fmt, len(t.text)):
+                        x = t.x + a * fx
+                        parts.append((fonts[base | (style & 3)].font, a, b, x))
+
+                        if (style & textfmt.UNDERLINED) and not t.isUnderlined:
+                            uli.append((x, y + lineh - 1, (b - a) * fx - 1))
+                else:
+                    parts = [(fi.font, 0, len(t.text), t.x)]
+
+                for font, a, b, x in parts:
+                    tl = ([t.text[a:b]], [(x, y)], [color])
+                    texts.append((font, tl))
 
         if ulines:
             dc.SetPen(self.gd.cfgGui.textPen)

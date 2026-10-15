@@ -129,11 +129,13 @@ class TextOp(DrawOp):
         valign: int = util.VALIGN_TOP,
         line: int = -1,
         angle: Optional[int] = None,
+        fmt: Optional[str] = None,
     ):
         """
         :param line: index of line in `Screenplay.lines`, or -1 if some other text. only used when drawing display, pdf output doesn't use this.
         :param size: the font size
         :param angle: one of 45, 90
+        :param fmt: format string for bold / italic / underlined parts of the text, on top of what flags says (see textfmt), or None
         """
         self.text: str = text
         self.x: float = x
@@ -141,6 +143,7 @@ class TextOp(DrawOp):
         self.size: int = size
         self.flags: int = flags
         self.angle: Optional[int] = angle
+        self.fmt: Optional[str] = fmt
 
         # TOCItem, by default we have none
         self.toc: Optional[TOCItem] = None

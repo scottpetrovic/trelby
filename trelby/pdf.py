@@ -7,6 +7,7 @@ from reportlab.pdfgen.canvas import Canvas
 
 import trelby.pml as pml
 import trelby.pml as util
+import trelby.textfmt as textfmt
 
 # PDF transform matrixes where key is the angle from x-axis
 # in counter-clockwise direction.
@@ -78,19 +79,36 @@ class PDFTextOp(PDFDrawOp):
             else:
                 # unsupported angle, don't print it.
                 pass
+        elif pmlOp.fmt:
+            # bold / italic / underlined parts of the text are drawn
+            # separately, each in its own font
+            partX = x
+
+            for a, b, style in textfmt.runs(pmlOp.fmt, len(pmlOp.text)):
+                part = pmlOp.text[a:b]
+                flags = pmlOp.flags | (style & (pml.BOLD | pml.ITALIC))
+
+                if style & textfmt.UNDERLINED:
+                    flags |= pml.UNDERLINED
+
+                font = pe.getFontForFlags(flags)
+                canvas.setFont(font, pmlOp.size)
+                canvas.drawString(partX, y, part)
+
+                w = canvas.stringWidth(part, font, pmlOp.size)
+
+                if flags & pml.UNDERLINED:
+                    self.underline(canvas, partX, y, w, pmlOp.size)
+
+                partX += w
         else:
             canvas.drawString(x, y, pmlOp.text)
 
-        if pmlOp.flags & pml.UNDERLINED:
-
+        if (pmlOp.flags & pml.UNDERLINED) and not (
+            pmlOp.fmt and (pmlOp.angle is None)
+        ):
             undLen = canvas.stringWidth(pmlOp.text, newFont, pmlOp.size)
-
-            # all standard PDF fonts have the underline line 100 units
-            # below baseline with a thickness of 50
-            undY = y - 0.1 * pmlOp.size
-            canvas.setLineWidth(0.05 * pmlOp.size)
-
-            canvas.line(x, undY, x + undLen, undY)
+            self.underline(canvas, x, y, undLen, pmlOp.size)
 
         # create bookmark for table of contents if applicable
         if pmlOp.toc:
@@ -99,6 +117,17 @@ class PDFTextOp(PDFDrawOp):
             )  # we need a unique key to link the bookmark in toc – TODO: generate a more speaking one
             canvas.bookmarkHorizontal(bookmarkKey, pe.x(pmlOp.x), pe.y(pmlOp.y))
             canvas.addOutlineEntry(pmlOp.toc.text, bookmarkKey)
+
+
+    # underline text of width w drawn at (x, y) in the given font size
+    @staticmethod
+    def underline(canvas, x, y, w, size):
+        # all standard PDF fonts have the underline line 100 units below
+        # baseline with a thickness of 50
+        undY = y - 0.1 * size
+        canvas.setLineWidth(0.05 * size)
+
+        canvas.line(x, undY, x + w, undY)
 
 
 class PDFLineOp(PDFDrawOp):

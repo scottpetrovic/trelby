@@ -129,8 +129,8 @@ class SpellCheckDlg(wx.Dialog):
 
         sp.gotoPos(self.sc.line, self.sc.col)
 
-        ls[self.sc.line].text = util.replace(
-            ls[self.sc.line].text, word, self.sc.col, len(self.sc.word)
+        ls[self.sc.line].replaceText(
+            self.sc.col, len(self.sc.word), util.toInputStr(word)
         )
 
         sp.rewrapPara(sp.getParaFirstIndexFromLine(self.sc.line))

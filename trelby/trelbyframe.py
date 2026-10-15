@@ -24,6 +24,7 @@ import trelby.namesdlg as namesdlg
 import trelby.screenplay as screenplay
 import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.splash as splash
+import trelby.textfmt as textfmt
 import trelby.util as util
 from trelby.ids import *
 from trelby.trelbypanel import MyPanel
@@ -131,6 +132,12 @@ class MyFrame(wx.Frame):
         )
         editMenu.Append(
             ID_EDIT_GOTO_SCENE, misc.mnemonic("e", _("Goto scene") + "...\tALT-G")
+        )
+        editMenu.AppendSeparator()
+        editMenu.Append(ID_EDIT_BOLD, misc.mnemonic("B", _("Bold") + "\tCTRL-B"))
+        editMenu.Append(ID_EDIT_ITALIC, misc.mnemonic("I", _("Italic") + "\tCTRL-I"))
+        editMenu.Append(
+            ID_EDIT_UNDERLINE, misc.mnemonic("U", _("Underline") + "\tCTRL-U")
         )
         editMenu.AppendSeparator()
         editMenu.Append(ID_EDIT_INSERT_NBSP, _("Insert non-breaking space"))
@@ -360,6 +367,9 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnGotoScene, id=ID_EDIT_GOTO_SCENE)
         self.Bind(wx.EVT_MENU, self.OnInsertNbsp, id=ID_EDIT_INSERT_NBSP)
         self.Bind(wx.EVT_MENU, self.OnDualDialogue, id=ID_EDIT_DUAL_DIALOGUE)
+        self.Bind(wx.EVT_MENU, self.OnToggleBold, id=ID_EDIT_BOLD)
+        self.Bind(wx.EVT_MENU, self.OnToggleItalic, id=ID_EDIT_ITALIC)
+        self.Bind(wx.EVT_MENU, self.OnToggleUnderline, id=ID_EDIT_UNDERLINE)
         self.Bind(wx.EVT_MENU, self.OnFind, id=ID_EDIT_FIND)
         self.Bind(wx.EVT_MENU, self.OnDeleteElements, id=ID_EDIT_DELETE_ELEMENTS)
         self.Bind(wx.EVT_MENU, self.OnViewModeChange, id=ID_VIEW_STYLE_DRAFT)
@@ -905,6 +915,15 @@ class MyFrame(wx.Frame):
     def OnDualDialogue(self, event=None):
         self.panel.ctrl.OnDualDialogue()
 
+    def OnToggleBold(self, event=None):
+        self.panel.ctrl.OnToggleFormat(textfmt.BOLD)
+
+    def OnToggleItalic(self, event=None):
+        self.panel.ctrl.OnToggleFormat(textfmt.ITALIC)
+
+    def OnToggleUnderline(self, event=None):
+        self.panel.ctrl.OnToggleFormat(textfmt.UNDERLINED)
+
     def OnDeleteElements(self, event=None):
         self.panel.ctrl.OnDeleteElements()
 
@@ -1024,6 +1043,7 @@ class MyFrame(wx.Frame):
             (screenplay.SHOT, _("Shot"), "ChangeToShot"),
             (screenplay.ACTBREAK, _("Act break"), "ChangeToActBreak"),
             (screenplay.NOTE, _("Note"), "ChangeToNote"),
+            (screenplay.CENTERED, _("Centered"), "ChangeToCentered"),
         ]
 
     def OnElemTypeBar(self, lt):
@@ -1365,6 +1385,7 @@ class MyFrame(wx.Frame):
             (ID_ELEM_TO_SHOT, screenplay.SHOT, "o", _("Shot")),
             (ID_ELEM_TO_ACTBREAK, screenplay.ACTBREAK, "b", _("Act break")),
             (ID_ELEM_TO_NOTE, screenplay.NOTE, "N", _("Note")),
+            (ID_ELEM_TO_CENTERED, screenplay.CENTERED, "e", _("Centered")),
         )
 
         m = wx.Menu()
@@ -1395,6 +1416,11 @@ class MyFrame(wx.Frame):
         m.AppendSeparator()
 
         if withCut:
+            m.Append(ID_EDIT_BOLD, _("Bold") + "\tCTRL-B")
+            m.Append(ID_EDIT_ITALIC, _("Italic") + "\tCTRL-I")
+            m.Append(ID_EDIT_UNDERLINE, _("Underline") + "\tCTRL-U")
+            m.AppendSeparator()
+
             m.Append(ID_EDIT_CUT, _("Cut"))
             m.Append(ID_EDIT_COPY, _("Copy"))
 
