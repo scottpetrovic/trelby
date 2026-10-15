@@ -2746,6 +2746,22 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             line += 1
 
+    # give every line of the elements in the given range of lines
+    # (inclusive) the type of its element's first line. 'line1' must be
+    # the first line of an element.
+    def fixElemLineTypes(self, line1, line2):
+        ls = self.lines
+        lt = None
+
+        for i in range(line1, line2 + 1):
+            if lt is None:
+                lt = ls[i].lt
+            else:
+                ls[i].lt = lt
+
+            if ls[i].lb == LB_LAST:
+                lt = None
+
     def line2page(self, line):
         return self.line2pageReal(line, self.pages)
 
@@ -3472,26 +3488,39 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 ls[self.line : self.line] = inLines[1:]
                 self.line += len(inLines) - 2
 
-                # FIXME: pasting a multi-paragraph ACTION where first line
-                # has FORCED lb, in middle of a CHARACTER block, breaks
-                # things
-
             else:
+                origLb = ln.lb
+                ln.lb = inLines[0].lb
+
+                # don't join the pasted text to the element after this
+                # one
+                if origLb == LB_LAST:
+                    inLines[-1].lb = LB_LAST
+
                 ls[self.line + 1 : self.line + 1] = inLines[1:]
                 self.line += len(inLines) - 1
 
-                # FIXME: this doesn't modify .lb, and pasting a
-                # multi-paragraph ACTION at end of line in CHARACTER block
-                # where that line ends in forced linebreak breaks things.
-
             self.column = len(ls[self.line].text)
+
+            # the pasted lines can now be part of the element they were
+            # pasted into, or the text after the cursor part of a pasted
+            # element, so give every element around the paste the type
+            # of its first line.
+            self.fixElemLineTypes(
+                self.getElemFirstIndexFromLine(wrap1),
+                self.getElemLastIndexFromLine(min(self.line + 1, len(ls) - 1)),
+            )
 
         # FIXME: copy/paste, when copying elements containing forced
         # linebreaks, converts them to end of element? this seems like a
         # bug...
 
-        self.reformatRange(wrap1, self.getParaFirstIndexFromLine(self.line))
-        self.rewrapSpeechesAround(wrap1, self.line)
+        # the line after the paste can now start a paragraph, so it's
+        # reformatted too
+        wrap2 = min(self.line + 1, len(ls) - 1)
+
+        self.reformatRange(wrap1, self.getParaFirstIndexFromLine(wrap2))
+        self.rewrapSpeechesAround(wrap1, min(self.line + 1, len(ls) - 1))
 
         u.setAfter(self)
         self.addUndo(u)
@@ -4634,6 +4663,27 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         return (0, False)
 
+    # return the formatting bits (textfmt.BOLD etc.) that are on for the
+    # selected text, i.e. that all of it has, or with nothing selected,
+    # that text typed at the cursor would get
+    def getFormatState(self):
+        marked = self.getMarkedLines()
+
+        if not marked:
+            return self.getTypingStyle()[0]
+
+        style = textfmt.ALL
+        empty = True
+
+        for i in range(marked[0], marked[1] + 1):
+            c1, c2 = self.getMarkedColumns(i, marked)
+
+            for c in self.lines[i].getFmt()[c1 : c2 + 1]:
+                style &= ord(c) - 48
+                empty = False
+
+        return 0 if empty else style
+
     # toggle a formatting bit (textfmt.BOLD etc.) on the selected text:
     # set it if any of it doesn't have it, otherwise clear it. with
     # nothing selected, toggles it for text typed at the cursor. the
@@ -4650,16 +4700,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         ls = self.lines
 
         # whether all the selected text has the bit already
-        allSet = True
-
-        for i in range(marked[0], marked[1] + 1):
-            c1, c2 = self.getMarkedColumns(i, marked)
-            fmt = ls[i].getFmt()[c1 : c2 + 1]
-
-            if not all((ord(c) - 48) & bit for c in fmt):
-                allSet = False
-
-                break
+        allSet = bool(self.getFormatState() & bit)
 
         u = undo.AnyDifference(self)
 

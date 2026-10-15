@@ -6,6 +6,7 @@ from typing import AnyStr
 
 import trelby.gutil as gutil
 import trelby.opts as opts
+import trelby.textfmt as textfmt
 import trelby.util as util
 
 if "TRELBY_TESTING" in os.environ:
@@ -235,6 +236,14 @@ class MyElemTypeBar(wx.Control):
 
         self.Refresh(False)
 
+    # whether item i is shown highlighted
+    def isSelected(self, i):
+        return i == self.selected
+
+    # font to draw item i's label in
+    def itemFont(self, i, selected):
+        return self.boldFont if selected else self.font
+
     def itemAt(self, pos):
         for i, rect in enumerate(self.rects):
             if rect.Contains(pos):
@@ -290,12 +299,12 @@ class MyElemTypeBar(wx.Control):
             # hit testing, so deflate a copy
             fillRect = wx.Rect(rect).Deflate(inset)
 
-            if i == self.selected:
+            if self.isSelected(i):
                 dc.SetBrush(wx.Brush(selBgColor))
                 dc.SetPen(wx.Pen(selBgColor))
                 dc.DrawRoundedRectangle(fillRect, radius - 1)
                 dc.SetTextForeground(selTextColor)
-                dc.SetFont(self.boldFont)
+                dc.SetFont(self.itemFont(i, True))
             else:
                 if i == self.hover:
                     dc.SetBrush(cfgGui.tabNonActiveBgBrush)
@@ -303,7 +312,7 @@ class MyElemTypeBar(wx.Control):
                     dc.DrawRoundedRectangle(fillRect, radius - 1)
 
                 dc.SetTextForeground(cfgGui.tabTextColor)
-                dc.SetFont(self.font)
+                dc.SetFont(self.itemFont(i, False))
 
             tw, th = dc.GetTextExtent(label)
             dc.DrawText(
@@ -311,10 +320,48 @@ class MyElemTypeBar(wx.Control):
             )
 
             # divider between two items that are both unhighlighted
-            if (i > 0) and not ({i - 1, i} & {self.selected, self.hover}):
+            if (
+                (i > 0)
+                and not self.isSelected(i - 1)
+                and not self.isSelected(i)
+                and (self.hover not in (i - 1, i))
+            ):
                 dc.SetPen(cfgGui.tabBorderPen)
                 dy = rect.height // 4
                 dc.DrawLine(rect.x, rect.y + dy, rect.x, rect.bottom - dy + 1)
+
+
+# the toolbar's bold / italic / underline toggles, drawn like the element
+# type bar but with any number of items on at once. items are (bit, label)
+# tuples, where bit is textfmt.BOLD etc., and each label is drawn in the
+# style it stands for. onSelect(bit) is called when one is clicked.
+class MyFormatBar(MyElemTypeBar):
+    def __init__(self, parent, id, getCfgGui, items, onSelect, getToolTip, height):
+        MyElemTypeBar.__init__(
+            self, parent, id, getCfgGui, items, onSelect, getToolTip, height
+        )
+
+        # bits that are on
+        self.style = 0
+
+        self.fonts = {
+            textfmt.BOLD: self.boldFont,
+            textfmt.ITALIC: self.font.Italic(),
+            textfmt.UNDERLINED: self.font.Underlined(),
+        }
+
+    def SetValue(self, style):
+        if style == self.style:
+            return
+
+        self.style = style
+        self.Refresh(False)
+
+    def isSelected(self, i):
+        return bool(self.style & self.items[i][0])
+
+    def itemFont(self, i, selected):
+        return self.fonts[self.items[i][0]]
 
 
 # our own version of a tab control, which exists for two reasons: it does

@@ -499,3 +499,39 @@ def testChangeToCentered():
 
     assert sp.lines[1].lt == scr.CENTERED
     sp._validate()
+
+
+def testFormatState():
+    # bold and underline together on part of a speech
+    sp = loadLines(
+        [
+            ".\\INT. HALL - NIGHT",
+            "._MARY",
+            "#Format 2-6:bu,7-12:b",
+            ".:I said never again.",
+        ]
+    )
+
+    sp.line = 2
+    sp.column = 4
+    assert sp.getFormatState() == B | U
+
+    sp.column = 0
+    assert sp.getFormatState() == 0
+
+    # what all of the selection has
+    select(sp, 2, 2, 5)
+    assert sp.getFormatState() == B | U
+
+    select(sp, 2, 2, 11)
+    assert sp.getFormatState() == 0
+
+    select(sp, 2, 7, 11)
+    assert sp.getFormatState() == B
+
+    # toggling with nothing selected shows up at once
+    sp.clearMark()
+    sp.line = 2
+    sp.column = 0
+    sp.toggleFormat(I)
+    assert sp.getFormatState() == I

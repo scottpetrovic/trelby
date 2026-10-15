@@ -448,6 +448,7 @@ class MyCtrl(wx.Control):
         pageCnt = self.sp.line2page(len(self.sp.lines) - 1)
 
         self.gd.mainFrame.setElemTypeStatus(cur.lt, tabNext, enterNext)
+        self.gd.mainFrame.setFormatStatus(self.sp.getFormatState())
         self.gd.mainFrame.setPageStatus(page, pageCnt, self.sp.hasPageLocks())
         self.gd.mainFrame.setLengthStatus(
             self.sp.getWordCount(), self.sp.getPageLength()
@@ -506,6 +507,7 @@ class MyCtrl(wx.Control):
         # in case tab colors have been changed
         self.gd.mainFrame.tabCtrl.Refresh(False)
         self.gd.mainFrame.elemTypeBar.Refresh(False)
+        self.gd.mainFrame.formatBar.Refresh(False)
         self.gd.mainFrame.noFSBtn.Refresh(False)
         self.gd.mainFrame.toolBar.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         self.gd.mainFrame.toolBar.Refresh()

@@ -977,6 +977,9 @@ class MyFrame(wx.Frame):
         if getattr(self, "elemTypeBar", None):
             self.elemTypeBar.Destroy()
 
+        if getattr(self, "formatBar", None):
+            self.formatBar.Destroy()
+
         def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
             bitmap = gutil.svgBitmap(iconFilename, size, pad)
             tool = tb.AddTool(id, "", bitmap, shortHelp=toolTip, kind=kind)
@@ -1021,6 +1024,19 @@ class MyFrame(wx.Frame):
         )
         tb.AddControl(self.elemTypeBar)
 
+        # bold / italic / underline, which go on top of any element type
+        tb.AddSeparator()
+        self.formatBar = misc.MyFormatBar(
+            tb,
+            -1,
+            self.getCfgGui,
+            [(bit, label) for bit, label, name, key in self.getFormatTypes()],
+            self.OnFormatBar,
+            self.getFormatToolTip,
+            height,
+        )
+        tb.AddControl(self.formatBar)
+
         # at the far right, next to where the outline view appears
         tb.AddStretchableSpace()
         addTB(ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
@@ -1045,6 +1061,28 @@ class MyFrame(wx.Frame):
             (screenplay.NOTE, _("Note"), "ChangeToNote"),
             (screenplay.CENTERED, _("Centered"), "ChangeToCentered"),
         ]
+
+    # the toolbar's format toggles: textfmt bit, label, name, shortcut
+    def getFormatTypes(self):
+        return [
+            (textfmt.BOLD, "B", _("Bold"), "CTRL+B"),
+            (textfmt.ITALIC, "I", _("Italic"), "CTRL+I"),
+            (textfmt.UNDERLINED, "U", _("Underline"), "CTRL+U"),
+        ]
+
+    def OnFormatBar(self, bit):
+        self.panel.ctrl.OnToggleFormat(bit)
+        self.panel.ctrl.SetFocus()
+
+    def getFormatToolTip(self, bit):
+        for itemBit, label, name, key in self.getFormatTypes():
+            if itemBit == bit:
+                return "%s (%s)" % (name, key)
+
+    # show which of bold / italic / underline are on at the cursor or for
+    # the selection
+    def setFormatStatus(self, style):
+        self.formatBar.SetValue(style)
 
     def OnElemTypeBar(self, lt):
         self.panel.ctrl.changeType(lt)
