@@ -1,7 +1,6 @@
 import wx
 
 import trelby.gutil as gutil
-import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.titles as titles
 import trelby.util as util
@@ -196,11 +195,8 @@ class TitlesDlg(wx.Dialog):
 
         hsizer.Add((1, 1), 1)
 
-        self.previewBtn = gutil.createStockButton(self, _("Preview"))
-        hsizer.Add(self.previewBtn)
-
         cancelBtn = gutil.createStockButton(self, _("Cancel"))
-        hsizer.Add(cancelBtn, 0, wx.LEFT, 10)
+        hsizer.Add(cancelBtn)
 
         okBtn = gutil.createStockButton(self, "OK")
         hsizer.Add(okBtn, 0, wx.LEFT, 10)
@@ -209,7 +205,6 @@ class TitlesDlg(wx.Dialog):
 
         util.finishWindow(self, topSizer)
 
-        self.Bind(wx.EVT_BUTTON, self.OnPreview, id=self.previewBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
 
@@ -299,13 +294,6 @@ class TitlesDlg(wx.Dialog):
 
     def OnCancel(self, event):
         self.EndModal(wx.ID_CANCEL)
-
-    def OnPreview(self, event):
-        doc = pml.Document(self.cfg.paperWidth, self.cfg.paperHeight)
-
-        self.titles.generatePages(doc)
-        tmp = pdf.generate(doc)
-        gutil.showTempPDF(tmp, self.cfgGl, self)
 
     # set given page. 'page' can be an invalid value.
     def setPage(self, page):
@@ -626,7 +614,6 @@ class TitlesDlg(wx.Dialog):
         self.moveBtn.Enable(pgCnt > 1)
         self.prevBtn.Enable(pgCnt > 1)
         self.nextBtn.Enable(pgCnt > 1)
-        self.previewBtn.Enable(pgCnt > 0)
 
         if self.pageIndex != -1:
             page = self.titles.pages[self.pageIndex]

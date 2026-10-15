@@ -57,6 +57,10 @@ class ReportFrame(wx.Frame):
         self.scriptName = scriptName
         self.hasContents = False
 
+        # whether the window has been in the background since the report
+        # was made, so the script may have changed
+        self.wasInactive = False
+
         _frames[(type(self), id(sp))] = self
 
         self.SetIcons(parent.GetIcons())
@@ -70,11 +74,6 @@ class ReportFrame(wx.Frame):
 
         self.optionsSizer = wx.BoxSizer(wx.HORIZONTAL)
         hsizer.Add(self.optionsSizer, 1, wx.ALIGN_CENTER_VERTICAL)
-
-        btn = wx.Button(panel, -1, _("Refresh"))
-        btn.SetToolTip(_("Update the report with the script's current contents."))
-        self.Bind(wx.EVT_BUTTON, self.OnRefresh, id=btn.GetId())
-        hsizer.Add(btn, 0, wx.LEFT, 10)
 
         self.saveBtn = wx.Button(panel, -1, _("Save as PDF..."))
         self.Bind(wx.EVT_BUTTON, self.OnSavePDF, id=self.saveBtn.GetId())
@@ -92,6 +91,7 @@ class ReportFrame(wx.Frame):
 
         panel.SetSizer(vsizer)
 
+        self.Bind(wx.EVT_ACTIVATE, self.OnActivate)
         self.Bind(wx.EVT_CHAR_HOOK, self.OnCharHook)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -120,8 +120,15 @@ class ReportFrame(wx.Frame):
         self.updateControls()
         self.update()
 
-    def OnRefresh(self, event):
-        self.refresh()
+    # bring the report up to date when coming back to it from the script
+    def OnActivate(self, event):
+        if not event.GetActive():
+            self.wasInactive = True
+        elif self.wasInactive:
+            self.wasInactive = False
+            self.refresh()
+
+        event.Skip()
 
     def OnSavePDF(self, event):
         name = self.scriptName
