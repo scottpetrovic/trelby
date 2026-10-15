@@ -52,6 +52,16 @@ def padViewBox(box, size, padding):
     return "%g %g %g %g" % (x - padX, y - padY, w + padX * 2, h + padY * 2)
 
 
+# return color c1 mixed with c2, with a being the fraction of c2
+def blendColors(c1, c2, a):
+    return wx.Colour(
+        *[
+            int(v1 * (1.0 - a) + v2 * a)
+            for v1, v2 in zip(c1.Get(False), c2.Get(False))
+        ]
+    )
+
+
 # since at least GTK 1.2's single-selection listbox is buggy in that if we
 # don't deselect the old item manually, it does multiple selections, we
 # have this function that does the following:

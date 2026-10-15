@@ -1,6 +1,7 @@
 import wx
 
 from trelby.outline import OutlinePanel
+from trelby.scrollbar import ScrollBar
 
 # temporary until we can find out a way to separate MyCtrl
 from trelby.trelbyctrl import MyCtrl
@@ -36,8 +37,9 @@ class MyPanel(wx.Panel):
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.scrollBar = wx.ScrollBar(self.editor, -1, style=wx.SB_VERTICAL)
+        self.scrollBar = ScrollBar(self.editor)
         self.ctrl = MyCtrl(self.editor, -1, gd, self)
+        self.scrollBar.wheelTarget = self.ctrl
 
         hsizer.Add(self.ctrl, 1, wx.EXPAND)
         hsizer.Add(self.scrollBar, 0, wx.EXPAND)
@@ -64,6 +66,7 @@ class MyPanel(wx.Panel):
         # the sash between the script and the outline
         self.splitter.SetBackgroundColour(cfgGui.tabBorderColor)
         self.editor.SetBackgroundColour(cfgGui.workspaceColor)
+        self.scrollBar.setColors(cfgGui.workspaceColor, cfgGui.textColor)
         self.outline.applyTheme(cfgGui)
         self.splitter.Refresh()
 

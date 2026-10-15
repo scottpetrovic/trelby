@@ -24,6 +24,7 @@ import trelby.namesdlg as namesdlg
 import trelby.screenplay as screenplay
 import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.splash as splash
+import trelby.statusbar as statusbar
 import trelby.textfmt as textfmt
 import trelby.util as util
 from trelby.ids import *
@@ -323,7 +324,7 @@ class MyFrame(wx.Frame):
         tmp = misc.MyTabCtrl2(self, -1, self.tabCtrl)
         vsizer.Add(tmp, 1, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND)
+        vsizer.Add(self.statusBar, 0, wx.EXPAND)
 
         gd.mru.useMenu(recentMenu)
 
@@ -1192,21 +1193,15 @@ class MyFrame(wx.Frame):
     SB_PAGE = 5
     SB_ZOOM = 6
 
-    # the status bar at the bottom of the window. a narrow, borderless
-    # spacer field keeps the text off the window's left edge. the help field
-    # shows the hovered menu item's or toolbar tool's help (wx puts it in
-    # the frame's status bar pane, set to SB_HELP below), then come the
-    # element types Enter / Tab would create, the script's word count and
-    # estimated running time, the current page and the zoom buttons.
+    # the status bar at the bottom of the window. a narrow spacer field
+    # keeps the text off the window's left edge. the help field shows
+    # whether the script has been autosaved, then come the element types
+    # Enter / Tab would create, the script's word count and estimated
+    # running time, the current page and the zoom buttons.
     def createStatusBar(self):
-        # created with one field, as splitting the still unsized bar into
-        # all of them makes wx log SB_GETRECT errors; the rest are added
-        # below, along with their widths
-        sb = self.CreateStatusBar(1)
+        # the fields are set below, once we know their widths
+        sb = statusbar.StatusBar(self, self.SB_NEXT)
         self.statusBar = sb
-
-        # a bit taller than the default, so the text isn't cramped
-        sb.SetMinHeight(sb.GetCharHeight() + sb.FromDIP(14))
 
         style = wx.BU_EXACTFIT | wx.BORDER_NONE
 
@@ -1242,11 +1237,6 @@ class MyFrame(wx.Frame):
         widths = [sb.FromDIP(6), -1, nextW + pad, wordsW, runtimeW, pageW, zoomW]
         sb.SetFieldsCount(len(widths), widths)
 
-        styles = [wx.SB_NORMAL] * len(widths)
-        styles[self.SB_SPACER] = wx.SB_FLAT
-        sb.SetStatusStyles(styles)
-        self.SetStatusBarPane(self.SB_HELP)
-
         sb.Bind(wx.EVT_SIZE, self.OnStatusBarSize)
 
         self.updateZoomStatus()
@@ -1255,19 +1245,14 @@ class MyFrame(wx.Frame):
         # size event comes
         wx.CallAfter(self.layoutZoomButtons)
 
-    # use the theme's colors for the status bar and each script's outline,
-    # which are native controls that don't draw with them by themselves
+    # use the theme's colors for the status bar and the parts of each
+    # script's panel not drawn by MyCtrl
     def applyThemeColors(self):
         cfgGui = self.gd.cfgGui
 
-        self.statusBar.SetBackgroundColour(cfgGui.tabBarBgColor)
-        self.statusBar.SetForegroundColour(cfgGui.tabTextColor)
-
-        for btn in self.zoomBtns:
-            btn.SetBackgroundColour(cfgGui.tabBarBgColor)
-            btn.SetForegroundColour(cfgGui.tabTextColor)
-
-        self.statusBar.Refresh()
+        self.statusBar.setColors(
+            cfgGui.tabBarBgColor, cfgGui.tabTextColor, cfgGui.tabBorderColor
+        )
 
         for i in range(self.tabCtrl.getPageCount()):
             self.tabCtrl.getPage(i).applyTheme(cfgGui)
@@ -1383,6 +1368,7 @@ class MyFrame(wx.Frame):
         fullScreen = not self.IsFullScreen()
 
         self.noFSBtn.Show(fullScreen)
+        self.statusBar.Show(not fullScreen)
 
         # FULLSCREEN_ALL only hides the bars the frame manages
         if self.ownMenuBar:

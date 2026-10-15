@@ -3,6 +3,8 @@ from wx.lib.wordwrap import wordwrap
 
 import trelby.gutil as gutil
 import trelby.screenplay as screenplay
+from trelby.gutil import blendColors
+from trelby.scrollbar import ScrollBar
 
 # max number of lines of summary text shown under each scene
 SUMMARY_LINES = 2
@@ -22,16 +24,6 @@ def getSceneColors():
         (_("Pink"), "ffc4e1"),
         (_("Gray"), "dcdcdc"),
     ]
-
-
-# return color c1 mixed with c2, with a being the fraction of c2
-def blendColors(c1, c2, a):
-    return wx.Colour(
-        *[
-            int(v1 * (1.0 - a) + v2 * a)
-            for v1, v2 in zip(c1.Get(False), c2.Get(False))
-        ]
-    )
 
 
 # return the wx.Colour for a scene color ("rrggbb")
@@ -421,9 +413,17 @@ class OutlinePanel(wx.Panel):
         vsizer.Add(hdr, 0, wx.EXPAND)
         vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND)
 
-        self.list = OutlineList(self)
+        # the list's native scrollbar ignores the theme's colors, so when
+        # the list has one, it's sized to put it just past the right edge of
+        # listHolder, out of sight, and scrollBar stands in for it
+        self.listHolder = wx.Window(self, -1, style=wx.BORDER_NONE)
+        self.list = OutlineList(self.listHolder)
+        self.scrollBar = ScrollBar(self, self.list)
 
-        vsizer.Add(self.list, 1, wx.EXPAND)
+        lsizer = wx.BoxSizer(wx.HORIZONTAL)
+        lsizer.Add(self.listHolder, 1, wx.EXPAND)
+        lsizer.Add(self.scrollBar, 0, wx.EXPAND)
+        vsizer.Add(lsizer, 1, wx.EXPAND)
 
         self.SetSizer(vsizer)
 
@@ -439,6 +439,10 @@ class OutlinePanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
         self.Bind(wx.EVT_TIMER, self.OnDragTimer, self.dragTimer)
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
+        self.listHolder.Bind(wx.EVT_SIZE, self.OnListHolderSize)
+        self.scrollBar.Bind(wx.EVT_COMMAND_SCROLL, self.OnScroll)
+        self.list.Bind(wx.EVT_SIZE, self.OnListSize)
+        self.list.Bind(wx.EVT_IDLE, self.OnListIdle)
         self.list.Bind(wx.EVT_LISTBOX, self.OnItemSelected)
         self.list.Bind(wx.EVT_LISTBOX_DCLICK, self.OnItemActivated)
         self.list.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
@@ -470,8 +474,48 @@ class OutlinePanel(wx.Panel):
         self.list.SetBackgroundColour(cfgGui.textBgColor)
         self.list.SetForegroundColour(cfgGui.textColor)
         self.list.highlight = cfgGui.accentColor
+        self.listHolder.SetBackgroundColour(cfgGui.textBgColor)
+        self.scrollBar.setColors(cfgGui.textBgColor, cfgGui.textColor)
 
         self.Refresh()
+
+    # size the list to fill listHolder, plus the width of its native
+    # scrollbar if it has one. called again when the scrollbar comes or goes.
+    def layoutList(self):
+        lc = self.list
+        size = self.listHolder.GetClientSize()
+        sbWidth = lc.GetSize().width - lc.GetClientSize().width
+        rect = wx.Rect(0, 0, size.width + sbWidth, size.height)
+
+        if lc.GetRect() != rect:
+            lc.SetSize(rect)
+
+        self.updateScrollBar()
+
+    # make scrollBar match the list's native scrollbar
+    def updateScrollBar(self):
+        lc = self.list
+        thumb = lc.GetScrollThumb(wx.VERTICAL)
+
+        self.scrollBar.SetScrollbar(
+            lc.GetScrollPos(wx.VERTICAL), thumb, lc.GetScrollRange(wx.VERTICAL), thumb
+        )
+
+    def OnListHolderSize(self, event):
+        self.layoutList()
+
+    def OnListSize(self, event):
+        event.Skip()
+        self.layoutList()
+
+    # the list can scroll in many ways (the mouse wheel, the keyboard, the
+    # selection changing, ...), which all end with it going idle
+    def OnListIdle(self, event):
+        event.Skip()
+        self.updateScrollBar()
+
+    def OnScroll(self, event):
+        self.list.ScrollToRow(self.scrollBar.GetThumbPosition())
 
     # refresh the outline once things have been quiet for a moment
     def scheduleRefresh(self):
