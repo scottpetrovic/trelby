@@ -1,3 +1,4 @@
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.util as util
 import wx
@@ -17,7 +18,7 @@ class KeyboardPanel(wx.Panel):
 
         vsizer2.Add(wx.StaticText(self, -1, _("Commands:")))
 
-        self.commandsLb = wx.ListBox(self, -1, size=(175, 50))
+        self.commandsLb = gutil.ThemedListBox(self, -1, size=(175, 50))
 
         for cmd in self.cfg.commands:
             self.commandsLb.Append(cmd.name, cmd)
@@ -30,7 +31,7 @@ class KeyboardPanel(wx.Panel):
 
         vsizer2.Add(wx.StaticText(self, -1, _("Keys:")))
 
-        self.keysLb = wx.ListBox(self, -1, size=(150, 60))
+        self.keysLb = gutil.ThemedListBox(self, -1, size=(150, 60))
         vsizer2.Add(self.keysLb, 1, wx.BOTTOM, 10)
 
         btn = wx.Button(self, -1, _("Add"))

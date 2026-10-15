@@ -21,7 +21,7 @@ class LocationsDlg(wx.Dialog):
         tmp = wx.StaticText(self, -1, _("Locations:"))
         vsizer.Add(tmp)
 
-        self.locationsLb = wx.ListBox(self, -1, size=(450, 200))
+        self.locationsLb = gutil.ThemedListBox(self, -1, size=(450, 200))
         vsizer.Add(self.locationsLb, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -39,7 +39,7 @@ class LocationsDlg(wx.Dialog):
         tmp = wx.StaticText(self, -1, _("Scenes:"))
         vsizer.Add(tmp)
 
-        self.scenesLb = wx.ListBox(self, -1, size=(450, 200), style=wx.LB_EXTENDED)
+        self.scenesLb = gutil.ThemedListBox(self, -1, size=(450, 200), style=wx.LB_EXTENDED)
         vsizer.Add(self.scenesLb, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)

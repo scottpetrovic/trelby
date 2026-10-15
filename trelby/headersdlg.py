@@ -47,12 +47,12 @@ class HeadersDlg(wx.Dialog):
 
         vsizer.Add(hsizer)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
         tmp = wx.StaticText(self, -1, _("Strings:"))
         vsizer.Add(tmp)
 
-        self.stringsLb = wx.ListBox(self, -1, size=(200, 100))
+        self.stringsLb = gutil.ThemedListBox(self, -1, size=(200, 100))
         vsizer.Add(self.stringsLb, 0, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)

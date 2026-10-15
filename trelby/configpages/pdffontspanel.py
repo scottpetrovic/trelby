@@ -1,5 +1,6 @@
 import os.path
 
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.truetype as truetype
 import trelby.util as util
@@ -48,7 +49,7 @@ class PDFFontsPanel(wx.Panel):
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
         gsizer = wx.FlexGridSizer(2, 3, 5, 5)
         gsizer.AddGrowableCol(1)

@@ -537,6 +537,10 @@ class MyCtrl(wx.Control):
         self.gd.mainFrame.toolBar.Refresh()
         self.gd.mainFrame.applyThemeColors()
 
+        # and the open dialogs, like the settings dialog this may have been
+        # applied from
+        gutil.themeAllWindows()
+
         # the toolbar icons' color depends on the theme
         if appearanceChanged or (
             self.gd.cfgGl.toolbarIconSize != oldCfgGl.toolbarIconSize

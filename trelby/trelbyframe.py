@@ -1250,6 +1250,8 @@ class MyFrame(wx.Frame):
     def applyThemeColors(self):
         cfgGui = self.gd.cfgGui
 
+        gutil.setTitleBarColors(self, cfgGui)
+
         self.statusBar.setColors(
             cfgGui.tabBarBgColor, cfgGui.tabTextColor, cfgGui.tabBorderColor
         )

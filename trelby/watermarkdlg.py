@@ -2,6 +2,7 @@ import random
 
 import wx
 
+import trelby.gutil as gutil
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.util as util
@@ -45,7 +46,7 @@ class WatermarkDlg(wx.Dialog):
         self.markSize.SetValue(40)
         vsizer.Add(self.markSize, 0, wx.BOTTOM, 5)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         vsizer.Add(wx.StaticText(self, -1, _("Common mark:")), 0)
         self.commonMark = wx.TextCtrl(self, -1, _("Confidential"))

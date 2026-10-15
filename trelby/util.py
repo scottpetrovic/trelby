@@ -749,6 +749,12 @@ def finishWindow(window, topSizer, pad=20, center=False):
     window.SetSizerAndFit(padSizer)
     window.Layout()
 
+    # dialogs and other top-level windows are shown in the theme's colors
+    if window.IsTopLevel():
+        import trelby.gutil as gutil
+
+        gutil.themeWindow(window)
+
     if center:
         window.Center()
 

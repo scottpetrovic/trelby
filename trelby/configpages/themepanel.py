@@ -1,6 +1,7 @@
 import os
 
 import trelby.config as config
+import trelby.gutil as gutil
 import trelby.themes as themes
 import trelby.util as util
 import wx
@@ -30,7 +31,7 @@ class ThemePanel(wx.Panel):
 
         vsizer.Add(wx.StaticText(self, -1, _("Theme:")), 0, wx.BOTTOM, 5)
 
-        self.themeList = wx.ListBox(self, -1, size=self.FromDIP(wx.Size(250, 220)))
+        self.themeList = gutil.ThemedListBox(self, -1, size=self.FromDIP(wx.Size(250, 220)))
         vsizer.Add(self.themeList, 0, wx.BOTTOM, 10)
 
         vsizer.Add(

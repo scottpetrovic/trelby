@@ -139,7 +139,7 @@ class CfgDlg(wx.Dialog):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.listbook = wx.Treebook(self, -1)
+        self.listbook = gutil.ThemedListbook(self)
 
         if isGlobal:
             self.SetTitle(_("Settings"))
@@ -148,20 +148,9 @@ class CfgDlg(wx.Dialog):
 
         self.addPages()
 
-        # the page list is a flat tree (a wx.Listbook truncates long page
-        # names). drop the indent meant for child pages, and make it wide
-        # enough for the longest name plus some padding.
-        tree = self.listbook.GetTreeCtrl()
-        tree.SetIndent(0)
-        w = max(
-            tree.GetTextExtent(self.listbook.GetPageText(i))[0]
-            for i in range(self.listbook.GetPageCount())
-        )
-        tree.SetMinSize((w + tree.FromDIP(40), -1))
-
         vsizer.Add(self.listbook, 1, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 15)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 15)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -225,9 +214,9 @@ class CfgDlg(wx.Dialog):
             PDFViewerPanel,
         ]
         if classObj in needs_frame_ref:
-            p = classObj(self.listbook, -1, self.cfg, self)
+            p = classObj(self.listbook.book, -1, self.cfg, self)
         else:
-            p = classObj(self.listbook, -1, self.cfg)
+            p = classObj(self.listbook.book, -1, self.cfg)
 
         self.listbook.AddPage(p, name)
 
@@ -279,6 +268,7 @@ class CfgDlg(wx.Dialog):
         self.listbook.DeleteAllPages()
         self.addPages()
         self.listbook.SetSelection(sel)
+        gutil.themeWindow(self)
 
     def OnSaveAs(self, event):
         self.checkForErrors()

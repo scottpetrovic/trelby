@@ -1,6 +1,7 @@
 import wx
 
 import trelby.characterreport as characterreport
+import trelby.gutil as gutil
 import trelby.locationreport as locationreport
 import trelby.reportwindow as reportwindow
 import trelby.scenereport as scenereport
@@ -55,7 +56,9 @@ class CharacterReportFrame(reportwindow.TextReportFrame):
 
         vsizer.Add(wx.StaticText(panel, -1, _("Characters to include:")))
 
-        self.charList = wx.CheckListBox(panel, -1, size=self.FromDIP(wx.Size(220, -1)))
+        self.charList = gutil.ThemedListBox(
+            panel, -1, size=self.FromDIP(wx.Size(220, -1)), checkable=True
+        )
         self.Bind(wx.EVT_CHECKLISTBOX, self.OnCharList, id=self.charList.GetId())
         vsizer.Add(self.charList, 1, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 

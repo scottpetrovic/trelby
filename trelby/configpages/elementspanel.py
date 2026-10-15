@@ -1,4 +1,5 @@
 import trelby.config as config
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.screenplay as screenplay
 import trelby.util as util
@@ -30,7 +31,7 @@ class ElementsPanel(wx.Panel):
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 

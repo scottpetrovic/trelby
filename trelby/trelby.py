@@ -60,6 +60,9 @@ class MyApp(wx.App):
 
         gd = GlobalData()
 
+        # for gutil.currentCfgGui
+        self.gd = gd
+
         if misc.isWindows:
             major = sys.getwindowsversion()[0]
             if major < 5:

@@ -1,4 +1,5 @@
 import trelby.config as config
+import trelby.gutil as gutil
 import trelby.util as util
 import wx
 
@@ -28,7 +29,7 @@ class ElementsGlobalPanel(wx.Panel):
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
         gsizer = wx.FlexGridSizer(0, 2, 5, 0)
 

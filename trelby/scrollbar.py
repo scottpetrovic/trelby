@@ -64,6 +64,10 @@ class ScrollBar(wx.Window):
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
 
+    # it's used with the mouse only, so Tab skips it
+    def AcceptsFocusFromKeyboard(self):
+        return False
+
     # draw on a background of color bg, with the thumb in a shade between
     # bg and fg
     def setColors(self, bg, fg):

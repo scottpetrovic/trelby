@@ -411,7 +411,8 @@ class OutlinePanel(wx.Panel):
         self.closeBtn = addBtn("closepanel.svg", _("Hide the outline"))
 
         vsizer.Add(hdr, 0, wx.EXPAND)
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND)
+        self.separator = gutil.Separator(self)
+        vsizer.Add(self.separator, 0, wx.EXPAND)
 
         # the list's native scrollbar ignores the theme's colors, so when
         # the list has one, it's sized to put it just past the right edge of
@@ -470,6 +471,8 @@ class OutlinePanel(wx.Panel):
         for w in (self.title, self.upBtn, self.downBtn, self.colorBtn, self.closeBtn):
             w.SetBackgroundColour(cfgGui.tabBarBgColor)
             w.SetForegroundColour(cfgGui.tabTextColor)
+
+        self.separator.applyTheme(cfgGui)
 
         self.list.SetBackgroundColour(cfgGui.textBgColor)
         self.list.SetForegroundColour(cfgGui.textColor)

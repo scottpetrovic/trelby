@@ -1,3 +1,4 @@
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.util as util
 import wx
@@ -56,7 +57,7 @@ class MiscPanel(wx.Panel):
             ),
         ]
 
-        self.checkList = wx.CheckListBox(self, -1, size=(-1, 120))
+        self.checkList = gutil.ThemedListBox(self, -1, size=(-1, 120), checkable=True)
 
         for it in self.checkListItems:
             self.checkList.Append(it[1])

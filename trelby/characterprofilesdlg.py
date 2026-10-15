@@ -105,9 +105,10 @@ class PhotoPanel(wx.Panel):
         dc = wx.AutoBufferedPaintDC(self)
         w, h = self.GetClientSize()
 
-        dc.SetBackground(
-            wx.Brush(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNFACE))
-        )
+        bg = self.GetBackgroundColour()
+        dim = gutil.blendColors(bg, self.GetForegroundColour(), 0.5)
+
+        dc.SetBackground(wx.Brush(bg))
         dc.Clear()
 
         if self.img:
@@ -119,11 +120,11 @@ class PhotoPanel(wx.Panel):
         else:
             text = _("No photo")
             dc.SetFont(self.GetFont())
-            dc.SetTextForeground(wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT))
+            dc.SetTextForeground(dim)
             tw, th = dc.GetTextExtent(text)
             dc.DrawText(text, (w - tw) // 2, (h - th) // 2)
 
-        dc.SetPen(wx.Pen(wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT)))
+        dc.SetPen(wx.Pen(dim))
         dc.SetBrush(wx.TRANSPARENT_BRUSH)
         dc.DrawRectangle(0, 0, w, h)
 
@@ -195,7 +196,7 @@ class NameGeneratorDlg(wx.Dialog):
 
         vsizer.Add(grid, 0, wx.EXPAND)
 
-        self.namesLb = wx.ListBox(self, -1, size=self.FromDIP(wx.Size(260, 280)))
+        self.namesLb = gutil.ThemedListBox(self, -1, size=self.FromDIP(wx.Size(260, 280)))
         vsizer.Add(self.namesLb, 1, wx.EXPAND | wx.TOP, 10)
 
         genBtn = wx.Button(self, -1, _("Generate"))
@@ -331,13 +332,7 @@ class CharacterProfilesDlg(wx.Dialog):
         vsizer = wx.BoxSizer(wx.VERTICAL)
         vsizer.Add(wx.StaticText(self, -1, _("Characters:")))
 
-        self.charList = wx.ListCtrl(
-            self,
-            -1,
-            size=dip(wx.Size(190, -1)),
-            style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.LC_NO_HEADER,
-        )
-        self.charList.InsertColumn(0, "")
+        self.charList = gutil.ThemedListBox(self, -1, size=dip(wx.Size(190, -1)))
         vsizer.Add(self.charList, 1, wx.EXPAND | wx.TOP, 3)
 
         hint = wx.StaticText(self, -1, _("Grayed out: no profile yet"))
@@ -443,8 +438,7 @@ class CharacterProfilesDlg(wx.Dialog):
 
         util.finishWindow(self, topVsizer, center=True)
 
-        self.charList.Bind(wx.EVT_SIZE, self.OnListSize)
-        self.charList.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnCharSelected)
+        self.charList.Bind(wx.EVT_LISTBOX, self.OnCharSelected)
         self.Bind(wx.EVT_BUTTON, self.OnNew, id=newBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnDelete, id=self.delBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnGenerateName, id=genBtn.GetId())
@@ -481,32 +475,23 @@ class CharacterProfilesDlg(wx.Dialog):
         return -1
 
     def fillList(self):
-        self.charList.DeleteAllItems()
+        self.charList.Set([""] * len(self.profiles))
 
         for i in range(len(self.profiles)):
-            self.charList.InsertItem(i, "")
             self.updateListItem(i)
 
     # update list item 'i' to match the profile it shows
     def updateListItem(self, i):
         prof = self.profiles[i]
 
-        self.charList.SetItemText(i, util.upper(prof.name) or _("(unnamed)"))
-
-        if prof.hasInfo():
-            color = self.charList.GetForegroundColour()
-        else:
-            color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT)
-
-        self.charList.SetItemTextColour(i, color)
+        self.charList.SetString(i, util.upper(prof.name) or _("(unnamed)"))
+        self.charList.SetItemDimmed(i, not prof.hasInfo())
 
     # show profile number 'i', or nothing if it's out of range
     def selectProfile(self, i):
         if 0 <= i < len(self.profiles):
             self.cur = self.profiles[i]
-            self.charList.Select(i)
-            self.charList.Focus(i)
-            self.charList.EnsureVisible(i)
+            self.charList.SetSelection(i)
         else:
             self.cur = None
 
@@ -551,12 +536,8 @@ class CharacterProfilesDlg(wx.Dialog):
 
         return -1
 
-    def OnListSize(self, event):
-        self.charList.SetColumnWidth(0, self.charList.GetClientSize().width)
-        event.Skip()
-
     def OnCharSelected(self, event):
-        i = event.GetIndex()
+        i = event.GetSelection()
 
         if self.profiles[i] is not self.cur:
             self.cur = self.profiles[i]
@@ -572,7 +553,7 @@ class CharacterProfilesDlg(wx.Dialog):
 
     def OnNew(self, event):
         self.profiles.append(characterprofiles.CharacterProfile())
-        self.charList.InsertItem(len(self.profiles) - 1, "")
+        self.charList.Append("")
         self.updateListItem(len(self.profiles) - 1)
         self.selectProfile(len(self.profiles) - 1)
 
@@ -605,7 +586,7 @@ class CharacterProfilesDlg(wx.Dialog):
             self.updateListItem(i)
         else:
             del self.profiles[i]
-            self.charList.DeleteItem(i)
+            self.charList.Delete(i)
             i = min(i, len(self.profiles) - 1)
 
         self.selectProfile(i)

@@ -962,7 +962,7 @@ class CheckBoxDlg(wx.Dialog):
 
             sizer.Add(hsizer, 0, wx.TOP | wx.BOTTOM, 5)
 
-        tmp = wx.CheckListBox(parent, -1)
+        tmp = gutil.ThemedListBox(parent, -1, checkable=True)
 
         longest = -1
         for i in range(len(items)):
@@ -989,11 +989,8 @@ class CheckBoxDlg(wx.Dialog):
         else:
             h = min(10, len(items))
 
-        # don't know of a way to get the vertical spacing of items in a
-        # wx.CheckListBox, so estimate it at font height + 5 pixels, which
-        # is close enough on everything I've tested.
-        h *= util.getFontHeight(tmp.GetFont()) + 5
-        h += 5
+        # the items and the border
+        h = h * tmp.list.rowHeight + 2
         h = max(25, h)
 
         util.setWH(tmp, w, h)
@@ -1061,7 +1058,7 @@ class TextDlg(wx.Dialog):
         tc.SetValue(text)
         vsizer.Add(tc, 1, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         okBtn = gutil.createStockButton(self, "OK")
         vsizer.Add(okBtn, 0, wx.ALIGN_CENTER)
@@ -1103,7 +1100,7 @@ class TextInputDlg(wx.Dialog):
         self.tc = wx.TextCtrl(self, -1, style=wx.TE_PROCESS_ENTER)
         vsizer.Add(self.tc, 1, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 

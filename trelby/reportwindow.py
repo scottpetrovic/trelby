@@ -10,6 +10,7 @@ import re
 import wx
 import wx.html
 
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.pml as pml
 import trelby.util as util
@@ -90,6 +91,7 @@ class ReportFrame(wx.Frame):
         self.update()
 
         panel.SetSizer(vsizer)
+        gutil.themeWindow(self)
 
         self.Bind(wx.EVT_ACTIVATE, self.OnActivate)
         self.Bind(wx.EVT_CHAR_HOOK, self.OnCharHook)
@@ -207,8 +209,13 @@ class TextReportFrame(ReportFrame):
         if not body:
             body = "<i>%s</i>" % html.escape(self.getEmptyMessage())
 
-        bg = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW)
-        fg = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
+        cfgGui = gutil.currentCfgGui()
+
+        if cfgGui:
+            bg, fg = cfgGui.textBgColor, cfgGui.textColor
+        else:
+            bg = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW)
+            fg = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
 
         # keep the scroll position when the options change
         pos = self.htmlWin.GetViewStart()
