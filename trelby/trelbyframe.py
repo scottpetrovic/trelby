@@ -330,6 +330,7 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU_HIGHLIGHT_ALL, self.OnMenuHighlight)
 
         self.tabCtrl.setPageChangedFunc(self.OnPageChange)
+        self.applyThemeColors()
 
         self.Bind(wx.EVT_MENU, self.OnNewScript, id=ID_FILE_NEW)
         self.Bind(wx.EVT_MENU, self.OnOpen, id=ID_FILE_OPEN)
@@ -1253,6 +1254,23 @@ class MyFrame(wx.Frame):
         # the status bar may already have its final size, in which case no
         # size event comes
         wx.CallAfter(self.layoutZoomButtons)
+
+    # use the theme's colors for the status bar and each script's outline,
+    # which are native controls that don't draw with them by themselves
+    def applyThemeColors(self):
+        cfgGui = self.gd.cfgGui
+
+        self.statusBar.SetBackgroundColour(cfgGui.tabBarBgColor)
+        self.statusBar.SetForegroundColour(cfgGui.tabTextColor)
+
+        for btn in self.zoomBtns:
+            btn.SetBackgroundColour(cfgGui.tabBarBgColor)
+            btn.SetForegroundColour(cfgGui.tabTextColor)
+
+        self.statusBar.Refresh()
+
+        for i in range(self.tabCtrl.getPageCount()):
+            self.tabCtrl.getPage(i).applyTheme(cfgGui)
 
     def OnStatusBarSize(self, event):
         self.layoutZoomButtons()

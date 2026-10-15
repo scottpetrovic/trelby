@@ -54,7 +54,18 @@ class MyPanel(wx.Panel):
         sizer.Add(self.splitter, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
+        self.applyTheme(gd.cfgGui)
+
         self.showOutline(gd.showOutline)
+
+    # use the colors of the theme in the given config.ConfigGui for the
+    # parts not drawn by MyCtrl
+    def applyTheme(self, cfgGui):
+        # the sash between the script and the outline
+        self.splitter.SetBackgroundColour(cfgGui.tabBorderColor)
+        self.editor.SetBackgroundColour(cfgGui.workspaceColor)
+        self.outline.applyTheme(cfgGui)
+        self.splitter.Refresh()
 
     # show or hide the outline view
     def showOutline(self, show):

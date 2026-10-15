@@ -206,12 +206,17 @@ class MyMenuBar(wx.Control):
 
             menu = self.menus[i][0]
             rect = self.rects[i]
+
             pos = self.frame.ScreenToClient(self.ClientToScreen(rect.GetBottomLeft()))
+
+            # done every time, as the theme may have changed
+            cfgGui = self.getCfgGui()
+            themeMenu(menu, cfgGui)
 
             # see OnTimer
             self.timer.Start(50)
 
-            with _MenuKeys(self):
+            with _MenuKeys(self), _MenuPainter(cfgGui):
                 self.frame.PopupMenu(menu, pos)
 
             self.timer.Stop()
@@ -323,6 +328,152 @@ class _MenuKeys:
         return True
 
 
+# give the items of 'menu' and its submenus the colors of the theme in the
+# given config.ConfigGui, like the menu bar's, which on Windows makes wx draw
+# them itself, instead of the system in its own light or dark colors.
+# _MenuPainter then takes care of the parts wx doesn't draw.
+def themeMenu(menu, cfgGui):
+    if sys.platform != "win32":
+        return
+
+    items = list(menu.GetMenuItems())
+    states = []
+
+    # wx only makes an item owner-drawn when it's inserted, so each one is
+    # taken out and put back with its colors set, keeping its state.
+    # separators too, or the system draws them, with its own background.
+    for pos, item in enumerate(items):
+        if item.IsSubMenu():
+            themeMenu(item.GetSubMenu(), cfgGui)
+
+        states.append((item.IsEnabled(), item.IsCheckable() and item.IsChecked()))
+
+        menu.Remove(item)
+        item.SetBackgroundColour(cfgGui.tabBarBgColor)
+        item.SetTextColour(cfgGui.tabTextColor)
+
+        # wx draws the accelerator as written in the label ("CTRL-Z"),
+        # unlike the system ("Ctrl+Z")
+        accel = item.GetAccel()
+
+        if accel:
+            label = item.GetItemLabel().split("\t")[0]
+            item.SetItemLabel(label + "\t" + accel.ToString())
+
+        menu.Insert(pos, item)
+
+    # after all are back, as inserting a radio item can check another one
+    for i, (item, (enabled, checked)) in enumerate(zip(items, states)):
+        if item.IsSeparator():
+            continue
+
+        item.Enable(enabled)
+
+        if item.IsCheck():
+            item.Check(checked)
+        elif item.IsRadio() and checked:
+            # wx ignores checking a radio item it thinks is checked
+            # already, even when it isn't anymore, so check a neighbor in
+            # its group first
+            for j in (i - 1, i + 1):
+                if (0 <= j < len(items)) and items[j].IsRadio():
+                    items[j].Check(True)
+                    break
+
+            item.Check(True)
+
+
+# while a menu is open, paints the parts of it and its submenus that wx
+# doesn't draw in the theme's colors, and the highlighted item and the
+# separators, which wx draws in the system's colors. Windows only.
+class _MenuPainter:
+    def __init__(self, cfgGui):
+        self.bg = cfgGui.tabBarBgColor
+
+        # the highlighted item: the accent color blended into the
+        # background, like the selected auto-completion item
+        self.selected = wx.Colour(
+            *[
+                int(b * 0.75 + a * 0.25)
+                for a, b in zip(cfgGui.accentColor.Get(False), self.bg.Get(False))
+            ]
+        )
+
+        self.line = cfgGui.tabBorderColor
+
+        # True while having wx draw an item again, see afterDrawItem
+        self.redrawing = False
+
+    def __enter__(self):
+        if sys.platform == "win32":
+            self.hook = _win32().installMenuPaintHook(self)
+
+    def __exit__(self, *args):
+        if sys.platform == "win32":
+            _win32().removeMenuPaintHook(self.hook)
+
+    # the wx.MenuItem an owner-drawn menu item's DRAWITEMSTRUCT is for
+    @staticmethod
+    def getItem(dis):
+        if not dis.itemData:
+            return None
+
+        # wx puts a pointer to the wxMenuItem in the item's data
+        import wx.siplib as sip
+
+        return sip.wrapinstance(dis.itemData, wx.MenuItem)
+
+    # called before wx draws a menu item, with its DRAWITEMSTRUCT. wx fills
+    # only part of the item's row, leaving the strip at its left to the
+    # system, so fill the whole row.
+    def beforeDrawItem(self, dis, hwnd, w32):
+        item = self.getItem(dis)
+
+        if (item is None) or self.redrawing:
+            return
+
+        item.SetBackgroundColour(self.bg)
+        w32.fillRect(dis.hDC, dis.rcItem, self.bg)
+
+    # called after wx has drawn a menu item, sent to the window 'hwnd'. wx
+    # draws the highlighted item and separators in the system's colors, so
+    # draw them again: the highlighted item by having wx draw it as not
+    # highlighted, on our highlight color (the DRAWITEMSTRUCT the hooks
+    # get is a copy, so changing its state there doesn't reach wx), and
+    # separators ourselves.
+    def afterDrawItem(self, dis, hwnd, w32):
+        item = self.getItem(dis)
+
+        if (item is None) or self.redrawing:
+            return
+
+        r = dis.rcItem
+
+        if item.IsSeparator():
+            w32.fillRect(dis.hDC, r, self.bg)
+
+            y = (r.top + r.bottom) // 2
+            line = type(r)(r.left + 4, y, r.right - 4, y + 1)
+            w32.fillRect(dis.hDC, line, self.line)
+
+        elif dis.itemState & w32.ODS_SELECTED:
+            color = self.selected if item.IsEnabled() else self.bg
+
+            copy = type(dis).from_buffer_copy(dis)
+            copy.itemState &= ~w32.ODS_SELECTED
+
+            item.SetBackgroundColour(color)
+            w32.fillRect(dis.hDC, r, color)
+
+            self.redrawing = True
+
+            try:
+                w32.sendDrawItem(hwnd, copy)
+            finally:
+                self.redrawing = False
+                item.SetBackgroundColour(self.bg)
+
+
 # close the open popup menu, if any
 def _endMenu():
     if sys.platform == "win32":
@@ -341,12 +492,19 @@ class _Win32:
     VK_DOWN = 0x28
 
     WH_MSGFILTER = -1
+    WH_CALLWNDPROC = 4
+    WH_CALLWNDPROCRET = 12
+    WM_INITMENUPOPUP = 0x117
+    WM_DRAWITEM = 0x2B
+    ODT_MENU = 1
+    ODS_SELECTED = 0x1
     MSGF_MENU = 2
     WM_KEYDOWN = 0x100
     MN_GETHMENU = 0x1E1
     MF_BYPOSITION = 0x400
     MF_POPUP = 0x10
     MF_HILITE = 0x80
+    MIM_BACKGROUND = 0x2
 
     def __init__(self):
         import ctypes
@@ -369,6 +527,42 @@ class _Win32:
             ]
 
         self.MSG = MSG
+
+        class CWPSTRUCT(ctypes.Structure):
+            _fields_ = [
+                ("lParam", wintypes.LPARAM),
+                ("wParam", wintypes.WPARAM),
+                ("message", wintypes.UINT),
+                ("hwnd", wintypes.HWND),
+            ]
+
+        self.CWPSTRUCT = CWPSTRUCT
+
+        class CWPRETSTRUCT(ctypes.Structure):
+            _fields_ = [
+                ("lResult", LRESULT),
+                ("lParam", wintypes.LPARAM),
+                ("wParam", wintypes.WPARAM),
+                ("message", wintypes.UINT),
+                ("hwnd", wintypes.HWND),
+            ]
+
+        self.CWPRETSTRUCT = CWPRETSTRUCT
+
+        class DRAWITEMSTRUCT(ctypes.Structure):
+            _fields_ = [
+                ("CtlType", wintypes.UINT),
+                ("CtlID", wintypes.UINT),
+                ("itemID", wintypes.UINT),
+                ("itemAction", wintypes.UINT),
+                ("itemState", wintypes.UINT),
+                ("hwndItem", wintypes.HWND),
+                ("hDC", wintypes.HDC),
+                ("rcItem", wintypes.RECT),
+                ("itemData", ctypes.c_size_t),
+            ]
+
+        self.DRAWITEMSTRUCT = DRAWITEMSTRUCT
 
         self.user32 = ctypes.windll.user32
         self.kernel32 = ctypes.windll.kernel32
@@ -417,11 +611,56 @@ class _Win32:
         ]
         self.user32.SendMessageW.restype = wintypes.HMENU
         self.user32.GetMenuItemCount.argtypes = [wintypes.HMENU]
+
+        class MENUINFO(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", wintypes.DWORD),
+                ("fMask", wintypes.DWORD),
+                ("dwStyle", wintypes.DWORD),
+                ("cyMax", wintypes.UINT),
+                ("hbrBack", wintypes.HBRUSH),
+                ("dwContextHelpID", wintypes.DWORD),
+                ("dwMenuData", ctypes.c_size_t),
+            ]
+
+        self.MENUINFO = MENUINFO
+        self.user32.SetMenuInfo.argtypes = [wintypes.HMENU, ctypes.POINTER(MENUINFO)]
+        self.gdi32 = ctypes.windll.gdi32
+        self.gdi32.CreateSolidBrush.argtypes = [wintypes.COLORREF]
+        self.gdi32.CreateSolidBrush.restype = wintypes.HBRUSH
+        self.user32.FillRect.argtypes = [
+            wintypes.HDC,
+            ctypes.POINTER(wintypes.RECT),
+            wintypes.HBRUSH,
+        ]
         self.user32.GetMenuState.argtypes = [
             wintypes.HMENU,
             wintypes.UINT,
             wintypes.UINT,
         ]
+
+        # key = (r, g, b), value = HBRUSH. kept for the life of the program,
+        # as menus keep using them, and there are only a few.
+        self.brushes = {}
+
+    # a brush of the wx.Colour 'color'
+    def getBrush(self, color):
+        rgb = (color.Red(), color.Green(), color.Blue())
+        brush = self.brushes.get(rgb)
+
+        if brush is None:
+            brush = self.gdi32.CreateSolidBrush(rgb[0] | (rgb[1] << 8) | (rgb[2] << 16))
+            self.brushes[rgb] = brush
+
+        return brush
+
+    # fill the background of the menu (an HMENU) with the given brush
+    def setMenuBackground(self, hmenu, brush):
+        info = self.MENUINFO()
+        info.cbSize = self.ctypes.sizeof(info)
+        info.fMask = self.MIM_BACKGROUND
+        info.hbrBack = brush
+        self.user32.SetMenuInfo(hmenu, self.ctypes.byref(info))
 
     # press Down in the open menu, which highlights its first item
     def highlightFirstItem(self):
@@ -491,6 +730,73 @@ class _Win32:
         )
 
         return (hook, cb)
+
+    # while installed, call painter.beforeDrawItem(DRAWITEMSTRUCT, hwnd,
+    # self) before each owner-drawn menu item of this thread is drawn by the
+    # window hwnd, and
+    # painter.afterDrawItem the same way after it, and set the background
+    # of each menu shown to painter.bg. returns a handle for
+    # removeMenuPaintHook.
+    def installMenuPaintHook(self, painter):
+        brush = self.getBrush(painter.bg)
+
+        def handle(msg, before):
+            try:
+                if msg.message == self.WM_INITMENUPOPUP:
+                    if before:
+                        self.setMenuBackground(msg.wParam, brush)
+
+                elif msg.message == self.WM_DRAWITEM:
+                    dis = self.DRAWITEMSTRUCT.from_address(msg.lParam)
+
+                    if dis.CtlType == self.ODT_MENU:
+                        if before:
+                            painter.beforeDrawItem(dis, msg.hwnd, self)
+                        else:
+                            painter.afterDrawItem(dis, msg.hwnd, self)
+            except Exception:
+                pass
+
+        def proc(code, wParam, lParam):
+            if code >= 0:
+                handle(self.CWPSTRUCT.from_address(lParam), True)
+
+            return self.user32.CallNextHookEx(None, code, wParam, lParam)
+
+        def retProc(code, wParam, lParam):
+            if code >= 0:
+                handle(self.CWPRETSTRUCT.from_address(lParam), False)
+
+            return self.user32.CallNextHookEx(None, code, wParam, lParam)
+
+        tid = self.kernel32.GetCurrentThreadId()
+        handles = []
+
+        for hookType, func in (
+            (self.WH_CALLWNDPROC, proc),
+            (self.WH_CALLWNDPROCRET, retProc),
+        ):
+            # the ctypes callback must stay alive as long as the hook does
+            cb = self.HOOKPROC(func)
+            handles.append(
+                (self.user32.SetWindowsHookExW(hookType, cb, None, tid), cb)
+            )
+
+        return handles
+
+    def removeMenuPaintHook(self, handles):
+        for handle in handles:
+            self.removeMenuHook(handle)
+
+    # send WM_DRAWITEM with the DRAWITEMSTRUCT 'dis' to the window 'hwnd'
+    def sendDrawItem(self, hwnd, dis):
+        self.user32.SendMessageW(
+            hwnd, self.WM_DRAWITEM, 0, self.ctypes.addressof(dis)
+        )
+
+    # fill the RECT 'rect' in the HDC 'hdc' with the wx.Colour 'color'
+    def fillRect(self, hdc, rect, color):
+        self.user32.FillRect(hdc, self.ctypes.byref(rect), self.getBrush(color))
 
     def removeMenuHook(self, handle):
         hook, cb = handle

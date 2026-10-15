@@ -93,6 +93,10 @@ class OutlineList(wx.VListBox):
         self.normalFont = self.GetFont()
         self.boldFont = self.normalFont.Bold()
 
+        # color of the selection, the drag outline and the insert mark.
+        # OutlinePanel.applyTheme sets the theme's accent color.
+        self.highlight = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+
         self.pad = self.FromDIP(wx.Size(6, 8))
         self.gap = self.FromDIP(8)
 
@@ -210,7 +214,7 @@ class OutlineList(wx.VListBox):
     # return item n's background, including selection
     def getRowColor(self, n):
         bg = self.getItemColor(n) or self.GetBackgroundColour()
-        hl = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+        hl = self.highlight
 
         if self.isHighlighted(n):
             return blendColors(bg, hl, 0.2)
@@ -231,7 +235,7 @@ class OutlineList(wx.VListBox):
 
     def OnDrawBackground(self, dc, rect, n):
         bg = self.GetBackgroundColour()
-        hl = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+        hl = self.highlight
         fill = self.getRowColor(n)
 
         if fill != bg:
@@ -264,7 +268,7 @@ class OutlineList(wx.VListBox):
     # bottom of row n (in rect) if 'below' is True, otherwise at its top.
     # rows are drawn clipped to their own rect, so it has to fit inside.
     def drawInsertMark(self, dc, rect, n, below):
-        hl = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+        hl = self.highlight
         thickness = self.FromDIP(2)
         radius = self.FromDIP(4)
 
@@ -391,9 +395,9 @@ class OutlinePanel(wx.Panel):
         # and a button to close the panel
         hdr = wx.BoxSizer(wx.HORIZONTAL)
 
-        title = wx.StaticText(self, -1, _("Outline"))
-        title.SetFont(title.GetFont().Bold())
-        hdr.Add(title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, self.FromDIP(6))
+        self.title = wx.StaticText(self, -1, _("Outline"))
+        self.title.SetFont(self.title.GetFont().Bold())
+        hdr.Add(self.title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, self.FromDIP(6))
 
         def addBtn(iconFilename, toolTip):
             bitmap = gutil.svgBitmap(iconFilename, wx.Size(16, 16))
@@ -452,6 +456,22 @@ class OutlinePanel(wx.Panel):
 
     def getCtrl(self):
         return self.scriptPanel.ctrl
+
+    # use the colors of the theme in the given config.ConfigGui: the header
+    # like the tab bar, and the list like the page
+    def applyTheme(self, cfgGui):
+        self.SetBackgroundColour(cfgGui.tabBarBgColor)
+        self.SetForegroundColour(cfgGui.tabTextColor)
+
+        for w in (self.title, self.upBtn, self.downBtn, self.colorBtn, self.closeBtn):
+            w.SetBackgroundColour(cfgGui.tabBarBgColor)
+            w.SetForegroundColour(cfgGui.tabTextColor)
+
+        self.list.SetBackgroundColour(cfgGui.textBgColor)
+        self.list.SetForegroundColour(cfgGui.textColor)
+        self.list.highlight = cfgGui.accentColor
+
+        self.Refresh()
 
     # refresh the outline once things have been quiet for a moment
     def scheduleRefresh(self):

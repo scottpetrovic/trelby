@@ -535,6 +535,7 @@ class MyCtrl(wx.Control):
         self.gd.mainFrame.noFSBtn.Refresh(False)
         self.gd.mainFrame.toolBar.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         self.gd.mainFrame.toolBar.Refresh()
+        self.gd.mainFrame.applyThemeColors()
 
         # the toolbar icons' color depends on the theme
         if appearanceChanged or (
