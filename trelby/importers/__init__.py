@@ -9,7 +9,7 @@
 # is for the user.
 #
 # this package doesn't use wx: reading the file, the options dialogs and
-# the error message boxes are in trelby/myimport.py. formats.IMPORT_FORMATS
+# the error message boxes are in trelby/ui/myimport.py. formats.IMPORT_FORMATS
 # lists the formats.
 
 import trelby.importers.astx as astx

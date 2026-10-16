@@ -1,12 +1,12 @@
 import wx
 
 import tests.u as u
-import trelby.charmapdlg as charmapdlg
+import trelby.dialogs.charmapdlg as charmapdlg
 import trelby.config as config
-import trelby.fontinfo as fontinfo
+import trelby.pdf.fontinfo as fontinfo
 import trelby.keys as keys
-import trelby.pdf as pdf
-import trelby.pml as pml
+import trelby.pdf.writer as pdf
+import trelby.pdf.pml as pml
 import trelby.screenplay as screenplay
 import trelby.screenplay.export as export
 import trelby.screenplay.render as render
@@ -16,7 +16,7 @@ import trelby.titles as titles
 import trelby.translations as translations
 import trelby.util as util
 from trelby.line import Line
-from trelby.textedit import TextEdit
+from trelby.ui.textedit import TextEdit
 
 _ = translations.trelby_translations_load()
 

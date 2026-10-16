@@ -3,7 +3,7 @@ from unittest import mock
 
 import tests.u as u
 import trelby.translations as translations
-import trelby.watermarkdlg as watermarkdlg
+import trelby.dialogs.watermarkdlg as watermarkdlg
 
 _ = translations.trelby_translations_load()
 

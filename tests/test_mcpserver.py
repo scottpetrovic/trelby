@@ -11,7 +11,7 @@ pytest.importorskip("mcp")
 from mcp.server.mcpserver.exceptions import ToolError
 
 import tests.u as u
-import trelby.mcpserver as mcpserver
+import trelby.mcpserver.server as mcpserver
 
 # tests for the MCP tool definitions and how calls reach the operations
 

@@ -105,7 +105,7 @@ def testGetLanguage(monkeypatch):
 def testMessageBox(monkeypatch):
     import wx
 
-    import trelby.gutil as gutil
+    import trelby.ui.gutil as gutil
 
     shown = []
 

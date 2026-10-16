@@ -6,7 +6,7 @@ import wx
 import tests.u as u
 import trelby.screenplay as scr
 import trelby.spellcheck as spellcheck
-import trelby.spellcheckdlg as spellcheckdlg
+import trelby.dialogs.spellcheckdlg as spellcheckdlg
 import trelby.translations as translations
 from trelby.line import Line
 

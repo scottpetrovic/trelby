@@ -4,8 +4,8 @@ import os
 import pytest
 
 import tests.u as u
-import trelby.autosave as autosave
-import trelby.gutil as gutil
+import trelby.ui.autosave as autosave
+import trelby.ui.gutil as gutil
 import trelby.translations as translations
 import trelby.util as util
 

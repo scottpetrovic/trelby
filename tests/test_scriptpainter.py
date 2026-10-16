@@ -3,12 +3,12 @@ import wx
 
 import tests.u as u
 import trelby.config as config
-import trelby.configgui as configgui
-import trelby.gutil as gutil
+import trelby.ui.configgui as configgui
+import trelby.ui.gutil as gutil
 import trelby.screenplay as screenplay
-import trelby.scriptpainter as scriptpainter
+import trelby.ui.scriptpainter as scriptpainter
 import trelby.translations as translations
-import trelby.viewmode as viewmode
+import trelby.ui.viewmode as viewmode
 
 _ = translations.trelby_translations_load()
 

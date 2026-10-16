@@ -1,5 +1,5 @@
 import tests.u as u
-import trelby.scenereport as scenereport
+import trelby.reports.scenereport as scenereport
 import trelby.textutil as textutil
 import trelby.translations as translations
 

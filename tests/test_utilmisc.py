@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 import tests.u as u
-import trelby.gutil as gutil
+import trelby.ui.gutil as gutil
 import trelby.misc as misc
 import trelby.translations as translations
 import trelby.util as util

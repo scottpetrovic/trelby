@@ -1,10 +1,10 @@
 import tests.u as u
 import trelby.commands as commands
-import trelby.menus as menus
+import trelby.ui.menus as menus
 import trelby.screenplay as screenplay
 import trelby.translations as translations
-import trelby.trelbyctrl as trelbyctrl
-import trelby.trelbyframe as trelbyframe
+import trelby.ui.trelbyctrl as trelbyctrl
+import trelby.ui.trelbyframe as trelbyframe
 
 _ = translations.trelby_translations_load()
 u.init()

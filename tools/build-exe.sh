@@ -17,7 +17,7 @@ $PY -m PyInstaller --version >/dev/null 2>&1 || $PY -m pip install pyinstaller
 
 # the MCP SDK, for the MCP server in the settings and Trelby.exe
 # --mcp-bridge. optional when running from source, but always bundled in
-# the exe (about 25 MB). PyInstaller finds it through mcpapp.py's imports,
+# the exe (about 25 MB). PyInstaller finds it through mcpserver/app.py's imports,
 # and pyinstaller-hooks-contrib covers uvicorn's dynamic ones.
 $PY -c "import mcp.server.mcpserver, uvicorn" 2>/dev/null || $PY -m pip install "mcp>=2.3,<3"
 

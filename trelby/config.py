@@ -6,10 +6,10 @@ import os
 import trelby.commands as commands
 import trelby.misc as misc
 import trelby.mypickle as mypickle
-import trelby.pml as pml
+import trelby.pdf.pml as pml
 import trelby.screenplay as screenplay
 import trelby.textutil as textutil
-import trelby.themes as themes
+import trelby.ui.themes as themes
 import trelby.util as util
 from trelby.error import ConfigError
 
@@ -731,7 +731,7 @@ class ConfigGlobal:
         v.addInt("pbi", PBI_REAL, "PageBreakIndicators", PBI_FIRST, PBI_LAST)
 
         # whether to run the MCP server that lets AI assistants read and
-        # edit the open scripts (see mcpapp.py), and the localhost port it
+        # edit the open scripts (see mcpserver/app.py), and the localhost port it
         # listens on. the default port must match mcpserver.DEFAULT_PORT.
         v.addBool("mcpEnabled", False, "MCP/Enabled")
         v.addInt("mcpPort", 7789, "MCP/Port", 1024, 65535)

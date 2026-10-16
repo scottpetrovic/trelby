@@ -3,8 +3,8 @@
 
 import difflib
 
-import trelby.pdf as pdf
-import trelby.pml as pml
+import trelby.pdf.writer as pdf
+import trelby.pdf.pml as pml
 import trelby.util as util
 from trelby.screenplay.export.text import generateText
 

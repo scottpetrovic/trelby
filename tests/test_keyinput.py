@@ -9,9 +9,9 @@ import trelby.config as config
 import trelby.keys as keys
 import trelby.opts as opts
 import trelby.screenplay as screenplay
-import trelby.scriptactions as scriptactions
+import trelby.ui.scriptactions as scriptactions
 import trelby.translations as translations
-import trelby.trelbyctrl as trelbyctrl
+import trelby.ui.trelbyctrl as trelbyctrl
 
 _ = translations.trelby_translations_load()
 

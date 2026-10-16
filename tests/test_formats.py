@@ -5,7 +5,7 @@ import pytest
 
 import tests.u as u
 import trelby.formats as formats
-import trelby.mcptools as mcptools
+import trelby.mcpserver.tools as mcptools
 import trelby.translations as translations
 
 _ = translations.trelby_translations_load()
@@ -73,7 +73,7 @@ def testWildcard():
 def testMcpServerListsFormats():
     pytest.importorskip("mcp")
 
-    import trelby.mcpserver as mcpserver
+    import trelby.mcpserver.server as mcpserver
 
     server = mcpserver.makeServer(None, False)
     tools = asyncio.run(server.list_tools())

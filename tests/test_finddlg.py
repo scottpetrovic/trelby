@@ -4,7 +4,7 @@ import wx
 
 import tests.u as u
 import trelby.config as config
-import trelby.finddlg as finddlg
+import trelby.dialogs.finddlg as finddlg
 import trelby.screenplay as scr
 import trelby.screenplay.search as search
 import trelby.translations as translations

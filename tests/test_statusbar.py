@@ -1,4 +1,4 @@
-import trelby.statusbar as statusbar
+import trelby.ui.statusbar as statusbar
 import trelby.translations as translations
 
 _ = translations.trelby_translations_load()

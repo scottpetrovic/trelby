@@ -1,6 +1,6 @@
 import tests.u as u
-import trelby.mypager as mypager
-import trelby.pml as pml
+import trelby.pdf.mypager as mypager
+import trelby.pdf.pml as pml
 import trelby.screenplay.render as render
 import trelby.translations as translations
 

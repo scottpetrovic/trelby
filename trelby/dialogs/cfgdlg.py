@@ -1,0 +1,329 @@
+import copy
+import os.path
+
+import wx
+
+import trelby.config as config
+import trelby.ui.gutil as gutil
+from trelby.dialogs.configpages.displaypanel import DisplayPanel
+from trelby.dialogs.configpages.draftpanel import DraftPanel
+from trelby.dialogs.configpages.elementsglobalpanel import ElementsGlobalPanel
+from trelby.dialogs.configpages.elementspanel import ElementsPanel
+from trelby.dialogs.configpages.formattingpanel import FormattingPanel
+
+# import config pages
+from trelby.dialogs.configpages.globalaboutpanel import GlobalAboutPanel
+from trelby.dialogs.configpages.keyboardpanel import KeyboardPanel
+from trelby.dialogs.configpages.mcppanel import MCPPanel
+from trelby.dialogs.configpages.miscpanel import MiscPanel
+from trelby.dialogs.configpages.paperpanel import PaperPanel
+from trelby.dialogs.configpages.pdffontspanel import PDFFontsPanel
+from trelby.dialogs.configpages.pdfpanel import PDFPanel
+from trelby.dialogs.configpages.pdfviewerpanel import PDFViewerPanel
+from trelby.dialogs.configpages.scriptaboutpanel import ScriptAboutPanel
+from trelby.dialogs.configpages.spellcheckpanel import SpellCheckPanel
+from trelby.dialogs.configpages.stringspanel import StringsPanel
+from trelby.dialogs.configpages.themepanel import ThemePanel
+
+
+# ask for a global settings file to load (save=False) or save, starting at
+# 'filename'. returns the chosen path, or None if the user cancelled.
+def askSettingsFile(parent, filename, save):
+    if save:
+        title = _("Filename to save as")
+        style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
+    else:
+        title = _("File to open")
+        style = wx.FD_OPEN
+
+    dlg = wx.FileDialog(
+        parent,
+        title,
+        defaultDir=os.path.dirname(filename),
+        defaultFile=os.path.basename(filename),
+        wildcard=_("Setting")
+        + " "
+        + _("files")
+        + " (*.conf)|*.conf|"
+        + _("All files")
+        + "|*",
+        style=style,
+    )
+
+    path = None
+    if dlg.ShowModal() == wx.ID_OK:
+        path = dlg.GetPath()
+
+    dlg.Destroy()
+
+    return path
+
+
+# load global settings from the given file. returns a ConfigGlobal, or None
+# on error.
+#
+# unlike trelby.loadGlobalCfg, used at startup, this doesn't call
+# ConfigGlobal.setDefaults, so the platform defaults (screen fonts, PDF
+# viewer) aren't filled in for settings the file doesn't have: those stay
+# empty, and ConfigGui falls back to a generic font for an empty font.
+def loadGlobalCfg(filename, parent):
+    s = gutil.loadFile(filename, parent)
+
+    if not s:
+        return None
+
+    c = config.ConfigGlobal()
+    c.load(s)
+
+    return c
+
+
+# ask for a script settings file to load (save=False) or save, starting in
+# directory 'dirName'. returns the chosen path, or None if the user cancelled.
+def askScriptSettingsFile(parent, dirName, save):
+    if save:
+        title = _("Filename to save as")
+        style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
+    else:
+        title = _("File to open")
+        style = wx.FD_OPEN
+
+    dlg = wx.FileDialog(
+        parent,
+        title,
+        defaultDir=dirName,
+        wildcard=_("Script")
+        + " "
+        + _("setting")
+        + " "
+        + _("files")
+        + " (*.sconf)|*.sconf|"
+        + _("All files")
+        + "|*",
+        style=style,
+    )
+
+    path = None
+    if dlg.ShowModal() == wx.ID_OK:
+        path = dlg.GetPath()
+
+    dlg.Destroy()
+
+    return path
+
+
+# load script settings from the given file. returns a Config, or None on
+# error.
+def loadScriptCfg(filename, parent):
+    s = gutil.loadFile(filename, parent)
+
+    if not s:
+        return None
+
+    c = config.Config()
+    c.load(s)
+
+    return c
+
+
+# the settings dialog, for the global settings (isGlobal) or a script's.
+# cfg is a copy of the config, which the pages edit in place; the
+# program's settings only change when Apply calls applyFunc(cfg), or when
+# the caller applies dlg.cfg after OK.
+# the apply functions copy the config again, so the dialog can keep
+# editing its own after Apply.
+class CfgDlg(wx.Dialog):
+    def __init__(self, parent, cfg, applyFunc, isGlobal, gd=None):
+        wx.Dialog.__init__(
+            self, parent, -1, "", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
+        )
+        self.cfg = cfg
+        self.applyFunc = applyFunc
+        self.isGlobal = isGlobal
+        self.gd = gd
+
+        if isGlobal:
+            # settings file the global config is written to when applied.
+            # Load/Save as change it, but it only takes effect on Apply/OK.
+            self.confFilename = gd.confFilename
+
+            # the global spell checker dictionary is stored separately from
+            # the settings. the Spelling Exclusion List page edits this copy,
+            # which is saved on Apply/OK.
+            self.scDict = copy.deepcopy(gd.scDict)
+
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.listbook = gutil.ThemedListbook(self)
+
+        if isGlobal:
+            self.SetTitle(_("Settings"))
+        else:
+            self.SetTitle(_("Script settings"))
+
+        self.addPages()
+
+        vsizer.Add(self.listbook, 1, wx.EXPAND)
+
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 15)
+
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        loadBtn = wx.Button(self, -1, _("Load") + "...")
+        loadBtn.SetToolTip(_("Load settings from a file"))
+        hsizer.Add(loadBtn, 0, wx.RIGHT, 10)
+        self.Bind(wx.EVT_BUTTON, self.OnLoad, id=loadBtn.GetId())
+
+        saveBtn = wx.Button(self, -1, _("Save as") + "...")
+        saveBtn.SetToolTip(_("Save these settings to a file"))
+        hsizer.Add(saveBtn, 0, wx.RIGHT, 10)
+        self.Bind(wx.EVT_BUTTON, self.OnSaveAs, id=saveBtn.GetId())
+
+        hsizer.Add((1, 1), 1)
+
+        applyBtn = gutil.createStockButton(self, _("Apply"))
+        hsizer.Add(applyBtn, 0, wx.LEFT, 10)
+
+        cancelBtn = gutil.createStockButton(self, _("Cancel"))
+        hsizer.Add(cancelBtn, 0, wx.LEFT, 10)
+
+        okBtn = gutil.createStockButton(self, "OK")
+        hsizer.Add(okBtn, 0, wx.LEFT, 10)
+
+        vsizer.Add(hsizer, 0, wx.EXPAND)
+
+        gutil.finishWindow(self, vsizer)
+        # self.Center()
+
+        self.Bind(wx.EVT_BUTTON, self.OnApply, id=applyBtn.GetId())
+        self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
+        self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
+
+    def addPages(self):
+        if self.isGlobal:
+            self.AddPage(ThemePanel, _("Theme"))
+            self.AddPage(GlobalAboutPanel, _("About"))
+            self.AddPage(DisplayPanel, _("Display"))
+            self.AddPage(DraftPanel, _("Continuous Mode"))
+            self.AddPage(ElementsGlobalPanel, _("Elements"))
+            self.AddPage(KeyboardPanel, _("Keyboard"))
+            self.AddPage(MCPPanel, _("MCP Server"))
+            self.AddPage(MiscPanel, _("Misc"))
+            self.AddPage(PDFViewerPanel, "PDF")
+            self.AddPage(SpellCheckPanel, _("Spelling Exclusion List"))
+        else:
+            self.AddPage(ScriptAboutPanel, _("About"))
+            self.AddPage(ElementsPanel, _("Elements"))
+            self.AddPage(FormattingPanel, _("Formatting"))
+            self.AddPage(PaperPanel, _("Paper"))
+            self.AddPage(PDFPanel, "PDF")
+            self.AddPage(PDFFontsPanel, _("PDF/Fonts"))
+            self.AddPage(StringsPanel, _("Strings"))
+
+    def AddPage(self, classObj, name):
+        # stupid hack to get correct window modality stacking for dialogs
+        #
+        # these pages also get the dialog itself: they use it as the parent
+        # of the dialogs and message boxes they open, and SpellCheckPanel
+        # edits the dialog's scDict copy through it.
+        needs_frame_ref = [
+            DisplayPanel,
+            KeyboardPanel,
+            MiscPanel,
+            PDFFontsPanel,
+            PDFViewerPanel,
+            SpellCheckPanel,
+        ]
+        if classObj in needs_frame_ref:
+            p = classObj(self.listbook.book, -1, self.cfg, self)
+        else:
+            p = classObj(self.listbook.book, -1, self.cfg)
+
+        self.listbook.AddPage(p, name)
+
+    # check for errors in each panel
+    def checkForErrors(self):
+        for pageNum in range(self.listbook.GetPageCount()):
+            panel = self.listbook.GetPage(pageNum)
+            if hasattr(panel, "checkForErrors"):
+                panel.checkForErrors()
+
+    # make the settings file chosen in this dialog the active one. must be
+    # called before the config is applied, since that writes it out.
+    def commitConfFilename(self):
+        if self.isGlobal:
+            self.gd.confFilename = self.confFilename
+
+    # save the global spell checker dictionary, if it was changed
+    def commitScDict(self):
+        if not self.isGlobal:
+            return
+
+        self.scDict.refresh()
+
+        if self.scDict.get() != self.gd.scDict.get():
+            self.gd.scDict = copy.deepcopy(self.scDict)
+            self.gd.saveScDict()
+
+    def OnOK(self, event):
+        self.checkForErrors()
+        self.commitConfFilename()
+        self.commitScDict()
+        self.EndModal(wx.ID_OK)
+
+    def OnApply(self, event):
+        self.checkForErrors()
+        self.commitConfFilename()
+        self.commitScDict()
+        self.applyFunc(self.cfg)
+
+    # replace the settings being edited with ones loaded from a file. they
+    # are applied, like any other change, on Apply/OK.
+    def OnLoad(self, event):
+        if self.isGlobal:
+            path = askSettingsFile(self, self.confFilename, False)
+            c = path and loadGlobalCfg(path, self)
+        else:
+            path = askScriptSettingsFile(self, self.gd.scriptSettingsPath, False)
+            c = path and loadScriptCfg(path, self)
+
+        if not c:
+            return
+
+        self.cfg = c
+
+        if self.isGlobal:
+            self.confFilename = path
+        else:
+            self.gd.scriptSettingsPath = os.path.dirname(path)
+
+        # the pages hold references to the old config, so recreate them
+        sel = self.listbook.GetSelection()
+        self.listbook.DeleteAllPages()
+        self.addPages()
+        self.listbook.SetSelection(sel)
+        gutil.themeWindow(self)
+
+    def OnSaveAs(self, event):
+        self.checkForErrors()
+
+        if self.isGlobal:
+            path = askSettingsFile(self, self.confFilename, True)
+        else:
+            path = askScriptSettingsFile(self, self.gd.scriptSettingsPath, True)
+
+        if not path:
+            return
+
+        # save what the dialog currently shows, applied or not
+        c = copy.deepcopy(self.cfg)
+        c.recalc()
+
+        if gutil.writeToFile(path, c.save(), self):
+            if self.isGlobal:
+                self.confFilename = path
+            else:
+                self.gd.scriptSettingsPath = os.path.dirname(path)
+
+    def OnCancel(self, event):
+        self.EndModal(wx.ID_CANCEL)

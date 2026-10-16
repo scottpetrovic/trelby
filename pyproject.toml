@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# for the MCP server (trelby-mcp), see trelby/mcpserver.py
+# for the MCP server (trelby-mcp), see trelby/mcpserver/
 mcp = ["mcp>=2.3,<3"]
 
 [project.urls]
@@ -31,9 +31,9 @@ Source = "https://github.com/trelby/trelby"
 
 [project.scripts]
 trelby = "trelby:trelby.main"
-trelby-mcp = "trelby.mcpserver:main"
+trelby-mcp = "trelby.mcpserver.server:main"
 
-# configpages/, resources/ and locales/ have no __init__.py, so they are
+# dialogs/configpages/, resources/ and locales/ have no __init__.py, so they are
 # picked up as namespace packages
 [tool.setuptools.packages.find]
 include = ["trelby", "trelby.*"]
@@ -48,7 +48,7 @@ trelby = [
     "resources/*",
     "trelby.1.gz",
     "locales/*/*/*",
-    "configpages/*",
+    "dialogs/configpages/*",
 ]
 
 [tool.pytest.ini_options]

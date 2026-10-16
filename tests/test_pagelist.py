@@ -1,5 +1,5 @@
 import tests.u as u
-from trelby.pagelist import PageList
+from trelby.ui.pagelist import PageList
 
 # test screenplay.PageList
 

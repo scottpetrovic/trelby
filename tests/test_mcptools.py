@@ -4,7 +4,7 @@ import shutil
 import pytest
 
 import tests.u as u
-import trelby.mcptools as m
+import trelby.mcpserver.tools as m
 
 D = m.FileDoc
 

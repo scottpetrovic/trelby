@@ -5,9 +5,9 @@ import pytest
 
 import tests.u as u
 import trelby.config as config
-import trelby.configgui as configgui
-import trelby.gutil as gutil
-import trelby.themes as themes
+import trelby.ui.configgui as configgui
+import trelby.ui.gutil as gutil
+import trelby.ui.themes as themes
 import trelby.translations as translations
 
 _ = translations.trelby_translations_load()

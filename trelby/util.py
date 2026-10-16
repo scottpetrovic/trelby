@@ -8,7 +8,7 @@ import tempfile
 import time
 from typing import AnyStr
 
-import trelby.fontinfo as fontinfo
+import trelby.pdf.fontinfo as fontinfo
 import trelby.misc as misc
 
 # alignment values

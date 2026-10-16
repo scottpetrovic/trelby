@@ -1,6 +1,6 @@
 import tests.u as u
-import trelby.locationreport as locationreport
-import trelby.scenereport as scenereport
+import trelby.reports.locationreport as locationreport
+import trelby.reports.scenereport as scenereport
 import trelby.textutil as textutil
 import trelby.translations as translations
 

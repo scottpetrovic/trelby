@@ -10,15 +10,15 @@ import wx
 
 import trelby
 import trelby.config as config
-import trelby.configgui as configgui
-import trelby.gutil as gutil
-import trelby.mcpapp as mcpapp
+import trelby.ui.configgui as configgui
+import trelby.ui.gutil as gutil
+import trelby.mcpserver.app as mcpapp
 import trelby.misc as misc
 import trelby.opts as opts
 import trelby.util as util
 import trelby.translations as translations
-from trelby.globaldata import GlobalData
-from trelby.trelbyframe import MyFrame
+from trelby.ui.globaldata import GlobalData
+from trelby.ui.trelbyframe import MyFrame
 
 # Boolean to determine if toolbar should be shown or not.
 toolbarshown = True
@@ -239,10 +239,10 @@ def restartCommand(args):
 
 def main():
     # Trelby.exe --mcp-bridge [--port N]: run as the stdio bridge to the MCP
-    # server in a running Trelby (see mcpserver.py), for exe users with no
+    # server in a running Trelby (see mcpserver/server.py), for exe users with no
     # Python to run "python -m trelby.mcpserver --app" with
     if sys.argv[1:2] == ["--mcp-bridge"]:
-        import trelby.mcpserver as mcpserver
+        import trelby.mcpserver.server as mcpserver
 
         mcpserver.main(["--app"] + sys.argv[2:])
 

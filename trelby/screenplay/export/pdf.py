@@ -1,6 +1,6 @@
 # PDF export.
 
-import trelby.pdf as pdf
+import trelby.pdf.writer as pdf
 import trelby.screenplay.render as render
 
 

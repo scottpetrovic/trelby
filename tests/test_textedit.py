@@ -1,5 +1,5 @@
 import tests.u as u
-from trelby.textedit import TextEdit
+from trelby.ui.textedit import TextEdit
 
 u.init()
 

@@ -5,9 +5,9 @@ import wx
 
 import tests.u as u
 import trelby.config as config
-import trelby.mypager as mypager
-import trelby.pdf as pdf
-import trelby.pml as pml
+import trelby.pdf.mypager as mypager
+import trelby.pdf.writer as pdf
+import trelby.pdf.pml as pml
 import trelby.screenplay as scr
 import trelby.screenplay.render as render
 import trelby.textutil as textutil

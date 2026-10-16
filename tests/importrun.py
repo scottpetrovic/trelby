@@ -8,7 +8,7 @@ import wx
 
 import tests.u as u
 import trelby.formats as formats
-import trelby.myimport as myimport
+import trelby.ui.myimport as myimport
 import trelby.screenplay as screenplay
 import trelby.translations as translations
 

@@ -1,5 +1,5 @@
 import tests.u as u
-import trelby.pml as pml
+import trelby.pdf.pml as pml
 import trelby.titles as titles
 import trelby.translations as translations
 import trelby.util as util

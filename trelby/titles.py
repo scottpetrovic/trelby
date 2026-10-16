@@ -1,4 +1,4 @@
-import trelby.pml as pml
+import trelby.pdf.pml as pml
 import trelby.textutil as textutil
 import trelby.util as util
 

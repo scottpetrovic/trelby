@@ -1,13 +1,13 @@
 import pytest
 
 import tests.u as u
-import trelby.characterreport as characterreport
-import trelby.dialoguechart as dialoguechart
-import trelby.mcptools as mcptools
-import trelby.scenereport as scenereport
+import trelby.reports.characterreport as characterreport
+import trelby.reports.dialoguechart as dialoguechart
+import trelby.mcpserver.tools as mcptools
+import trelby.reports.scenereport as scenereport
 import trelby.screenplay as screenplay
 import trelby.screenplay.speeches as speeches
-import trelby.scriptreport as scriptreport
+import trelby.reports.scriptreport as scriptreport
 import trelby.translations as translations
 
 _ = translations.trelby_translations_load()

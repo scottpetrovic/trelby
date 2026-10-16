@@ -1,7 +1,7 @@
 import copy
 
 import tests.u as u
-import trelby.mcptools as m
+import trelby.mcpserver.tools as m
 import trelby.pagelock as pagelock
 import trelby.screenplay as scr
 import trelby.screenplay.render as render

@@ -1,0 +1,944 @@
+# -*- coding: utf-8 -*-
+
+import copy
+import os
+import os.path
+import time
+
+import wx
+
+import trelby.ui.autosave as autosave
+import trelby.commands as commands
+import trelby.dialogs.finddlg as finddlg
+import trelby.formats as formats
+import trelby.ui.gutil as gutil
+import trelby.keys as keys
+import trelby.ui.menus as menus
+import trelby.misc as misc
+import trelby.ui.myimport as myimport
+import trelby.opts as opts
+import trelby.screenplay as screenplay
+import trelby.ui.scriptactions as scriptactions
+import trelby.ui.scriptpainter as scriptpainter
+import trelby.dialogs.textdlg as textdlg
+import trelby.textutil as textutil
+import trelby.util as util
+from trelby.error import TrelbyError
+
+# Boolean to determine if toolbar should be shown or not.
+toolbarshown = True
+
+# keycodes
+KC_CTRL_A = 1
+KC_CTRL_B = 2
+KC_CTRL_D = 4
+KC_CTRL_E = 5
+KC_CTRL_F = 6
+KC_CTRL_N = 14
+KC_CTRL_P = 16
+KC_CTRL_V = 22
+
+
+# the keyboard commands that edit the script (the ones that aren't menu
+# commands), and the Editor method each one runs, given a CommandState.
+# the rest are MyCtrl.cmd<name> methods.
+EDITOR_COMMANDS = {
+    "Abort": "abortCmd",
+    "ChangeToAction": "toActionCmd",
+    "ChangeToCharacter": "toCharacterCmd",
+    "ChangeToDialogue": "toDialogueCmd",
+    "ChangeToNote": "toNoteCmd",
+    "ChangeToParenthetical": "toParenCmd",
+    "ChangeToScene": "toSceneCmd",
+    "ChangeToShot": "toShotCmd",
+    "ChangeToActBreak": "toActBreakCmd",
+    "ChangeToTransition": "toTransitionCmd",
+    "ForcedLineBreak": "insertForcedLineBreakCmd",
+    "MoveDown": "moveDownCmd",
+    "MoveEndOfLine": "moveLineEndCmd",
+    "MoveEndOfScript": "moveEndCmd",
+    "MoveLeft": "moveLeftCmd",
+    "MoveNextWord": "moveNextWordCmd",
+    "MovePrevWord": "movePrevWordCmd",
+    "MoveRight": "moveRightCmd",
+    "MoveSceneDown": "moveSceneDownCmd",
+    "MoveSceneUp": "moveSceneUpCmd",
+    "MoveStartOfLine": "moveLineStartCmd",
+    "MoveStartOfScript": "moveStartCmd",
+    "MoveUp": "moveUpCmd",
+    "NewElement": "splitElementCmd",
+    "SetMark": "setMarkCmd",
+    "Tab": "tabCmd",
+    "TabPrev": "toPrevTypeTabCmd",
+}
+
+
+# the editor for one open script, one per tab. it owns the Screenplay
+# (self.sp) and the Editor on it (self.ed), draws it the way the current
+# view mode (gd.vm) lays it out, and turns keys, mouse clicks and menu
+# commands into Editor commands.
+# menu items reach it through MyFrame's On* methods, which forward to the
+# current tab's MyCtrl.
+class MyCtrl(wx.Control):
+
+    # panel is the trelbypanel.MyPanel we belong to
+    def __init__(self, parent, id, gd, panel):
+        style = wx.WANTS_CHARS | wx.FULL_REPAINT_ON_RESIZE | wx.NO_BORDER
+        wx.Control.__init__(self, parent, id, style=style)
+
+        self.panel = panel
+        self.gd = gd
+
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDClick)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
+        self.Bind(wx.EVT_CHAR, self.OnKeyChar)
+
+        # id of this script's recovery copy (see autosave.py), whether
+        # one has been written, and the data last written to it
+        self.recoveryId = autosave.newRecoveryId()
+        self.recoveryWritten = False
+        self.autosavedData = None
+
+        # when the recovery copy was last written (seconds since the
+        # epoch), and the error from the last failed attempt, if any. shown
+        # in the status bar.
+        self.autosaveTime = None
+        self.autosaveError = None
+
+        # wx.Rect of the "Title pages" link above the first page, or None
+        # if it's not on screen. set by OnPaint.
+        self.titleButtonRect = None
+
+        self.createEmptySp()
+        self.updateScreen(redraw=False)
+
+    def changeType(self, lt):
+        cs = screenplay.CommandState()
+
+        self.ed.convertTypeTo(lt, True)
+        self.ed.cmdPost(cs)
+        self.sp.paginate()
+
+        if cs.needsVisifying:
+            self.makeLineVisible(self.ed.line)
+
+        self.updateScreen()
+
+    def clearVars(self):
+        self.mouseSelectActive = False
+
+        # True while the button is still down after a double/triple click
+        # selected a word/element, so drags don't disturb that selection
+        self.clickSelectActive = False
+
+        # (time, position) of the last double click, to detect triple
+        # clicks, which wx has no event for
+        self.lastDClick = None
+
+        # what the find dialog was left showing
+        self.findState = finddlg.FindState()
+
+    def createEmptySp(self):
+        self.removeRecovery()
+        self.clearVars()
+        self.sp = screenplay.Screenplay(self.gd.cfgGl)
+        self.ed = screenplay.Editor(self.sp)
+        self.sp.cfg.setPaper(self.gd.cfgGl.defaultPaper)
+        self.sp.titles.addDefaults()
+        self.sp.headers.addDefaults()
+        self.setFile(None)
+        self.refreshCache()
+
+    # update stuff that depends on configuration / view mode etc.
+    # (see scriptpainter.Viewport for what these are)
+    def refreshCache(self):
+        vp = self.getViewport(refresh=True)
+
+        self.chX = vp.chX
+        self.chY = vp.chY
+        self.mm2p = vp.mm2p
+        self.pageW = vp.pageW
+        self.pageH = vp.pageH
+
+    def getCfgGui(self):
+        return self.gd.cfgGui
+
+    # load script from path and show it as fileName. returns True on
+    # success.
+    def loadFile(self, fileName, path=None):
+        s = gutil.loadFile(path or fileName, self.gd.mainFrame)
+        if s is None:
+            return False
+
+        try:
+            (sp, msg) = screenplay.Screenplay.load(s, self.gd.cfgGl)
+        except TrelbyError as e:
+            wx.MessageBox(
+                _("Error loading file:\n\n{}").format(e),
+                _("Error"),
+                wx.OK,
+                self.gd.mainFrame,
+            )
+
+            return False
+
+        if msg:
+            textdlg.showText(self.gd.mainFrame, msg, _("Warning"))
+
+        # whatever was here before has been saved or discarded
+        self.removeRecovery()
+
+        self.clearVars()
+        self.sp = sp
+        self.ed = screenplay.Editor(sp)
+        self.setFile(fileName)
+        self.refreshCache()
+
+        # saved cursor position might be anywhere, so we can't just
+        # display the first page
+        self.makeLineVisible(self.ed.line)
+
+        self.checkWideChars("".join(ln.text for ln in self.sp.lines))
+
+        return True
+
+    # load the recovery copy described by the autosave.RecoveryEntry, and
+    # keep maintaining it until the script is saved or discarded. returns
+    # True on success.
+    def loadRecovery(self, entry):
+        if not self.loadFile(entry.original, entry.scriptPath):
+            return False
+
+        self.sp.markChanged(True)
+        self.recoveryId = entry.recId
+        self.recoveryWritten = True
+        self.autosaveTime = entry.time
+        self.gd.mainFrame.updateAutosaveStatus(self)
+
+        return True
+
+    # save script to given filename. returns True on success.
+    def saveFile(self, fileName):
+        fileName = str(textutil.ensureEndsIn(fileName, ".trelby"))
+
+        if gutil.writeToFile(
+            fileName, self.ed.save(), self.gd.mainFrame, backup=True
+        ):
+            self.sp.markChanged(False)
+            self.setFile(fileName)
+            self.gd.mru.add(fileName)
+            self.removeRecovery()
+
+            return True
+        else:
+            return False
+
+    # write a recovery copy of the script if it has changes that haven't
+    # been saved or autosaved yet (or remove it if there are no unsaved
+    # changes anymore). never touches the script's real file.
+    def autosave(self):
+        if not self.sp.isModified():
+            self.removeRecovery()
+
+            return
+
+        data = self.ed.save()
+
+        if data == self.autosavedData:
+            return
+
+        try:
+            autosave.writeRecovery(
+                autosave.getRecoveryDir(),
+                self.recoveryId,
+                data,
+                os.path.abspath(self.fileName) if self.fileName else None,
+            )
+        except OSError as e:
+            # no message box, since this would repeat every interval
+            self.autosaveError = e.strerror or str(e)
+            self.gd.mainFrame.updateAutosaveStatus(self)
+
+            return
+
+        self.autosavedData = data
+        self.recoveryWritten = True
+        self.autosaveTime = time.time()
+        self.autosaveError = None
+        self.gd.mainFrame.updateAutosaveStatus(self)
+
+    # remove the script's recovery copy, if any
+    def removeRecovery(self):
+        if self.recoveryWritten:
+            autosave.removeRecovery(autosave.getRecoveryDir(), self.recoveryId)
+            self.recoveryWritten = False
+
+        self.autosavedData = None
+
+        if (self.autosaveTime is not None) or (self.autosaveError is not None):
+            self.autosaveTime = None
+            self.autosaveError = None
+            self.gd.mainFrame.updateAutosaveStatus(self)
+
+    # import fileName as the formats.Format fmt. if fmt is None, it's
+    # guessed from the extension.
+    def importFile(self, fileName, fmt=None):
+        fmt = fmt or formats.guessImportFormat(fileName)
+        result = myimport.importFile(fileName, fmt, self.gd.mainFrame, self.sp)
+
+        if not result:
+            return
+
+        self.createEmptySp()
+
+        self.sp.lines = result.lines
+        if result.titlePages:
+            self.sp.titles.pages = result.titlePages
+        self.sp.reformatAll()
+        self.sp.paginate()
+        self.sp.markChanged(True)
+
+        self.checkWideChars("".join(ln.text for ln in self.sp.lines))
+
+    def setFile(self, fileName):
+        self.fileName = fileName
+        if fileName:
+            self.setDisplayName(os.path.basename(fileName))
+        else:
+            self.setDisplayName("untitled")
+
+        self.setTabText()
+
+    # set the name shown for the script to name, made unique among the open
+    # scripts
+    def setDisplayName(self, name):
+        taken = [
+            c.fileNameDisplay for c in self.gd.mainFrame.getCtrls() if c is not self
+        ]
+        self.fileNameDisplay = util.uniqueName(name, taken)
+
+    # set the tab text and, if this is the current script, the window
+    # title
+    def setTabText(self):
+        self.shownModified = self.sp.isModified()
+        self.gd.mainFrame.setTabText(self.panel, self.getTitleText())
+        self.gd.mainFrame.updateTitle(self)
+
+    # the script's name for its tab and the window title, with a "*" if it
+    # has unsaved changes
+    def getTitleText(self):
+        return self.fileNameDisplay + ("*" if self.sp.isModified() else "")
+
+    # update the tab text and window title if the script has been modified
+    # or saved since they were last set
+    def updateModifiedMark(self):
+        if self.sp.isModified() != self.shownModified:
+            self.setTabText()
+
+    # texts = self.gd.vm.getScreen(self, False)[0], or None, in which case it's
+    # called in this function.
+    def isLineVisible(self, line, texts=None):
+        if texts == None:
+            texts = self.gd.vm.getScreen(self, False)[0]
+
+        # paranoia never hurts
+        if len(texts) == 0:
+            return False
+
+        # not just a range check, since the bottom rows on screen can show
+        # the right-hand column of a dual dialogue but not the end of the
+        # left one
+        return any(t.line == line for t in texts)
+
+    def makeLineVisible(self, line, direction=commands.SCROLL_CENTER):
+        texts = self.gd.vm.getScreen(self, False)[0]
+
+        if self.isLineVisible(line, texts):
+            return
+
+        self.gd.vm.makeLineVisible(self, line, texts, direction)
+
+    def adjustScrollBar(self):
+        height = self.GetClientSize().height
+
+        # rough approximation of how many lines fit onto the screen.
+        # accuracy is not that important for this, so we don't even care
+        # about draft / layout mode differences.
+        approx = int(((height / self.mm2p) / self.chY) / 1.3)
+
+        # positions are line numbers: the thumb's position is the top line.
+        # the range has a screenful of padding beyond the last line, so the
+        # thumb can go far enough to put the last line at the top.
+        self.panel.scrollBar.SetScrollbar(
+            self.ed.getTopLine(), approx, len(self.sp.lines) + approx - 1, approx
+        )
+
+    def clearAutoComp(self):
+        if self.ed.clearAutoComp():
+            self.Refresh(False)
+
+    # returns true if there are no contents at all and we're not
+    # attached to any file
+    def isUntouched(self):
+        if (
+            self.fileName
+            or (len(self.sp.lines) > 1)
+            or (len(self.sp.lines[0].text) > 0)
+        ):
+            return False
+        else:
+            return True
+
+    def updateScreen(self, redraw=True, setCommon=True):
+        self.adjustScrollBar()
+        self.updateModifiedMark()
+
+        if setCommon:
+            self.updateCommon()
+
+        if redraw:
+            self.Refresh(False)
+
+    # update GUI elements shared by all scripts, like statusbar etc
+    def updateCommon(self):
+        self.gd.mainFrame.showScriptState(self)
+        self.panel.outline.scheduleRefresh()
+
+    # if text has wide characters (Chinese, Japanese, Korean) and the
+    # script doesn't use double-width characters, offer to switch to them,
+    # only once per script. the question is asked after the current event,
+    # so that an input method's whole input gets added first.
+    def checkWideChars(self, text):
+        cfg = self.sp.cfg
+
+        if cfg.doubleWidth or cfg.doubleWidthAsked or not textutil.hasWideChars(text):
+            return
+
+        cfg.doubleWidthAsked = True
+        wx.CallAfter(self.offerDoubleWidth, self.sp)
+
+    # ask whether to switch script sp to double-width characters, if it's
+    # still the one shown
+    def offerDoubleWidth(self, sp):
+        if (sp is not self.sp) or sp.cfg.doubleWidth:
+            return
+
+        if (
+            wx.MessageBox(
+                _(
+                    "This script has Chinese, Japanese or Korean characters, which are\ntwice as wide as Latin letters, so they don't fit in the columns\nof the page.\n\nSwitch the script to double-width characters? Every character,\nLatin ones too, will then take up two columns.\n\nThis clears the undo history. It can be changed back in\nScript/Script settings/Formatting."
+                ),
+                _("Double-width characters"),
+                wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION,
+                self.gd.mainFrame,
+            )
+            != wx.YES
+        ):
+            return
+
+        cfg = copy.deepcopy(sp.cfg)
+        cfg.doubleWidth = True
+        self.applyCfg(cfg)
+
+    # apply per-script config
+    def applyCfg(self, newCfg):
+        self.ed.applyCfg(newCfg)
+
+        self.refreshCache()
+        self.makeLineVisible(self.ed.line)
+        self.updateScreen()
+
+    def OnEraseBackground(self, event):
+        pass
+
+    def OnSize(self, event):
+        size = self.GetClientSize()
+
+        # OnPaint draws into screenBuf, a class attribute: one bitmap
+        # shared by all the tabs, as only the selected one is shown, and
+        # only replaced when the size changes. not used when doDblBuf is
+        # False (Unix, see misc.init), where wx double-buffers by itself.
+        #
+        # we can briefly be zero-sized while the outline view's splitter
+        # lays us out, and wx can't create empty bitmaps
+        if misc.doDblBuf and (size.width > 0) and (size.height > 0):
+            sb = wx.Bitmap(size.width, size.height)
+            old = getattr(self.__class__, "screenBuf", None)
+
+            if (
+                (old == None)
+                or (old.GetDepth() != sb.GetDepth())
+                or (old.GetHeight() != sb.GetHeight())
+                or (old.GetWidth() != sb.GetWidth())
+            ):
+                self.__class__.screenBuf = sb
+
+        # a different number of lines fits now
+        self.makeLineVisible(self.ed.line)
+
+    # also called by OnMotion while the button is held down, with mark
+    # True: the first such call sets the selection's other end, at about
+    # where the button went down, and later ones only move the cursor, so
+    # dragging selects text
+    def OnLeftDown(self, event, mark=False):
+        if not mark and self.isOverTitleButton(event.GetPosition()):
+            scriptactions.titlesDlg(self.gd.mainFrame, self)
+
+            return
+
+        if not mark and self.isTripleClick(event.GetPosition()):
+            self.lastDClick = None
+            self.selectByClick(event, False)
+
+            return
+
+        if not mark:
+            self.clickSelectActive = False
+
+        if not self.mouseSelectActive:
+            self.ed.clearMark()
+            self.updateScreen()
+
+        pos = event.GetPosition()
+        line, col = self.gd.vm.pos2linecol(self, pos.x, pos.y)
+
+        self.mouseSelectActive = True
+
+        if line is not None:
+            self.ed.gotoPos(line, col, mark)
+            self.updateScreen()
+
+    def OnLeftDClick(self, event):
+        self.lastDClick = (time.monotonic(), event.GetPosition())
+        self.selectByClick(event, True)
+
+    # True if a click at pos follows the last double click closely enough,
+    # in time and space, to make it a triple click.
+    def isTripleClick(self, pos):
+        if not self.lastDClick:
+            return False
+
+        t, dpos = self.lastDClick
+
+        ms = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_MSEC)
+        dx = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_X)
+        dy = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_Y)
+
+        # metrics are -1 if the platform doesn't report them
+        ms = ms if ms > 0 else 500
+        dx = dx if dx > 0 else 4
+        dy = dy if dy > 0 else 4
+
+        return (
+            ((time.monotonic() - t) * 1000 <= ms)
+            and (abs(pos.x - dpos.x) <= dx)
+            and (abs(pos.y - dpos.y) <= dy)
+        )
+
+    # select the word (isWord) or element under the mouse.
+    def selectByClick(self, event, isWord):
+        pos = event.GetPosition()
+        line, col = self.gd.vm.pos2linecol(self, pos.x, pos.y)
+
+        if line is None:
+            return
+
+        if isWord:
+            self.ed.selectWordAt(line, col)
+        else:
+            self.ed.selectElementAt(line)
+
+        self.mouseSelectActive = True
+        self.clickSelectActive = True
+        self.updateScreen()
+
+    def OnLeftUp(self, event):
+        self.mouseSelectActive = False
+
+        # a double/triple click selection is deliberate, even if it's
+        # just one character
+        if self.clickSelectActive:
+            self.clickSelectActive = False
+
+            return
+
+        # to avoid phantom selections (Windows sends some strange events
+        # sometimes), check if anything worthwhile is actually selected.
+        cd = self.ed.getSelectedAsCD(False)
+
+        if not cd or ((len(cd.lines) == 1) and (len(cd.lines[0].text) < 2)):
+            self.ed.clearMark()
+
+    def OnMotion(self, event):
+        if event.LeftIsDown() and not self.clickSelectActive:
+            self.OnLeftDown(event, mark=True)
+
+        if self.isOverTitleButton(event.GetPosition()):
+            self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        else:
+            self.SetCursor(wx.NullCursor)
+
+    def isOverTitleButton(self, pos):
+        return bool(self.titleButtonRect) and self.titleButtonRect.Contains(pos)
+
+    def OnRightDown(self, event):
+        pos = event.GetPosition()
+        line, col = self.gd.vm.pos2linecol(self, pos.x, pos.y)
+
+        if not self.ed.mark and line is not None and (line != self.ed.line):
+            self.ed.gotoPos(line, col, False)
+            self.updateScreen()
+
+        # type changes apply to every element in the selection, if any
+        curLt = self.ed.getSelectionType()
+
+        # dual dialogue works on the speech at the cursor, so it's only
+        # offered when there's no selection
+        dualState = None
+
+        if not self.ed.mark:
+            toggle = self.ed.getDualToggle()
+
+            if toggle:
+                dualState = not toggle[1]
+
+        m = menus.makeRightClickMenu(
+            self.gd.mainFrame.actions,
+            curLt,
+            bool(self.ed.mark),
+            dualState,
+            self.ed.getCenteredState(),
+        )
+        self.PopupMenu(m)
+        m.Destroy()
+
+    def OnMouseWheel(self, event):
+        if event.ControlDown():
+            if event.GetWheelRotation() > 0:
+                self.gd.mainFrame.OnZoomIn()
+            elif event.GetWheelRotation() < 0:
+                self.gd.mainFrame.OnZoomOut()
+
+            return
+
+        if event.GetWheelRotation() > 0:
+            delta = -self.gd.cfgGl.mouseWheelLines
+        else:
+            delta = self.gd.cfgGl.mouseWheelLines
+
+        self.ed.setTopLine(self.ed.getTopLine() + delta)
+        self.updateScreen()
+
+    def OnScroll(self, event):
+        pos = self.panel.scrollBar.GetThumbPosition()
+        self.ed.setTopLine(pos)
+        self.ed.clearAutoComp()
+        self.updateScreen()
+
+    def canBeClosed(self):
+        if self.sp.isModified():
+            if (
+                wx.MessageBox(
+                    _(
+                        "The script has been modified. Are you sure\nyou want to discard the changes?"
+                    ),
+                    _("Confirm"),
+                    wx.YES_NO | wx.NO_DEFAULT,
+                    self.gd.mainFrame,
+                )
+                == wx.NO
+            ):
+                return False
+
+        return True
+
+    # page up (dir == -1) or page down (dir == 1) was pressed, handle it.
+    # cs = CommandState.
+    def pageCmd(self, cs, dir):
+        if self.ed.acItems:
+            cs.doAutoComp = cs.AC_KEEP
+            self.ed.pageScrollAutoComp(dir)
+
+            return
+
+        texts, dpages = self.gd.vm.getScreen(self, False)
+
+        # if user has scrolled with scrollbar so that cursor isn't seen,
+        # just make cursor visible and don't move
+        if not self.isLineVisible(self.ed.line, texts):
+            self.gd.vm.makeLineVisible(self, self.ed.line, texts)
+            cs.needsVisifying = False
+
+            return
+
+        self.ed.maybeMark(cs.mark)
+        self.gd.vm.pageCmd(self, cs, dir, texts, dpages)
+
+    # returns True if something was deleted
+    def OnCut(self, doUpdate=True, doDelete=True, copyToClip=True):
+        marked = self.ed.getMarkedLines()
+
+        if not marked:
+            return False
+
+        cd = self.ed.getSelectedAsCD(doDelete)
+
+        if copyToClip:
+            self.gd.clipboard = cd
+
+        if doUpdate:
+            if doDelete:
+                self.sp.paginate()
+
+            self.makeLineVisible(self.ed.line)
+            self.updateScreen()
+
+        return doDelete
+
+    def OnPaste(self, clines=None):
+        if not clines:
+            cd = self.gd.clipboard
+
+            if not cd:
+                return
+
+            clines = cd.lines
+
+        self.ed.paste(clines)
+        self.sp.paginate()
+
+        self.makeLineVisible(self.ed.line)
+        self.updateScreen()
+
+        self.checkWideChars("".join(ln.text for ln in clines))
+
+    # move the cursor to the start of the given line and scroll it to the
+    # top of the screen. used by the outline view.
+    def gotoLine(self, line):
+        self.clearAutoComp()
+        self.ed.clearMark()
+        self.ed.gotoPos(line, 0)
+
+        self.ed.setTopLine(line)
+        self.makeLineVisible(line)
+        self.updateScreen()
+
+    # move the scene containing the given line to position newIndex in the
+    # outline. used by the outline view.
+    def moveSceneTo(self, line, newIndex):
+        self.clearAutoComp()
+
+        if not self.ed.moveSceneTo(line, newIndex):
+            return
+
+        self.sp.paginate()
+        self.ed.setTopLine(self.ed.line)
+        self.makeLineVisible(self.ed.line)
+        self.updateScreen()
+
+    # set the outline color of the scene containing the given line, or
+    # remove it if color is None. used by the outline view.
+    def setSceneColor(self, line, color):
+        self.clearAutoComp()
+
+        if self.ed.setSceneColor(line, color):
+            self.updateScreen()
+
+    # run the keyboard command with the given name, which isn't a menu
+    # command
+    def runCommand(self, name, cs):
+        if name in EDITOR_COMMANDS:
+            getattr(self.ed, EDITOR_COMMANDS[name])(cs)
+        else:
+            getattr(self, "cmd" + name)(cs)
+
+    def cmdDelete(self, cs):
+        if not self.ed.mark:
+            self.ed.deleteForwardCmd(cs)
+        else:
+            self.OnCut(doUpdate=False, copyToClip=False)
+
+    def cmdDeleteBackward(self, cs):
+        if not self.ed.mark:
+            self.ed.deleteBackwardCmd(cs)
+        else:
+            self.OnCut(doUpdate=False, copyToClip=False)
+
+    def cmdMovePageDown(self, cs):
+        self.pageCmd(cs, 1)
+
+    def cmdMovePageUp(self, cs):
+        self.pageCmd(cs, -1)
+
+    def cmdSpeedTest(self, cs):
+        import trelby.undo as undo
+
+        self.speedTestUndo = []
+
+        def testUndoFullCopy():
+            u = undo.FullCopy(self.ed)
+            u.setAfter(self.ed)
+            self.speedTestUndo.append(u)
+
+        # rewrapping makes the undo history's line numbers meaningless
+        # (see Editor.reformatAll), and testAddRemoveChar has added some
+        def testReformatAll():
+            self.ed.undoHistory.clear()
+            self.ed.reformatAll()
+
+        def testPaginate():
+            self.sp.paginate()
+
+        def testUpdateScreen():
+            self.updateScreen()
+            self.Update()
+
+        def testAddRemoveChar():
+            self.OnKeyChar(keys.MyKeyEvent(ord("a")))
+            self.OnKeyChar(keys.MyKeyEvent(wx.WXK_BACK))
+
+        def testDeepcopy():
+            copy.deepcopy(self.sp)
+
+        # contains (name, func) tuples
+        tests = []
+
+        for name, var in locals().items():
+            if callable(var):
+                tests.append((name, var))
+
+        tests.sort()
+        count = 100
+
+        print(("-" * 20))
+
+        for name, func in tests:
+            t = time.time()
+
+            for i in range(count):
+                func()
+
+            t = time.time() - t
+
+            print("{:.5f} seconds per {}".format(t / count, name))
+
+        print("-" * 20)
+
+        # it's annoying having the program ask if you want to save after
+        # running these tests, so pretend the script hasn't changed
+        self.sp.markChanged(False)
+
+    def cmdTest(self, cs):
+        pass
+
+    def OnKeyChar(self, ev):
+        char, cmd = commands.resolveKey(
+            self.gd.keyMap,
+            ev.GetUnicodeKey(),
+            ev.GetKeyCode(),
+            ev.ControlDown(),
+            ev.AltDown(),
+            ev.ShiftDown(),
+        )
+
+        cs = screenplay.CommandState()
+        cs.mark = bool(ev.ShiftDown())
+        scrollDirection = commands.SCROLL_CENTER
+
+        if char:
+            addChar = True
+
+            # If there's something selected, either remove it, or clear selection.
+            if self.ed.mark and self.gd.cfgGl.overwriteSelectionOnInsert:
+                if not self.OnCut(doUpdate=False, copyToClip=False):
+                    self.ed.clearMark()
+                    addChar = False
+
+            if addChar:
+                cs.char = char
+
+                # test mode hooks: "\xe5" (a with ring) loads the sample
+                # script, "\xa4" (currency sign) runs cmdTest and "\xbd"
+                # (one half) runs cmdSpeedTest.
+                if opts.isTest and (cs.char == "\xe5"):
+                    self.loadFile(misc.getFullPath("trelby/sample.trelby"))
+                elif opts.isTest and (cs.char == "\xa4"):
+                    self.cmdTest(cs)
+                elif opts.isTest and (cs.char == "\xbd"):
+                    self.cmdSpeedTest(cs)
+                else:
+                    self.ed.addCharCmd(cs)
+                    self.checkWideChars(cs.char)
+
+        elif cmd:
+            # a menu command runs the menus.Action of the same name, which
+            # updates the screen itself, so we're done. other commands are
+            # cmd<name> methods here, which work on self.sp and leave
+            # updating the screen to the code below.
+            scrollDirection = cmd.scrollDirection
+
+            if cmd.isMenu:
+                self.gd.mainFrame.runAction(cmd.name)
+
+                return
+
+            self.runCommand(cmd.name, cs)
+        else:
+            ev.Skip()
+
+            return
+
+        self.ed.cmdPost(cs)
+
+        # pagination is cheap (a couple of milliseconds even for a long
+        # script), so redo it after every key to keep page breaks current.
+        # it can move the cursor's line on screen, so always make sure it's
+        # still visible.
+        self.sp.paginate()
+        self.makeLineVisible(self.ed.line, scrollDirection)
+
+        self.updateScreen()
+
+    # what's on screen, for drawing (see scriptpainter.Viewport). if
+    # refresh, its scale is worked out anew.
+    def getViewport(self, refresh=False):
+        if refresh:
+            return scriptpainter.Viewport.make(
+                self.sp,
+                self.ed,
+                self.gd.cfgGui,
+                self.gd.vm,
+                self.GetClientSize(),
+                self.FromDIP,
+            )
+
+        return scriptpainter.Viewport(
+            self.sp,
+            self.ed,
+            self.gd.cfgGui,
+            self.GetClientSize(),
+            self.mm2p,
+            self.pageW,
+            self.pageH,
+            self.chX,
+            self.chY,
+            self.FromDIP,
+        )
+
+    def OnPaint(self, event):
+        if misc.doDblBuf:
+            dc = wx.BufferedPaintDC(self, self.screenBuf)
+        else:
+            dc = wx.PaintDC(self)
+
+        painter = scriptpainter.ScriptPainter(
+            self.getViewport(), self.gd.vm, self.gd.cfgGl, self.gd.showFormatting
+        )
+        self.titleButtonRect = painter.paint(dc)

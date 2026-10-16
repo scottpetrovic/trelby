@@ -3,7 +3,7 @@ import os
 from unittest import mock
 
 import tests.u as u
-import trelby.globaldata as globaldata
+import trelby.ui.globaldata as globaldata
 import trelby.misc as misc
 import trelby.mypickle as mypickle
 import trelby.translations as translations

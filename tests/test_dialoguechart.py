@@ -1,6 +1,6 @@
 import tests.u as u
-import trelby.dialoguechart as dialoguechart
-import trelby.pml as pml
+import trelby.reports.dialoguechart as dialoguechart
+import trelby.pdf.pml as pml
 import trelby.screenplay as screenplay
 import trelby.translations as translations
 

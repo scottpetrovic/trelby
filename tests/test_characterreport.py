@@ -1,5 +1,5 @@
 import tests.u as u
-import trelby.characterreport as characterreport
+import trelby.reports.characterreport as characterreport
 import trelby.textutil as textutil
 import trelby.translations as translations
 

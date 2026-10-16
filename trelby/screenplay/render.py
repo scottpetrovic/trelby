@@ -3,8 +3,8 @@
 # and where. used for PDF export and by the editor's page view modes. the
 # page breaks themselves are decided by pagination.
 
-import trelby.mypager as mypager
-import trelby.pml as pml
+import trelby.pdf.mypager as mypager
+import trelby.pdf.pml as pml
 import trelby.textutil as textutil
 import trelby.util as util
 from trelby.screenplay.constants import (
