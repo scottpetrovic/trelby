@@ -150,7 +150,7 @@ class MainStatusBar(StatusBar):
 
         style = wx.BU_EXACTFIT | wx.BORDER_NONE
 
-        self.zoomOutBtn = wx.Button(self, -1, "2212", style=style)
+        self.zoomOutBtn = wx.Button(self, -1, "\u2212", style=style)
         self.zoomOutBtn.SetToolTip(_("Zoom out"))
         self.zoomOutBtn.Bind(wx.EVT_BUTTON, lambda event: onAction("ZoomOut"))
 
