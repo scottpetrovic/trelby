@@ -2,6 +2,9 @@ import tests.u as u
 import trelby.locationreport as locationreport
 import trelby.scenereport as scenereport
 import trelby.textutil as textutil
+import trelby.translations as translations
+
+_ = translations.trelby_translations_load()
 
 # tests location report (just that it runs without exceptions, for now)
 
@@ -24,3 +27,14 @@ def testHtml():
 
     assert html.startswith("<tt>")
     assert "Lines: " in html
+
+
+def testOptions():
+    sp = u.load()
+    report = locationreport.LocationReport(scenereport.SceneReport(sp))
+
+    assert [label() for name, label in report.options] == ["Speakers"]
+    assert "FISHERMAN" in report.generateHtml()
+
+    report.opts["speakers"] = False
+    assert "FISHERMAN" not in report.generateHtml()

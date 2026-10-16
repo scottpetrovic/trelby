@@ -1,6 +1,9 @@
 import tests.u as u
 import trelby.scenereport as scenereport
 import trelby.textutil as textutil
+import trelby.translations as translations
+
+_ = translations.trelby_translations_load()
 
 # tests scene report (just that it runs without exceptions, for now)
 

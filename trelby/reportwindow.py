@@ -165,36 +165,33 @@ class ReportFrame(wx.Frame):
 
 # window for a textreport.TextReport. subclasses implement getName() and
 # createReport(), which returns a new report object for self.sp. the
-# report's 'inf' items, if it has any, are shown as checkboxes.
+# report's options, if it has any, are shown as checkboxes.
 class TextReportFrame(ReportFrame):
     def makeReport(self):
         old = getattr(self, "report", None)
         self.report = self.createReport()
 
         if old:
-            for it, oldIt in zip(self.getInf(), old.inf):
-                it.selected = oldIt.selected
-
-    def getInf(self):
-        return getattr(self.report, "inf", [])
+            self.report.opts.update(old.opts)
 
     def createControls(self, panel):
-        self.infBoxes = []
+        # key = option name, value = its checkbox
+        self.optBoxes = {}
 
-        for it in self.getInf():
-            cb = wx.CheckBox(panel, -1, it.text)
-            cb.SetValue(it.selected)
+        for name, label in self.report.options:
+            cb = wx.CheckBox(panel, -1, label())
+            cb.SetValue(self.report.opts[name])
             self.Bind(wx.EVT_CHECKBOX, self.OnOption, id=cb.GetId())
             self.optionsSizer.Add(cb, 0, wx.RIGHT, 15)
-            self.infBoxes.append(cb)
+            self.optBoxes[name] = cb
 
         self.htmlWin = wx.html.HtmlWindow(panel, -1, style=wx.BORDER_NONE)
         self.htmlWin.SetBorders(self.FromDIP(15))
         self.contentSizer.Add(self.htmlWin, 1, wx.EXPAND)
 
     def OnOption(self, event):
-        for it, cb in zip(self.getInf(), self.infBoxes):
-            it.selected = cb.GetValue()
+        for name, cb in self.optBoxes.items():
+            self.report.opts[name] = cb.GetValue()
 
         self.update()
 

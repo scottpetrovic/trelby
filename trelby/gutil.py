@@ -442,11 +442,11 @@ def listBoxSelect(lb, index):
     lb.SetSelection(index, True)
 
 
-# add (name, cdata) to the listbox at the correct place, determined by
-# cmp(cdata1, cdata2).
+# add (name, cdata) to the listbox at the correct place, in ascending
+# order of cdata.
 def listBoxAdd(lb, name, cdata):
     for i in range(lb.GetCount()):
-        if util.cmpfunc(cdata, lb.GetClientData(i)) < 0:
+        if cdata < lb.GetClientData(i):
             lb.InsertItems([name], i)
             lb.SetClientData(i, cdata)
 

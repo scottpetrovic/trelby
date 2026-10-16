@@ -1,6 +1,5 @@
 import bisect
 
-import trelby.checkboxitem as checkboxitem
 import trelby.pml as pml
 import trelby.screenplay as screenplay
 import trelby.screenplay.speeches as speeches
@@ -11,8 +10,10 @@ from trelby.pagelist import PageList
 
 
 class SceneReport(textreport.TextReport):
+    options = [("speakers", lambda: _("Speakers"))]
+
     def __init__(self, sp):
-        self.sp = sp
+        super().__init__(sp)
 
         # list of SceneInfos
         self.scenes = splitScenes(sp)
@@ -39,13 +40,6 @@ class SceneReport(textreport.TextReport):
 
             si.chars[name] = si.chars.get(name, 0) + len(speech.dialogue)
 
-        # information about what to include (and yes, the comma is needed
-        # to unpack the list)
-        (self.INF_SPEAKERS,) = list(range(1))
-        self.inf = []
-        for s in [_("Speakers")]:
-            self.inf.append(checkboxitem.CheckBoxItem(s))
-
     def format(self, tf) -> None:
         for si in self.scenes:
             tf.addSpace(5.0)
@@ -63,7 +57,7 @@ class SceneReport(textreport.TextReport):
                 )
             )
 
-            if self.inf[self.INF_SPEAKERS].selected:
+            if self.opts["speakers"]:
                 tf.addSpace(2.5)
 
                 for it in util.sortDict(si.chars):

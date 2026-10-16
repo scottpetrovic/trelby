@@ -1,7 +1,5 @@
-import functools
 import operator
 
-import trelby.checkboxitem as checkboxitem
 import trelby.pml as pml
 import trelby.textreport as textreport
 import trelby.util as util
@@ -9,9 +7,11 @@ from trelby.pagelist import PageList
 
 
 class LocationReport(textreport.TextReport):
+    options = [("speakers", lambda: _("Speakers"))]
+
     # sr = SceneReport
     def __init__(self, sr):
-        self.sp = sr.sp
+        super().__init__(sr.sp)
 
         # key = scene name, value = LocationInfo. note that multiple keys
         # can point to the same LocationInfo.
@@ -34,33 +34,13 @@ class LocationReport(textreport.TextReport):
 
             self.scenes.setdefault(si.name, LocationInfo(self.sp)).addScene(si)
 
-        # remove empty LocationInfos, sort them and store to a list
+        # remove empty LocationInfos, and sort them, the most lines first
         tmp = []
         for li in locations.values():
             if (len(li.scenes) > 0) and (li not in tmp):
                 tmp.append(li)
 
-        def cmpfunc(a, b):
-            return (a > b) - (a < b)
-
-        def sortFunc(o1, o2):
-            ret = cmpfunc(o2.lines, o1.lines)
-
-            if ret != 0:
-                return ret
-            else:
-                return cmpfunc(o1.scenes[0], o2.scenes[0])
-
-        tmp = sorted(tmp, key=functools.cmp_to_key(sortFunc))
-
-        self.locations = tmp
-
-        # information about what to include (and yes, the comma is needed
-        # to unpack the list)
-        (self.INF_SPEAKERS,) = list(range(1))
-        self.inf = []
-        for s in ["Speakers"]:
-            self.inf.append(checkboxitem.CheckBoxItem(s))
+        self.locations = sorted(tmp, key=lambda li: (-li.lines, li.scenes[0]))
 
     def format(self, tf) -> None:
         scriptLines = sum([li.lines for li in self.locations])
@@ -97,7 +77,7 @@ class LocationReport(textreport.TextReport):
                 "  ",
             )
 
-            if self.inf[self.INF_SPEAKERS].selected:
+            if self.opts["speakers"]:
                 tf.addSpace(2.5)
 
                 for it in util.sortDict(li.chars):

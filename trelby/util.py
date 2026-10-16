@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import functools
 import glob
 import os
 import shutil
@@ -173,28 +172,10 @@ def cmpfunc(a, b):
     return (a > b) - (a < b)
 
 
-# put everything from dictionary d into a list as (key, value) tuples,
-# then sort the list and return that. by default sorts by "desc(value)
-# asc(key)", but a custom sort function can be given
-def sortDict(d, sortFunc=None):
-    def tmpSortFunc(o1, o2):
-        ret = cmpfunc(o2[1], o1[1])
-
-        if ret != 0:
-            return ret
-        else:
-            return cmpfunc(o1[0], o2[0])
-
-    if sortFunc == None:
-        sortFunc = tmpSortFunc
-
-    tmp = []
-    for k, v in d.items():
-        tmp.append((k, v))
-
-    tmp = sorted(tmp, key=functools.cmp_to_key(sortFunc))
-
-    return tmp
+# return the (key, value) pairs of dictionary d, sorted by "desc(value)
+# asc(key)"
+def sortDict(d):
+    return sorted(d.items(), key=lambda kv: (-kv[1], kv[0]))
 
 
 # an efficient FIFO container of fixed size. can't contain None objects.

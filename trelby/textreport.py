@@ -19,6 +19,14 @@ class TextReport:
     margin = 15.0
     fontSize = 12
 
+    # what the report can include, shown as checkboxes in its window:
+    # (name, label function) pairs. self.opts has whether each one is on.
+    options: List = []
+
+    def __init__(self, sp):
+        self.sp = sp
+        self.opts = {name: True for name, label in self.options}
+
     # lay out the report's contents into 'tf', a pml.TextFormatter or an
     # HtmlFormatter.
     def format(self, tf) -> None:

@@ -1,6 +1,9 @@
 import tests.u as u
 import trelby.characterreport as characterreport
 import trelby.textutil as textutil
+import trelby.translations as translations
+
+_ = translations.trelby_translations_load()
 
 # tests character report (just that it runs without exceptions, for now)
 
@@ -28,3 +31,14 @@ def testHtml():
         ci.include = False
 
     assert report.generateHtml() == ""
+
+
+def testOptions():
+    sp = u.load()
+    report = characterreport.CharacterReport(sp)
+
+    assert report.opts == {"basic": True, "pages": True, "locations": True}
+    assert "Pages: " in report.generateHtml()
+
+    report.opts["pages"] = False
+    assert "Pages: " not in report.generateHtml()

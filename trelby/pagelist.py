@@ -9,20 +9,19 @@ class PageList:
         # Screenplay.getPageNumbers().
         self.allPages = allPages
 
-        # key = page number (str), value = unused
-        self.pages = {}
+        # the page numbers (str) in the list
+        self.pages = set()
 
     # add page to page list if it's not already there
     def addPage(self, page):
-        self.pages[str(page)] = True
+        self.pages.add(str(page))
 
     def __len__(self):
         return len(self.pages)
 
     # merge two PageLists
     def __iadd__(self, other):
-        for pg in list(other.pages.keys()):
-            self.addPage(pg)
+        self.pages |= other.pages
 
         return self
 
@@ -31,10 +30,7 @@ class PageList:
     def __str__(self):
         # one entry for each page from above, containing True if that page
         # is contained in this PageList object
-        hasPage = []
-
-        for p in self.allPages:
-            hasPage.append(p in list(self.pages.keys()))
+        hasPage = [p in self.pages for p in self.allPages]
 
         # finished string
         s = ""

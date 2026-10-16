@@ -1,7 +1,3 @@
-import functools
-from functools import reduce
-
-import trelby.checkboxitem as checkboxitem
 import trelby.pml as pml
 import trelby.screenplay.speeches as speeches
 import trelby.textreport as textreport
@@ -13,8 +9,14 @@ from trelby.pagelist import PageList
 class CharacterReport(textreport.TextReport):
     margin = 20.0
 
+    options = [
+        ("basic", lambda: _("Basic information")),
+        ("pages", lambda: _("Page list")),
+        ("locations", lambda: _("Location list")),
+    ]
+
     def __init__(self, sp):
-        self.sp = sp
+        super().__init__(sp)
 
         # key = character name, value = CharInfo
         chars = {}
@@ -56,27 +58,17 @@ class CharacterReport(textreport.TextReport):
             for i in range(speech.start, speech.end + 1):
                 ci.pages.addPage(sp.line2pageLabel(i))
 
-        # list of CharInfo objects
-        self.cinfo = []
-        for v in list(chars.values()):
-            self.cinfo.append(v)
-
-        self.cinfo = sorted(self.cinfo, key=functools.cmp_to_key(cmpLines))
+        # list of CharInfo objects, the most lines first
+        self.cinfo = sorted(chars.values(), key=lambda ci: (-ci.lineCnt, ci.name))
 
         self.totalSpeechCnt = self.sum("speechCnt")
         self.totalLineCnt = self.sum("lineCnt")
         self.totalWordCnt = self.sum("wordCnt")
         self.totalWordCharCnt = self.sum("wordCharCnt")
 
-        # information types and what to include
-        self.INF_BASIC, self.INF_PAGES, self.INF_LOCATIONS = list(range(3))
-        self.inf = []
-        for s in [_("Basic information"), _("Page list"), _("Location list")]:
-            self.inf.append(checkboxitem.CheckBoxItem(s))
-
     # calculate total sum of self.cinfo.{name} and return it.
     def sum(self, name):
-        return reduce(lambda tot, ci: tot + getattr(ci, name), self.cinfo, 0)
+        return sum(getattr(ci, name) for ci in self.cinfo)
 
     def format(self, tf) -> None:
         for ci in self.cinfo:
@@ -85,7 +77,7 @@ class CharacterReport(textreport.TextReport):
 
             tf.addText(ci.name, fs=14, style=pml.BOLD | pml.UNDERLINED)
 
-            if self.inf[self.INF_BASIC].selected:
+            if self.opts["basic"]:
                 tf.addText(
                     _("Speeches: {}, Lines: {} %{:.2f}, per speech: {:.2f}").format(
                         ci.speechCnt,
@@ -103,12 +95,12 @@ class CharacterReport(textreport.TextReport):
                     )
                 )
 
-            if self.inf[self.INF_PAGES].selected:
+            if self.opts["pages"]:
                 tf.addWrappedText(
                     _("Pages: {}, list: {}").format(len(ci.pages), ci.pages), "       "
                 )
 
-            if self.inf[self.INF_LOCATIONS].selected:
+            if self.opts["locations"]:
                 tf.addSpace(2.5)
 
                 for it in util.sortDict(ci.scenes):
@@ -131,15 +123,3 @@ class CharInfo:
         self.include = True
         self.pages = PageList(sp.getPageNumbers())
 
-
-def cmpfunc(a, b):
-    return (a > b) - (a < b)
-
-
-def cmpLines(c1, c2):
-    ret = cmpfunc(c2.lineCnt, c1.lineCnt)
-
-    if ret != 0:
-        return ret
-    else:
-        return cmpfunc(c1.name, c2.name)

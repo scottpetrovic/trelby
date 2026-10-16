@@ -1,6 +1,9 @@
 import tests.u as u
 import trelby.scriptreport as scriptreport
 import trelby.textutil as textutil
+import trelby.translations as translations
+
+_ = translations.trelby_translations_load()
 
 # tests script report (just that it runs without exceptions, for now)
 

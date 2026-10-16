@@ -193,9 +193,6 @@ class NamesDlg(wx.Dialog):
             - nameArr.typeNamesCnt[nameArr.typeNamesById[i1]]
         )
 
-    def cmpfunc(a, b):
-        return (a > b) - (a < b)
-
     def CmpType(self, i1, i2):
         return util.cmpfunc(nameArr.typeNamesById[i1], nameArr.typeNamesById[i2])
 

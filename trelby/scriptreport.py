@@ -10,7 +10,7 @@ import trelby.util as util
 
 class ScriptReport(textreport.TextReport):
     def __init__(self, sp):
-        self.sp = sp
+        super().__init__(sp)
         self.scenes = scenereport.splitScenes(sp)
 
         # the characters with a speech, as in the character report
