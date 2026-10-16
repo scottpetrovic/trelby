@@ -1,6 +1,7 @@
 import wx
 
 import trelby
+import trelby.keys as keys
 import trelby.misc as misc
 import trelby.namearray as namearray
 import trelby.util as util
@@ -209,7 +210,7 @@ class NamesDlg(wx.Dialog):
         # typed into the script through the normal key handler, so that
         # it's inserted at the cursor just like typing it would be
         for ch in name:
-            self.ctrl.OnKeyChar(util.MyKeyEvent(ord(ch)))
+            self.ctrl.OnKeyChar(keys.MyKeyEvent(ord(ch)))
 
     def OnSearch(self, event=None):
         l = []

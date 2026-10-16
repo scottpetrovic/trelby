@@ -1,6 +1,7 @@
 import wx
 
 import trelby.gutil as gutil
+import trelby.keys as keys
 import trelby.util as util
 
 
@@ -78,7 +79,7 @@ class CharMapDlg(wx.Dialog):
 
     def OnInsert(self, event):
         if self.charMap.selected:
-            self.ctrl.OnKeyChar(util.MyKeyEvent(ord(self.charMap.selected)))
+            self.ctrl.OnKeyChar(keys.MyKeyEvent(ord(self.charMap.selected)))
 
 
 class MyCharMap(wx.Window):

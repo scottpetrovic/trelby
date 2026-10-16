@@ -1,4 +1,6 @@
+import trelby.commands as commands
 import trelby.gutil as gutil
+import trelby.keys as keys
 import trelby.misc as misc
 import trelby.util as util
 import wx
@@ -109,15 +111,15 @@ class KeyboardPanel(wx.Panel):
         sel = self.keysLb.GetSelection()
         if sel != -1:
             key = self.keysLb.GetClientData(sel)
-            self.cfg.removeKey(self.cmd, key)
+            commands.removeKey(self.cmd, key)
             self.cfg2gui()
 
     def cfg2gui(self):
-        self.cfg.addShiftKeys()
+        commands.addShiftKeys(self.cfg.commands)
         self.keysLb.Clear()
 
         for key in self.cmd.keys:
-            k = util.Key.fromInt(key)
+            k = keys.Key.fromInt(key)
             self.keysLb.Append(k.toStr(), key)
 
         self.addBtn.Enable(not self.cmd.isFixed)
@@ -128,7 +130,7 @@ class KeyboardPanel(wx.Panel):
         self.updateConflicts()
 
     def updateConflicts(self):
-        s = self.cfg.getConflictingKeys()
+        s = commands.getConflictingKeys(self.cfg.commands)
         if s == None:
             s = "None"
 

@@ -15,8 +15,10 @@ import trelby
 import trelby.autosave as autosave
 import trelby.cfgdlg as cfgdlg
 import trelby.charmapdlg as charmapdlg
+import trelby.commands as commands
 import trelby.commandsdlg as commandsdlg
 import trelby.gutil as gutil
+import trelby.keys as keys
 import trelby.mcpapp as mcpapp
 import trelby.menubar as menubar
 import trelby.misc as misc
@@ -754,17 +756,17 @@ class MyFrame(wx.Frame):
 
         return False
 
-    # rebuild self.kbdCommands (key = util.Key.toInt(), value =
-    # config.Command), which MyCtrl.OnKeyChar looks keys up in. it calls
+    # rebuild self.kbdCommands (key = keys.Key.toInt(), value =
+    # commands.Command), which MyCtrl.OnKeyChar looks keys up in. it calls
     # MyCtrl.cmd<name>(cs) for an editing command, and On<name>() here,
     # with no event, for a menu command, which is why the On* handlers
     # default event to None. fixed menu commands (New, Open, Save, Quit...)
     # are left out: their keys are their menu items' accelerators, which
     # wx handles before a key reaches MyCtrl.
     def updateKbdCommands(self):
-        self.gd.cfgGl.addShiftKeys()
+        commands.addShiftKeys(self.gd.cfgGl.commands)
 
-        if self.gd.cfgGl.getConflictingKeys() != None:
+        if commands.getConflictingKeys(self.gd.cfgGl.commands) != None:
             wx.MessageBox(
                 _(
                     "You have at least one key bound to more than one\ncommand. The program will not work correctly until\nyou fix this."
@@ -1278,7 +1280,7 @@ class MyFrame(wx.Frame):
 
         for cmd in self.gd.cfgGl.commands:
             if (cmd.name == cmdName) and cmd.keys:
-                s += " (%s)" % util.Key.fromInt(cmd.keys[0]).toStr()
+                s += " (%s)" % keys.Key.fromInt(cmd.keys[0]).toStr()
 
         return s
 

@@ -1,7 +1,7 @@
 import os
 import sys
 
-import trelby.util as util
+import trelby.keys as keys
 
 if "TRELBY_TESTING" in os.environ:
     import unittest.mock as mock
@@ -186,7 +186,7 @@ class MyMenuBar(wx.Control):
         # the user's own key bindings come first
         kbdCommands = getattr(self.frame, "kbdCommands", {})
         bound = (
-            util.Key(
+            keys.Key(
                 key, event.ControlDown(), event.AltDown(), event.ShiftDown()
             ).toInt()
             in kbdCommands

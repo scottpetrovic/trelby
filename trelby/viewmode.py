@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
-import trelby.config as config
+import trelby.commands as commands
 import trelby.mypager as mypager
 import trelby.pml as pml
 import trelby.screenplay.render as render
@@ -120,7 +120,7 @@ class ViewMode:
 
     # make line, which is not currently visible, visible. texts =
     # self.getScreen(ctrl, False)[0].
-    def makeLineVisible(self, ctrl, line, texts, direction=config.SCROLL_CENTER):
+    def makeLineVisible(self, ctrl, line, texts, direction=commands.SCROLL_CENTER):
         raise Exception("makeLineVisible " + _("not implemented"))
 
     # handle page up (dir == -1) or page down (dir == 1) command. cursor
@@ -167,7 +167,7 @@ class ViewMode:
     # smoothly. otherwise, or if the line is too far away for that, the
     # line is put in the middle of the screen.
     def makeLineVisibleGeneric(self, ctrl, line, texts, direction, jumpAhead):
-        if not ctrl.sp.cfgGl.recenterOnScroll and (direction != config.SCROLL_CENTER):
+        if not ctrl.sp.cfgGl.recenterOnScroll and (direction != commands.SCROLL_CENTER):
             if self._makeLineVisibleHelper(ctrl, line, direction, jumpAhead):
                 return
 
@@ -185,7 +185,7 @@ class ViewMode:
     # MAX_JUMP_DISTANCE lines.
     def _makeLineVisibleHelper(self, ctrl, line, direction, jumpAhead):
         startLine = ctrl.ed.getTopLine()
-        sign = 1 if (direction == config.SCROLL_DOWN) else -1
+        sign = 1 if (direction == commands.SCROLL_DOWN) else -1
         i = 1
 
         while not ctrl.isLineVisible(line):
@@ -311,7 +311,7 @@ class ViewModeDraft(ViewMode):
     def pos2linecol(self, ctrl, x, y):
         return self.pos2linecolGeneric(ctrl, x, y)
 
-    def makeLineVisible(self, ctrl, line, texts, direction=config.SCROLL_CENTER):
+    def makeLineVisible(self, ctrl, line, texts, direction=commands.SCROLL_CENTER):
         self.makeLineVisibleGeneric(ctrl, line, texts, direction, jumpAhead=1)
 
     def pageCmd(self, ctrl, cs, dir, texts, dpages):
@@ -470,7 +470,7 @@ class ViewModeLayout(ViewMode):
     def pos2linecol(self, ctrl, x, y):
         return self.pos2linecolGeneric(ctrl, x, y)
 
-    def makeLineVisible(self, ctrl, line, texts, direction=config.SCROLL_CENTER):
+    def makeLineVisible(self, ctrl, line, texts, direction=commands.SCROLL_CENTER):
         self.makeLineVisibleGeneric(ctrl, line, texts, direction, jumpAhead=3)
 
     def pageCmd(self, ctrl, cs, dir, texts, dpages):
@@ -605,7 +605,7 @@ class ViewModeSideBySide(ViewMode):
 
     # the screen always starts at the top of the top line's page, so this
     # shows line's page first
-    def makeLineVisible(self, ctrl, line, texts, direction=config.SCROLL_CENTER):
+    def makeLineVisible(self, ctrl, line, texts, direction=commands.SCROLL_CENTER):
         ctrl.ed.setTopLine(line)
 
     # move a screenful of pages back or forward

@@ -12,11 +12,13 @@ import trelby.autocompletiondlg as autocompletiondlg
 import trelby.autosave as autosave
 import trelby.cfgdlg as cfgdlg
 import trelby.characterprofilesdlg as characterprofilesdlg
+import trelby.commands as commands
 import trelby.config as config
 import trelby.dialoguechart as dialoguechart
 import trelby.finddlg as finddlg
 import trelby.gutil as gutil
 import trelby.headersdlg as headersdlg
+import trelby.keys as keys
 import trelby.locationsdlg as locationsdlg
 import trelby.mcpapp as mcpapp
 import trelby.misc as misc
@@ -455,7 +457,7 @@ class MyCtrl(wx.Control):
         # left one
         return any(t.line == line for t in texts)
 
-    def makeLineVisible(self, line, direction=config.SCROLL_CENTER):
+    def makeLineVisible(self, line, direction=commands.SCROLL_CENTER):
         texts = self.gd.vm.getScreen(self, False)[0]
 
         if self.isLineVisible(line, texts):
@@ -1417,7 +1419,7 @@ class MyCtrl(wx.Control):
         self.updateScreen()
 
     def OnInsertNbsp(self):
-        self.OnKeyChar(util.MyKeyEvent(160))
+        self.OnKeyChar(keys.MyKeyEvent(160))
 
     def OnDualDialogue(self):
         self.clearAutoComp()
@@ -1782,8 +1784,8 @@ class MyCtrl(wx.Control):
             self.Update()
 
         def testAddRemoveChar():
-            self.OnKeyChar(util.MyKeyEvent(ord("a")))
-            self.OnKeyChar(util.MyKeyEvent(wx.WXK_BACK))
+            self.OnKeyChar(keys.MyKeyEvent(ord("a")))
+            self.OnKeyChar(keys.MyKeyEvent(wx.WXK_BACK))
 
         def testDeepcopy():
             copy.deepcopy(self.sp)
@@ -1833,7 +1835,7 @@ class MyCtrl(wx.Control):
 
         cs = screenplay.CommandState()
         cs.mark = bool(ev.ShiftDown())
-        scrollDirection = config.SCROLL_CENTER
+        scrollDirection = commands.SCROLL_CENTER
 
         if (
             not ev.ControlDown()
@@ -1873,7 +1875,7 @@ class MyCtrl(wx.Control):
             # work on self.sp and leave updating the screen to the code
             # below.
             cmd = self.gd.mainFrame.kbdCommands.get(
-                util.Key(kc, ev.ControlDown(), ev.AltDown(), ev.ShiftDown()).toInt()
+                keys.Key(kc, ev.ControlDown(), ev.AltDown(), ev.ShiftDown()).toInt()
             )
 
             if cmd:

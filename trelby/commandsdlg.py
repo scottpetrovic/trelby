@@ -3,6 +3,7 @@ import xml.sax.saxutils as xss
 import wx
 import wx.html
 
+import trelby.keys as keys
 import trelby.util as util
 
 
@@ -71,7 +72,7 @@ class CommandsDlg(wx.Frame):
 
             if cmd.keys:
                 s += "<br>".join(
-                    xss.escape(util.Key.fromInt(key).toStr()) for key in cmd.keys
+                    xss.escape(keys.Key.fromInt(key).toStr()) for key in cmd.keys
                 )
             else:
                 s += "<i>%s</i>" % _("No key defined")

@@ -5,6 +5,7 @@ import sys
 from typing import AnyStr
 
 import trelby.gutil as gutil
+import trelby.keys as keys
 import trelby.opts as opts
 import trelby.textfmt as textfmt
 import trelby.util as util
@@ -1210,7 +1211,7 @@ class KeyDlgWidget(wx.Window):
 
     def OnKeyChar(self, ev):
         p = self.GetParent()
-        p.key = util.Key.fromKE(ev)
+        p.key = keys.Key.fromKE(ev)
         p.EndModal(wx.ID_OK)
 
 

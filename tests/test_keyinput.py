@@ -4,12 +4,13 @@ from unittest import mock
 import wx
 
 import tests.u as u
+import trelby.commands as commands
 import trelby.config as config
+import trelby.keys as keys
 import trelby.opts as opts
 import trelby.screenplay as screenplay
 import trelby.translations as translations
 import trelby.trelbyctrl as trelbyctrl
-import trelby.util as util
 
 _ = translations.trelby_translations_load()
 
@@ -52,7 +53,7 @@ class KeyEvent:
 class FakeCtrl:
     def __init__(self, sp):
         cfgGl = config.ConfigGlobal()
-        cfgGl.addShiftKeys()
+        commands.addShiftKeys(cfgGl.commands)
         kbdCommands = {}
 
         for cmd in cfgGl.commands:
@@ -212,17 +213,17 @@ def testCtrlWithCharAboveLatin1():
 
 
 # the character map and the names database insert characters with
-# util.MyKeyEvent
+# keys.MyKeyEvent
 def testFakeKeyEvent():
     ctrl = newCtrl()
     sp = ctrl.sp
 
     for ch in "łódź €":
-        press(ctrl, util.MyKeyEvent(ord(ch)))
+        press(ctrl, keys.MyKeyEvent(ord(ch)))
 
     assert sp.lines[0].text == "Łódź €"
 
-    press(ctrl, util.MyKeyEvent(wx.WXK_BACK))
+    press(ctrl, keys.MyKeyEvent(wx.WXK_BACK))
     assert sp.lines[0].text == "Łódź "
 
 

@@ -4,6 +4,7 @@ import tests.u as u
 import trelby.charmapdlg as charmapdlg
 import trelby.config as config
 import trelby.fontinfo as fontinfo
+import trelby.keys as keys
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.screenplay as screenplay
@@ -73,32 +74,32 @@ def testUpperLowerKeepLength():
 def testKeysAboveLatin1AreSpecialKeys():
     # key codes above 255 are wx.WXK_ constants, even when the same number
     # is a letter as a code point (WXK_LEFT = 314 = "ĺ")
-    assert util.Key(ord("a")).isValidInputChar()
-    assert util.Key(ord("ä")).isValidInputChar()
-    assert not util.Key(wx.WXK_LEFT).isValidInputChar()
-    assert not util.Key(wx.WXK_F1).isValidInputChar()
-    assert util.Key(wx.WXK_LEFT, ctrl=True).toStr() == "CTRL+Left"
-    assert util.Key(wx.WXK_INSERT).toStr() == "Insert"
-    assert util.Key(ord("ä"), alt=True).toStr() == "ALT+Ä"
+    assert keys.Key(ord("a")).isValidInputChar()
+    assert keys.Key(ord("ä")).isValidInputChar()
+    assert not keys.Key(wx.WXK_LEFT).isValidInputChar()
+    assert not keys.Key(wx.WXK_F1).isValidInputChar()
+    assert keys.Key(wx.WXK_LEFT, ctrl=True).toStr() == "CTRL+Left"
+    assert keys.Key(wx.WXK_INSERT).toStr() == "Insert"
+    assert keys.Key(ord("ä"), alt=True).toStr() == "ALT+Ä"
 
     # "ÿ" uppercases to "Ÿ" (U+0178), which would clash with a WXK constant
-    assert util.Key(ord("ÿ"), alt=True).kc == ord("ÿ")
+    assert keys.Key(ord("ÿ"), alt=True).kc == ord("ÿ")
 
 
 def testKeyBindingsSurviveLoad():
     u.init()
     cfg = config.ConfigGlobal()
-    keys = {cmd.name: cmd.keys for cmd in cfg.commands}
+    saved = {cmd.name: cmd.keys for cmd in cfg.commands}
 
     cfg2 = config.ConfigGlobal()
     cfg2.load(cfg.save())
 
     for cmd in cfg2.commands:
-        if keys[cmd.name] != [0]:
-            assert cmd.keys == keys[cmd.name], cmd.name
+        if saved[cmd.name] != [0]:
+            assert cmd.keys == saved[cmd.name], cmd.name
 
     moveLeft = [cmd for cmd in cfg2.commands if cmd.name == "MoveLeft"][0]
-    assert util.Key(wx.WXK_LEFT).toInt() in moveLeft.keys
+    assert keys.Key(wx.WXK_LEFT).toInt() in moveLeft.keys
 
 
 def testSaveLoadRoundTrip():
