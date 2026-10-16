@@ -35,35 +35,6 @@ class OutlineMixin:
 
         return None
 
-    # set the outline color of the scene (or act break) containing the
-    # given line to color ("rrggbb"), or remove it if color is None.
-    # returns False if the line isn't in a scene or the scene already has
-    # that color.
-    def setSceneColor(self, line, color):
-        starts = self.getOutlineStarts()
-        idx = self.getOutlineIndex(starts, line)
-
-        if idx == -1:
-            return False
-
-        start = starts[idx]
-
-        if color is not None:
-            color = color.lower()
-
-        if self.getSceneColor(start) == color:
-            return False
-
-        u = undo.SinglePara(self, undo.CMD_MISC, start)
-
-        self.lines[start].color = color
-        self.markChanged()
-
-        u.setAfter(self)
-        self.undoHistory.add(u)
-
-        return True
-
     # return the script's outline as a list of OutlineItems, one for each
     # scene and act break, in script order. anything before the first
     # scene / act break is not included. page numbers are only accurate
@@ -134,11 +105,43 @@ class OutlineMixin:
 
         return idx
 
+
+# the Editor's side: scene colors and moving scenes, as undoable edits
+class OutlineEditMixin:
+    # set the outline color of the scene (or act break) containing the
+    # given line to color ("rrggbb"), or remove it if color is None.
+    # returns False if the line isn't in a scene or the scene already has
+    # that color.
+    def setSceneColor(self, line, color):
+        starts = self.sp.getOutlineStarts()
+        idx = self.sp.getOutlineIndex(starts, line)
+
+        if idx == -1:
+            return False
+
+        start = starts[idx]
+
+        if color is not None:
+            color = color.lower()
+
+        if self.sp.getSceneColor(start) == color:
+            return False
+
+        u = undo.SinglePara(self, undo.CMD_MISC, start)
+
+        self.sp.lines[start].color = color
+        self.sp.markChanged()
+
+        u.setAfter(self)
+        self.undoHistory.add(u)
+
+        return True
+
     # move the scene (or act break) containing the given line one step up
     # (direction = -1) or down (direction = 1) in the script, swapping it
     # with its neighbor. see moveSceneTo.
     def moveScene(self, line, direction):
-        idx = self.getOutlineIndex(self.getOutlineStarts(), line)
+        idx = self.sp.getOutlineIndex(self.sp.getOutlineStarts(), line)
 
         if idx == -1:
             return False
@@ -152,8 +155,8 @@ class OutlineMixin:
     # cursor is placed at the start of the moved scene and True is
     # returned.
     def moveSceneTo(self, line, newIndex):
-        starts = self.getOutlineStarts()
-        idx = self.getOutlineIndex(starts, line)
+        starts = self.sp.getOutlineStarts()
+        idx = self.sp.getOutlineIndex(starts, line)
 
         if (idx == -1) or (newIndex == idx):
             return False
@@ -163,8 +166,8 @@ class OutlineMixin:
 
         self.clearAutoComp()
 
-        bounds = starts + [len(self.lines)]
-        blocks = [self.lines[bounds[i] : bounds[i + 1]] for i in range(len(starts))]
+        bounds = starts + [len(self.sp.lines)]
+        blocks = [self.sp.lines[bounds[i] : bounds[i + 1]] for i in range(len(starts))]
 
         u = undo.AnyDifference(self)
 
@@ -172,7 +175,7 @@ class OutlineMixin:
         # locked to stay where they were, starting from whatever followed
         # the scene.
         if idx + 1 < len(blocks):
-            self.movePageLocksForward(starts[idx], bounds[idx + 1] - 1)
+            self.sp.movePageLocksForward(starts[idx], bounds[idx + 1] - 1)
         else:
             for ln in blocks[idx]:
                 ln.pageLock = None
@@ -187,11 +190,11 @@ class OutlineMixin:
 
             newLines.extend(block)
 
-        self.lines[starts[0] :] = newLines
+        self.sp.lines[starts[0] :] = newLines
         self.column = 0
 
         self.clearMark()
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)

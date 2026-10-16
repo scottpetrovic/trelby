@@ -99,7 +99,6 @@ def typeChars(ctrl, s):
 def testNordicLetters():
     ctrl = newCtrl()
     sp = ctrl.sp
-    ed = ctrl.ed
     typeChars(ctrl, "ÅÄÖåäöØæ")
 
     assert sp.lines[0].text == "ÅÄÖåäöØæ"
@@ -125,7 +124,6 @@ def testArrowKeys():
 
 def testShiftArrowSelects():
     ctrl = newCtrl()
-    sp = ctrl.sp
     ed = ctrl.ed
     typeChars(ctrl, "abc")
 
@@ -136,7 +134,6 @@ def testShiftArrowSelects():
 def testAltShortcut():
     ctrl = newCtrl()
     sp = ctrl.sp
-    ed = ctrl.ed
     typeChars(ctrl, "abc")
 
     press(ctrl, KeyEvent(ord("s"), ord("S"), alt=True))
@@ -147,7 +144,6 @@ def testAltShortcut():
 def testUnboundKeyIsSkipped():
     ctrl = newCtrl()
     sp = ctrl.sp
-    ed = ctrl.ed
 
     ev = press(ctrl, KeyEvent(ord("q"), ord("Q"), ctrl=True, alt=True))
     assert ev.skipped
@@ -159,7 +155,6 @@ def testUnboundKeyIsSkipped():
 def testCharsAboveLatin1():
     ctrl = newCtrl()
     sp = ctrl.sp
-    ed = ctrl.ed
     typeChars(ctrl, "zażółć gęślą jaźń, čeština 5 €. привет. ωμέγα")
 
     assert sp.lines[0].text == "Zażółć gęślą jaźń, čeština 5 €. Привет. Ωμέγα"
@@ -168,7 +163,6 @@ def testCharsAboveLatin1():
 def testCharsAboveLatin1InSceneHeading():
     ctrl = newCtrl()
     sp = ctrl.sp
-    ed = ctrl.ed
     sp.lines[0].lt = screenplay.SCENE
     typeChars(ctrl, "int. łódź")
     press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_RETURN))
@@ -181,7 +175,6 @@ def testCharsAboveLatin1InSceneHeading():
 def testInvalidCharsNotTyped():
     ctrl = newCtrl()
     sp = ctrl.sp
-    ed = ctrl.ed
 
     # C1 control, soft hyphen, zero-width space, line separator, BOM
     for kc in (0x85, 0xAD, 0x200B, 0x2028, 0xFEFF):
@@ -195,7 +188,6 @@ def testInvalidCharsNotTyped():
 def testSpecialKeysNotTypedAsChars():
     ctrl = newCtrl()
     sp = ctrl.sp
-    ed = ctrl.ed
     typeChars(ctrl, "abc")
 
     for kc in (wx.WXK_HOME, wx.WXK_INSERT, wx.WXK_F2, wx.WXK_END):
@@ -206,7 +198,6 @@ def testSpecialKeysNotTypedAsChars():
 
 def testCtrlWithCharAboveLatin1():
     ctrl = newCtrl()
-    sp = ctrl.sp
     ed = ctrl.ed
     typeChars(ctrl, "abc")
 
@@ -225,7 +216,6 @@ def testCtrlWithCharAboveLatin1():
 def testFakeKeyEvent():
     ctrl = newCtrl()
     sp = ctrl.sp
-    ed = ctrl.ed
 
     for ch in "łódź €":
         press(ctrl, util.MyKeyEvent(ord(ch)))
@@ -239,7 +229,6 @@ def testFakeKeyEvent():
 def testPasteSystemClipboard():
     ctrl = newCtrl()
     sp = ctrl.sp
-    ed = ctrl.ed
     text = "Łódź\x85\xad €\r\nc\u030capek\u200b Пётр\tΩ"
 
     class Clipboard:
@@ -292,10 +281,6 @@ def testTestModeHooks():
 def testSpeedTest(capsys):
     ctrl = newCtrl()
     ctrl.Update = lambda: None
-
-    # reformatAll refuses to run with undo history, which the
-    # testAddRemoveChar step creates
-    ctrl.sp.reformatAll = lambda: None
 
     with mock.patch.object(opts, "isTest", False, create=True):
         ctrl.cmdSpeedTest(screenplay.CommandState())

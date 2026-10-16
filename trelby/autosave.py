@@ -38,7 +38,7 @@ def getRecoveryPaths(dirPath, recId):
 
 
 # write a recovery copy of a script. data is the script as returned by
-# Screenplay.save(), originalFileName the file it was loaded from / will be
+# Editor.save(), originalFileName the file it was loaded from / will be
 # saved to, or None. raises OSError on failure.
 def writeRecovery(dirPath, recId, data, originalFileName):
     os.makedirs(dirPath, exist_ok=True)

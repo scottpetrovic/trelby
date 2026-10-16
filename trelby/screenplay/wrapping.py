@@ -16,24 +16,26 @@ from trelby.screenplay.constants import (
 )
 
 
+# the functions that rewrap paragraphs take an optional 'cursor', any
+# object with line and column attributes (usually an Editor), which they
+# keep on the same text as it moves.
 class WrappingMixin:
-    def reformatAll(self):
-        # doing a reformatAll while we have undo history will completely
-        # break undo, so that can't be allowed.
-        assert self.undoHistory.isEmpty()
-
+    # rewrap the whole script. throws away the meaning of every line
+    # number, so an Editor's undo history must be cleared first (see
+    # Editor.reformatAll).
+    def reformatAll(self, cursor=None):
         # sfdlksjf = util.TimerDev("reformatAll")
 
         line = 0
 
         while 1:
-            line += self.rewrapPara(line)
+            line += self.rewrapPara(line, cursor)
             if line >= len(self.lines):
                 break
 
     # reformat part of the screenplay. par1 is line number of paragraph to
     # start at, par2 the same for the ending one, inclusive.
-    def reformatRange(self, par1, par2):
+    def reformatRange(self, par1, par2, cursor=None):
         ls = self.lines
 
         # rewrapping changes how many lines the paragraphs before par2
@@ -53,7 +55,7 @@ class WrappingMixin:
                 del ls[line].reformatMarker
                 end = True
 
-            line += self.rewrapPara(line)
+            line += self.rewrapPara(line, cursor)
             if end:
                 break
 
@@ -160,13 +162,9 @@ class WrappingMixin:
         return None
 
     # rewrap paragraph starting at given line. returns the number of lines
-    # in the wrapped paragraph. if line1 is -1, rewraps paragraph
-    # containing self.line. maintains cursor position correctness.
-    def rewrapPara(self, line1=-1):
+    # in the wrapped paragraph.
+    def rewrapPara(self, line1, cursor=None):
         ls = self.lines
-
-        if line1 == -1:
-            line1 = self.getParaFirstIndexFromLine(self.line)
 
         line2 = line1
 
@@ -179,14 +177,14 @@ class WrappingMixin:
         # end of its last line is a valid position), i.e. they're
         # positions in the paragraph's text as one string (s below), which
         # stay valid however it gets rewrapped.
-        if (self.line >= line1) and (self.line <= line2):
+        if (cursor is not None) and (line1 <= cursor.line <= line2):
             # cursor is in this paragraph, save its offset from the
             # beginning of the paragraph
             cursorOffset = 0
 
             for i in range(line1, line2 + 1):
-                if i == self.line:
-                    cursorOffset += self.column
+                if i == cursor.line:
+                    cursorOffset += cursor.column
 
                     break
                 else:
@@ -262,16 +260,16 @@ class WrappingMixin:
                 llen = len(ln.text) + len(config.lb2str(ln.lb))
 
                 if cursorOffset < llen:
-                    self.line = i
-                    self.column = min(cursorOffset, len(ln.text))
+                    cursor.line = i
+                    cursor.column = min(cursorOffset, len(ln.text))
                     break
                 else:
                     cursorOffset -= llen
 
-        elif self.line >= line1:
+        elif (cursor is not None) and (cursor.line >= line1):
             # cursor position is below current paragraph, modify its
             # linenumber appropriately
-            self.line += len(wrappedLines) - (line2 - line1 + 1)
+            cursor.line += len(wrappedLines) - (line2 - line1 + 1)
 
         return len(wrappedLines)
 
@@ -280,14 +278,14 @@ class WrappingMixin:
     # speeches that an edit there has made part of a dual dialogue, or
     # taken out of one, get their new widths. the undo object for the edit
     # must cover those lines too.
-    def rewrapSpeechesAround(self, line1, line2):
+    def rewrapSpeechesAround(self, line1, line2, cursor=None):
         first, last = self.getSpeechRangeAround(line1, line2)
-        self.rewrapElems(first, self.elemsDistance(first, last) + 1)
+        self.rewrapElems(first, self.elemsDistance(first, last) + 1, cursor)
 
     # rewrap 'count' elements starting from the one starting at 'line'
-    def rewrapElems(self, line, count):
+    def rewrapElems(self, line, count, cursor=None):
         for i in range(count):
-            self.rewrapElem(line)
+            self.rewrapElem(line, cursor)
             line = self.getElemLastIndexFromLine(line) + 1
 
     # return (first, last) lines of the elements containing lines line1 -
@@ -327,26 +325,12 @@ class WrappingMixin:
 
         return (first, last)
 
-    # rewraps paragraph previous to current one.
-    def rewrapPrevPara(self):
-        line = self.getParaFirstIndexFromLine(self.line)
-
-        if line == 0:
-            return
-
-        line = self.getParaFirstIndexFromLine(line - 1)
-        self.rewrapPara(line)
-
-    # rewrap element starting at given line. if line is -1, rewraps
-    # element containing self.line.
-    def rewrapElem(self, line=-1):
+    # rewrap element starting at given line.
+    def rewrapElem(self, line, cursor=None):
         ls = self.lines
 
-        if line == -1:
-            line = self.getElemFirstIndex()
-
         while 1:
-            line += self.rewrapPara(line)
+            line += self.rewrapPara(line, cursor)
 
             if ls[line - 1].lb == LB_LAST:
                 break

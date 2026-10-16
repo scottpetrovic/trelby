@@ -282,7 +282,7 @@ class LiveDoc:
         # ownUndo records its own step, which must not be wrapped in a
         # second one, and returns None, leaving any rewrapping to the
         # Editor method it uses.
-        u = None if ownUndo else undo.AnyDifference(sp)
+        u = None if ownUndo else undo.AnyDifference(ed)
 
         changedLines = edit(ed)
 
@@ -294,7 +294,7 @@ class LiveDoc:
         ed.validatePos()
 
         if u:
-            u.setAfter(sp)
+            u.setAfter(ed)
             ed.undoHistory.add(u)
 
         sp.markChanged()
@@ -832,9 +832,9 @@ def setWorldBuilding(doc, revision, text):
 
     def edit(ed):
         sp = ed.sp
-        u = undo.WorldBuildingText(sp)
+        u = undo.WorldBuildingText(ed)
         sp.worldBuilding.text = text
-        u.setAfter(sp)
+        u.setAfter(ed)
         ed.undoHistory.add(u)
 
         return None
@@ -888,9 +888,9 @@ def writeProfiles(doc, revision, edit):
 
     def wrapper(ed):
         sp = ed.sp
-        u = undo.CharacterProfiles(sp)
+        u = undo.CharacterProfiles(ed)
         ret.update(edit(sp))
-        u.setAfter(sp)
+        u.setAfter(ed)
         ed.undoHistory.add(u)
 
         return None

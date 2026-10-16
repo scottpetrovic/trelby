@@ -176,9 +176,9 @@ def memoryUsed(storage):
 # abstract base class for storing undo history. concrete subclasses
 # implement undo/redo for specific actions taken on a screenplay.
 class Base:
-    def __init__(self, sp, cmdType):
+    def __init__(self, ed, cmdType):
         # cursor position before the action
-        self.startPos = sp.cursorAsMark()
+        self.startPos = ed.cursorAsMark()
 
         # type of action; one of the CMD_ values
         self.cmdType = cmdType
@@ -188,8 +188,8 @@ class Base:
         self.next = None
 
     # set cursor position after the action
-    def setEndPos(self, sp):
-        self.endPos = sp.cursorAsMark()
+    def setEndPos(self, ed):
+        self.endPos = ed.cursorAsMark()
 
     def getType(self):
         return self.cmdType
@@ -210,24 +210,24 @@ class Base:
     # (lines2storage tuples, whose [0] is the line count). undo replaces
     # the linesAfter[0] lines at elemStartLine with linesBefore, and redo
     # the other way around. these are absolute line indexes, so they're
-    # only right if sp.lines is exactly as this object left it: undo/redo
+    # only right if ed.sp.lines is exactly as this object left it: undo/redo
     # must go strictly through the history in order, and every change to
-    # sp.lines must be recorded with sp.undoHistory.add. anything that
+    # ed.sp.lines must be recorded with ed.undoHistory.add. anything that
     # changes lines without doing so (like reformatAll) must clear the
     # history first.
-    def undo(self, sp):
-        sp.line, sp.column = self.startPos.line, self.startPos.column
+    def undo(self, ed):
+        ed.line, ed.column = self.startPos.line, self.startPos.column
 
-        sp.lines[self.elemStartLine : self.elemStartLine + self.linesAfter[0]] = (
+        ed.sp.lines[self.elemStartLine : self.elemStartLine + self.linesAfter[0]] = (
             storage2lines(self.linesBefore)
         )
 
     # default implementation for redo. can be overridden by subclasses
     # that need something different.
-    def redo(self, sp):
-        sp.line, sp.column = self.endPos.line, self.endPos.column
+    def redo(self, ed):
+        ed.line, ed.column = self.endPos.line, self.endPos.column
 
-        sp.lines[self.elemStartLine : self.elemStartLine + self.linesBefore[0]] = (
+        ed.sp.lines[self.elemStartLine : self.elemStartLine + self.linesBefore[0]] = (
             storage2lines(self.linesAfter)
         )
 
@@ -247,34 +247,34 @@ class Base:
 #   -text, zlib best(9):     107 KB, 0.126s
 #   -text, bz2 best(9):       88 KB, 0.147s
 class FullCopy(Base):
-    def __init__(self, sp):
-        Base.__init__(self, sp, CMD_MISC)
+    def __init__(self, ed):
+        Base.__init__(self, ed, CMD_MISC)
 
         self.elemStartLine = 0
-        self.linesBefore = lines2storage(sp.lines)
+        self.linesBefore = lines2storage(ed.sp.lines)
 
     # called after editing action is over to snapshot the "after" state
-    def setAfter(self, sp):
-        self.linesAfter = lines2storage(sp.lines)
-        self.setEndPos(sp)
+    def setAfter(self, ed):
+        self.linesAfter = lines2storage(ed.sp.lines)
+        self.setEndPos(ed)
 
 
 # renaming characters: a FullCopy of the lines, plus the character
 # profiles that were renamed, as a list of (old name, new name). undo
 # renames those profiles back.
 class RenameCharacters(FullCopy):
-    def __init__(self, sp, profileRenames):
-        FullCopy.__init__(self, sp)
+    def __init__(self, ed, profileRenames):
+        FullCopy.__init__(self, ed)
 
         self.profileRenames = profileRenames
 
-    def undo(self, sp):
-        FullCopy.undo(self, sp)
-        renameProfiles(sp, [(new, old) for old, new in self.profileRenames])
+    def undo(self, ed):
+        FullCopy.undo(self, ed)
+        renameProfiles(ed.sp, [(new, old) for old, new in self.profileRenames])
 
-    def redo(self, sp):
-        FullCopy.redo(self, sp)
-        renameProfiles(sp, self.profileRenames)
+    def redo(self, ed):
+        FullCopy.redo(self, ed)
+        renameProfiles(ed.sp, self.profileRenames)
 
 
 # rename character profiles, given a list of (old name, new name). all
@@ -292,26 +292,26 @@ def renameProfiles(sp, renames):
 class SinglePara(Base):
     # line is any line belonging to the modified paragraph. there is no
     # requirement for the cursor to be in this paragraph.
-    def __init__(self, sp, cmdType, line):
-        Base.__init__(self, sp, cmdType)
+    def __init__(self, ed, cmdType, line):
+        Base.__init__(self, ed, cmdType)
 
-        self.elemStartLine = sp.getParaFirstIndexFromLine(line)
-        endLine = sp.getParaLastIndexFromLine(line)
+        self.elemStartLine = ed.sp.getParaFirstIndexFromLine(line)
+        endLine = ed.sp.getParaLastIndexFromLine(line)
 
-        self.linesBefore = lines2storage(sp.lines[self.elemStartLine : endLine + 1])
+        self.linesBefore = lines2storage(ed.sp.lines[self.elemStartLine : endLine + 1])
 
-    def setAfter(self, sp):
+    def setAfter(self, ed):
         # if all we did was modify a single paragraph, the index of its
         # starting line can not have changed, because that would mean one of
         # the paragraphs above us had changed as well, which is a logical
         # impossibility. so we can find the dimensions of the modified
         # paragraph by starting at the first line.
 
-        endLine = sp.getParaLastIndexFromLine(self.elemStartLine)
+        endLine = ed.sp.getParaLastIndexFromLine(self.elemStartLine)
 
-        self.linesAfter = lines2storage(sp.lines[self.elemStartLine : endLine + 1])
+        self.linesAfter = lines2storage(ed.sp.lines[self.elemStartLine : endLine + 1])
 
-        self.setEndPos(sp)
+        self.setEndPos(ed)
 
 
 # stores N modified consecutive elements
@@ -322,103 +322,105 @@ class ManyElems(Base):
     # operaton and nrOfElemsEnd is how many there are after. so an edit
     # operation splitting an element would pass in (1, 2) while an edit
     # operation combining two elements would pass in (2, 1).
-    def __init__(self, sp, cmdType, line, nrOfElemsStart, nrOfElemsEnd):
-        Base.__init__(self, sp, cmdType)
+    def __init__(self, ed, cmdType, line, nrOfElemsStart, nrOfElemsEnd):
+        Base.__init__(self, ed, cmdType)
 
         self.nrOfElemsEnd = nrOfElemsEnd
 
-        self.elemStartLine, endLine = sp.getElemIndexesFromLine(line)
+        self.elemStartLine, endLine = ed.sp.getElemIndexesFromLine(line)
 
         # find last line of last element to include in linesBefore
         for i in range(nrOfElemsStart - 1):
-            endLine = sp.getElemLastIndexFromLine(endLine + 1)
+            endLine = ed.sp.getElemLastIndexFromLine(endLine + 1)
 
-        self.linesBefore = lines2storage(sp.lines[self.elemStartLine : endLine + 1])
+        self.linesBefore = lines2storage(ed.sp.lines[self.elemStartLine : endLine + 1])
 
-    def setAfter(self, sp):
-        endLine = sp.getElemLastIndexFromLine(self.elemStartLine)
+    def setAfter(self, ed):
+        endLine = ed.sp.getElemLastIndexFromLine(self.elemStartLine)
 
         for i in range(self.nrOfElemsEnd - 1):
-            endLine = sp.getElemLastIndexFromLine(endLine + 1)
+            endLine = ed.sp.getElemLastIndexFromLine(endLine + 1)
 
-        self.linesAfter = lines2storage(sp.lines[self.elemStartLine : endLine + 1])
+        self.linesAfter = lines2storage(ed.sp.lines[self.elemStartLine : endLine + 1])
 
-        self.setEndPos(sp)
+        self.setEndPos(ed)
 
 
 # stores a single block of changed lines by diffing before/after states of
 # a screenplay
 class AnyDifference(Base):
-    def __init__(self, sp):
-        Base.__init__(self, sp, CMD_MISC)
+    def __init__(self, ed):
+        Base.__init__(self, ed, CMD_MISC)
 
         # kept as Line copies (not storage) until setAfter, since the diff
         # compares them with Line.__ne__, i.e. all attributes and not just
         # the text. this is a full copy of the script for the duration of
         # the action.
-        self.linesBefore = [ln.copy() for ln in sp.lines]
+        self.linesBefore = [ln.copy() for ln in ed.sp.lines]
 
     # [a:b] of the old lines was replaced by [x:y] of the new ones (a ==
     # x). only that block is stored, and undo / redo swap it back in, so
     # unlike the other classes these don't use elemStartLine.
-    def setAfter(self, sp):
-        self.a, self.b, self.x, self.y = mySequenceMatcher(self.linesBefore, sp.lines)
+    def setAfter(self, ed):
+        self.a, self.b, self.x, self.y = mySequenceMatcher(
+            self.linesBefore, ed.sp.lines
+        )
 
         self.removed = lines2storage(self.linesBefore[self.a : self.b])
-        self.inserted = lines2storage(sp.lines[self.x : self.y])
+        self.inserted = lines2storage(ed.sp.lines[self.x : self.y])
 
-        self.setEndPos(sp)
+        self.setEndPos(ed)
 
         del self.linesBefore
 
     def memoryUsed(self):
         return BASE_MEMORY_USAGE + memoryUsed(self.removed) + memoryUsed(self.inserted)
 
-    def undo(self, sp):
-        sp.line, sp.column = self.startPos.line, self.startPos.column
+    def undo(self, ed):
+        ed.line, ed.column = self.startPos.line, self.startPos.column
 
-        sp.lines[self.x : self.y] = storage2lines(self.removed)
+        ed.sp.lines[self.x : self.y] = storage2lines(self.removed)
 
-    def redo(self, sp):
-        sp.line, sp.column = self.endPos.line, self.endPos.column
+    def redo(self, ed):
+        ed.line, ed.column = self.endPos.line, self.endPos.column
 
-        sp.lines[self.a : self.b] = storage2lines(self.inserted)
+        ed.sp.lines[self.a : self.b] = storage2lines(self.inserted)
 
 
 # a change to the text of the script's world building notes, which are
 # not part of the lines. the cursor is left where it is.
 class WorldBuildingText(Base):
-    def __init__(self, sp):
-        Base.__init__(self, sp, CMD_MISC)
+    def __init__(self, ed):
+        Base.__init__(self, ed, CMD_MISC)
 
-        self.textBefore = sp.worldBuilding.text
+        self.textBefore = ed.sp.worldBuilding.text
 
-    def setAfter(self, sp):
-        self.textAfter = sp.worldBuilding.text
-        self.setEndPos(sp)
+    def setAfter(self, ed):
+        self.textAfter = ed.sp.worldBuilding.text
+        self.setEndPos(ed)
 
     def memoryUsed(self):
         return BASE_MEMORY_USAGE + len(self.textBefore) + len(self.textAfter)
 
-    def undo(self, sp):
-        sp.worldBuilding.text = self.textBefore
+    def undo(self, ed):
+        ed.sp.worldBuilding.text = self.textBefore
 
-    def redo(self, sp):
-        sp.worldBuilding.text = self.textAfter
+    def redo(self, ed):
+        ed.sp.worldBuilding.text = self.textAfter
 
 
 # a change to the script's character profiles, which are not part of the
 # lines. the cursor is left where it is.
 class CharacterProfiles(Base):
-    def __init__(self, sp):
-        Base.__init__(self, sp, CMD_MISC)
+    def __init__(self, ed):
+        Base.__init__(self, ed, CMD_MISC)
 
         # photos are immutable bytes, so these copies share them
-        self.before = copy.deepcopy(sp.characterProfiles)
+        self.before = copy.deepcopy(ed.sp.characterProfiles)
 
-    def setAfter(self, sp):
-        self.after = copy.deepcopy(sp.characterProfiles)
-        self.setEndPos(sp)
+    def setAfter(self, ed):
+        self.after = copy.deepcopy(ed.sp.characterProfiles)
+        self.setEndPos(ed)
 
     def memoryUsed(self):
         return BASE_MEMORY_USAGE + sum(
@@ -426,11 +428,11 @@ class CharacterProfiles(Base):
             for p in self.before.profiles + self.after.profiles
         )
 
-    def undo(self, sp):
-        sp.characterProfiles = copy.deepcopy(self.before)
+    def undo(self, ed):
+        ed.sp.characterProfiles = copy.deepcopy(self.before)
 
-    def redo(self, sp):
-        sp.characterProfiles = copy.deepcopy(self.after)
+    def redo(self, ed):
+        ed.sp.characterProfiles = copy.deepcopy(self.after)
 
 
 # Our own implementation of difflib.SequenceMatcher, since the actual one

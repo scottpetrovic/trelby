@@ -125,19 +125,19 @@ class UndoHistory:
         return None
 
     # u, the last undo object, has had another action merged into it: take
-    # sp's current state as its end state
-    def addMerged(self, u, sp):
+    # ed's current state as its end state
+    def addMerged(self, u, ed):
         assert u is self.last
 
         memoryUsedBefore = u.memoryUsed()
-        u.setAfter(sp)
+        u.setAfter(ed)
         memoryUsedAfter = u.memoryUsed()
 
         self.memoryUsed += memoryUsedAfter - memoryUsedBefore
 
-    # undo the last action (or the one before the last one undone) on sp.
+    # undo the last action (or the one before the last one undone) on ed.
     # returns False if there was nothing to undo.
-    def undo(self, sp):
+    def undo(self, ed):
         if not self.canUndo():
             return False
 
@@ -147,18 +147,18 @@ class UndoHistory:
         else:
             u = self.last
 
-        u.undo(sp)
+        u.undo(ed)
         self.current = u
 
         return True
 
-    # redo the last action undone on sp. returns False if there was
+    # redo the last action undone on ed. returns False if there was
     # nothing to redo.
-    def redo(self, sp):
+    def redo(self, ed):
         if not self.canRedo():
             return False
 
-        self.current.redo(sp)
+        self.current.redo(ed)
         self.current = self.current.next
 
         return True

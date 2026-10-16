@@ -24,12 +24,12 @@ class EditingMixin:
     #  - if multiple elements are selected, all are changed
     #  - if not, the change is applied to element under cursor.
     def convertTypeTo(self, lt, saveUndo):
-        ls = self.lines
+        ls = self.sp.lines
         selection = self.getMarkedLines()
 
         if selection:
             startSection, endSection = selection
-            selectedElems = self.elemsDistance(startSection, endSection) + 1
+            selectedElems = self.sp.elemsDistance(startSection, endSection) + 1
         else:
             startSection, endSection = self.getElemIndexes()
             selectedElems = 1
@@ -40,13 +40,15 @@ class EditingMixin:
             # the speeches around the changed elements may move into or
             # out of a dual dialogue, so they're rewrapped too, and
             # included in the undo
-            wrapFirst, wrapLast = self.getSpeechRangeAround(startSection, endSection)
-            wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+            wrapFirst, wrapLast = self.sp.getSpeechRangeAround(
+                startSection, endSection
+            )
+            wrapCnt = self.sp.elemsDistance(wrapFirst, wrapLast) + 1
 
             u = undo.ManyElems(self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt)
 
         while currentLine <= endSection:
-            first, last = self.getElemIndexesFromLine(currentLine)
+            first, last = self.sp.getElemIndexesFromLine(currentLine)
 
             # if changing away from PAREN containing only "()", remove it
             if (first == last) and (ls[first].lt == PAREN) and (ls[first].text == "()"):
@@ -81,15 +83,15 @@ class EditingMixin:
             # last paragraph of the last selected element
 
             self.reformatRange(
-                self.getElemFirstIndexFromLine(startSection),
-                self.getParaFirstIndexFromLine(
-                    self.getElemLastIndexFromLine(endSection)
+                self.sp.getElemFirstIndexFromLine(startSection),
+                self.sp.getParaFirstIndexFromLine(
+                    self.sp.getElemLastIndexFromLine(endSection)
                 ),
             )
         else:
             self.rewrapElem(first)
 
-        self.markChanged()
+        self.sp.markChanged()
 
         if saveUndo:
             self.rewrapElems(wrapFirst, wrapCnt)
@@ -100,7 +102,7 @@ class EditingMixin:
     # join lines 'line' and 'line + 1' and position cursor at the join
     # position.
     def joinLines(self, line):
-        ls = self.lines
+        ls = self.sp.lines
         ln = ls[line]
 
         pos = len(ln.text)
@@ -122,7 +124,7 @@ class EditingMixin:
         # if line + 1 started another element, the two are one now (this
         # line took over its line break above), so the rest of that
         # element gets this line's type
-        self.setLineTypes(line + 1, ln.lt)
+        self.sp.setLineTypes(line + 1, ln.lt)
         del ls[line + 1]
 
         self.line = line
@@ -130,7 +132,7 @@ class EditingMixin:
 
     # split current line at current column position.
     def splitLine(self):
-        ln = self.lines[self.line]
+        ln = self.sp.lines[self.line]
 
         s = ln.text
         preStr = s[: self.column]
@@ -138,16 +140,16 @@ class EditingMixin:
         newLine = Line(ln.lb, ln.lt, postStr, fmt=ln.sliceFmt(self.column))
         ln.setText(preStr, ln.sliceFmt(0, self.column))
         ln.lb = LB_FORCED
-        self.lines.insert(self.line + 1, newLine)
+        self.sp.lines.insert(self.line + 1, newLine)
 
         self.line += 1
         self.column = 0
-        self.markChanged()
+        self.sp.markChanged()
 
     # split element at current position. newType is type to give to the
     # new element.
     def splitElement(self, newType):
-        ls = self.lines
+        ls = self.sp.lines
 
         if self.mark:
             self.clearMark()
@@ -157,8 +159,8 @@ class EditingMixin:
         # splitting a speech can make it, or the speeches around it, part
         # of a dual dialogue or take them out of one, so they're rewrapped
         # too, and included in the undo
-        wrapFirst, wrapLast = self.getSpeechRangeAround(self.line, self.line)
-        wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+        wrapFirst, wrapLast = self.sp.getSpeechRangeAround(self.line, self.line)
+        wrapCnt = self.sp.elemsDistance(wrapFirst, wrapLast) + 1
 
         u = undo.ManyElems(self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt + 1)
 
@@ -183,7 +185,7 @@ class EditingMixin:
         self.rewrapPara()
         self.rewrapPrevPara()
         self.rewrapElems(wrapFirst, wrapCnt + 1)
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)
@@ -191,40 +193,11 @@ class EditingMixin:
     # delete character at given position and optionally position
     # cursor there.
     def deleteChar(self, line, column, posCursor=True):
-        self.lines[line].deleteText(column, column + 1)
+        self.sp.lines[line].deleteText(column, column + 1)
 
         if posCursor:
             self.column = column
             self.line = line
-
-    # set line types from 'line' to the end of the element to 'lt'.
-    def setLineTypes(self, line, lt):
-        ls = self.lines
-
-        while 1:
-            ln = ls[line]
-
-            ln.lt = lt
-            if ln.lb == LB_LAST:
-                break
-
-            line += 1
-
-    # give every line of the elements in the given range of lines
-    # (inclusive) the type of its element's first line. 'line1' must be
-    # the first line of an element.
-    def fixElemLineTypes(self, line1, line2):
-        ls = self.lines
-        lt = None
-
-        for i in range(line1, line2 + 1):
-            if lt is None:
-                lt = ls[i].lt
-            else:
-                ls[i].lt = lt
-
-            if ls[i].lb == LB_LAST:
-                lt = None
 
     # remove all lines whose element types are in tdict as keys.
     def removeElementTypes(self, tdict, saveUndo):
@@ -234,7 +207,7 @@ class EditingMixin:
             u = undo.FullCopy(self)
 
         lsNew = []
-        lsOld = self.lines
+        lsOld = self.sp.lines
         sl = self.line
 
         # how many lines were removed from above the current line
@@ -272,11 +245,11 @@ class EditingMixin:
         if len(lsNew) == 0:
             lsNew.append(Line(LB_LAST, SCENE))
 
-        self.lines = lsNew
+        self.sp.lines = lsNew
 
         self.validatePos()
         self.clearMark()
-        self.markChanged()
+        self.sp.markChanged()
 
         if saveUndo:
             u.setAfter(self)
@@ -303,7 +276,7 @@ class EditingMixin:
 
         if renameProfiles:
             for old, new in renames.items():
-                prof = self.characterProfiles.get(old)
+                prof = self.sp.characterProfiles.get(old)
 
                 if prof:
                     profileRenames.append((prof.name, new))
@@ -312,7 +285,7 @@ class EditingMixin:
         # they are, so that renaming MARY doesn't touch "Mary" in mentions
         # of MARY JANE. longest names first, so that "MARY JANE" wins over
         # "MARY".
-        names = {normalize(n): None for n in self.getCharacterNames()}
+        names = {normalize(n): None for n in self.sp.getCharacterNames()}
         names.update(renames)
         names.pop("", None)
 
@@ -357,7 +330,7 @@ class EditingMixin:
         # (line, new text, new format string) for every changed line
         changes = []
 
-        for i, ln in enumerate(self.lines):
+        for i, ln in enumerate(self.sp.lines):
             if ln.lt == CHARACTER:
                 new = renames.get(normalize(ln.text)) if ln.lb == LB_LAST else None
 
@@ -393,26 +366,26 @@ class EditingMixin:
 
         u = undo.RenameCharacters(self, profileRenames)
 
-        undo.renameProfiles(self, profileRenames)
+        undo.renameProfiles(self.sp, profileRenames)
 
         for i, text, fmt in changes:
-            self.lines[i].setText(text, fmt)
+            self.sp.lines[i].setText(text, fmt)
 
         # rewrap changed paragraphs from the bottom up, so that the line
         # numbers of the ones still to do stay valid
-        paras = {self.getParaFirstIndexFromLine(i) for i, _text, _fmt in changes}
+        paras = {self.sp.getParaFirstIndexFromLine(i) for i, _text, _fmt in changes}
 
         for line in sorted(paras, reverse=True):
             self.rewrapPara(line)
 
-        acType = self.autoCompletion.getType(CHARACTER)
+        acType = self.sp.autoCompletion.getType(CHARACTER)
         acType.items = list(
             dict.fromkeys(renames.get(normalize(it), it) for it in acType.items)
         )
 
         self.validatePos()
         self.clearMark()
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)

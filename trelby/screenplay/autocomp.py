@@ -22,14 +22,14 @@ class AutoCompletionMixin:
         return True
 
     def fillAutoComp(self):
-        ls = self.lines
+        ls = self.sp.lines
 
         lt = ls[self.line].lt
-        t = self.autoCompletion.getType(lt)
+        t = self.sp.autoCompletion.getType(lt)
 
         # completing replaces the line's text, which would mangle an
         # element that has wrapped onto more than one line
-        if not (t and t.enabled and self.isOnlyLineOfElem(self.line)):
+        if not (t and t.enabled and self.sp.isOnlyLineOfElem(self.line)):
             self.acItems = None
 
             return
@@ -71,9 +71,13 @@ class AutoCompletionMixin:
     # auto-completion list right away, so the next speaker can be picked
     # without typing anything.
     def offerAutoComp(self, cs):
-        ln = self.lines[self.line]
+        ln = self.sp.lines[self.line]
 
-        if (ln.lt == CHARACTER) and not ln.text and self.isOnlyLineOfElem(self.line):
+        if (
+            (ln.lt == CHARACTER)
+            and not ln.text
+            and self.sp.isOnlyLineOfElem(self.line)
+        ):
             cs.doAutoComp = cs.AC_REDO
 
     # if the selected auto-completion item is only the start of a scene
@@ -81,7 +85,7 @@ class AutoCompletionMixin:
     def isAutoCompPartial(self):
         return (
             bool(self.acItems)
-            and (self.lines[self.line].lt == SCENE)
+            and (self.sp.lines[self.line].lt == SCENE)
             and autocompletion.isPartial(self.acItems[self.acSel])
         )
 
@@ -92,10 +96,10 @@ class AutoCompletionMixin:
 
         u = undo.SinglePara(self, undo.CMD_MISC, self.line)
 
-        self.lines[self.line].setText(self.acItems[self.acSel])
-        self.column = len(self.lines[self.line].text)
+        self.sp.lines[self.line].setText(self.acItems[self.acSel])
+        self.column = len(self.sp.lines[self.line].text)
         self.rewrapPara()
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)
@@ -110,17 +114,17 @@ class AutoCompletionMixin:
     # config. ignores current line.
     def getMatchingText(self, text, lt):
         text = util.upper(text)
-        ls = self.lines
+        ls = self.sp.lines
         uses = []
 
         for i in range(len(ls)):
-            if (ls[i].lt == lt) and (i != self.line) and self.isOnlyLineOfElem(i):
+            if (ls[i].lt == lt) and (i != self.line) and self.sp.isOnlyLineOfElem(i):
                 upstr = util.upper(ls[i].text).rstrip()
 
                 if upstr:
                     uses.append((i, upstr))
 
-        mlist = self.autoCompletion.getMatches(text, lt, uses, self.line)
+        mlist = self.sp.autoCompletion.getMatches(text, lt, uses, self.line)
 
         if text in mlist:
             mlist.remove(text)

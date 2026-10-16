@@ -7,8 +7,8 @@ from trelby.line import Line
 
 _ = translations.trelby_translations_load()
 
-# tests for page locking: trelby.pagelock and the Screenplay functions
-# using it
+# tests for page locking: trelby.pagelock and the Screenplay and Editor
+# functions using it
 
 
 # return a script with 'scenes' scenes, each with a heading, 'actions'

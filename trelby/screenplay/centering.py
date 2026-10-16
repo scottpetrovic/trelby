@@ -34,6 +34,10 @@ class CenteringMixin:
 
         return self.hasCenteredFlag(self.getElemFirstIndexFromLine(i))
 
+
+# the Editor's side: centering the action elements at the cursor or in
+# the selection
+class CenteringEditMixin:
     # return the first lines of the action elements in the selection, or
     # with nothing selected, of the element at the cursor if it's one
     def getActionsForCentering(self):
@@ -41,13 +45,13 @@ class CenteringMixin:
         first, last = marked if marked else (self.line, self.line)
 
         ret = []
-        i = self.getElemFirstIndexFromLine(first)
+        i = self.sp.getElemFirstIndexFromLine(first)
 
         while i <= last:
-            if self.lines[i].lt == ACTION:
+            if self.sp.lines[i].lt == ACTION:
                 ret.append(i)
 
-            i = self.getElemLastIndexFromLine(i) + 1
+            i = self.sp.getElemLastIndexFromLine(i) + 1
 
         return ret
 
@@ -60,7 +64,7 @@ class CenteringMixin:
         if not starts:
             return None
 
-        return all(self.lines[i].centered for i in starts)
+        return all(self.sp.lines[i].centered for i in starts)
 
     # center the action element at the cursor, or the ones in the
     # selection, or if they all are already, stop centering them. returns
@@ -76,9 +80,9 @@ class CenteringMixin:
         u = undo.AnyDifference(self)
 
         for i in starts:
-            self.lines[i].centered = center
+            self.sp.lines[i].centered = center
 
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)

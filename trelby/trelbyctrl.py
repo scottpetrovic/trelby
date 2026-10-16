@@ -59,8 +59,9 @@ KC_CTRL_V = 22
 
 
 # the editor for one open script, one per tab. it owns the Screenplay
-# (self.sp), draws it the way the current view mode (gd.vm) lays it out,
-# and turns keys, mouse clicks and menu commands into Screenplay commands.
+# (self.sp) and the Editor on it (self.ed), draws it the way the current
+# view mode (gd.vm) lays it out, and turns keys, mouse clicks and menu
+# commands into Editor commands.
 # menu items reach it through MyFrame's On* methods, which forward to the
 # current tab's MyCtrl.
 class MyCtrl(wx.Control):
@@ -1533,7 +1534,7 @@ class MyCtrl(wx.Control):
         self.updateScreen()
 
     def OnDeleteElements(self):
-        # even though Screenplay.removeElementTypes does this as well, do
+        # even though Editor.removeElementTypes does this as well, do
         # it here so that screen is cleared from the auto-comp box before
         # we open the dialog
         self.clearAutoComp()
@@ -1763,12 +1764,15 @@ class MyCtrl(wx.Control):
         self.speedTestUndo = []
 
         def testUndoFullCopy():
-            u = undo.FullCopy(self.sp)
-            u.setAfter(self.sp)
+            u = undo.FullCopy(self.ed)
+            u.setAfter(self.ed)
             self.speedTestUndo.append(u)
 
+        # rewrapping makes the undo history's line numbers meaningless
+        # (see Editor.reformatAll), and testAddRemoveChar has added some
         def testReformatAll():
-            self.sp.reformatAll()
+            self.ed.undoHistory.clear()
+            self.ed.reformatAll()
 
         def testPaginate():
             self.sp.paginate()

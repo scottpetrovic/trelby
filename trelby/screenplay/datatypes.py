@@ -62,7 +62,7 @@ class OutlineItem:
         return isinstance(other, OutlineItem) and (self.__dict__ == other.__dict__)
 
 
-# stuff we need when handling commands in Screenplay.
+# stuff we need when handling commands in Editor.
 class CommandState:
 
     # what to do about auto-completion after the command (see cmdPost):

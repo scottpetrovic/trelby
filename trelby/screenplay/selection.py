@@ -26,7 +26,7 @@ class SelectionMixin:
         if not self.mark:
             return None
 
-        mark = min(len(self.lines) - 1, self.mark.line)
+        mark = min(len(self.sp.lines) - 1, self.mark.line)
 
         if self.line < mark:
             return (self.line, mark)
@@ -46,7 +46,7 @@ class SelectionMixin:
         if (line < marked[0]) or (line > marked[1]):
             return None
 
-        ls = self.lines
+        ls = self.sp.lines
 
         # last valid offset for given line's text
         lvo = max(0, len(ls[line].text) - 1)
@@ -105,7 +105,7 @@ class SelectionMixin:
         if not marked:
             return None
 
-        ls = self.lines
+        ls = self.sp.lines
 
         cd = ClipData()
 
@@ -119,11 +119,11 @@ class SelectionMixin:
                     ln.lb,
                     ln.lt,
                     ln.text[c1 : c2 + 1],
-                    dual=self.hasDualFlag(i) and (c1 == 0),
-                    color=self.getSceneColor(i) if (c1 == 0) else None,
-                    centered=self.hasCenteredFlag(i) and (c1 == 0),
+                    dual=self.sp.hasDualFlag(i) and (c1 == 0),
+                    color=self.sp.getSceneColor(i) if (c1 == 0) else None,
+                    centered=self.sp.hasCenteredFlag(i) and (c1 == 0),
                     fmt=ln.sliceFmt(c1, c2 + 1),
-                    sceneLock=self.getSceneLock(i) if (c1 == 0) else None,
+                    sceneLock=self.sp.getSceneLock(i) if (c1 == 0) else None,
                 )
             )
 
@@ -164,12 +164,12 @@ class SelectionMixin:
 
             # if it is a single-line element, we never need to modify
             # its linebreak
-            if not self.isOnlyLineOfElem(marked[0]):
+            if not self.sp.isOnlyLineOfElem(marked[0]):
                 # if we're totally deleting the line and it's the last
                 # line of a multi-line element, mark the preceding
                 # line as the new last line of the element.
 
-                if not ln.text and self.isLastLineOfElem(marked[0]):
+                if not ln.text and self.sp.isLastLineOfElem(marked[0]):
                     ls[marked[0] - 1].lb = LB_LAST
 
         else:
@@ -182,7 +182,7 @@ class SelectionMixin:
             if ls[marked[0]].text:
                 ln = ls[marked[0]]
             else:
-                if not self.isFirstLineOfElem(marked[0]):
+                if not self.sp.isFirstLineOfElem(marked[0]):
                     ln = ls[marked[0] - 1]
                 else:
                     ln = None
@@ -193,7 +193,7 @@ class SelectionMixin:
                 # element's new end, otherwise we must set it to
                 # LB_NONE so that the new element is reformatted
                 # properly.
-                if self.isLastLineOfElem(marked[1]) and not ls[marked[1]].text:
+                if self.sp.isLastLineOfElem(marked[1]) and not ls[marked[1]].text:
                     ln.lb = LB_LAST
                 else:
                     ln.lb = LB_NONE
@@ -202,10 +202,10 @@ class SelectionMixin:
         # types for the latter element (starting from the last marked
         # line, because everything before that will get deleted
         # anyway) to that of the first element.
-        self.setLineTypes(marked[1], ls[marked[0]].lt)
+        self.sp.setLineTypes(marked[1], ls[marked[0]].lt)
 
         if del2 != -1:
-            self.movePageLocksForward(del1, del2)
+            self.sp.movePageLocksForward(del1, del2)
 
         del ls[del1 : del2 + 1]
 
@@ -219,7 +219,7 @@ class SelectionMixin:
 
         self.rewrapElem()
         self.rewrapSpeechesAround(self.line, self.line)
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)
@@ -236,7 +236,7 @@ class SelectionMixin:
         # a pasted scene keeps its locked number (so cutting and pasting a
         # scene moves it with its number), unless the script already has
         # a scene with that number (e.g. it was copied, not cut)
-        usedLocks = set(self.getSceneLocks().values())
+        usedLocks = set(self.sp.getSceneLocks().values())
 
         inLines = []
         i = 0
@@ -283,10 +283,10 @@ class SelectionMixin:
         if len(inLines) == 0:
             return
 
-        ls = self.lines
+        ls = self.sp.lines
 
         # where we need to start wrapping
-        wrap1 = self.getParaFirstIndexFromLine(self.line)
+        wrap1 = self.sp.getParaFirstIndexFromLine(self.line)
 
         ln = ls[self.line]
 
@@ -300,7 +300,7 @@ class SelectionMixin:
             movedLock = ln.sceneLock
             ln.sceneLock = inLines[0].sceneLock
 
-        if (len(ln.text) == 0) and self.isOnlyLineOfElem(self.line):
+        if (len(ln.text) == 0) and self.sp.isOnlyLineOfElem(self.line):
             ln.lt = inLines[0].lt
             ln.dual = inLines[0].dual
             ln.color = inLines[0].color
@@ -345,9 +345,9 @@ class SelectionMixin:
             # pasted into, or the text after the cursor part of a pasted
             # element, so give every element around the paste the type
             # of its first line.
-            self.fixElemLineTypes(
-                self.getElemFirstIndexFromLine(wrap1),
-                self.getElemLastIndexFromLine(min(self.line + 1, len(ls) - 1)),
+            self.sp.fixElemLineTypes(
+                self.sp.getElemFirstIndexFromLine(wrap1),
+                self.sp.getElemLastIndexFromLine(min(self.line + 1, len(ls) - 1)),
             )
 
         # FIXME: copy/paste, when copying elements containing forced
@@ -358,7 +358,7 @@ class SelectionMixin:
         # reformatted too
         wrap2 = min(self.line + 1, len(ls) - 1)
 
-        self.reformatRange(wrap1, self.getParaFirstIndexFromLine(wrap2))
+        self.reformatRange(wrap1, self.sp.getParaFirstIndexFromLine(wrap2))
         self.rewrapSpeechesAround(wrap1, min(self.line + 1, len(ls) - 1))
 
         u.setAfter(self)
@@ -366,7 +366,7 @@ class SelectionMixin:
 
         self.clearMark()
         self.clearAutoComp()
-        self.markChanged()
+        self.sp.markChanged()
 
     # set mark at given position
     def setMark(self, line, column):
@@ -387,7 +387,7 @@ class SelectionMixin:
     def selectWordAt(self, line, col):
         self.clearAutoComp()
 
-        s = self.lines[line].text
+        s = self.sp.lines[line].text
 
         if not s:
             self.clearMark()
@@ -423,8 +423,8 @@ class SelectionMixin:
     def selectElementAt(self, line):
         self.clearAutoComp()
 
-        first, last = self.getElemIndexesFromLine(line)
+        first, last = self.sp.getElemIndexesFromLine(line)
 
         self.setMark(first, 0)
         self.line = last
-        self.column = len(self.lines[last].text)
+        self.column = len(self.sp.lines[last].text)

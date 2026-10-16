@@ -82,9 +82,6 @@ class StructureMixin:
 
         return line
 
-    def getElemFirstIndex(self):
-        return self.getElemFirstIndexFromLine(self.line)
-
     def getElemFirstIndexFromLine(self, line):
         ls = self.lines
 
@@ -101,9 +98,6 @@ class StructureMixin:
 
         return line
 
-    def getElemLastIndex(self):
-        return self.getElemLastIndexFromLine(self.line)
-
     def getElemLastIndexFromLine(self, line):
         ls = self.lines
 
@@ -117,9 +111,6 @@ class StructureMixin:
             line += 1
 
         return line
-
-    def getElemIndexes(self):
-        return self.getElemIndexesFromLine(self.line)
 
     def getElemIndexesFromLine(self, line):
         return (
@@ -186,9 +177,6 @@ class StructureMixin:
             return None
 
         return self.lines[line].lt
-
-    def getSceneIndexes(self):
-        return self.getSceneIndexesFromLine(self.line)
 
     def getSceneIndexesFromLine(self, line):
         top, bottom = self.getElemIndexesFromLine(line)
@@ -390,13 +378,31 @@ class StructureMixin:
             else:
                 col += 1
 
-    # returns True if we're at second-to-last character of PAREN element,
-    # and last character is ")"
-    def isAtEndOfParen(self):
+    # set line types from 'line' to the end of the element to 'lt'.
+    def setLineTypes(self, line, lt):
         ls = self.lines
 
-        return (
-            self.isLastLineOfElem(self.line)
-            and (ls[self.line].lt == PAREN)
-            and (ls[self.line].text[self.column :] == ")")
-        )
+        while 1:
+            ln = ls[line]
+
+            ln.lt = lt
+            if ln.lb == LB_LAST:
+                break
+
+            line += 1
+
+    # give every line of the elements in the given range of lines
+    # (inclusive) the type of its element's first line. 'line1' must be
+    # the first line of an element.
+    def fixElemLineTypes(self, line1, line2):
+        ls = self.lines
+        lt = None
+
+        for i in range(line1, line2 + 1):
+            if lt is None:
+                lt = ls[i].lt
+            else:
+                ls[i].lt = lt
+
+            if ls[i].lb == LB_LAST:
+                lt = None

@@ -80,8 +80,8 @@ def testFirstDelete():
     assert ed.sp.lines[1].lb == scr.LB_SPACE
     assert ed.sp.lines[1].lt == scr.ACTION
     assert ed.sp.lines[1].lt == scr.ACTION
-    assert (
-        ed.sp.lines[1].text == "lmost zero. Only at brief moments do we catch sight of the"
+    assert ed.sp.lines[1].text == (
+        "lmost zero. Only at brief moments do we catch sight of the"
     )
 
     ed._validate()

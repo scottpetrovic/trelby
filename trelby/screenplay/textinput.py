@@ -38,11 +38,11 @@ class TextInputMixin:
                 u = undo.ManyElems(self, undo.CMD_DEL_BACKWARD, self.line, 1, 1)
 
             self.deleteChar(self.line, self.column - 1)
-            self.markChanged()
+            self.sp.markChanged()
             cs.doAutoComp = cs.AC_REDO
         else:
             if self.line != 0:
-                ln = self.lines[self.line - 1]
+                ln = self.sp.lines[self.line - 1]
 
                 # delete at start of the line of the first line of the
                 # element means "join up with previous element", so is a
@@ -52,10 +52,10 @@ class TextInputMixin:
                 # take them out of one, so the speeches around are
                 # rewrapped too, and included in the undo.
                 if ln.lb == LB_LAST:
-                    wrapFirst, wrapLast = self.getSpeechRangeAround(
+                    wrapFirst, wrapLast = self.sp.getSpeechRangeAround(
                         self.line - 1, self.line
                     )
-                    wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+                    wrapCnt = self.sp.elemsDistance(wrapFirst, wrapLast) + 1
 
                     u = undo.ManyElems(
                         self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt - 1
@@ -73,7 +73,7 @@ class TextInputMixin:
 
                 self.joinLines(self.line - 1)
 
-                self.markChanged()
+                self.sp.markChanged()
 
         self.rewrapElem()
 
@@ -104,16 +104,16 @@ class TextInputMixin:
             u = last
             mergeUndo = True
 
-        if self.column != len(self.lines[self.line].text):
+        if self.column != len(self.sp.lines[self.line].text):
             if not mergeUndo:
                 u = undo.ManyElems(self, undo.CMD_DEL_FORWARD, self.line, 1, 1)
 
             self.deleteChar(self.line, self.column)
-            self.markChanged()
+            self.sp.markChanged()
             cs.doAutoComp = cs.AC_REDO
         else:
-            if self.line != (len(self.lines) - 1):
-                ln = self.lines[self.line]
+            if self.line != (len(self.sp.lines) - 1):
+                ln = self.sp.lines[self.line]
 
                 # delete at end of the line of the last line of the
                 # element means "join up with next element", so is a 2->1
@@ -121,10 +121,10 @@ class TextInputMixin:
                 # current element so no element count change. as in
                 # deleteBackwardCmd, the speeches around are rewrapped.
                 if ln.lb == LB_LAST:
-                    wrapFirst, wrapLast = self.getSpeechRangeAround(
+                    wrapFirst, wrapLast = self.sp.getSpeechRangeAround(
                         self.line, self.line + 1
                     )
-                    wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+                    wrapCnt = self.sp.elemsDistance(wrapFirst, wrapLast) + 1
 
                     u = undo.ManyElems(
                         self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt - 1
@@ -141,7 +141,7 @@ class TextInputMixin:
 
                 self.joinLines(self.line)
 
-                self.markChanged()
+                self.sp.markChanged()
 
         self.rewrapElem()
 
@@ -175,7 +175,7 @@ class TextInputMixin:
         # with a selection, splitElement only clears it
         hadMark = bool(self.mark)
 
-        tcfg = self.cfgGl.getType(self.lines[self.line].lt)
+        tcfg = self.sp.cfgGl.getType(self.sp.lines[self.line].lt)
         self.splitElement(tcfg.newTypeEnter)
 
         if not hadMark:
@@ -194,7 +194,7 @@ class TextInputMixin:
 
             return
 
-        tcfg = self.cfgGl.getType(self.lines[self.line].lt)
+        tcfg = self.sp.cfgGl.getType(self.sp.lines[self.line].lt)
 
         if self.tabMakesNew():
             self.splitElement(tcfg.newTypeTab)
@@ -210,14 +210,14 @@ class TextInputMixin:
 
             return
 
-        tcfg = self.cfgGl.getType(self.lines[self.line].lt)
+        tcfg = self.sp.cfgGl.getType(self.sp.lines[self.line].lt)
         self.convertTypeTo(tcfg.prevTypeTab, True)
         self.offerAutoComp(cs)
 
     # returns True if pressing TAB at current position would make a new
     # element, False if it would just change element's type.
     def tabMakesNew(self):
-        l = self.lines[self.line]
+        l = self.sp.lines[self.line]
 
         if self.isAtEndOfParen():
             return True
@@ -225,7 +225,7 @@ class TextInputMixin:
         if (l.lb != LB_LAST) or (self.column != len(l.text)):
             return False
 
-        if (len(l.text) == 0) and self.isOnlyLineOfElem(self.line):
+        if (len(l.text) == 0) and self.sp.isOnlyLineOfElem(self.line):
             return False
 
         return True
@@ -285,14 +285,14 @@ class TextInputMixin:
         if self.capitalizeNeeded():
             char = util.upper(char)
 
-        ls = self.lines
+        ls = self.sp.lines
         s = ls[self.line].text
 
         # a lone "i" becomes "I" when the character typed after it isn't
         # alphanumeric, and neither is the one before it (or the "i"
         # starts the line, and doesn't continue a word broken there with
         # LB_NONE).
-        if self.cfgGl.capitalizeI and (self.column > 0):
+        if self.sp.cfgGl.capitalizeI and (self.column > 0):
             s = ls[self.line].text
 
             if s[self.column - 1] == "i":
@@ -330,18 +330,18 @@ class TextInputMixin:
         # after the cursor.
         tmp = s.upper()
         if (tmp == "EXT.") or (tmp == "INT."):
-            if self.isOnlyLineOfElem(self.line):
+            if self.sp.isOnlyLineOfElem(self.line):
                 ls[self.line].lt = SCENE
         elif (
             (tmp == "(")
             and ls[self.line].lt in (DIALOGUE, CHARACTER)
-            and self.isOnlyLineOfElem(self.line)
+            and self.sp.isOnlyLineOfElem(self.line)
         ):
             ls[self.line].lt = PAREN
             ls[self.line].setText("()")
 
         self.rewrapPara()
-        self.markChanged()
+        self.sp.markChanged()
 
         # keep typing in the style that was set
         if isSet:
@@ -358,10 +358,10 @@ class TextInputMixin:
     # returns true if a character, inserted at current position, would
     # need to be capitalized as a start of a sentence.
     def capitalizeNeeded(self):
-        if not self.cfgGl.capitalize:
+        if not self.sp.cfgGl.capitalize:
             return False
 
-        ls = self.lines
+        ls = self.sp.lines
         line = self.line
         column = self.column
 

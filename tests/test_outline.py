@@ -5,7 +5,7 @@ import trelby.screenplay as scr
 import trelby.util as util
 
 # tests for the outline view's model: Screenplay.getOutline and
-# Screenplay.moveScene
+# Editor.moveScene
 
 
 def loadSmall():

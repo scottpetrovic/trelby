@@ -70,7 +70,9 @@ def testOtherSpeakerFirst():
 def testRecentThenMostUsed():
     # nothing above the cursor: most used first, then alphabetical
     ed = u.newEditor()
-    ed.sp.lines = [Line(scr.LB_LAST, scr.CHARACTER, "")] + chars("CY", "BO", "AL", "BO")
+    ed.sp.lines = [Line(scr.LB_LAST, scr.CHARACTER, "")] + chars(
+        "CY", "BO", "AL", "BO"
+    )
     ed.line = ed.column = 0
     ed.fillAutoComp()
     assert ed.acItems == ["BO", "AL", "CY"]

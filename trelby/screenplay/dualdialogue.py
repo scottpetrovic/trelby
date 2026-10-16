@@ -121,19 +121,22 @@ class DualDialogueMixin:
 
         return ret
 
+
+# the Editor's side: toggling dual dialogue at the cursor
+class DualDialogueEditMixin:
     # return what toggleDualDialogue would do, as (block, makeDual), where
     # block is the dual dialogue in the format of getDualBlockFromRight and
     # makeDual is False if it would be made normal again, or None if
     # toggling isn't possible at the cursor.
     def getDualToggle(self):
-        ls = self.lines
+        ls = self.sp.lines
 
-        speech = self.getSpeechIndexes(self.line)
+        speech = self.sp.getSpeechIndexes(self.line)
 
         if not speech:
             return None
 
-        block = self.getDualBlock(self.line)
+        block = self.sp.getDualBlock(self.line)
 
         if block:
             return (block, False)
@@ -143,14 +146,14 @@ class DualDialogueMixin:
                 continue
 
             # don't take over a speech from another dual dialogue
-            if (r != speech[0]) and self.getDualBlock(r):
+            if (r != speech[0]) and self.sp.getDualBlock(r):
                 continue
 
             # see whether setting the flag on r would make it the right
             # column of a dual dialogue, without changing anything
             old = ls[r].dual
             ls[r].dual = True
-            block = self.getDualBlockFromRight(r)
+            block = self.sp.getDualBlockFromRight(r)
             ls[r].dual = old
 
             if block:
@@ -163,7 +166,7 @@ class DualDialogueMixin:
     # speech right before it, or failing that, the one right after it.
     # returns False if that wasn't possible.
     def toggleDualDialogue(self):
-        ls = self.lines
+        ls = self.sp.lines
 
         toggle = self.getDualToggle()
 
@@ -172,7 +175,7 @@ class DualDialogueMixin:
 
         block, makeDual = toggle
         first, right, last = block
-        elemCnt = self.elemsDistance(first, last) + 1
+        elemCnt = self.sp.elemsDistance(first, last) + 1
 
         u = undo.ManyElems(self, undo.CMD_MISC, first, elemCnt, elemCnt)
 
@@ -182,7 +185,7 @@ class DualDialogueMixin:
         self.rewrapElems(first, elemCnt)
 
         self.clearAutoComp()
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)

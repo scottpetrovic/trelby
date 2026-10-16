@@ -19,7 +19,7 @@ class FormattingMixin:
         if ts and (ts[0] == self.line) and (ts[1] == self.column):
             return (ts[2], True)
 
-        ls = self.lines
+        ls = self.sp.lines
         ln = ls[self.line]
 
         if self.column > 0:
@@ -50,7 +50,7 @@ class FormattingMixin:
         for i in range(marked[0], marked[1] + 1):
             c1, c2 = self.getMarkedColumns(i, marked)
 
-            for c in self.lines[i].getFmt()[c1 : c2 + 1]:
+            for c in self.sp.lines[i].getFmt()[c1 : c2 + 1]:
                 style &= ord(c) - 48
                 empty = False
 
@@ -69,7 +69,7 @@ class FormattingMixin:
 
             return
 
-        ls = self.lines
+        ls = self.sp.lines
 
         # whether all the selected text has the bit already
         allSet = bool(self.getFormatState() & bit)
@@ -88,7 +88,7 @@ class FormattingMixin:
             )
             ln.fmt = textfmt.compact(fmt[:c1] + part + fmt[c2 + 1 :])
 
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)

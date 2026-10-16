@@ -21,7 +21,7 @@ class CommandsMixin:
     # are commands)
     def cmdPost(self, cs):
         # TODO: is this needed?
-        self.column = min(self.column, len(self.lines[self.line].text))
+        self.column = min(self.column, len(self.sp.lines[self.line].text))
 
         # a typing style only lasts while the cursor stays where it was set
         ts = self.typingStyle
@@ -60,15 +60,15 @@ class CommandsMixin:
         else:
             if self.line > 0:
                 self.line -= 1
-                self.column = len(self.lines[self.line].text)
+                self.column = len(self.sp.lines[self.line].text)
 
     def moveRightCmd(self, cs):
         self.maybeMark(cs.mark)
 
-        if self.column != len(self.lines[self.line].text):
+        if self.column != len(self.sp.lines[self.line].text):
             self.column += 1
         else:
-            if self.line < (len(self.lines) - 1):
+            if self.line < (len(self.sp.lines) - 1):
                 self.line += 1
                 self.column = 0
 
@@ -91,7 +91,7 @@ class CommandsMixin:
         if not self.acItems:
             self.maybeMark(cs.mark)
 
-            if self.line < (len(self.lines) - 1):
+            if self.line < (len(self.sp.lines) - 1):
                 self.line += 1
 
         else:
@@ -105,11 +105,11 @@ class CommandsMixin:
 
             l = self.line
             i = self.column
-            t = self.lines[l].text
+            t = self.sp.lines[l].text
             firstReadFlag = False
             while True:
                 if t == "":  # empty line
-                    if l + 1 < len(self.lines):
+                    if l + 1 < len(self.sp.lines):
                         self.line += 1
                     return
 
@@ -117,11 +117,11 @@ class CommandsMixin:
                 # len(t), so test with >= rather than ==
                 if i + 1 >= len(t):  # end of line
                     if firstReadFlag == False:  # event started at the end of the line
-                        if l + 1 == len(self.lines):
+                        if l + 1 == len(self.sp.lines):
                             return
                         l += 1
                         i = 0
-                        t = self.lines[l].text
+                        t = self.sp.lines[l].text
 
                     self.column = i
                     self.line = l
@@ -158,7 +158,7 @@ class CommandsMixin:
             l = self.line
             i = self.column
 
-            words = getWordIndex(self.lines[l].text)
+            words = getWordIndex(self.sp.lines[l].text)
             while True:
                 for word in words:
                     if word < i:
@@ -170,7 +170,7 @@ class CommandsMixin:
                     self.line = 0
                     self.column = 0
                     return
-                words = getWordIndex(self.lines[l].text)
+                words = getWordIndex(self.sp.lines[l].text)
                 if words:
                     i = words[0] + 1
 
@@ -179,7 +179,7 @@ class CommandsMixin:
             self.acceptAutoComp(cs)
         else:
             self.maybeMark(cs.mark)
-            self.column = len(self.lines[self.line].text)
+            self.column = len(self.sp.lines[self.line].text)
 
     def moveLineStartCmd(self, cs):
         self.maybeMark(cs.mark)
@@ -196,8 +196,8 @@ class CommandsMixin:
     def moveEndCmd(self, cs):
         self.maybeMark(cs.mark)
 
-        self.line = len(self.lines) - 1
-        self.column = len(self.lines[self.line].text)
+        self.line = len(self.sp.lines) - 1
+        self.column = len(self.sp.lines[self.line].text)
 
     def moveSceneUpCmd(self, cs):
         self.maybeMark(cs.mark)
@@ -209,7 +209,7 @@ class CommandsMixin:
         else:
             tmpUp -= 1
             if tmpUp >= 0:
-                self.line = self.getSceneIndexesFromLine(tmpUp)[0]
+                self.line = self.sp.getSceneIndexesFromLine(tmpUp)[0]
 
         self.column = 0
 
@@ -217,7 +217,7 @@ class CommandsMixin:
         self.maybeMark(cs.mark)
 
         tmpBottom = self.getSceneIndexes()[1]
-        self.line = min(len(self.lines) - 1, tmpBottom + 1)
+        self.line = min(len(self.sp.lines) - 1, tmpBottom + 1)
         self.column = 0
 
     # aborts stuff, like selection, auto-completion, etc
@@ -231,15 +231,15 @@ class CommandsMixin:
         self.setMark(l1, 0)
 
         self.line = l2
-        self.column = len(self.lines[l2].text)
+        self.column = len(self.sp.lines[l2].text)
 
     # select all text of the screenplay. sets mark at beginning and moves
     # cursor to the end.
     def selectAllCmd(self, cs):
         self.setMark(0, 0)
 
-        self.line = len(self.lines) - 1
-        self.column = len(self.lines[self.line].text)
+        self.line = len(self.sp.lines) - 1
+        self.column = len(self.sp.lines[self.line].text)
 
     def setMarkCmd(self, cs):
         self.setMark(self.line, self.column)
@@ -278,9 +278,9 @@ class CommandsMixin:
     def undoCmd(self, cs):
         if self.undoHistory.undo(self):
             self.clearMark()
-            self.markChanged()
+            self.sp.markChanged()
 
     def redoCmd(self, cs):
         if self.undoHistory.redo(self):
             self.clearMark()
-            self.markChanged()
+            self.sp.markChanged()

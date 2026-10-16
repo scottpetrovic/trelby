@@ -18,14 +18,11 @@ from trelby.screenplay.constants import (
     LB_LAST,
     LB_SPACE,
 )
-from trelby.screenplay.datatypes import isValidColor
+from trelby.screenplay.datatypes import Mark, isValidColor
 
 
 # save script to a utf-8 encoded string and return that
 def save(sp) -> bytes:
-    sp.cfg.cursorLine = sp.line
-    sp.cfg.cursorColumn = sp.column
-
     output = ""
 
     output += "\ufeff"
@@ -330,14 +327,18 @@ def load(s: str, cfgGl):
     if sp.lines[-1].lb != LB_LAST:
         raise error.MiscError(_("Last line doesn't end an element."))
 
+    # the saved cursor position, which an Editor on the script starts at
+    cursor = Mark(0, 0)
+
     if cfgGl.honorSavedPos:
-        sp.line = sp.cfg.cursorLine
-        sp.column = sp.cfg.cursorColumn
-        sp.validatePos()
+        cursor.line, cursor.column = sp.clampPos(
+            sp.cfg.cursorLine, sp.cfg.cursorColumn
+        )
 
     # lines are stored already wrapped, but they're rewrapped with the
     # current rules anyway, which also converts old LB_SPACE2 breaks
-    sp.reformatAll()
+    sp.reformatAll(cursor)
+    sp.cfg.cursorLine, sp.cfg.cursorColumn = cursor.line, cursor.column
     sp.paginate()
     sp.titles.sort()
     sp.locations.refresh(sp.getSceneNames())

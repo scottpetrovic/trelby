@@ -123,7 +123,7 @@ class SpellCheckDlg(wx.Dialog):
 
         sp = self.ctrl.sp
         ed = self.ctrl.ed
-        u = undo.SinglePara(sp, undo.CMD_MISC, self.sc.line)
+        u = undo.SinglePara(ed, undo.CMD_MISC, self.sc.line)
 
         word = util.toInputStr(misc.fromGUI(self.replaceEntry.GetValue()))
         ls = sp.lines
@@ -144,7 +144,7 @@ class SpellCheckDlg(wx.Dialog):
         ed.clearMark()
         sp.markChanged()
 
-        u.setAfter(sp)
+        u.setAfter(ed)
         ed.undoHistory.add(u)
         sp.paginate()
 

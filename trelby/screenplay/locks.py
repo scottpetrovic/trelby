@@ -23,42 +23,6 @@ class LocksMixin:
     def hasPageLocks(self):
         return any(ln.pageLock for ln in self.lines)
 
-    # lock every page to start where it starts now, with its current
-    # label, so later edits create A-pages / leave gaps instead of moving
-    # text to other pages. if pages are already locked, any A-pages
-    # become locked as well.
-    def lockPages(self):
-        u = undo.FullCopy(self)
-
-        self.paginate()
-
-        for ln in self.lines:
-            ln.pageLock = None
-
-        for p in range(1, len(self.pages)):
-            self.lines[self.pages[p - 1] + 1].pageLock = self.pageLabels[p]
-
-        self.paginate()
-        self.markChanged()
-
-        u.setAfter(self)
-        self.undoHistory.add(u)
-
-    def unlockPages(self):
-        if not self.hasPageLocks():
-            return
-
-        u = undo.FullCopy(self)
-
-        for ln in self.lines:
-            ln.pageLock = None
-
-        self.paginate()
-        self.markChanged()
-
-        u.setAfter(self)
-        self.undoHistory.add(u)
-
     # add a page lock to the given line. if it already has one, the two
     # pages are combined (e.g. "16-17").
     def addPageLock(self, line, label):
@@ -143,39 +107,78 @@ class LocksMixin:
 
         return list(zip(starts, labels))
 
+
+# the Editor's side: locking and unlocking, as undoable edits
+class LocksEditMixin:
+    # lock every page to start where it starts now, with its current
+    # label, so later edits create A-pages / leave gaps instead of moving
+    # text to other pages. if pages are already locked, any A-pages
+    # become locked as well.
+    def lockPages(self):
+        u = undo.FullCopy(self)
+
+        self.sp.paginate()
+
+        for ln in self.sp.lines:
+            ln.pageLock = None
+
+        for p in range(1, len(self.sp.pages)):
+            self.sp.lines[self.sp.pages[p - 1] + 1].pageLock = self.sp.pageLabels[p]
+
+        self.sp.paginate()
+        self.sp.markChanged()
+
+        u.setAfter(self)
+        self.undoHistory.add(u)
+
+    def unlockPages(self):
+        if not self.sp.hasPageLocks():
+            return
+
+        u = undo.FullCopy(self)
+
+        for ln in self.sp.lines:
+            ln.pageLock = None
+
+        self.sp.paginate()
+        self.sp.markChanged()
+
+        u.setAfter(self)
+        self.undoHistory.add(u)
+
     # lock the numbers of all scenes, so that adding scenes creates
     # A-scenes (12A, 12B, ...) and deleting them leaves gaps instead of
     # renumbering the scenes after them. if scenes are already locked,
     # any A-scenes become locked as well.
     def lockScenes(self):
-        labels = self.getSceneLabels()
+        labels = self.sp.getSceneLabels()
 
-        if all(self.getSceneLock(i) == label for i, label in labels):
+        if all(self.sp.getSceneLock(i) == label for i, label in labels):
             return
 
         u = undo.FullCopy(self)
 
-        for ln in self.lines:
+        for ln in self.sp.lines:
             ln.sceneLock = None
 
         for i, label in labels:
-            self.lines[i].sceneLock = label
+            self.sp.lines[i].sceneLock = label
 
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)
 
     def unlockScenes(self):
-        if not any(ln.sceneLock for ln in self.lines):
+        if not any(ln.sceneLock for ln in self.sp.lines):
             return
 
         u = undo.FullCopy(self)
 
-        for ln in self.lines:
+        for ln in self.sp.lines:
             ln.sceneLock = None
 
-        self.markChanged()
+        self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)

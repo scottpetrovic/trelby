@@ -10,8 +10,8 @@ from trelby.line import Line
 
 _ = translations.trelby_translations_load()
 
-# tests for scene locking: pagelock.sceneLabels and the Screenplay
-# functions using it
+# tests for scene locking: pagelock.sceneLabels and the Screenplay and
+# Editor functions using it
 
 
 # return a script with 'scenes' scenes, each with a heading and two
@@ -409,7 +409,10 @@ def testPDFShowsNumbers():
     ed.sp.paginate()
 
     texts = [
-        op.text for pg in render.generatePML(ed.sp).pages for op in pg.ops if hasattr(op, "text")
+        op.text
+        for pg in render.generatePML(ed.sp).pages
+        for op in pg.ops
+        if hasattr(op, "text")
     ]
 
     # each number is printed on both sides of its heading

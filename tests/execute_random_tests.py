@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # ut:ignore
 
-# runs random operations on a Screenplay as a way of trying to find bugs.
+# runs random operations on an Editor as a way of trying to find bugs.
 # note that this is not part of the normal test run, this has to be run
 # manually.
 
@@ -20,8 +20,8 @@ import u
 from screenplay import Editor
 
 
-# generates, stores, saves, loads, and runs operations against a
-# Screenplay object.
+# generates, stores, saves, loads, and runs operations against an
+# Editor.
 class Ops:
     ed: Optional[Editor]
 

@@ -413,7 +413,7 @@ class FindDlg(wx.Dialog):
 
         sp = self.ctrl.sp
         ed = self.ctrl.ed
-        u = undo.SinglePara(sp, undo.CMD_MISC, self.searchLine)
+        u = undo.SinglePara(ed, undo.CMD_MISC, self.searchLine)
 
         ls[self.searchLine].replaceText(
             self.searchColumn, self.searchWidth, util.toInputStr(value)
@@ -449,7 +449,7 @@ class FindDlg(wx.Dialog):
         ed.clearMark()
         sp.markChanged()
 
-        u.setAfter(sp)
+        u.setAfter(ed)
         ed.undoHistory.add(u)
 
         # Replace All paginates once at the end instead
