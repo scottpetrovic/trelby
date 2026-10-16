@@ -45,6 +45,9 @@ import pytest
         "screenplay.plaintext",
         "formats",
         "mcptools",
+        "importers",
+        "importers.fountain",
+        "importers.text",
     ],
 )
 def testImportFirst(module):
@@ -69,6 +72,13 @@ def testImportFirst(module):
         "scriptreport",
         "formats",
         "screenplay.plaintext",
+        "importers",
+        "importers.astx",
+        "importers.celtx",
+        "importers.fadein",
+        "importers.fdx",
+        "importers.fountain",
+        "importers.text",
     ],
 )
 def testModelDoesNotImportWx(module):
