@@ -22,7 +22,7 @@ Without `--test`, config is written to `%USERPROFILE%\Trelby\conf` (Windows) or 
 
 ## Generated files: do not commit
 
-- `trelby/names.txt.gz`, `trelby/dict_en.dat.gz`: gzipped copies of `names.txt` / `dict_en.dat`, produced by `make` (or `gzip -c`). `util.loadMaybeCompressedFile` prefers the uncompressed file, so running from source doesn't need them; they exist only for packaging (PyPI `package_data`, Debian, the exe).
+- `trelby/names.txt.gz`, `trelby/dict_en.dat.gz`: gzipped copies of `names.txt` / `dict_en.dat`, produced by `make` (or `gzip -c`). `gutil.loadMaybeCompressedFile` prefers the uncompressed file, so running from source doesn't need them; they exist only for packaging (PyPI `package_data`, Debian, the exe).
 - `trelby/manual.html`, `trelby/trelby.1.gz`: built from `doc/` by `make`, which needs `xsltproc` plus DocBook XSL stylesheets at Linux paths (use WSL). Without them, Help → Manual is the only thing that breaks.
 - `.venv/`, `build/`, `dist/`, `*.spec`, `.trelby/`.
 
@@ -44,7 +44,7 @@ AI assistants can read and edit scripts over MCP, with one set of tools (`makeSe
 - **In the app:** Settings → MCP Server turns on an HTTP server at `http://127.0.0.1:7789/mcp` (`trelby/mcpapp.py`, off by default, `mcpEnabled` / `mcpPort` in the global config). It edits the open scripts live: the `path` argument picks a script, defaulting to the active tab. Calls run in the GUI thread via `wx.CallAfter`; edits are undoable and refused while a modal dialog is open.
 - **Bridge:** `python -m trelby.mcpserver --app [--port N]` is a stdio server that forwards to the app, for Claude Desktop, which can only start servers. The exe runs it as `Trelby.exe --mcp-bridge [--port N]` (checked in `trelby.trelby.main` before any wx startup; stdio works even though the exe is windowed). The settings page has a button that copies its config entry, in whichever form is running.
 
-The operations are in `trelby/mcptools.py`, which needs neither the MCP SDK nor wx: `FileDoc` (file on disk) and `LiveDoc` (an `Editor` on a script in memory, with undo; `mcpapp.AppDoc` uses the tab's `ctrl.ed` and adds the GUI refresh). Edits get an `Editor` (`FileDoc` makes a throwaway one). Every write needs the revision (a content hash) from an earlier read. Tests: `tests/test_mcptools.py`, `tests/test_mcpserver.py`.
+The operations are in `trelby/mcptools.py`, which needs neither the MCP SDK nor wx (see [Model and GUI modules](#model-and-gui-modules)): `FileDoc` (file on disk) and `LiveDoc` (an `Editor` on a script in memory, with undo; `mcpapp.AppDoc` uses the tab's `ctrl.ed` and adds the GUI refresh). Edits get an `Editor` (`FileDoc` makes a throwaway one). Every write needs the revision (a content hash) from an earlier read. Tests: `tests/test_mcptools.py`, `tests/test_mcpserver.py`.
 
 The `mcp` SDK is an optional extra (`pip install trelby[mcp]`, entry point `trelby-mcp`); without it the app runs normally and the settings page says the server isn't available. The exe always bundles it (about 25 MB of the ~125 MB `dist/Trelby/`): `tools/build-exe.sh` installs it if missing and fails if the lazily imported MCP/uvicorn modules are missing from `PYZ-00.toc`. To test the exe's server without touching your real settings, run it with `--test` from the repo root and add `MCP/Enabled:True` (and `MCP/Port:N` if a source Trelby already holds 7789) to `.trelby/default.conf`.
 
@@ -66,6 +66,18 @@ For a stdio client config, use the venv's python as the command, `["-m", "trelby
 - `import trelby.screenplay as screenplay` still gives `Screenplay`, the `LB_*` / element type constants and the `datatypes` classes. The package's `__init__` must import `constants` before anything else, because `config` and `line` import the package while it's still loading.
 - `mcptools.py` has its own `export` function, so it imports the export package as `exporters`.
 
+## Model and GUI modules
+
+The model imports without wxPython, so the MCP server and anything else working on `.trelby` files runs without it: `screenplay`, `config`, `commands`, `keys`, `util`, `textutil`, `misc`, `pml`, the reports, `mcptools`... `tests/test_imports.py` checks this (`testModelDoesNotImportWx`), and that each listed module can be the first trelby import. Keep it that way: a model module must not import wx or a GUI module; pass it the data instead (e.g. `spellcheck.loadDict(s)` takes the dictionary's text, and the GUI's `spellcheckdlg.loadDict(frame)` reads the file, with message boxes on errors).
+
+Where things live:
+
+- `misc`: the platform, path and version globals (`init`, `isWindows`, `progPath`, `confPath`, `scriptDir`...), `getFullPath` and `mnemonic`.
+- `textutil`: text helpers (case mapping, character classes, `wrapText`, escaping, words). `util`: the other wx-free helpers (numbers, `atomicWrite` and other file helpers, finding the PDF viewer, `ALIGN_*`, `getTextWidth`).
+- `config`: `Config` / `ConfigGlobal`, no wx. `commands`: `Command`, the default command table (`defaultCommands()`, which must stay in alphabetical order) and the key binding helpers (`addShiftKeys`, `removeKey`, `getConflictingKeys`). `keys`: `Key`, `MyKeyEvent`, and copies of the `wx.WXK_*` codes it uses (`tests/test_keys.py` checks them against wx).
+- GUI: `gutil` (text extents, drawing, `finishWindow`, `getBitmap`, themed widgets, and `loadFile` / `writeToFile` / `showPDF`, which show message boxes on errors), `configgui` (`ConfigGui`, the theme), `tabctrl`, `toolbar`, `mrufiles`, and the small dialogs `checkboxdlg`, `textdlg`, `keydlg`, `scriptchooserdlg`. `checkboxitem` is the wx-free item class `CheckBoxDlg` and the reports use.
+- `pml.BOLD` etc. are defined in `fontinfo` and re-exported by `pml`, since `util` imports `fontinfo` and `pml` imports `util`.
+
 ## Code conventions worth knowing
 
 - Data files are found relative to the package: `misc.getFullPath("trelby/resources/...")` (uses `misc.progPath`, the parent of the `trelby/` package) or `trelby.__path__[0]`. Use these instead of hard-coded or CWD-relative paths, or the exe build breaks.
@@ -73,6 +85,6 @@ For a stdio client config, use the venv's python as the command, `["-m", "trelby
 - UI strings are wrapped in `_()` for gettext; translations live in `trelby/locales` and `po/` (see `TRANSLATION_NOTES.txt`).
 - Version string is duplicated in `pyproject.toml`, `trelby/misc.py`, `doc/version.xml`, and `choco/`; bump all of them together.
 - Packaging metadata and dependency bounds live in `pyproject.toml`; `requirements.txt` is the dev install (same bounds plus pytest). Keep them in sync.
-- Menu/control IDs: use `wx.NewIdRef()` (not the deprecated `wx.NewId()`). `WindowIDRef` works as a dict key and in `Bind`/`Append`, but doesn't support arithmetic; convert with `int()` when you need it (see `misc.MRUFiles`). Submenus use `AppendSubMenu`.
+- Menu/control IDs: use `wx.NewIdRef()` (not the deprecated `wx.NewId()`). `WindowIDRef` works as a dict key and in `Bind`/`Append`, but doesn't support arithmetic; convert with `int()` when you need it (see `mrufiles.MRUFiles`). Submenus use `AppendSubMenu`.
 - Font constants: use `wx.FONTFAMILY_*` / `wx.FONTSTYLE_*` / `wx.FONTWEIGHT_*`, not the old `wx.NORMAL` / `wx.BOLD` / `wx.MODERN`.
 - To catch new deprecations, run the app with `.venv/Scripts/python -X dev -W always trelby.py --test`; startup should print no warnings.
