@@ -1,12 +1,29 @@
+import dataclasses
+
 import wx
 
 import trelby.config as config
 import trelby.gutil as gutil
 import trelby.misc as misc
-import trelby.textutil as textutil
-import trelby.undo as undo
+import trelby.screenplay.search as search
 
 
+# what the dialog was left showing, kept per script (MyCtrl.findState) for
+# the next time it's opened
+class FindState:
+    def __init__(self):
+        # opts.elementTypes is the element types checked in the list, or
+        # None for all
+        self.opts = search.FindOptions()
+        self.replaceText = ""
+
+        # whether the element type list is shown. when it isn't, every
+        # element type is searched.
+        self.showTypes = False
+
+
+# the search itself is in screenplay/search.py: this is the dialog, and
+# what it remembers between searches (the last match)
 class FindDlg(wx.Dialog):
     def __init__(self, parent, ctrl):
         wx.Dialog.__init__(
@@ -19,13 +36,11 @@ class FindDlg(wx.Dialog):
 
         self.ctrl = ctrl
 
-        # the match found last: its line (-1 if none), start column and
-        # length. it's what Replace replaces, and Find steps past it when
-        # the cursor is still at its start. the options and texts outlive
-        # the dialog in ctrl.findDlg* (see loadState / saveState).
-        self.searchLine = -1
-        self.searchColumn = -1
-        self.searchWidth = -1
+        # the search.Match found last, or None. it's what Replace
+        # replaces, and Find steps past it when the cursor is still at its
+        # start. the options and texts outlive the dialog in
+        # ctrl.findState (see loadState / saveState).
+        self.match = None
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -143,45 +158,36 @@ class FindDlg(wx.Dialog):
         self.findEntry.SetFocus()
 
     def loadState(self):
-        self.findEntry.SetValue(self.ctrl.findDlgFindText)
+        state = self.ctrl.findState
+        opts = state.opts
+
+        self.findEntry.SetValue(opts.text)
         self.findEntry.SetSelection(-1, -1)
 
-        self.replaceEntry.SetValue(self.ctrl.findDlgReplaceText)
+        self.replaceEntry.SetValue(state.replaceText)
 
-        self.matchWholeCb.SetValue(self.ctrl.findDlgMatchWholeWord)
-        self.matchCaseCb.SetValue(self.ctrl.findDlgMatchCase)
+        self.matchWholeCb.SetValue(opts.wholeWord)
+        self.matchCaseCb.SetValue(opts.matchCase)
 
-        self.direction.SetSelection(int(not self.ctrl.findDlgDirUp))
+        self.direction.SetSelection(int(not opts.up))
 
-        count = self.elements.GetCount()
-        tmp = self.ctrl.findDlgElements
+        for i, lt in enumerate(self.elementTypes):
+            self.elements.Check(
+                i, (opts.elementTypes is None) or (lt in opts.elementTypes)
+            )
 
-        if (tmp == None) or (len(tmp) != count):
-            tmp = [True] * self.elements.GetCount()
-
-        for i in range(count):
-            self.elements.Check(i, tmp[i])
-
-        self.showExtra(self.ctrl.findDlgUseExtra)
+        self.showExtra(state.showTypes)
 
     def saveState(self):
-        self.getParams()
+        state = FindState()
+        state.opts = self.getOptions()
+        state.replaceText = misc.fromGUI(self.replaceEntry.GetValue())
+        state.showTypes = self.showTypes
 
-        self.ctrl.findDlgFindText = misc.fromGUI(self.findEntry.GetValue())
-        self.ctrl.findDlgReplaceText = misc.fromGUI(self.replaceEntry.GetValue())
-        self.ctrl.findDlgMatchWholeWord = self.matchWhole
-        self.ctrl.findDlgMatchCase = self.matchCase
-        self.ctrl.findDlgDirUp = self.dirUp
-        self.ctrl.findDlgUseExtra = self.useExtra
-
-        tmp = []
-        for i in range(self.elements.GetCount()):
-            tmp.append(bool(self.elements.IsChecked(i)))
-
-        self.ctrl.findDlgElements = tmp
+        self.ctrl.findState = state
 
     def OnMore(self, event):
-        self.showExtra(not self.useExtra)
+        self.showExtra(not self.showTypes)
 
     def OnText(self, event):
         if self.ctrl.ed.mark:
@@ -229,7 +235,7 @@ class FindDlg(wx.Dialog):
         self.extraLabel.Show(flag)
         self.elements.Show(flag)
 
-        self.useExtra = flag
+        self.showTypes = flag
 
         if flag:
             self.moreButton.SetLabel(_("<<< Less"))
@@ -242,240 +248,130 @@ class FindDlg(wx.Dialog):
         self.SetMinSize(self.GetBestSize())
         self.Fit()
 
-    def getParams(self):
-        self.dirUp = self.direction.GetSelection() == 0
-        self.matchWhole = self.matchWholeCb.IsChecked()
-        self.matchCase = self.matchCaseCb.IsChecked()
-
-        if self.useExtra:
-            self.elementMap = {}
-            for i in range(self.elements.GetCount()):
-                self.elementMap[self.elementTypes[i]] = self.elements.IsChecked(i)
-
-    def typeIncluded(self, lt):
-        if not self.useExtra:
-            return True
-
-        return self.elementMap[lt]
-
-    def OnFind(self, event=None, autoFind=False):
-        if not autoFind:
-            self.getParams()
-
-        value = misc.fromGUI(self.findEntry.GetValue())
-        if not self.matchCase:
-            value = textutil.upper(value)
-
-        if value == "":
-            return
-
-        self.searchWidth = len(value)
-
-        if self.dirUp:
-            inc = -1
-        else:
-            inc = 1
-
-        # each line is searched on its own, so text that wraps from one
-        # line to the next isn't found
-        line = self.ctrl.ed.line
-        col = self.ctrl.ed.column
-        ls = self.ctrl.sp.lines
-
-        # the cursor is still at the start of the last match, so start one
-        # character past it, so as not to find it again
-        if (line == self.searchLine) and (col == self.searchColumn):
-            text = ls[line].text
-
-            col += inc
-            if col >= len(text):
-                line += 1
-                col = 0
-            elif col < 0:
-                line -= 1
-                if line >= 0:
-                    col = max(len(ls[line].text) - 1, 0)
-
-        # True when this search covers the whole script: it starts at the
-        # very start (or end, going up), or it has wrapped around. then
-        # reaching the other end means there are no matches at all.
-        fullSearch = False
-        if inc > 0:
-            if (line == 0) and (col == 0):
-                fullSearch = True
-        else:
-            if (line == (len(ls) - 1)) and (col == (len(ls[line].text))):
-                fullSearch = True
-
-        self.searchLine = -1
-
-        while True:
-            found = False
-
-            while True:
-                if (line >= len(ls)) or (line < 0):
-                    break
-
-                if self.typeIncluded(ls[line].lt):
-                    text = ls[line].text
-                    value = str(value)
-                    if not self.matchCase:
-                        text = textutil.upper(text)
-
-                    # going up, the match's last character must be at or
-                    # before col
-                    if inc > 0:
-                        res = text.find(value, col)
-                    else:
-                        res = text.rfind(value, 0, col + 1)
-
-                    # the neighboring characters are sliced rather than
-                    # indexed, so that past the ends of the line they're
-                    # "", which isWordBoundary counts as a boundary
-                    if res != -1:
-                        if not self.matchWhole or (
-                            textutil.isWordBoundary(text[res - 1 : res])
-                            and textutil.isWordBoundary(
-                                text[res + len(value) : res + len(value) + 1]
-                            )
-                        ):
-
-                            found = True
-
-                            break
-
-                line += inc
-                if inc > 0:
-                    col = 0
-                else:
-                    if line >= 0:
-                        col = max(len(ls[line].text) - 1, 0)
-
-            if found:
-                self.searchLine = line
-                self.searchColumn = res
-                self.ctrl.ed.gotoPos(line, res)
-                self.ctrl.ed.setMark(line, res + self.searchWidth - 1)
-
-                if not autoFind:
-                    self.ctrl.makeLineVisible(line)
-                    self.ctrl.updateScreen()
-
-                break
-            else:
-                if autoFind:
-                    break
-
-                if fullSearch:
-                    wx.MessageBox(
-                        _("Search finished without results."),
-                        _("No matches"),
-                        wx.OK,
-                        self,
-                    )
-
-                    break
-
-                if inc > 0:
-                    s1 = _("end")
-                    s2 = _("start")
-                    restart = 0
-                else:
-                    s1 = _("start")
-                    s2 = _("end")
-                    restart = len(ls) - 1
-
-                if (
-                    wx.MessageBox(
-                        _("Search finished at the {} of the script. Do\nyou want to continue at the {} of the script?").format(
-                            s1, s2
-                        ),
-                        _("Continue?"),
-                        wx.YES_NO | wx.YES_DEFAULT,
-                        self,
-                    )
-                    == wx.YES
-                ):
-                    line = restart
-                    fullSearch = True
-                else:
-                    break
-
-        if not autoFind:
-            self.ctrl.updateScreen()
-
-    def OnReplace(self, event=None, autoFind=False):
-        if self.searchLine == -1:
-            return False
-
-        value = textutil.toInputStr(misc.fromGUI(self.replaceEntry.GetValue()))
-        ls = self.ctrl.sp.lines
-
-        sp = self.ctrl.sp
-        ed = self.ctrl.ed
-        u = undo.SinglePara(ed, undo.CMD_MISC, self.searchLine)
-
-        ls[self.searchLine].replaceText(
-            self.searchColumn, self.searchWidth, textutil.toInputStr(value)
+    # the options the dialog shows, with the checked element types (None
+    # if they all are)
+    def getOptions(self):
+        types = frozenset(
+            lt for i, lt in enumerate(self.elementTypes) if self.elements.IsChecked(i)
         )
 
-        ed.rewrapPara(sp.getParaFirstIndexFromLine(self.searchLine))
+        if len(types) == len(self.elementTypes):
+            types = None
 
-        self.searchLine = -1
+        return search.FindOptions(
+            text=misc.fromGUI(self.findEntry.GetValue()),
+            matchCase=self.matchCaseCb.IsChecked(),
+            wholeWord=self.matchWholeCb.IsChecked(),
+            up=self.direction.GetSelection() == 0,
+            elementTypes=types,
+        )
 
-        diff = len(value) - self.searchWidth
+    # the options to search with: every element type when the list is
+    # hidden
+    def searchOptions(self):
+        opts = self.getOptions()
 
-        # put the cursor where the next search should start: past the
-        # replacement going down, just before it going up, so that it
-        # isn't searched again
-        if not self.dirUp:
-            ed.column += self.searchWidth + diff
+        if not self.showTypes:
+            opts = dataclasses.replace(opts, elementTypes=None)
+
+        return opts
+
+    # Find next: find the next match from the cursor and select it,
+    # offering to continue at the other end of the script when there are
+    # no more
+    def OnFind(self, event=None):
+        opts = self.searchOptions()
+        if not opts.text:
+            return
+
+        ed = self.ctrl.ed
+        sp = self.ctrl.sp
+        line, col = ed.line, ed.column
+
+        # the cursor is still at the start of the last match, so going
+        # down, start one character past it, so as not to find it again.
+        # (going up, a match must end at or before the cursor anyway.)
+        if (
+            self.match
+            and not opts.up
+            and ((line, col) == (self.match.line, self.match.col))
+        ):
+            col += 1
+
+        # a search from the very start (or end, going up) covers the whole
+        # script
+        fullSearch = (line, col) == search.startPos(sp, opts.up)
+
+        self.match = search.findNext(sp, line, col, opts)
+
+        if not self.match and not fullSearch:
+            if opts.up:
+                s1 = _("start")
+                s2 = _("end")
+            else:
+                s1 = _("end")
+                s2 = _("start")
+
+            if (
+                wx.MessageBox(
+                    _("Search finished at the {} of the script. Do\nyou want to continue at the {} of the script?").format(
+                        s1, s2
+                    ),
+                    _("Continue?"),
+                    wx.YES_NO | wx.YES_DEFAULT,
+                    self,
+                )
+                != wx.YES
+            ):
+                self.ctrl.updateScreen()
+
+                return
+
+            self.match = search.findNext(sp, *search.startPos(sp, opts.up), opts)
+
+        if self.match:
+            m = self.match
+            ed.gotoPos(m.line, m.col)
+            ed.setMark(m.line, m.col + m.length - 1)
+
+            self.ctrl.makeLineVisible(m.line)
         else:
-            ed.column -= 1
+            wx.MessageBox(
+                _("Search finished without results."),
+                _("No matches"),
+                wx.OK,
+                self,
+            )
 
-            if ed.column < 0:
-                ed.line -= 1
+        self.ctrl.updateScreen()
 
-                if ed.line < 0:
-                    ed.line = 0
-                    ed.column = 0
+    # Replace: replace the current match, and find the next one
+    def OnReplace(self, event=None):
+        if not self.match:
+            return
 
-                    self.searchLine = 0
-                    self.searchColumn = 0
-                    self.searchWidth = 0
-                else:
-                    ed.column = len(ls[ed.line].text)
+        opts = self.searchOptions()
 
-        ed.clearMark()
-        sp.markChanged()
+        self.ctrl.ed.replaceAt(
+            self.match, misc.fromGUI(self.replaceEntry.GetValue()), opts.up
+        )
+        self.match = None
+        self.ctrl.sp.paginate()
 
-        u.setAfter(ed)
-        ed.undoHistory.add(u)
+        self.OnFind()
 
-        # Replace All paginates once at the end instead
-        if not autoFind:
-            sp.paginate()
-
-        self.OnFind(autoFind=autoFind)
-
-        return True
-
-    # searches with autoFind=True don't offer to wrap around, so this only
-    # replaces the matches from the cursor to the end of the script (or the
-    # start, when searching up)
+    # replace every match in the script
     def OnReplaceAll(self, event=None):
-        self.getParams()
+        opts = self.searchOptions()
+        ed = self.ctrl.ed
 
-        if self.searchLine == -1:
-            self.OnFind(autoFind=True)
+        count = ed.replaceAll(opts, misc.fromGUI(self.replaceEntry.GetValue()))
 
-        count = 0
-        while self.OnReplace(autoFind=True):
-            count += 1
+        self.match = None
 
         if count != 0:
             self.ctrl.sp.paginate()
-            self.ctrl.makeLineVisible(self.ctrl.ed.line)
+            self.ctrl.makeLineVisible(ed.line)
             self.ctrl.updateScreen()
 
         wx.MessageBox(_("Replaced {} matches").format(count), _("Results"), wx.OK, self)

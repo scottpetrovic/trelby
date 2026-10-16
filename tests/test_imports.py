@@ -44,6 +44,7 @@ import pytest
         "screenplay.render",
         "screenplay.plaintext",
         "screenplay.speeches",
+        "screenplay.search",
         "formats",
         "mcptools",
         "importers",
@@ -54,6 +55,8 @@ import pytest
         "characterreport",
         "dialoguechart",
         "reports",
+        "finddlg",
+        "spellcheckdlg",
     ],
 )
 def testImportFirst(module):
@@ -85,6 +88,7 @@ def testImportFirst(module):
         "screenplay.speeches",
         "formats",
         "screenplay.plaintext",
+        "screenplay.search",
         "importers",
         "importers.astx",
         "importers.celtx",

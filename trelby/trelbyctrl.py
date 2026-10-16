@@ -9,6 +9,7 @@ import wx
 
 import trelby.autosave as autosave
 import trelby.commands as commands
+import trelby.finddlg as finddlg
 import trelby.formats as formats
 import trelby.gutil as gutil
 import trelby.keys as keys
@@ -141,14 +142,8 @@ class MyCtrl(wx.Control):
         # clicks, which wx has no event for
         self.lastDClick = None
 
-        # find dialog stored settings
-        self.findDlgFindText = ""
-        self.findDlgReplaceText = ""
-        self.findDlgMatchWholeWord = False
-        self.findDlgMatchCase = False
-        self.findDlgDirUp = False
-        self.findDlgUseExtra = False
-        self.findDlgElements = None
+        # what the find dialog was left showing
+        self.findState = finddlg.FindState()
 
     def createEmptySp(self):
         self.removeRecovery()

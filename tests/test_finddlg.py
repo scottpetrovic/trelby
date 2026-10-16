@@ -103,9 +103,7 @@ class Finder:
 
         dlg = finddlg.FindDlg.__new__(finddlg.FindDlg)
         dlg.ctrl = Ctrl(ed)
-        dlg.searchLine = -1
-        dlg.searchColumn = -1
-        dlg.searchWidth = -1
+        dlg.match = None
 
         dlg.findEntry = Text(text)
         dlg.replaceEntry = Text(replace)
@@ -117,7 +115,7 @@ class Finder:
         dlg.elements = CheckList(
             (types is None) or (lt in types) for lt in dlg.elementTypes
         )
-        dlg.useExtra = types is not None
+        dlg.showTypes = types is not None
 
         self.dlg = dlg
 
@@ -135,10 +133,9 @@ class Finder:
 
     # the current match, as (line, column, length), or None
     def match(self):
-        if self.dlg.searchLine == -1:
-            return None
+        m = self.dlg.match
 
-        return (self.dlg.searchLine, self.dlg.searchColumn, self.dlg.searchWidth)
+        return m and (m.line, m.col, m.length)
 
     # Find next. returns the match, which is also selected.
     def find(self):
@@ -230,12 +227,12 @@ def testFindUp():
 def testFindUpFromMiddleOfLine():
     ed = script()
 
-    # going up, a match is found if it ends before the cursor, or at the
-    # character under it
-    ed.gotoPos(1, 35)
+    # going up, a match is found if it ends at or before the cursor. (it
+    # used to be found when it ended on the character under it, too.)
+    ed.gotoPos(1, 36)
     assert Finder(ed, "cat", up=True).find() == (1, 33, 3)
 
-    ed.gotoPos(1, 34)
+    ed.gotoPos(1, 35)
     assert Finder(ed, "cat", up=True).find() == (1, 4, 3)
 
 
@@ -269,23 +266,27 @@ def testFindWholeWord():
     )
     f = Finder(ed, "cat", wholeWord=True)
 
-    assert f.find() == (0, 0, 3)
-
-    # only the first match on each line (from the cursor) is checked for
-    # being a whole word, and when it isn't, the line's other matches are
-    # missed: here it's "cat's" (an apostrophe is part of a word), so the
-    # "cat" after it is skipped, and on the next line it's "cats"
-    assert f.find() == (0, 0, 3)
+    # an apostrophe is part of a word, so "cat's" isn't "cat". the matches
+    # after one that isn't a whole word are still found (they used to be
+    # skipped, for the rest of the line).
+    assert findAll(f, 4) == [(0, 0, 3), (0, 15, 3), (1, 5, 3), (0, 0, 3)]
     assert f.messages == [AT_END]
 
 
-def testFindWholeWordMissesLaterMatchOnLine():
+def testFindWholeWordLaterMatchOnLine():
     f = Finder(script(), "cat", wholeWord=True)
 
     # "Concatenate the CAT." has "cat" in "Concatenate" first
-    assert findAll(f, 4) == [(1, 4, 3), (1, 33, 3), (3, 0, 3), (3, 10, 3)]
-    assert f.find() == (1, 4, 3)
-    assert f.messages == [AT_END]
+    assert findAll(f, 5) == [(1, 4, 3), (1, 33, 3), (3, 0, 3), (3, 10, 3), (4, 16, 3)]
+    assert f.messages == []
+
+
+def testFindWholeWordGoingUp():
+    ed = makeEd((scr.ACTION, "cat cats concat"))
+    ed.gotoPos(0, 15)
+    f = Finder(ed, "cat", wholeWord=True, up=True)
+
+    assert f.find() == (0, 0, 3)
 
 
 def testFindInElementTypes():
@@ -335,10 +336,10 @@ def testFindWrapsAroundGoingUp():
     assert f.messages == [AT_START]
 
 
-def testFindUpAfterWrapUsesFirstLinesLength():
-    # going up, after wrapping around to the end, the last line is
-    # searched from where the first line's search ended (its length - 1),
-    # so a match further right on it is missed
+def testFindUpWrapsToEndOfLastLine():
+    # going up, after wrapping around to the end, the whole last line is
+    # searched. (it used to be searched only as far as the first line was
+    # long.)
     ed = makeEd(
         (scr.ACTION, "dog"),
         (scr.ACTION, "nothing here"),
@@ -347,8 +348,8 @@ def testFindUpAfterWrapUsesFirstLinesLength():
     ed.gotoPos(1, 0)
     f = Finder(ed, "cat", up=True)
 
-    assert f.find() is None
-    assert f.messages == [AT_START, NO_RESULTS]
+    assert f.find() == (2, 23, 3)
+    assert f.messages == [AT_START]
 
 
 def testFindNoMatches():
@@ -463,7 +464,7 @@ def testReplaceWithLongerTextRewraps():
     ed._validate()
 
 
-def testReplaceCursorDriftWhenReplacementWraps():
+def testReplaceCursorWhenReplacementWraps():
     w = makeEd((scr.ACTION, "")).sp.cfg.getType(scr.ACTION).width
     ed = makeEd(
         (scr.ACTION, "x" * (w - 5) + " cat " + "y" * 10),
@@ -473,7 +474,6 @@ def testReplaceCursorDriftWhenReplacementWraps():
 
     f = Finder(ed, "cat", replace="big dog")
     f.find()
-    f.run(f.dlg.getParams)
 
     # replace without finding the next match, to see where the cursor
     # is left
@@ -482,10 +482,13 @@ def testReplaceCursorDriftWhenReplacementWraps():
 
     assert texts(ed)[:2] == ["x" * (w - 5) + " big", "dog " + "y" * 10]
 
-    # the cursor is moved len("big dog") right of the match, on the first
-    # line, which is now shorter than that
-    assert (ed.line, ed.column) == (0, w - 4 + 7)
-    assert ed.column > len(ed.sp.lines[0].text)
+    # the cursor is just past the replacement, on the next line. (it used
+    # to be moved len("big dog") right of the match, past the end of the
+    # first line.)
+    assert (ed.line, ed.column) == (1, 3)
+    ed._validate()
+
+    assert f.find() == (2, 9, 3)
 
 
 def testReplaceAll():
@@ -503,27 +506,34 @@ def testReplaceAll():
     ed._validate()
 
 
-def testReplaceAllFromCursorToEnd():
+def testReplaceAllWholeScript():
     ed = script()
     ed.gotoPos(3, 5)
     f = Finder(ed, "cat", replace="dog")
 
-    # nothing before the cursor is replaced
-    assert f.replaceAll() == "Replaced 3 matches"
-    assert texts(ed)[1] == "The cat sits on the mat. Another cat."
-    assert texts(ed)[3] == "Cat food, dog."
-    assert f.messages == ["Replaced 3 matches"]
+    # the whole script, not just from the cursor on (as it used to be)
+    assert f.replaceAll() == "Replaced 6 matches"
+    assert texts(ed)[1] == "The dog sits on the mat. Another dog."
+    assert texts(ed)[3] == "dog food, dog."
+    assert f.messages == ["Replaced 6 matches"]
+
+    # the cursor is past the last replacement
+    assert (ed.line, ed.column) == (4, 19)
+    assert ed.mark is None
 
 
-def testReplaceAllIncludesCurrentMatch():
+def testReplaceAllGoingUp():
     ed = script()
     ed.gotoPos(3, 5)
     f = Finder(ed, "cat", replace="dog", up=True)
 
     assert f.find() == (3, 0, 3)
-    assert f.replaceAll() == "Replaced 3 matches"
+    assert f.replaceAll() == "Replaced 6 matches"
     assert texts(ed)[1] == "The dog sits on the mat. Another dog."
-    assert texts(ed)[3] == "dog food, cat."
+    assert texts(ed)[3] == "dog food, dog."
+
+    # and Find starts afresh
+    assert f.match() is None
 
 
 def testReplaceAllWithTextContainingMatch():
@@ -547,9 +557,105 @@ def testReplaceAllUndo():
     ed = script()
     f = Finder(ed, "cat", replace="dog")
     f.replaceAll()
+    after = texts(ed)
 
-    # one undo step per match
-    for i in range(6):
-        ed.cmd("undo")
-
+    # one undo step
+    ed.cmd("undo")
     assert texts(ed) == texts(script())
+    ed._validate()
+
+    ed.cmd("redo")
+    assert texts(ed) == after
+    ed._validate()
+
+
+def testReplaceAllRewraps():
+    ed = makeEd((scr.ACTION, "A cat. " * 12), (scr.DIALOGUE, "cat " * 30))
+    f = Finder(ed, "cat", replace="hippopotamus")
+
+    assert f.replaceAll() == "Replaced 42 matches"
+    assert "".join(texts(ed)).count("hippopotamus") == 42
+    ed._validate()
+
+    ed.cmd("undo")
+    assert texts(ed) == texts(
+        makeEd((scr.ACTION, "A cat. " * 12), (scr.DIALOGUE, "cat " * 30))
+    )
+
+
+def testReplaceAllInElementTypes():
+    ed = script()
+    f = Finder(ed, "cat", replace="dog", types={scr.DIALOGUE})
+
+    assert f.replaceAll() == "Replaced 2 matches"
+    assert texts(ed)[1] == "The cat sits on the mat. Another cat."
+    assert texts(ed)[3] == "dog food, dog."
+
+
+def testReplaceAllWholeWordAndCase():
+    ed = script()
+    f = Finder(ed, "CAT", replace="dog", wholeWord=True, matchCase=True)
+
+    assert f.replaceAll() == "Replaced 1 matches"
+    assert texts(ed)[4] == "Concatenate the dog."
+
+
+def testReplaceAllWithNothing():
+    ed = makeEd((scr.ACTION, "aXbXXc"))
+    f = Finder(ed, "x", replace="")
+
+    assert f.replaceAll() == "Replaced 3 matches"
+    assert texts(ed) == ["abc"]
+    ed._validate()
+
+
+def testStateOutlivesDialog():
+    ed = script()
+    f = Finder(
+        ed,
+        "cat",
+        replace="dog",
+        matchCase=True,
+        up=True,
+        types={scr.DIALOGUE, scr.ACTION},
+    )
+    f.dlg.saveState()
+
+    state = f.dlg.ctrl.findState
+    assert state.opts == finddlg.search.FindOptions(
+        text="cat",
+        matchCase=True,
+        up=True,
+        elementTypes=frozenset([scr.DIALOGUE, scr.ACTION]),
+    )
+    assert state.replaceText == "dog"
+    assert state.showTypes
+
+    g = Finder(ed, "")
+    g.dlg.ctrl.findState = state
+    with mock.patch.object(g.dlg, "showExtra") as showExtra:
+        g.dlg.loadState()
+
+    showExtra.assert_called_once_with(True)
+    g.dlg.showTypes = True
+    assert g.dlg.getOptions() == state.opts
+    assert g.dlg.replaceEntry.GetValue() == "dog"
+
+
+def testHiddenTypesAreRememberedButNotUsed():
+    ed = script()
+    f = Finder(ed, "cat", types={scr.DIALOGUE})
+    f.dlg.showTypes = False
+
+    assert f.find() == (1, 4, 3)
+
+    f.dlg.saveState()
+    assert f.dlg.ctrl.findState.opts.elementTypes == frozenset([scr.DIALOGUE])
+    assert not f.dlg.ctrl.findState.showTypes
+
+
+def testNewStateSearchesEverything():
+    state = finddlg.FindState()
+
+    assert state.opts.elementTypes is None
+    assert not state.showTypes

@@ -16,6 +16,8 @@
 # Editor:
 #   editing       type changes, joining / splitting, whole-script edits
 #   formatting    bold / italic / underline
+#   search        replacing text (replaceRange, replaceAll); the module's
+#                 findNext(sp, ...) does the finding
 #   autocomp      the auto-completion list
 #   selection     the selection and the internal clipboard
 #   commands      the editor's commands: movement, type changes, undo

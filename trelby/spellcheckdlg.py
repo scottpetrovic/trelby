@@ -4,7 +4,6 @@ import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.spellcheck as spellcheck
 import trelby.textutil as textutil
-import trelby.undo as undo
 import trelby.util as util
 
 
@@ -138,32 +137,16 @@ class SpellCheckDlg(wx.Dialog):
         if not self.sc.word:
             return
 
-        sp = self.ctrl.sp
         ed = self.ctrl.ed
-        u = undo.SinglePara(ed, undo.CMD_MISC, self.sc.line)
+        word = misc.fromGUI(self.replaceEntry.GetValue())
 
-        word = textutil.toInputStr(misc.fromGUI(self.replaceEntry.GetValue()))
-        ls = sp.lines
+        ed.replaceRange(self.sc.line, self.sc.col, len(self.sc.word), word)
 
-        ed.gotoPos(self.sc.line, self.sc.col)
-
-        ls[self.sc.line].replaceText(
-            self.sc.col, len(self.sc.word), textutil.toInputStr(word)
-        )
-
-        ed.rewrapPara(sp.getParaFirstIndexFromLine(self.sc.line))
-
-        # rewrapping a paragraph can have moved the cursor, so get the new
-        # location of it, and then advance past the just-changed word
+        # carry on past the new word, wherever rewrapping put it
         self.sc.line = ed.line
-        self.sc.col = ed.column + len(word)
+        self.sc.col = ed.column
 
-        ed.clearMark()
-        sp.markChanged()
-
-        u.setAfter(ed)
-        ed.undoHistory.add(u)
-        sp.paginate()
+        self.ctrl.sp.paginate()
 
         self.gotoNext(False)
 
