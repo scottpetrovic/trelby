@@ -28,6 +28,7 @@
 #   render        laying pages out as pml, for PDFs and the page views
 #   export/       the export formats (text, HTML, FDX, Fountain, RTF, PDF)
 #   compare       comparing two scripts
+#   plaintext     lines as plain text and back, for the system clipboard
 #   proofing      the script checker
 #
 # constants.py has the line break and element type constants, and

@@ -1,3 +1,8 @@
+# the main window's status bar (MainStatusBar), and StatusBar, which it's
+# built on.
+
+import time
+
 import wx
 
 
@@ -104,3 +109,191 @@ class StatusBar(wx.Window):
     def OnSize(self, event):
         self.Refresh()
         event.Skip()
+
+
+def formatWordCount(cnt):
+    if cnt == 1:
+        return _("1 word")
+
+    return _("%s words") % "{:,}".format(cnt)
+
+
+# estimated running time, using the usual rule of thumb of one minute of
+# screen time per script page
+def formatRuntime(minutes):
+    if minutes < 60:
+        return _("Runtime: ~%d min") % minutes
+
+    return _("Runtime: ~%d h %d min") % divmod(minutes, 60)
+
+
+# the main window's status bar. a narrow spacer field keeps the text off the
+# window's left edge. the help field shows whether the script has been
+# autosaved, then come the element types Enter / Tab would create, the
+# script's word count and estimated running time, the current page and the
+# zoom buttons, which call onAction(name) with the name of the
+# menus.Action to run.
+class MainStatusBar(StatusBar):
+    # the fields
+    SB_SPACER = 0
+    SB_HELP = 1
+    SB_NEXT = 2
+    SB_WORDS = 3
+    SB_RUNTIME = 4
+    SB_PAGE = 5
+    SB_ZOOM = 6
+
+    def __init__(self, parent, gd, onAction):
+        StatusBar.__init__(self, parent, self.SB_NEXT)
+
+        self.gd = gd
+
+        style = wx.BU_EXACTFIT | wx.BORDER_NONE
+
+        self.zoomOutBtn = wx.Button(self, -1, "2212", style=style)
+        self.zoomOutBtn.SetToolTip(_("Zoom out"))
+        self.zoomOutBtn.Bind(wx.EVT_BUTTON, lambda event: onAction("ZoomOut"))
+
+        self.zoomLevelBtn = wx.Button(self, -1, "", style=style)
+        self.zoomLevelBtn.SetToolTip(_("Reset zoom"))
+        self.zoomLevelBtn.Bind(wx.EVT_BUTTON, lambda event: onAction("ZoomReset"))
+
+        self.zoomInBtn = wx.Button(self, -1, "+", style=style)
+        self.zoomInBtn.SetToolTip(_("Zoom in"))
+        self.zoomInBtn.Bind(wx.EVT_BUTTON, lambda event: onAction("ZoomIn"))
+
+        self.zoomBtns = (self.zoomOutBtn, self.zoomLevelBtn, self.zoomInBtn)
+
+        # flat buttons don't look clickable, so they get a hand cursor and
+        # are highlighted while hovered
+        self.zoomHoverBtn = None
+
+        for btn in self.zoomBtns:
+            btn.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+            btn.Bind(wx.EVT_ENTER_WINDOW, self.OnZoomButtonHover)
+            btn.Bind(wx.EVT_LEAVE_WINDOW, self.OnZoomButtonHover)
+
+        # fixed widths, so nothing shifts as the values change
+        pad = self.FromDIP(16)
+        btnW = self.FromDIP(24)
+        self.zoomOutBtn.SetSize(btnW, -1)
+        self.zoomInBtn.SetSize(btnW, -1)
+        self.zoomLevelBtn.SetSize(self.GetTextExtent("300%")[0] + pad, -1)
+
+        pageW = self.GetTextExtent(_("Page %d / %d") % (999, 999))[0] + pad
+        zoomW = sum(b.GetSize().width for b in self.zoomBtns) + self.FromDIP(8)
+        longest = _("Parenthetical")
+        nextW = self.GetTextExtent(_("Enter: %s    Tab: %s") % (longest, longest))[0]
+        wordsW = self.GetTextExtent(formatWordCount(999999))[0] + pad
+        runtimeW = self.GetTextExtent(formatRuntime(599))[0] + pad
+        widths = [self.FromDIP(6), -1, nextW + pad, wordsW, runtimeW, pageW, zoomW]
+        self.SetFieldsCount(len(widths), widths)
+
+        self.Bind(wx.EVT_SIZE, self.OnMainSize)
+
+        self.updateZoom()
+
+        # the status bar may already have its final size, in which case no
+        # size event comes
+        wx.CallAfter(self.layoutZoomButtons)
+
+    def OnMainSize(self, event):
+        self.layoutZoomButtons()
+        event.Skip()
+
+    # place the zoom buttons centered in their field
+    def layoutZoomButtons(self):
+        rect = self.GetFieldRect(self.SB_ZOOM)
+        x = rect.x + (rect.width - sum(b.GetSize().width for b in self.zoomBtns)) // 2
+
+        for btn in self.zoomBtns:
+            w = btn.GetSize().width
+            btn.SetSize(x, rect.y, w, rect.height)
+            x += w
+
+    def OnZoomButtonHover(self, event):
+        btn = event.GetEventObject()
+
+        # moving from one button to the next, the next one's enter event
+        # can come before this one's leave event
+        if event.Entering():
+            self.setZoomButtonHover(btn)
+        elif btn is self.zoomHoverBtn:
+            self.setZoomButtonHover(None)
+
+        event.Skip()
+
+    # highlight the zoom button hovered (None for none), unless it's
+    # disabled
+    def setZoomButtonHover(self, hovered):
+        self.zoomHoverBtn = hovered
+
+        for btn in self.zoomBtns:
+            if (btn is hovered) and btn.IsEnabled():
+                color = self.gd.cfgGui.tabNonActiveBgColor
+            else:
+                color = self.bgColor
+
+            if btn.GetBackgroundColour() != color:
+                btn.SetBackgroundColour(color)
+                btn.Refresh()
+
+    # show the zoom level, and which ways it can still go
+    def updateZoom(self):
+        zoom = self.gd.zoom
+        self.zoomLevelBtn.SetLabel("%d%%" % zoom)
+        self.zoomOutBtn.Enable(self.gd.getZoomStep(-1) != zoom)
+        self.zoomInBtn.Enable(self.gd.getZoomStep(1) != zoom)
+
+        # a button disabled while hovered gets no leave event, and one
+        # enabled under the mouse no enter event
+        pos = wx.GetMousePosition()
+        hovered = [b for b in self.zoomBtns if b.GetScreenRect().Contains(pos)]
+        self.setZoomButtonHover(hovered[0] if hovered else None)
+
+    def applyTheme(self, cfgGui):
+        self.setColors(cfgGui.tabBarBgColor, cfgGui.tabTextColor, cfgGui.tabBorderColor)
+
+    # show the state of the script in the trelbyctrl.MyCtrl ctrl: the
+    # element types Enter and Tab would create, its length and the page
+    # the cursor is on
+    def showScript(self, ctrl):
+        sp = ctrl.sp
+        cfgGl = self.gd.cfgGl
+        cur = cfgGl.getType(sp.lines[ctrl.ed.line].lt)
+
+        if ctrl.ed.tabMakesNew():
+            tabNext = cfgGl.getType(cur.newTypeTab).ti.name
+        else:
+            tabNext = cfgGl.getType(cur.nextTypeTab).ti.name
+
+        enterNext = cfgGl.getType(cur.newTypeEnter).ti.name
+
+        self.SetStatusText(
+            _("Enter: %s    Tab: %s") % (_(enterNext), _(tabNext)), self.SB_NEXT
+        )
+
+        page = sp.line2pageLabel(ctrl.ed.line)
+        pageCnt = sp.line2page(len(sp.lines) - 1)
+
+        if sp.hasPageLocks():
+            s = _("Page %s / %d (locked)") % (page, pageCnt)
+        else:
+            s = _("Page %s / %d") % (page, pageCnt)
+
+        self.SetStatusText(s, self.SB_PAGE)
+        self.SetStatusText(formatWordCount(sp.getWordCount()), self.SB_WORDS)
+        self.SetStatusText(formatRuntime(round(sp.getPageLength())), self.SB_RUNTIME)
+
+    # show whether the trelbyctrl.MyCtrl ctrl's script has been autosaved
+    def showAutosave(self, ctrl):
+        if ctrl.autosaveError is not None:
+            s = _("Autosave failed: %s") % ctrl.autosaveError
+        elif ctrl.autosaveTime is not None:
+            s = _("Recovery copy autosaved at %s") % time.strftime(
+                "%H:%M", time.localtime(ctrl.autosaveTime)
+            )
+        else:
+            s = ""
+
+        self.SetStatusText(s, self.SB_HELP)

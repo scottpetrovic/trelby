@@ -8,14 +8,10 @@ import time
 import wx
 
 import trelby.autosave as autosave
-import trelby.cfgdlg as cfgdlg
 import trelby.commands as commands
-import trelby.config as config
-import trelby.configgui as configgui
 import trelby.formats as formats
 import trelby.gutil as gutil
 import trelby.keys as keys
-import trelby.mcpapp as mcpapp
 import trelby.menus as menus
 import trelby.misc as misc
 import trelby.myimport as myimport
@@ -27,7 +23,6 @@ import trelby.textdlg as textdlg
 import trelby.textutil as textutil
 import trelby.util as util
 from trelby.error import TrelbyError
-from trelby.ids import ID_EDIT_REDO, ID_EDIT_UNDO
 
 # Boolean to determine if toolbar should be shown or not.
 toolbarshown = True
@@ -122,9 +117,6 @@ class MyCtrl(wx.Control):
 
         self.createEmptySp()
         self.updateScreen(redraw=False)
-
-    def refreshGuiConfig(self):
-        self.gd.cfgGui = configgui.ConfigGui(self.gd.cfgGl, self.gd.zoom)
 
     def changeType(self, lt):
         cs = screenplay.CommandState()
@@ -429,36 +421,7 @@ class MyCtrl(wx.Control):
 
     # update GUI elements shared by all scripts, like statusbar etc
     def updateCommon(self):
-        cur = self.gd.cfgGl.getType(self.sp.lines[self.ed.line].lt)
-
-        if self.ed.tabMakesNew():
-            tabNext = "%s" % self.gd.cfgGl.getType(cur.newTypeTab).ti.name
-        else:
-            tabNext = "%s" % self.gd.cfgGl.getType(cur.nextTypeTab).ti.name
-
-        enterNext = self.gd.cfgGl.getType(cur.newTypeEnter).ti.name
-
-        page = self.sp.line2pageLabel(self.ed.line)
-        pageCnt = self.sp.line2page(len(self.sp.lines) - 1)
-
-        self.gd.mainFrame.setElemTypeStatus(cur.lt, tabNext, enterNext)
-        self.gd.mainFrame.setFormatStatus(
-            self.ed.getFormatState(), self.ed.getCenteredState()
-        )
-        self.gd.mainFrame.setPageStatus(page, pageCnt, self.sp.hasPageLocks())
-        self.gd.mainFrame.setLengthStatus(
-            self.sp.getWordCount(), self.sp.getPageLength()
-        )
-
-        canUndo = self.ed.undoHistory.canUndo()
-        canRedo = self.ed.undoHistory.canRedo()
-
-        self.gd.mainFrame.menuBar.Enable(ID_EDIT_UNDO, canUndo)
-        self.gd.mainFrame.menuBar.Enable(ID_EDIT_REDO, canRedo)
-
-        self.gd.mainFrame.toolBar.EnableTool(ID_EDIT_UNDO, canUndo)
-        self.gd.mainFrame.toolBar.EnableTool(ID_EDIT_REDO, canRedo)
-
+        self.gd.mainFrame.showScriptState(self)
         self.panel.outline.scheduleRefresh()
 
     # if text has wide characters (Chinese, Japanese, Korean) and the
@@ -504,83 +467,6 @@ class MyCtrl(wx.Control):
         self.refreshCache()
         self.makeLineVisible(self.ed.line)
         self.updateScreen()
-
-    # apply global config
-    def applyGlobalCfg(self, newCfgGl, writeCfg=True):
-
-        oldCfgGl = self.gd.cfgGl
-
-        self.gd.cfgGl = copy.deepcopy(newCfgGl)
-
-        # if user has ventured from the old default directory, keep it as
-        # the current one, otherwise set the new default as current.
-        if misc.scriptDir == oldCfgGl.scriptDir:
-            misc.scriptDir = self.gd.cfgGl.scriptDir
-
-        # must be done before refreshGuiConfig, since the screen colors
-        # depend on whether the theme is dark. compares Theme objects, as
-        # reloading the custom themes can change one under the same name.
-        appearanceChanged = (
-            config.findTheme(self.gd.cfgGl.theme) is not self.gd.cfgGui.themeChoice
-        )
-
-        if appearanceChanged:
-            configgui.applyAppearance(self.gd.cfgGl.theme)
-
-        self.gd.cfgGl.recalc()
-        self.refreshGuiConfig()
-        self.gd.mainFrame.updateKeyMap()
-
-        # every script keeps a reference to the global config, which has
-        # just been replaced by a copy
-        for c in self.gd.mainFrame.getCtrls():
-            c.sp.cfgGl = self.gd.cfgGl
-            c.refreshCache()
-            c.makeLineVisible(c.ed.line)
-            c.adjustScrollBar()
-
-        self.updateScreen()
-
-        # in case tab colors have been changed
-        self.gd.mainFrame.tabCtrl.Refresh(False)
-        self.gd.mainFrame.elemTypeBar.Refresh(False)
-        self.gd.mainFrame.formatBar.Refresh(False)
-        self.gd.mainFrame.alignBar.Refresh(False)
-
-        for d in self.gd.mainFrame.tbDividers:
-            d.Refresh(False)
-        self.gd.mainFrame.noFSBtn.Refresh(False)
-        self.gd.mainFrame.toolBar.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
-        self.gd.mainFrame.toolBar.Refresh()
-        self.gd.mainFrame.applyThemeColors()
-
-        # and the open dialogs, like the settings dialog this may have been
-        # applied from
-        gutil.themeAllWindows()
-
-        # the toolbar icons' color depends on the theme
-        if appearanceChanged or (
-            self.gd.cfgGl.toolbarIconSize != oldCfgGl.toolbarIconSize
-        ):
-            self.gd.mainFrame.fillToolBar()
-            self.gd.mainFrame.SendSizeEvent()
-            self.updateCommon()
-
-        if self.gd.cfgGl.autosaveInterval != oldCfgGl.autosaveInterval:
-            self.gd.mainFrame.updateAutosaveTimer()
-
-        if (self.gd.cfgGl.mcpEnabled, self.gd.cfgGl.mcpPort) != (
-            oldCfgGl.mcpEnabled,
-            oldCfgGl.mcpPort,
-        ):
-            mcpapp.configure(self.gd, self.gd.mainFrame)
-
-        if writeCfg:
-            gutil.writeToFile(
-                self.gd.confFilename, self.gd.cfgGl.save(), self.gd.mainFrame
-            )
-
-        self.gd.mainFrame.checkFonts()
 
     def OnEraseBackground(self, event):
         pass
@@ -877,20 +763,6 @@ class MyCtrl(wx.Control):
 
         if self.ed.setSceneColor(line, color):
             self.updateScreen()
-
-    def OnSettings(self):
-        dlg = cfgdlg.CfgDlg(
-            self.gd.mainFrame,
-            copy.deepcopy(self.gd.cfgGl),
-            self.applyGlobalCfg,
-            True,
-            self.gd,
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.applyGlobalCfg(dlg.cfg)
-
-        dlg.Destroy()
 
     # run the keyboard command with the given name, which isn't a menu
     # command

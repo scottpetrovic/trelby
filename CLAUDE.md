@@ -64,19 +64,35 @@ For a stdio client config, use the venv's python as the command, `["-m", "trelby
 - The cursor position saved in a file is `sp.cfg.cursorLine` / `cursorColumn`: `load` sets them, a new `Editor(sp)` starts there, and `ed.save()` stores the cursor before saving. `sp.save()` writes whatever they hold, so save through the Editor when there is one.
 - Tests that edit use `u.newEditor()` / `u.loadEditor()` / `u.loadStringEditor()` (`tests/u.py`) and reach the document as `ed.sp`; `ed._validate()` checks the cursor and then the script.
 - `import trelby.screenplay as screenplay` still gives `Screenplay`, the `LB_*` / element type constants and the `datatypes` classes. The package's `__init__` must import `constants` before anything else, because `config` and `line` import the package while it's still loading.
-- `mcptools.py` has its own `export` function, so it imports the export package as `exporters`.
+- Export and import formats are listed once, in `formats.py` (`EXPORT_FORMATS` / `IMPORT_FORMATS`: key, file dialog name, menu label, extensions, the export function or the `myimport` function's name, options, binary flag). The File menu, its file dialogs, `mcptools.export` and the MCP tool's `format` argument all use it, so a new format goes there. Its texts are functions (`lambda: _("...")`), since the lists are made before the translations are loaded.
 
 ## Model and GUI modules
 
-The model imports without wxPython, so the MCP server and anything else working on `.trelby` files runs without it: `screenplay`, `config`, `commands`, `keys`, `util`, `textutil`, `misc`, `pml`, the reports, `mcptools`... `tests/test_imports.py` checks this (`testModelDoesNotImportWx`), and that each listed module can be the first trelby import. Keep it that way: a model module must not import wx or a GUI module; pass it the data instead (e.g. `spellcheck.loadDict(s)` takes the dictionary's text, and the GUI's `spellcheckdlg.loadDict(frame)` reads the file, with message boxes on errors).
+The model imports without wxPython, so the MCP server and anything else working on `.trelby` files runs without it: `screenplay`, `config`, `commands`, `keys`, `formats`, `util`, `textutil`, `misc`, `pml`, the reports, `mcptools`... `tests/test_imports.py` checks this (`testModelDoesNotImportWx`), and that each listed module can be the first trelby import. Keep it that way: a model module must not import wx or a GUI module; pass it the data instead (e.g. `spellcheck.loadDict(s)` takes the dictionary's text, and the GUI's `spellcheckdlg.loadDict(frame)` reads the file, with message boxes on errors).
 
 Where things live:
 
 - `misc`: the platform, path and version globals (`init`, `isWindows`, `progPath`, `confPath`, `scriptDir`...), `getFullPath` and `mnemonic`.
 - `textutil`: text helpers (case mapping, character classes, `wrapText`, escaping, words). `util`: the other wx-free helpers (numbers, `atomicWrite` and other file helpers, finding the PDF viewer, `ALIGN_*`, `getTextWidth`).
-- `config`: `Config` / `ConfigGlobal`, no wx. `commands`: `Command`, the default command table (`defaultCommands()`, which must stay in alphabetical order) and the key binding helpers (`addShiftKeys`, `removeKey`, `getConflictingKeys`). `keys`: `Key`, `MyKeyEvent`, and copies of the `wx.WXK_*` codes it uses (`tests/test_keys.py` checks them against wx).
+- `config`: `Config` / `ConfigGlobal`, no wx. `commands`: `Command`, the default command table (`defaultCommands()`, which must stay in alphabetical order), the key binding helpers (`addShiftKeys`, `removeKey`, `getConflictingKeys`), and what a key press in the editor does: `makeKeyMap` (via `cfgGl.getKeyMap()`, kept in `gd.keyMap`) and `resolveKey`, which returns the character to type or the `Command` to run. `keys`: `Key`, `MyKeyEvent`, and copies of the `wx.WXK_*` codes it uses (`tests/test_keys.py` checks them against wx).
 - GUI: `gutil` (text extents, drawing, `finishWindow`, `getBitmap`, themed widgets, and `loadFile` / `writeToFile` / `showPDF`, which show message boxes on errors), `configgui` (`ConfigGui`, the theme), `tabctrl`, `toolbar`, `mrufiles`, and the small dialogs `checkboxdlg`, `textdlg`, `keydlg`, `scriptchooserdlg`. `checkboxitem` is the wx-free item class `CheckBoxDlg` and the reports use.
 - `pml.BOLD` etc. are defined in `fontinfo` and re-exported by `pml`, since `util` imports `fontinfo` and `pml` imports `util`.
+
+## The main window and the editor
+
+The GUI around one script is split up like this:
+
+- `trelbyframe.MyFrame` (`gd.mainFrame`): the main window. It holds the tabs (`tabctrl`), each a `trelbypanel.MyPanel` with the script's `MyCtrl`, its scroll bar and the outline view, and does the app-wide work: opening, importing and closing scripts, the view mode, zoom, fullscreen, the language, and applying the global settings (`applyGlobalCfg`, which updates every tab). `self.panel` is the current tab.
+- `menus.py`: one table (`makeTable`) of `Action`s, one per menu item, toolbar button and menu keyboard command: name, id, label, mnemonic, accelerator, what it runs (`OnScript(scriptactions.f, *args)` or `OnFrame("method", *args)`) and `canUse(frame, ctrl)`, which greys it out. `build` makes the menu bar from it, `bind` binds the ids (EVT_MENU and EVT_UPDATE_UI), and `makeRightClickMenu` makes the editor's right-click menu. A menu keyboard command (`Command.isMenu`) runs the Action of the same name (`frame.runAction(name)`), so a new menu command needs a `Command` in `commands.py` and an Action with that name. `elemTypes()` is the list of element types the toolbar and the right-click menu show.
+- `scriptactions.py`: the menu commands that work on one script, as functions `f(frame, ctrl, ...)`: the script dialogs, reports, export, find, goto, clipboard, undo... `frame` is the dialogs' parent.
+- `trelbyctrl.MyCtrl`: the editor widget for one script: its file (load, save, autosave), mouse and keyboard input, scrolling, and keeping the screen up to date (`updateScreen`, `makeLineVisible`). `OnKeyChar` uses `commands.resolveKey`: a character is typed, a menu command goes to `frame.runAction`, and other commands run `EDITOR_COMMANDS[name]` on the Editor or a `cmd<name>` method (for the few that need the window, like page up / down).
+- `scriptpainter.py`: drawing the script (`ScriptPainter.paint`). It gets a `Viewport` (the script, its Editor, the screen fonts, the window size and the scale) instead of the `MyCtrl`; the view modes (`viewmode.py`) accept one in place of a ctrl when laying out the screen.
+- `toolbar.MainToolBar` (the toolbar's buttons and its element type / format / centering controls) and `statusbar.MainStatusBar` (the fields and the zoom buttons). Both run Actions by name for their controls, through `frame.runBarAction`. `frame.showScriptState(ctrl)` shows the current script's state in them.
+- `recoverydlg.py`: offering to restore autosaved recovery copies at startup.
+
+App-wide state lives in `globaldata.GlobalData` (`gd`): the configs, `keyMap`, Trelby's own `clipboard`, `showFormatting`, the view mode, zoom...
+
+Tests: `tests/test_menus.py` checks that every menu item and keyboard command has a handler (`PrintScript`, CTRL+P, is listed in Help / Commands but has never had one), and that fixed menu commands' keys match their accelerators. `tests/test_keyinput.py` drives `MyCtrl.OnKeyChar` on a `MyCtrl` made without a window (`MyCtrl.__new__`); `tests/test_scriptpainter.py` paints into a bitmap.
 
 ## Code conventions worth knowing
 

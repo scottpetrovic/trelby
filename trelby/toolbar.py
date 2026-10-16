@@ -1,7 +1,11 @@
-# controls drawn in the main toolbar.
+# the main toolbar (MainToolBar), and the controls drawn in it.
 
 import wx
 
+import trelby.gutil as gutil
+import trelby.ids as ids
+import trelby.keys as keys
+import trelby.menus as menus
 import trelby.textfmt as textfmt
 
 
@@ -260,3 +264,221 @@ class MyFormatBar(MyElemTypeBar):
 
     def itemFont(self, i, selected):
         return self.fonts.get(self.items[i][0], self.font)
+
+
+# the main window's toolbar: the file, undo, find and view buttons, the
+# element type, bold / italic / underline and centering controls, and the
+# outline button. tb is the wx.ToolBar and gd the GlobalData. the buttons
+# have the same ids as the menu items, so the menu's bindings run them;
+# the controls call onAction(name) with the name of the menus.Action to
+# run.
+class MainToolBar:
+    # the align bar's item for centering, a bit that's not one of the
+    # textfmt ones
+    ALIGN_CENTER = 8
+
+    def __init__(self, tb, gd, onAction):
+        self.tb = tb
+        self.gd = gd
+        self.onAction = onAction
+
+        self.elemTypeBar = None
+        self.formatBar = None
+        self.alignBar = None
+        self.dividers = []
+
+    def getCfgGui(self):
+        return self.gd.cfgGui
+
+    def getControls(self):
+        return [self.elemTypeBar, self.formatBar, self.alignBar] + self.dividers
+
+    # (re)create the toolbar's tools, with icons at the size set in the
+    # global config.
+    def fill(self):
+        tb = self.tb
+        size = wx.Size(self.gd.cfgGl.toolbarIconSize, self.gd.cfgGl.toolbarIconSize)
+
+        # empty space around each icon. wxMSW ignores the toolbar's own
+        # margin / packing settings, so it's part of the icons instead.
+        pad = 5
+        paddedSize = wx.Size(size.width + pad * 2, size.height + pad * 2)
+
+        tb.ClearTools()
+        tb.SetToolBitmapSize(paddedSize)
+
+        # ClearTools normally destroys controls along with their tools, but
+        # not always, so destroy any that are left. a destroyed wx object
+        # is false.
+        for c in self.getControls():
+            if c:
+                c.Destroy()
+
+        self.dividers = []
+
+        # height of the controls in the toolbar
+        height = max(
+            tb.FromDIP(paddedSize.height), tb.GetCharHeight() + tb.FromDIP(12)
+        )
+
+        # a vertical line between groups of tools. the toolbar's own
+        # separators don't show against its background color.
+        def addDivider():
+            d = MyToolbarDivider(tb, self.getCfgGui, height)
+            tb.AddControl(d)
+            self.dividers.append(d)
+
+        # disabled tools' icons, faded most of the way into the background.
+        # wx's own greyed versions barely differ from the normal ones, and
+        # on a dark appearance come out lighter.
+        disabledColor = gutil.blendColors(
+            gutil.svgIconColor(), self.gd.cfgGui.tabBarBgColor, 0.65
+        )
+
+        def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
+            bitmap = gutil.svgBitmap(iconFilename, size, pad)
+            disabledBitmap = gutil.svgBitmap(iconFilename, size, pad, disabledColor)
+            tool = tb.AddTool(
+                id, "", bitmap, disabledBitmap, kind=kind, shortHelp=toolTip
+            )
+
+            # the status bar shows this while the tool is hovered
+            tool.SetLongHelp(toolTip)
+
+        addTB(ids.ID_FILE_NEW, "new.svg", _("New file"))
+        addTB(ids.ID_FILE_OPEN, "open.svg", _("Open file") + "...")
+        addTB(ids.ID_FILE_SAVE, "save.svg", _("Save"))
+        addTB(ids.ID_FILE_SAVE_AS, "saveas.svg", _("Save as") + "...")
+        addTB(ids.ID_FILE_CLOSE, "close.svg", _("Close file"))
+
+        addDivider()
+
+        addTB(ids.ID_FILE_IMPORT, "import.svg", _("Import file") + "...")
+        addTB(ids.ID_FILE_EXPORT, "export.svg", _("Export file"))
+
+        addDivider()
+
+        addTB(ids.ID_EDIT_UNDO, "undo.svg", _("Undo"))
+        addTB(ids.ID_EDIT_REDO, "redo.svg", _("Redo"))
+
+        addDivider()
+
+        addTB(ids.ID_EDIT_FIND, "find.svg", _("Find / Replace"))
+        addTB(ids.ID_TOOLBAR_VIEWS, "view.svg", _("View mode"))
+
+        addDivider()
+
+        # {line type: name of the menus.Action that changes to it}
+        elemActions = {
+            lt: "ElemTo" + cmdName[len("ChangeTo") :]
+            for lt, id, label, mnemonic, cmdName in menus.elemTypes()
+        }
+
+        self.elemTypeBar = MyElemTypeBar(
+            tb,
+            -1,
+            self.getCfgGui,
+            [(lt, label) for lt, id, label, mnemonic, cmd in menus.elemTypes()],
+            lambda lt: self.onAction(elemActions[lt]),
+            self.getElemTypeToolTip,
+            height,
+        )
+        tb.AddControl(self.elemTypeBar)
+
+        # bold / italic / underline, which go on top of any element type
+        addDivider()
+
+        formatActions = {bit: action for bit, *rest, action in self.getFormatTypes()}
+
+        self.formatBar = MyFormatBar(
+            tb,
+            -1,
+            self.getCfgGui,
+            [(bit, label) for bit, label, name, key, action in self.getFormatTypes()],
+            lambda bit: self.onAction(formatActions[bit]),
+            self.getFormatToolTip,
+            height,
+        )
+        tb.AddControl(self.formatBar)
+
+        # centering, which applies to whole action elements
+        addDivider()
+        self.alignBar = MyFormatBar(
+            tb,
+            -1,
+            self.getCfgGui,
+            [(self.ALIGN_CENTER, _("Center"))],
+            lambda bit: self.onAction("ToggleCentered"),
+            lambda bit: self.getAlignToolTip(),
+            height,
+        )
+        tb.AddControl(self.alignBar)
+
+        # at the far right, next to where the outline view appears
+        tb.AddStretchableSpace()
+        addTB(ids.ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
+
+        tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
+        tb.Realize()
+
+        tb.ToggleTool(ids.ID_VIEW_SHOW_OUTLINE, self.gd.showOutline)
+
+    # redraw the toolbar in the current theme's colors
+    def refreshColors(self):
+        for c in self.getControls():
+            c.Refresh(False)
+
+        self.tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
+        self.tb.Refresh()
+
+    # the format toggles: textfmt bit, label, name, shortcut, and the
+    # menus.Action that toggles it
+    def getFormatTypes(self):
+        return [
+            (textfmt.BOLD, "B", _("Bold"), "CTRL+B", "ToggleBold"),
+            (textfmt.ITALIC, "I", _("Italic"), "CTRL+I", "ToggleItalic"),
+            (textfmt.UNDERLINED, "U", _("Underline"), "CTRL+U", "ToggleUnderline"),
+        ]
+
+    def getFormatToolTip(self, bit):
+        for itemBit, label, name, key, action in self.getFormatTypes():
+            if itemBit == bit:
+                return "%s (%s)" % (name, key)
+
+    def getAlignToolTip(self):
+        if self.alignBar.disabled:
+            return _(
+                "Centering is only for Action elements. Put the cursor in"
+                " an action, or select one, to center it."
+            )
+
+        return _(
+            "Center this action on the page, e.g. THE END or a title card."
+            " Only Action elements can be centered."
+        )
+
+    def getElemTypeToolTip(self, lt):
+        for itemLt, id, label, mnemonic, cmdName in menus.elemTypes():
+            if itemLt == lt:
+                break
+
+        s = _("Change element to %s") % label
+
+        for cmd in self.gd.cfgGl.commands:
+            if (cmd.name == cmdName) and cmd.keys:
+                s += " (%s)" % keys.Key.fromInt(cmd.keys[0]).toStr()
+
+        return s
+
+    # show the current element's type, which of bold / italic / underline
+    # are on at the cursor or for the selection, and whether the action
+    # there is centered (None if centering doesn't apply there)
+    def setState(self, lt, style, centered):
+        self.elemTypeBar.SetValue(lt)
+        self.formatBar.SetValue(style)
+        self.alignBar.setDisabled(centered is None)
+        self.alignBar.SetValue(self.ALIGN_CENTER if centered else 0)
+
+    def enableUndo(self, canUndo, canRedo):
+        self.tb.EnableTool(ids.ID_EDIT_UNDO, canUndo)
+        self.tb.EnableTool(ids.ID_EDIT_REDO, canRedo)

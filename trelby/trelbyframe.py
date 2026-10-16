@@ -4,19 +4,18 @@ import copy
 import os
 import os.path
 import signal
-import time
 import webbrowser
-from functools import partial
 
 import wx
 import wx.svg
 
-import trelby.autosave as autosave
+import trelby.recoverydlg as recoverydlg
 import trelby.cfgdlg as cfgdlg
 import trelby.commands as commands
 import trelby.commandsdlg as commandsdlg
+import trelby.config as config
+import trelby.configgui as configgui
 import trelby.gutil as gutil
-import trelby.keys as keys
 import trelby.mcpapp as mcpapp
 import trelby.menubar as menubar
 import trelby.menus as menus
@@ -26,7 +25,6 @@ import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.splash as splash
 import trelby.statusbar as statusbar
 import trelby.tabctrl as tabctrl
-import trelby.textfmt as textfmt
 import trelby.toolbar as toolbar
 import trelby.translations as translations
 import trelby.util as util
@@ -54,8 +52,6 @@ class MyFrame(wx.Frame):
         util.removeTempFiles(misc.tmpPrefix)
 
         self.mySetIcons()
-        # self.allocIds()
-
         # Windows' native menu bar has a fixed, cramped height, so there we
         # draw our own, with the toolbar below it in the sizer instead of
         # being managed by the frame
@@ -82,9 +78,10 @@ class MyFrame(wx.Frame):
             self.SetMenuBar(self.menuBar)
             self.toolBar = self.CreateToolBar(wx.TB_HORIZONTAL)
 
-        self.fillToolBar()
+        self.tools = toolbar.MainToolBar(self.toolBar, gd, self.runBarAction)
+        self.tools.fill()
 
-        self.createStatusBar()
+        self.statusBar = statusbar.MainStatusBar(self, gd, self.runBarAction)
 
         self.Bind(wx.EVT_MOVE, self.OnMove)
         self.Bind(wx.EVT_SIZE, self.OnSize)
@@ -186,77 +183,30 @@ class MyFrame(wx.Frame):
     def updateAutosaveStatus(self, ctrl=None):
         panel = getattr(self, "panel", None)
 
-        if not panel or ((ctrl is not None) and (ctrl is not panel.ctrl)):
-            return
+        if panel and ((ctrl is None) or (ctrl is panel.ctrl)):
+            self.statusBar.showAutosave(panel.ctrl)
 
-        c = panel.ctrl
+    # show the state of the script in the trelbyctrl.MyCtrl ctrl in the
+    # toolbar, the status bar and the Undo / Redo menu items
+    def showScriptState(self, ctrl):
+        ed = ctrl.ed
 
-        if c.autosaveError is not None:
-            s = _("Autosave failed: %s") % c.autosaveError
-        elif c.autosaveTime is not None:
-            s = _("Recovery copy autosaved at %s") % time.strftime(
-                "%H:%M", time.localtime(c.autosaveTime)
-            )
-        else:
-            s = ""
+        self.tools.setState(
+            ctrl.sp.lines[ed.line].lt, ed.getFormatState(), ed.getCenteredState()
+        )
+        self.statusBar.showScript(ctrl)
 
-        self.statusBar.SetStatusText(s, self.SB_HELP)
+        canUndo = ed.undoHistory.canUndo()
+        canRedo = ed.undoHistory.canRedo()
+
+        self.menuBar.Enable(ID_EDIT_UNDO, canUndo)
+        self.menuBar.Enable(ID_EDIT_REDO, canRedo)
+        self.tools.enableUndo(canUndo, canRedo)
 
     # if recovery copies were left over by a session that didn't exit
     # cleanly, offer to restore them
     def offerRecovery(self):
-        entries = autosave.listRecoveries(autosave.getRecoveryDir())
-
-        if not entries:
-            return
-
-        names = "\n".join(
-            "    %s  (%s)"
-            % (
-                e.getDisplayName(),
-                time.strftime("%Y-%m-%d %H:%M", time.localtime(e.time)),
-            )
-            for e in entries
-        )
-
-        dlg = wx.MessageDialog(
-            self,
-            _(
-                "Trelby did not close normally last time. Unsaved changes\nto the following scripts were recovered:\n\n{}\n\nDo you want to restore them?"
-            ).format(names),
-            _("Recover Unsaved Changes"),
-            wx.YES_NO | wx.CANCEL | wx.YES_DEFAULT | wx.ICON_QUESTION,
-        )
-        dlg.SetYesNoCancelLabels(
-            misc.mnemonic("R", _("Restore")),
-            misc.mnemonic("D", _("Discard")),
-            misc.mnemonic("L", _("Decide later")),
-        )
-        response = dlg.ShowModal()
-        dlg.Destroy()
-
-        if response == wx.ID_YES:
-            for e in entries:
-                if not self.panel.ctrl.isUntouched():
-                    self.panel = self.createNewPanel()
-
-                self.panel.ctrl.loadRecovery(e)
-                self.panel.ctrl.updateScreen()
-
-        elif response == wx.ID_NO:
-            if (
-                wx.MessageBox(
-                    _(
-                        "Are you sure you want to permanently discard\nthe recovered changes?"
-                    ),
-                    _("Confirm"),
-                    wx.YES_NO | wx.NO_DEFAULT,
-                    self,
-                )
-                == wx.YES
-            ):
-                for e in entries:
-                    autosave.removeRecovery(autosave.getRecoveryDir(), e.recId)
+        recoverydlg.offerRecovery(self)
 
     def mySetIcons(self):
         wx.Image.AddHandler(wx.PNGHandler())
@@ -267,23 +217,6 @@ class MyFrame(wx.Frame):
             ib.AddIcon(wx.Icon(gutil.getBitmap("trelby/resources/icon%s.png" % sz)))
 
         self.SetIcons(ib)
-
-    # def allocIds(self):
-
-    #     g = globals()
-
-    #     # see OnChangeType
-    #     g["idToLTMap"] = {
-    #         ID_ELEM_TO_SCENE: screenplay.SCENE,
-    #         ID_ELEM_TO_ACTION: screenplay.ACTION,
-    #         ID_ELEM_TO_CHARACTER: screenplay.CHARACTER,
-    #         ID_ELEM_TO_DIALOGUE: screenplay.DIALOGUE,
-    #         ID_ELEM_TO_PAREN: screenplay.PAREN,
-    #         ID_ELEM_TO_TRANSITION: screenplay.TRANSITION,
-    #         ID_ELEM_TO_SHOT: screenplay.SHOT,
-    #         ID_ELEM_TO_ACTBREAK: screenplay.ACTBREAK,
-    #         ID_ELEM_TO_NOTE: screenplay.NOTE,
-    #     }
 
     # add a tab with an empty script. addPage selects it, so OnPageChange
     # has set self.panel to it by the time this returns. the tab text is
@@ -507,8 +440,99 @@ class MyFrame(wx.Frame):
             self.panel.ctrl.createEmptySp()
             self.panel.ctrl.updateScreen()
 
-    def OnSettings(self, event=None):
-        self.panel.ctrl.OnSettings()
+    def OnSettings(self):
+        dlg = cfgdlg.CfgDlg(
+            self,
+            copy.deepcopy(self.gd.cfgGl),
+            self.applyGlobalCfg,
+            True,
+            self.gd,
+        )
+
+        if dlg.ShowModal() == wx.ID_OK:
+            self.applyGlobalCfg(dlg.cfg)
+
+        dlg.Destroy()
+
+    # apply the global config newCfgGl to all scripts and the window, and
+    # save it unless writeCfg is False
+    def applyGlobalCfg(self, newCfgGl, writeCfg=True):
+        oldCfgGl = self.gd.cfgGl
+
+        self.gd.cfgGl = copy.deepcopy(newCfgGl)
+
+        # if user has ventured from the old default directory, keep it as
+        # the current one, otherwise set the new default as current.
+        if misc.scriptDir == oldCfgGl.scriptDir:
+            misc.scriptDir = self.gd.cfgGl.scriptDir
+
+        # must be done before refreshGuiConfig, since the screen colors
+        # depend on whether the theme is dark. compares Theme objects, as
+        # reloading the custom themes can change one under the same name.
+        appearanceChanged = (
+            config.findTheme(self.gd.cfgGl.theme) is not self.gd.cfgGui.themeChoice
+        )
+
+        if appearanceChanged:
+            configgui.applyAppearance(self.gd.cfgGl.theme)
+
+        self.gd.cfgGl.recalc()
+        self.refreshGuiConfig()
+        self.updateKeyMap()
+
+        # every script keeps a reference to the global config, which has
+        # just been replaced by a copy
+        for c in self.getCtrls():
+            c.sp.cfgGl = self.gd.cfgGl
+            c.refreshCache()
+            c.makeLineVisible(c.ed.line)
+            c.adjustScrollBar()
+
+        self.panel.ctrl.updateScreen()
+
+        # in case tab colors have been changed
+        self.tabCtrl.Refresh(False)
+        self.tools.refreshColors()
+        self.noFSBtn.Refresh(False)
+        self.applyThemeColors()
+
+        # and the open dialogs, like the settings dialog this may have been
+        # applied from
+        gutil.themeAllWindows()
+
+        # the toolbar icons' color depends on the theme
+        if appearanceChanged or (
+            self.gd.cfgGl.toolbarIconSize != oldCfgGl.toolbarIconSize
+        ):
+            self.tools.fill()
+            self.SendSizeEvent()
+            self.panel.ctrl.updateCommon()
+
+        if self.gd.cfgGl.autosaveInterval != oldCfgGl.autosaveInterval:
+            self.updateAutosaveTimer()
+
+        if (self.gd.cfgGl.mcpEnabled, self.gd.cfgGl.mcpPort) != (
+            oldCfgGl.mcpEnabled,
+            oldCfgGl.mcpPort,
+        ):
+            mcpapp.configure(self.gd, self)
+
+        if writeCfg:
+            gutil.writeToFile(
+                self.gd.confFilename, self.gd.cfgGl.save(), self
+            )
+
+        self.checkFonts()
+
+    # remake the screen fonts and colors for the global config and zoom
+    def refreshGuiConfig(self):
+        self.gd.cfgGui = configgui.ConfigGui(self.gd.cfgGl, self.gd.zoom)
+
+    # run the menus.Action with the given name for a toolbar or status bar
+    # control, and give the keyboard focus back to the script
+    def runBarAction(self, name):
+        self.runAction(name)
+        self.panel.ctrl.SetFocus()
 
     # the LoadSettings / SaveSettingsAs keyboard commands. the settings
     # dialog has buttons for these too.
@@ -520,7 +544,7 @@ class MyFrame(wx.Frame):
         c = cfgdlg.loadGlobalCfg(path, self)
         if c:
             self.gd.confFilename = path
-            self.panel.ctrl.applyGlobalCfg(c, False)
+            self.applyGlobalCfg(c, False)
 
     def OnSaveSettingsAs(self, event=None):
         path = cfgdlg.askSettingsFile(self, self.gd.confFilename, True)
@@ -552,273 +576,6 @@ class MyFrame(wx.Frame):
         for i in range(self.tabCtrl.getPageCount()):
             self.tabCtrl.getPage(i).showOutline(show)
 
-    # names of the controls fillToolBar puts in the toolbar
-    TB_CONTROLS = ("elemTypeBar", "formatBar", "alignBar")
-
-    # (re)create the toolbar's tools, with icons at the size set in the
-    # global config.
-    def fillToolBar(self):
-        tb = self.toolBar
-        size = wx.Size(self.gd.cfgGl.toolbarIconSize, self.gd.cfgGl.toolbarIconSize)
-
-        # empty space around each icon. wxMSW ignores the toolbar's own
-        # margin / packing settings, so it's part of the icons instead.
-        pad = 5
-        paddedSize = wx.Size(size.width + pad * 2, size.height + pad * 2)
-
-        tb.ClearTools()
-        tb.SetToolBitmapSize(paddedSize)
-
-        # ClearTools normally destroys controls along with their tools, but
-        # not always, so destroy any that are left. a destroyed wx object
-        # is false.
-        controls = [getattr(self, name, None) for name in self.TB_CONTROLS]
-        controls += getattr(self, "tbDividers", [])
-
-        for c in controls:
-            if c:
-                c.Destroy()
-
-        self.tbDividers = []
-
-        # height of the controls in the toolbar
-        height = max(
-            tb.FromDIP(paddedSize.height), tb.GetCharHeight() + tb.FromDIP(12)
-        )
-
-        # a vertical line between groups of tools. the toolbar's own
-        # separators don't show against its background color.
-        def addDivider():
-            d = toolbar.MyToolbarDivider(tb, self.getCfgGui, height)
-            tb.AddControl(d)
-            self.tbDividers.append(d)
-
-        # disabled tools' icons, faded most of the way into the background.
-        # wx's own greyed versions barely differ from the normal ones, and
-        # on a dark appearance come out lighter.
-        disabledColor = gutil.blendColors(
-            gutil.svgIconColor(), self.gd.cfgGui.tabBarBgColor, 0.65
-        )
-
-        def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
-            bitmap = gutil.svgBitmap(iconFilename, size, pad)
-            disabledBitmap = gutil.svgBitmap(iconFilename, size, pad, disabledColor)
-            tool = tb.AddTool(
-                id, "", bitmap, disabledBitmap, kind=kind, shortHelp=toolTip
-            )
-
-            # the status bar shows this while the tool is hovered
-            tool.SetLongHelp(toolTip)
-
-        addTB(ID_FILE_NEW, "new.svg", _("New file"))
-        addTB(ID_FILE_OPEN, "open.svg", _("Open file") + "...")
-        addTB(ID_FILE_SAVE, "save.svg", _("Save"))
-        addTB(ID_FILE_SAVE_AS, "saveas.svg", _("Save as") + "...")
-        addTB(ID_FILE_CLOSE, "close.svg", _("Close file"))
-
-        addDivider()
-
-        addTB(ID_FILE_IMPORT, "import.svg", _("Import file") + "...")
-        addTB(ID_FILE_EXPORT, "export.svg", _("Export file"))
-
-        addDivider()
-
-        addTB(ID_EDIT_UNDO, "undo.svg", _("Undo"))
-        addTB(ID_EDIT_REDO, "redo.svg", _("Redo"))
-
-        addDivider()
-
-        addTB(ID_EDIT_FIND, "find.svg", _("Find / Replace"))
-        addTB(ID_TOOLBAR_VIEWS, "view.svg", _("View mode"))
-
-        addDivider()
-
-        self.elemTypeBar = toolbar.MyElemTypeBar(
-            tb,
-            -1,
-            self.getCfgGui,
-            [(lt, label) for lt, id, label, mnemonic, cmd in menus.elemTypes()],
-            self.OnElemTypeBar,
-            self.getElemTypeToolTip,
-            height,
-        )
-        tb.AddControl(self.elemTypeBar)
-
-        # bold / italic / underline, which go on top of any element type
-        addDivider()
-        self.formatBar = toolbar.MyFormatBar(
-            tb,
-            -1,
-            self.getCfgGui,
-            [(bit, label) for bit, label, name, key in self.getFormatTypes()],
-            self.OnFormatBar,
-            self.getFormatToolTip,
-            height,
-        )
-        tb.AddControl(self.formatBar)
-
-        # centering, which applies to whole action elements
-        addDivider()
-        self.alignBar = toolbar.MyFormatBar(
-            tb,
-            -1,
-            self.getCfgGui,
-            [(self.ALIGN_CENTER, _("Center"))],
-            lambda bit: self.OnAlignBar(),
-            lambda bit: self.getAlignToolTip(),
-            height,
-        )
-        tb.AddControl(self.alignBar)
-
-        # at the far right, next to where the outline view appears
-        tb.AddStretchableSpace()
-        addTB(ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
-
-        tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
-        tb.Realize()
-
-        tb.ToggleTool(ID_VIEW_SHOW_OUTLINE, self.gd.showOutline)
-
-    # the toolbar's format toggles: textfmt bit, label, name, shortcut
-    def getFormatTypes(self):
-        return [
-            (textfmt.BOLD, "B", _("Bold"), "CTRL+B"),
-            (textfmt.ITALIC, "I", _("Italic"), "CTRL+I"),
-            (textfmt.UNDERLINED, "U", _("Underline"), "CTRL+U"),
-        ]
-
-    def OnFormatBar(self, bit):
-        scriptactions.toggleFormat(self, self.panel.ctrl, bit)
-        self.panel.ctrl.SetFocus()
-
-    def getFormatToolTip(self, bit):
-        for itemBit, label, name, key in self.getFormatTypes():
-            if itemBit == bit:
-                return "%s (%s)" % (name, key)
-
-    # the align bar's item for centering, a bit that's not one of the
-    # textfmt ones
-    ALIGN_CENTER = 8
-
-    def getAlignToolTip(self):
-        if self.alignBar.disabled:
-            return _(
-                "Centering is only for Action elements. Put the cursor in"
-                " an action, or select one, to center it."
-            )
-
-        return _(
-            "Center this action on the page, e.g. THE END or a title card."
-            " Only Action elements can be centered."
-        )
-
-    def OnAlignBar(self):
-        scriptactions.toggleCentered(self, self.panel.ctrl)
-        self.panel.ctrl.SetFocus()
-
-    # show which of bold / italic / underline are on at the cursor or for
-    # the selection, and whether the action there is centered (None if
-    # centering doesn't apply there)
-    def setFormatStatus(self, style, centered):
-        self.formatBar.SetValue(style)
-        self.alignBar.setDisabled(centered is None)
-        self.alignBar.SetValue(self.ALIGN_CENTER if centered else 0)
-
-    def OnElemTypeBar(self, lt):
-        self.panel.ctrl.changeType(lt)
-        self.panel.ctrl.SetFocus()
-
-    def getElemTypeToolTip(self, lt):
-        for itemLt, id, label, mnemonic, cmdName in menus.elemTypes():
-            if itemLt == lt:
-                break
-
-        s = _("Change element to %s") % label
-
-        for cmd in self.gd.cfgGl.commands:
-            if (cmd.name == cmdName) and cmd.keys:
-                s += " (%s)" % keys.Key.fromInt(cmd.keys[0]).toStr()
-
-        return s
-
-    # show the current element's type in the toolbar, and what Enter and
-    # Tab would change it to in the status bar
-    def setElemTypeStatus(self, lt, tabNext, enterNext):
-        self.elemTypeBar.SetValue(lt)
-        self.statusBar.SetStatusText(
-            _("Enter: %s    Tab: %s") % (_(enterNext), _(tabNext)), self.SB_NEXT
-        )
-
-    # status bar fields
-    SB_SPACER = 0
-    SB_HELP = 1
-    SB_NEXT = 2
-    SB_WORDS = 3
-    SB_RUNTIME = 4
-    SB_PAGE = 5
-    SB_ZOOM = 6
-
-    # the status bar at the bottom of the window. a narrow spacer field
-    # keeps the text off the window's left edge. the help field shows
-    # whether the script has been autosaved, then come the element types
-    # Enter / Tab would create, the script's word count and estimated
-    # running time, the current page and the zoom buttons.
-    def createStatusBar(self):
-        # the fields are set below, once we know their widths
-        sb = statusbar.StatusBar(self, self.SB_NEXT)
-        self.statusBar = sb
-
-        style = wx.BU_EXACTFIT | wx.BORDER_NONE
-
-        self.zoomOutBtn = wx.Button(sb, -1, "\u2212", style=style)
-        self.zoomOutBtn.SetToolTip(_("Zoom out"))
-        self.zoomOutBtn.Bind(wx.EVT_BUTTON, partial(self.OnZoomButton, self.OnZoomOut))
-
-        self.zoomLevelBtn = wx.Button(sb, -1, "", style=style)
-        self.zoomLevelBtn.SetToolTip(_("Reset zoom"))
-        self.zoomLevelBtn.Bind(
-            wx.EVT_BUTTON, partial(self.OnZoomButton, self.OnZoomReset)
-        )
-
-        self.zoomInBtn = wx.Button(sb, -1, "+", style=style)
-        self.zoomInBtn.SetToolTip(_("Zoom in"))
-        self.zoomInBtn.Bind(wx.EVT_BUTTON, partial(self.OnZoomButton, self.OnZoomIn))
-
-        self.zoomBtns = (self.zoomOutBtn, self.zoomLevelBtn, self.zoomInBtn)
-
-        # flat buttons don't look clickable, so they get a hand cursor and
-        # are highlighted while hovered
-        self.zoomHoverBtn = None
-
-        for btn in self.zoomBtns:
-            btn.SetCursor(wx.Cursor(wx.CURSOR_HAND))
-            btn.Bind(wx.EVT_ENTER_WINDOW, self.OnZoomButtonHover)
-            btn.Bind(wx.EVT_LEAVE_WINDOW, self.OnZoomButtonHover)
-
-        # fixed widths, so nothing shifts as the values change
-        pad = sb.FromDIP(16)
-        btnW = sb.FromDIP(24)
-        self.zoomOutBtn.SetSize(btnW, -1)
-        self.zoomInBtn.SetSize(btnW, -1)
-        self.zoomLevelBtn.SetSize(sb.GetTextExtent("300%")[0] + pad, -1)
-
-        pageW = sb.GetTextExtent(_("Page %d / %d") % (999, 999))[0] + pad
-        zoomW = sum(b.GetSize().width for b in self.zoomBtns) + sb.FromDIP(8)
-        longest = _("Parenthetical")
-        nextW = sb.GetTextExtent(_("Enter: %s    Tab: %s") % (longest, longest))[0]
-        wordsW = sb.GetTextExtent(self.formatWordCount(999999))[0] + pad
-        runtimeW = sb.GetTextExtent(self.formatRuntime(599))[0] + pad
-        widths = [sb.FromDIP(6), -1, nextW + pad, wordsW, runtimeW, pageW, zoomW]
-        sb.SetFieldsCount(len(widths), widths)
-
-        sb.Bind(wx.EVT_SIZE, self.OnStatusBarSize)
-
-        self.updateZoomStatus()
-
-        # the status bar may already have its final size, in which case no
-        # size event comes
-        wx.CallAfter(self.layoutZoomButtons)
-
     # use the theme's colors for the status bar and the parts of each
     # script's panel not drawn by MyCtrl
     def applyThemeColors(self):
@@ -826,99 +583,10 @@ class MyFrame(wx.Frame):
 
         gutil.setTitleBarColors(self, cfgGui)
 
-        self.statusBar.setColors(
-            cfgGui.tabBarBgColor, cfgGui.tabTextColor, cfgGui.tabBorderColor
-        )
+        self.statusBar.applyTheme(cfgGui)
 
         for i in range(self.tabCtrl.getPageCount()):
             self.tabCtrl.getPage(i).applyTheme(cfgGui)
-
-    def OnStatusBarSize(self, event):
-        self.layoutZoomButtons()
-        event.Skip()
-
-    # place the zoom buttons centered in their status bar field
-    def layoutZoomButtons(self):
-        rect = self.statusBar.GetFieldRect(self.SB_ZOOM)
-        x = rect.x + (rect.width - sum(b.GetSize().width for b in self.zoomBtns)) // 2
-
-        for btn in self.zoomBtns:
-            w = btn.GetSize().width
-            btn.SetSize(x, rect.y, w, rect.height)
-            x += w
-
-    def OnZoomButton(self, zoomFunc, event):
-        zoomFunc()
-        self.panel.ctrl.SetFocus()
-
-    def OnZoomButtonHover(self, event):
-        btn = event.GetEventObject()
-
-        # moving from one button to the next, the next one's enter event
-        # can come before this one's leave event
-        if event.Entering():
-            self.setZoomButtonHover(btn)
-        elif btn is self.zoomHoverBtn:
-            self.setZoomButtonHover(None)
-
-        event.Skip()
-
-    # highlight the zoom button hovered (None for none), unless it's
-    # disabled
-    def setZoomButtonHover(self, hovered):
-        sb = self.statusBar
-        self.zoomHoverBtn = hovered
-
-        for btn in self.zoomBtns:
-            if (btn is hovered) and btn.IsEnabled():
-                color = self.gd.cfgGui.tabNonActiveBgColor
-            else:
-                color = sb.bgColor
-
-            if btn.GetBackgroundColour() != color:
-                btn.SetBackgroundColour(color)
-                btn.Refresh()
-
-    # page is the label of the current page, pageCnt the number of pages
-    def setPageStatus(self, page, pageCnt, locked=False):
-        if locked:
-            s = _("Page %s / %d (locked)") % (page, pageCnt)
-        else:
-            s = _("Page %s / %d") % (page, pageCnt)
-
-        self.statusBar.SetStatusText(s, self.SB_PAGE)
-
-    def setLengthStatus(self, wordCnt, pageLength):
-        self.statusBar.SetStatusText(self.formatWordCount(wordCnt), self.SB_WORDS)
-        self.statusBar.SetStatusText(
-            self.formatRuntime(round(pageLength)), self.SB_RUNTIME
-        )
-
-    def formatWordCount(self, cnt):
-        if cnt == 1:
-            return _("1 word")
-
-        return _("%s words") % "{:,}".format(cnt)
-
-    # estimated running time, using the usual rule of thumb of one minute
-    # of screen time per script page
-    def formatRuntime(self, minutes):
-        if minutes < 60:
-            return _("Runtime: ~%d min") % minutes
-
-        return _("Runtime: ~%d h %d min") % divmod(minutes, 60)
-
-    def updateZoomStatus(self):
-        zoom = self.gd.zoom
-        self.zoomLevelBtn.SetLabel("%d%%" % zoom)
-        self.zoomOutBtn.Enable(self.gd.getZoomStep(-1) != zoom)
-        self.zoomInBtn.Enable(self.gd.getZoomStep(1) != zoom)
-
-        # a button disabled while hovered gets no leave event, and one
-        # enabled under the mouse no enter event
-        pos = wx.GetMousePosition()
-        hovered = [b for b in self.zoomBtns if b.GetScreenRect().Contains(pos)]
-        self.setZoomButtonHover(hovered[0] if hovered else None)
 
     def ShowHideToolbar(self, event=None):
         self.toolBar.Show(self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR))
@@ -957,12 +625,12 @@ class MyFrame(wx.Frame):
             return
 
         self.gd.zoom = zoom
-        self.updateZoomStatus()
+        self.statusBar.updateZoom()
 
         # zooming scales the screen fonts in gd.cfgGui, which all tabs
         # share, so it's rebuilt once. each tab's page size and mm2p
         # follow from the font sizes, so refreshCache recomputes them.
-        self.panel.ctrl.refreshGuiConfig()
+        self.refreshGuiConfig()
 
         for c in self.getCtrls():
             c.refreshCache()
