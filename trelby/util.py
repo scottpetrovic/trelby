@@ -2,27 +2,15 @@
 
 import functools
 import glob
-import gzip
 import os
 import shutil
 import stat
 import tempfile
 import time
-from typing import TYPE_CHECKING, AnyStr, Optional
+from typing import AnyStr
 
 import trelby.fontinfo as fontinfo
 import trelby.misc as misc
-
-# only for type hints: importing config here makes a circular import
-if TYPE_CHECKING:
-    import trelby.config as config
-
-if "TRELBY_TESTING" in os.environ:
-    import unittest.mock as mock
-
-    wx = mock.Mock()
-else:
-    import wx
 
 # alignment values
 ALIGN_LEFT = 0
@@ -31,20 +19,6 @@ ALIGN_RIGHT = 2
 VALIGN_TOP = 1
 VALIGN_CENTER = 2
 VALIGN_BOTTOM = 3
-
-
-# permanent memory DC to get text extents etc
-permDc = None
-
-
-def init(doWX=True):
-    global permDc
-
-    if doWX:
-        # dunno if the bitmap needs to be big enough to contain the text
-        # we're measuring...
-        permDc = wx.MemoryDC()
-        permDc.SelectObject(wx.Bitmap(512, 32))
 
 
 # clamps the given value to a specific range. both limits are optional.
@@ -172,57 +146,6 @@ def mm2twips(mm):
     return mm * 56.69291
 
 
-# TODO: move all GUI stuff to gutil
-
-
-# return True if given font is a fixed-width one.
-def isFixedWidth(font):
-    return getTextExtent(font, "iiiii")[0] == getTextExtent(font, "OOOOO")[0]
-
-
-# get extent of 's' as (w, h)
-def getTextExtent(font, s):
-    permDc.SetFont(font)
-
-    # if we simply return permDc.GetTextExtent(s) from here, on some
-    # versions of Windows we will incorrectly reject as non-fixed width
-    # fonts (through isFixedWidth) some fonts that actually are fixed
-    # width. it's especially bad because one of them is our default font,
-    # "Courier New".
-    #
-    # these are the widths we get for the strings below for Courier New, italic:
-    #
-    # iiiii 40
-    # iiiiiiiiii 80
-    # OOOOO 41
-    # OOOOOOOOOO 81
-    #
-    # we can see i and O are both 8 pixels wide, so the font is
-    # fixed-width, but for whatever reason, on the O variants there is one
-    # additional pixel returned in the width, no matter what the length of
-    # the string is.
-    #
-    # to get around this, we actually call GetTextExtent twice, once with
-    # the actual string we want to measure, and once with the string
-    # duplicated, and take the difference between those two as the actual
-    # width. this handily negates the one-extra-pixel returned and gives
-    # us an accurate way of checking if a font is fixed width or not.
-    #
-    # it's a bit slower but this is not called from anywhere that's
-    # performance critical.
-
-    w1, h = permDc.GetTextExtent(s)
-    w2 = permDc.GetTextExtent(s + s)[0]
-
-    return (w2 - w1, h)
-
-
-# get height of font in pixels
-def getFontHeight(font):
-    permDc.SetFont(font)
-    return permDc.GetTextExtent("_\xC5")[1]
-
-
 # return how many mm tall given font size is.
 def getTextHeight(size):
     return (size / 72.0) * 25.4
@@ -231,71 +154,6 @@ def getTextHeight(size):
 # return how many mm wide given text is at given style with given size.
 def getTextWidth(text, style, size):
     return (fontinfo.getMetrics(style).getTextWidth(text, size) / 72.0) * 25.4
-
-
-# create a font that's height is at most 'height' pixels. other parameters
-# are the same as in wx.Font's constructor.
-def createPixelFont(height, family, style, weight):
-    fs = 6
-
-    selected = fs
-    closest = 1000
-    over = 0
-
-    # FIXME: what's this "keep trying even once we go over the max height"
-    # stuff? get rid of it.
-    while 1:
-        fn = wx.Font(fs, family, style, weight, encoding=wx.FONTENCODING_ISO8859_1)
-        h = getFontHeight(fn)
-        diff = height - h
-
-        if diff >= 0:
-            if diff < closest:
-                closest = diff
-                selected = fs
-        else:
-            over += 1
-
-        if (over >= 3) or (fs > 144):
-            break
-
-        fs += 2
-
-    return wx.Font(selected, family, style, weight, encoding=wx.FONTENCODING_ISO8859_1)
-
-
-def reverseComboSelect(combo, clientData):
-    for i in range(combo.GetCount()):
-        if combo.GetClientData(i) == clientData:
-            if combo.GetSelection() != i:
-                combo.SetSelection(i)
-
-            return True
-
-    return False
-
-
-# set widget's client size. if w or h is -1, that dimension is not changed.
-def setWH(ctrl, w=-1, h=-1):
-    size = ctrl.GetClientSize()
-
-    if w != -1:
-        size.width = w
-
-    if h != -1:
-        size.height = h
-
-    ctrl.SetMinSize(wx.Size(size.width, size.height))
-    ctrl.SetClientSize(size.width, size.height)
-
-
-# wxMSW doesn't respect the control's min/max values at all, so we have to
-# implement this ourselves
-def getSpinValue(spinCtrl):
-    tmp = clamp(spinCtrl.GetValue(), spinCtrl.GetMin(), spinCtrl.GetMax())
-    spinCtrl.SetValue(tmp)
-
-    return tmp
 
 
 def cmpfunc(a, b):
@@ -362,50 +220,6 @@ class FIFO:
         return tmp
 
 
-# DrawLine-wrapper that makes it easier when the end-point is just
-# offsetted from the starting point
-def drawLine(dc, x, y, xd, yd):
-    dc.DrawLine(x, y, x + xd, y + yd)
-
-
-# draws text aligned somehow. returns a (w, h) tuple of the text extent.
-def drawText(dc, text, x, y, align=ALIGN_LEFT, valign=VALIGN_TOP):
-    w, h = dc.GetTextExtent(text)
-
-    if align == ALIGN_CENTER:
-        x -= w // 2
-    elif align == ALIGN_RIGHT:
-        x -= w
-
-    if valign == VALIGN_CENTER:
-        y -= h // 2
-    elif valign == VALIGN_BOTTOM:
-        y -= h
-
-    dc.DrawText(text, x, y)
-
-    return (w, h)
-
-
-# create pad sizer for given window whose controls are in topSizer, with
-# 'pad' pixels of padding on each side, resize window to correct size, and
-# optionally center it.
-def finishWindow(window, topSizer, pad=20, center=False):
-    padSizer = wx.BoxSizer(wx.VERTICAL)
-    padSizer.Add(topSizer, 1, wx.EXPAND | wx.ALL, pad)
-    window.SetSizerAndFit(padSizer)
-    window.Layout()
-
-    # dialogs and other top-level windows are shown in the theme's colors
-    if window.IsTopLevel():
-        import trelby.gutil as gutil
-
-        gutil.themeWindow(window)
-
-    if center:
-        window.Center()
-
-
 # a string-like object that features reasonably fast repeated appends even
 # for large strings, since it keeps each appended string as an item in a
 # list.
@@ -434,74 +248,6 @@ class String:
         self.pos += len(s2)
 
         return self
-
-
-# load at most maxSize (all if -1) bytes from 'filename', returning the
-# data as a string or None on errors. pops up message boxes with 'frame'
-# as parent on errors.
-def loadFile(
-    filename: str, frame: Optional[wx.Frame], maxSize: int = -1, binary: bool = False
-) -> Optional[AnyStr]:
-    try:
-        if binary:
-            f = open(misc.toPath(filename), "rb")
-        else:
-            f = open(misc.toPath(filename), "r", encoding="UTF-8")
-
-        try:
-            ret = f.read(maxSize)
-        except MemoryError as error:
-            print(_("File too large: {}").format(error))
-            ret = None
-        finally:
-            f.close()
-
-    except IOError as xxx_todo_changeme:
-        (errno, strerror) = xxx_todo_changeme.args
-        wx.MessageBox(
-            _("Error loading file '{}': {}").format(filename, strerror),
-            _("Error"),
-            wx.OK,
-            frame,
-        )
-        ret = None
-
-    return ret
-
-
-# unused. note that the encoding name lands in loadFile's 'binary'
-# parameter, so this reads the file as bytes rather than decoding it as
-# Latin-1.
-def loadLatin1EncodedFile(
-    filename: str, frame: Optional[wx.Frame], maxSize: int = -1
-) -> Optional[AnyStr]:
-    return loadFile(filename, frame, maxSize, "ISO-8859-1")
-
-
-# like loadFile, but if file doesn't exist, tries to load a .gz compressed
-# version of it.
-def loadMaybeCompressedFile(filename, frame):
-    doGz = False
-
-    if not fileExists(filename):
-        filename += ".gz"
-        doGz = True
-
-    if not doGz:
-        s = loadFile(filename, frame)
-        return s
-
-    try:
-        f = gzip.open(filename, "r")
-        return f.read().decode("utf-8")
-    except:
-        wx.MessageBox(
-            _("Error loading file '{}': Decompression failed").format(filename),
-            _("Error"),
-            wx.OK,
-            frame,
-        )
-        return None
 
 
 # write data to filename so that a crash or error halfway through never
@@ -570,27 +316,6 @@ def atomicWrite(filename: str, data: AnyStr, backup: bool = False) -> None:
                 os.close(dirFd)
         except OSError:
             pass
-
-
-# write data to filename (see atomicWrite), showing an error message box
-# on failure. returns True on success.
-def writeToFile(
-    filename: str, data: AnyStr, frame: wx.TopLevelWindow, backup: bool = False
-) -> bool:
-    try:
-        atomicWrite(filename, data, backup)
-
-        return True
-
-    except OSError as e:
-        wx.MessageBox(
-            _("Error writing file '{}': {}").format(filename, e.strerror or e),
-            _("Error"),
-            wx.OK,
-            frame,
-        )
-
-        return False
 
 
 def removeTempFiles(prefix):
@@ -747,98 +472,3 @@ def getPDFViewer():
     return (None, None)
 
 
-# get a windows environment variable in its native unicode format, or None
-# if not found
-def getWindowsUnicodeEnvVar(name):
-    import ctypes
-
-    n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
-
-    if n == 0:
-        return None
-
-    buf = ctypes.create_unicode_buffer("\0" * n)
-    ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
-
-    return buf.value
-
-
-# show PDF file, in the built-in viewer if it's enabled and available,
-# otherwise in the external viewer application.
-def showPDF(
-    filename: str, cfgGl: "config.ConfigGlobal", frame: wx.TopLevelWindow
-) -> None:
-    import trelby.pdfviewer as pdfviewer
-
-    if cfgGl.pdfUseBuiltinViewer and pdfviewer.isAvailable():
-        pdfviewer.show(filename, cfgGl)
-    else:
-        showPDFExternal(filename, cfgGl, frame)
-
-
-# show PDF file in the external viewer application.
-def showPDFExternal(
-    filename: str, cfgGl: "config.ConfigGlobal", frame: wx.TopLevelWindow
-) -> None:
-    def complain():
-        wx.MessageBox(
-            _(
-                "PDF viewer application not found.\n\nYou can change your PDF viewer\nsettings at Edit/Settings/Misc."
-            ),
-            _("Error"),
-            wx.OK,
-            frame,
-        )
-
-    pdfProgram = cfgGl.pdfViewerPath
-    pdfArgs = cfgGl.pdfViewerArgs
-
-    # If configured pdf viewer does not exist, try finding one
-    # automatically
-    if not fileExists(pdfProgram):
-        found = False
-
-        regPDF, regArgs = getPDFViewer()
-
-        if regPDF:
-            wx.MessageBox(
-                _("Currently set PDF viewer ({}) was not found.\nChange this in Edit/Settings/Misc.\n\nUsing the default PDF viewer instead:\n{}").format(
-                    pdfProgram, regPDF
-                ),
-                _("Warning"),
-                wx.OK,
-                frame,
-            )
-
-            pdfProgram = regPDF
-            pdfArgs = regArgs
-
-            found = True
-
-        if not found:
-            complain()
-
-            return
-
-    if misc.isMac:
-        # on Mac, we should use 'open', so wrap the whole call in that
-        args = ["open", "-a", pdfProgram, filename]
-        if pdfArgs:
-            args = args + ["--args"] + pdfArgs.split()
-        pdfProgram = "/usr/bin/open"
-    else:
-        # on Windows, Acrobat complains about "invalid path" if we
-        # give the full path of the program as first arg, so give a
-        # dummy arg.
-        args = ["pdf"] + pdfArgs.split() + [filename]
-
-    # there's a race condition in checking if the path exists, above, and
-    # using it, below. if the file disappears between those two we get an
-    # OSError exception from spawnv, so we need to catch it and handle it.
-
-    # TODO: spawnv does not support Unicode paths as of this moment
-    # (Python 2.4). for now, convert it to UTF-8 and hope for the best.
-    try:
-        os.spawnv(os.P_NOWAIT, pdfProgram.encode("UTF-8"), args)
-    except OSError:
-        complain()

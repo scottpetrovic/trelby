@@ -1,6 +1,5 @@
 import trelby.gutil as gutil
 import trelby.misc as misc
-import trelby.util as util
 import wx
 
 
@@ -62,7 +61,7 @@ class DisplayPanel(wx.Panel):
 
         self.cfg2gui()
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
     def OnKillFocus(self, event):
         self.OnMisc()
@@ -84,10 +83,10 @@ class DisplayPanel(wx.Panel):
         dlg = wx.FontDialog(self, fd)
         if dlg.ShowModal() == wx.ID_OK:
             font = dlg.GetFontData().GetChosenFont()
-            if util.isFixedWidth(font):
+            if gutil.isFixedWidth(font):
                 setattr(self.cfg, fname, font.GetNativeFontInfo().ToString())
 
-                self.cfg.fontYdelta = util.getFontHeight(font)
+                self.cfg.fontYdelta = gutil.getFontHeight(font)
 
                 self.cfg2gui()
                 self.updateFontLb()
@@ -102,7 +101,7 @@ class DisplayPanel(wx.Panel):
         dlg.Destroy()
 
     def OnMisc(self, event=None):
-        self.cfg.toolbarIconSize = util.getSpinValue(self.iconSizeEntry)
+        self.cfg.toolbarIconSize = gutil.getSpinValue(self.iconSizeEntry)
 
     def updateFontLb(self):
         names = ["Normal", "Bold", "Italic", "Bold-Italic"]
@@ -126,7 +125,7 @@ class DisplayPanel(wx.Panel):
                 self.fontsLb.SetString(i, row)
 
             f = wx.Font(nfi)
-            widths.add(util.getTextExtent(f, "iw")[0])
+            widths.add(gutil.getTextExtent(f, "iw")[0])
 
         if len(widths) > 1:
             self.errText.SetLabel(_("Fonts have different widths"))

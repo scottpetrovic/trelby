@@ -1,5 +1,6 @@
 import os.path
 
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.pdfviewer as pdfviewer
 import trelby.util as util
@@ -73,7 +74,7 @@ class PDFViewerPanel(wx.Panel):
 
         self.cfg2gui()
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_CHECKBOX, self.OnMisc, id=self.builtinCb.GetId())
         self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.progEntry.GetId())

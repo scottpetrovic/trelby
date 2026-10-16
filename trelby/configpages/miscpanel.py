@@ -1,7 +1,6 @@
 import trelby.config as config
 import trelby.gutil as gutil
 import trelby.misc as misc
-import trelby.util as util
 import wx
 
 
@@ -92,7 +91,7 @@ class MiscPanel(wx.Panel):
 
         self.cfg2gui()
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.scriptDirEntry.GetId())
 
@@ -127,8 +126,8 @@ class MiscPanel(wx.Panel):
         for i, it in enumerate(self.checkListItems):
             setattr(self.cfg, it[0], bool(self.checkList.IsChecked(i)))
 
-        self.cfg.autosaveInterval = util.getSpinValue(self.autosaveEntry)
-        self.cfg.mouseWheelLines = util.getSpinValue(self.wheelScrollEntry)
+        self.cfg.autosaveInterval = gutil.getSpinValue(self.autosaveEntry)
+        self.cfg.mouseWheelLines = gutil.getSpinValue(self.wheelScrollEntry)
 
     def OnBrowse(self, event):
         dlg = wx.DirDialog(

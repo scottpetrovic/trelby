@@ -1,7 +1,6 @@
 import wx
 
 import trelby.gutil as gutil
-import trelby.util as util
 
 
 # edits the grouping of scene names into locations (see locations.py).
@@ -59,7 +58,7 @@ class LocationsDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())

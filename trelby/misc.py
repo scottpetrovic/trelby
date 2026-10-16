@@ -8,7 +8,6 @@ import sys
 from typing import AnyStr
 
 import trelby.opts as opts
-import trelby.util as util
 
 version = "2.4.16.2"
 
@@ -53,7 +52,7 @@ def init(doWX=True):
     doDblBuf = not isUnix
 
     # stupid hack to keep testcases working, since they don't initialize
-    # opts (the doWX name is just for similarity with util)
+    # opts (the doWX name is just for similarity with gutil.init)
     if not doWX or opts.isTest:
         progPath = "."
         confPath = ".trelby"
@@ -75,10 +74,26 @@ def init(doWX=True):
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             )  # Removed the registry function because the older installer creator doesn't work anymore and for portable setups it's pointless to setup a check for a registry key
 
-            confPath = util.getWindowsUnicodeEnvVar("USERPROFILE") + r"\Trelby\conf"
+            confPath = getWindowsUnicodeEnvVar("USERPROFILE") + r"\Trelby\conf"
 
         if not os.path.exists(confPath):
             os.makedirs(confPath)
+
+
+# get a windows environment variable in its native unicode format, or None
+# if not found
+def getWindowsUnicodeEnvVar(name):
+    import ctypes
+
+    n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
+
+    if n == 0:
+        return None
+
+    buf = ctypes.create_unicode_buffer("\0" * n)
+    ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
+
+    return buf.value
 
 
 # convert s, which is returned from the wxWidgets GUI and is an Unicode

@@ -2,7 +2,6 @@ import wx
 
 import trelby.gutil as gutil
 import trelby.misc as misc
-import trelby.util as util
 
 
 class SCDictDlg(wx.Dialog):
@@ -45,7 +44,7 @@ class SCDictDlg(wx.Dialog):
 
         self.cfg2gui()
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.itemsEntry.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())

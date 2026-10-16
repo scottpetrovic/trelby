@@ -2,7 +2,6 @@ import trelby.commands as commands
 import trelby.gutil as gutil
 import trelby.keydlg as keydlg
 import trelby.keys as keys
-import trelby.util as util
 import wx
 
 
@@ -64,7 +63,7 @@ class KeyboardPanel(wx.Panel):
         )
         vsizer.Add(self.conflictsEntry, 1, wx.EXPAND)
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_LISTBOX, self.OnCommandLb, id=self.commandsLb.GetId())
         self.commandsLb.SetSelection(0)

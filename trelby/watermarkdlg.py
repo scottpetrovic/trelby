@@ -7,7 +7,6 @@ import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.screenplay.render as render
 import trelby.textutil as textutil
-import trelby.util as util
 
 
 # The watermark tool dialog.
@@ -69,7 +68,7 @@ class WatermarkDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.Bind(wx.EVT_BUTTON, self.OnClose, id=closeBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnGenerate, id=generateBtn.GetId())
@@ -162,7 +161,7 @@ class WatermarkDlg(wx.Dialog):
 
             pdfdata = pdf.generate(pmldoc)
 
-            if not util.writeToFile(fn, pdfdata, self):
+            if not gutil.writeToFile(fn, pdfdata, self):
                 wx.MessageBox(_("PDF generation aborted."), _("Error"), wx.OK, self)
                 return
             else:

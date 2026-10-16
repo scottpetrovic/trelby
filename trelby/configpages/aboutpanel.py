@@ -1,4 +1,4 @@
-import trelby.util as util
+import trelby.gutil as gutil
 import wx
 
 
@@ -10,4 +10,4 @@ class AboutPanel(wx.Panel):
 
         vsizer.Add(wx.StaticText(self, -1, text))
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)

@@ -1,6 +1,5 @@
 import trelby.config as config
 import trelby.gutil as gutil
-import trelby.util as util
 import wx
 
 
@@ -40,7 +39,7 @@ class ElementsGlobalPanel(wx.Panel):
 
         vsizer.Add(gsizer)
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_COMBOBOX, self.OnElementCombo, id=self.elementsCombo.GetId())
 
@@ -89,7 +88,7 @@ class ElementsGlobalPanel(wx.Panel):
     def cfg2gui(self):
         tcfg = self.cfg.types[self.lt]
 
-        util.reverseComboSelect(self.newEnterCombo, tcfg.newTypeEnter)
-        util.reverseComboSelect(self.newTabCombo, tcfg.newTypeTab)
-        util.reverseComboSelect(self.nextTabCombo, tcfg.nextTypeTab)
-        util.reverseComboSelect(self.prevTabCombo, tcfg.prevTypeTab)
+        gutil.reverseComboSelect(self.newEnterCombo, tcfg.newTypeEnter)
+        gutil.reverseComboSelect(self.newTabCombo, tcfg.newTypeTab)
+        gutil.reverseComboSelect(self.nextTabCombo, tcfg.nextTypeTab)
+        gutil.reverseComboSelect(self.prevTabCombo, tcfg.prevTypeTab)

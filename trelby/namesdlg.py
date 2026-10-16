@@ -1,6 +1,7 @@
 import wx
 
 import trelby
+import trelby.gutil as gutil
 import trelby.keys as keys
 import trelby.misc as misc
 import trelby.namearray as namearray
@@ -21,7 +22,7 @@ def readNames(frame):
         return True
 
     try:
-        data = util.loadMaybeCompressedFile(trelby.__path__[0] + "/names.txt", frame)
+        data = gutil.loadMaybeCompressedFile(trelby.__path__[0] + "/names.txt", frame)
         if not data:
             return False
 
@@ -100,7 +101,7 @@ class NamesDlg(wx.Dialog):
         w += self.typeList.GetColumnWidth(0)
         w += self.typeList.GetColumnWidth(1)
 
-        util.setWH(self.typeList, w + 15, 425)
+        gutil.setWH(self.typeList, w + 15, 425)
 
         self.typeList.SortItems(self.CmpFreq)
         self.selectAllTypes()
@@ -169,7 +170,7 @@ class NamesDlg(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.selectAllTypes, id=selectAllBtn.GetId())
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnHeaderClick, id=self.typeList.GetId())
 
-        util.finishWindow(self, hsizer)
+        gutil.finishWindow(self, hsizer)
 
         self.OnSearch()
         self.searchEntry.SetFocus()
@@ -298,10 +299,10 @@ class MyListCtrl(wx.ListCtrl):
         # we can't use wx.LIST_AUTOSIZE since this is a virtual control,
         # so calculate the size ourselves since we know the longest string
         # possible.
-        w = util.getTextExtent(self.GetFont(), "Female")[0] + 15
+        w = gutil.getTextExtent(self.GetFont(), "Female")[0] + 15
         self.SetColumnWidth(2, w)
 
-        util.setWH(self, w=120 * 2 + w + 25)
+        gutil.setWH(self, w=120 * 2 + w + 25)
 
     def OnGetItemText(self, item, col):
         n = self.items[item]

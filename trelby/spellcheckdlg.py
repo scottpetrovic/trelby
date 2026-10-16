@@ -1,10 +1,26 @@
 import wx
 
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.spellcheck as spellcheck
 import trelby.textutil as textutil
 import trelby.undo as undo
 import trelby.util as util
+
+
+# load the word dictionary if it isn't loaded already, showing a message
+# box with 'frame' as parent on errors. returns True on success.
+def loadDict(frame):
+    if spellcheck.gdict:
+        return True
+
+    s = gutil.loadMaybeCompressedFile(spellcheck.DICT_FILENAME, frame)
+    if not s:
+        return False
+
+    spellcheck.loadDict(s)
+
+    return True
 
 
 class SpellCheckDlg(wx.Dialog):
@@ -79,7 +95,7 @@ class SpellCheckDlg(wx.Dialog):
         addGlobalBtn.Bind(wx.EVT_CHAR, self.OnChar)
         suggestBtn.Bind(wx.EVT_CHAR, self.OnChar)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.showWord()
 

@@ -14,7 +14,6 @@ import trelby.screenplay as screenplay
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.titles as titles
-import trelby.util as util
 from trelby.importdlg import ImportDlg
 from trelby.indent import Indent
 from trelby.line import Line
@@ -35,7 +34,7 @@ def importAstx(fileName, frame):
     # one or more textRun/break elements, to be joined. The paragraph
     # attribute "element" gives us the element style.
 
-    data = util.loadFile(fileName, frame, -1)
+    data = gutil.loadFile(fileName, frame, -1)
 
     if data == None:
         return None
@@ -311,7 +310,7 @@ def importFDX(fileName, frame):
         "Transition": screenplay.TRANSITION,
     }
 
-    data = util.loadFile(fileName, frame, -1)
+    data = gutil.loadFile(fileName, frame, -1)
 
     if data == None:
         return None
@@ -435,7 +434,7 @@ def importFDX(fileName, frame):
 def importFountain(fileName, frame, titlePages):
     boneyard_re = re.compile("/\\*.*?\\*/", flags=re.DOTALL)
 
-    data = util.loadFile(fileName, frame, -1)
+    data = gutil.loadFile(fileName, frame, -1)
 
     if data == None:
         return None
@@ -792,7 +791,7 @@ def importFountain(fileName, frame, titlePages):
 # contains at least one line.
 def importTextFile(fileName: str, frame: wx.Frame) -> Optional[List[Line]]:
 
-    data = util.loadFile(fileName, frame, -1)
+    data = gutil.loadFile(fileName, frame, -1)
 
     if data == None:
         return None

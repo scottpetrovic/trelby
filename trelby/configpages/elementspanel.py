@@ -2,7 +2,6 @@ import trelby.config as config
 import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.screenplay as screenplay
-import trelby.util as util
 import wx
 
 
@@ -124,7 +123,7 @@ class ElementsPanel(wx.Panel):
 
         vsizer.Add(gsizer, 0, wx.BOTTOM, 20)
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_COMBOBOX, self.OnElementCombo, id=self.elementsCombo.GetId())
 
@@ -188,10 +187,10 @@ class ElementsPanel(wx.Panel):
     def OnMisc(self, event=None):
         tcfg = self.cfg.types[self.lt]
 
-        tcfg.beforeSpacing = util.getSpinValue(self.beforeSpacingEntry)
-        tcfg.intraSpacing = util.getSpinValue(self.intraSpacingEntry)
-        tcfg.indent = util.getSpinValue(self.indentEntry)
-        tcfg.width = util.getSpinValue(self.widthEntry)
+        tcfg.beforeSpacing = gutil.getSpinValue(self.beforeSpacingEntry)
+        tcfg.intraSpacing = gutil.getSpinValue(self.intraSpacingEntry)
+        tcfg.indent = gutil.getSpinValue(self.indentEntry)
+        tcfg.width = gutil.getSpinValue(self.widthEntry)
 
     def cfg2gui(self):
         tcfg = self.cfg.types[self.lt]

@@ -5,7 +5,6 @@ import sys
 import trelby
 import trelby.gutil as gutil
 import trelby.mcpapp as mcpapp
-import trelby.util as util
 import wx
 
 
@@ -93,7 +92,7 @@ class MCPPanel(wx.Panel):
 
         self.cfg2gui()
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_CHECKBOX, self.OnMisc, id=self.enabledCb.GetId())
         self.Bind(wx.EVT_SPINCTRL, self.OnMisc, id=self.portEntry.GetId())
@@ -108,7 +107,7 @@ class MCPPanel(wx.Panel):
 
     def OnMisc(self, event=None):
         self.cfg.mcpEnabled = self.enabledCb.GetValue()
-        self.cfg.mcpPort = util.getSpinValue(self.portEntry)
+        self.cfg.mcpPort = gutil.getSpinValue(self.portEntry)
 
         self.updateUrl()
 

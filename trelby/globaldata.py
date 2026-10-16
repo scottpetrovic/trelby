@@ -5,6 +5,7 @@ import os.path
 
 import wx
 
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.mrufiles as mrufiles
 import trelby.mypickle as mypickle
@@ -165,4 +166,4 @@ class GlobalData:
 
     # save global spell checker dictionary to disk
     def saveScDict(self):
-        util.writeToFile(self.scDictFilename, self.scDict.save(), self.mainFrame)
+        gutil.writeToFile(self.scDictFilename, self.scDict.save(), self.mainFrame)

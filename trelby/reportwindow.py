@@ -148,7 +148,7 @@ class ReportFrame(wx.Frame):
         )
 
         if dlg.ShowModal() == wx.ID_OK:
-            util.writeToFile(dlg.GetPath(), self.getPDF(), self)
+            gutil.writeToFile(dlg.GetPath(), self.getPDF(), self)
 
         dlg.Destroy()
 

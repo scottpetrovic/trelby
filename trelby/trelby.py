@@ -69,7 +69,7 @@ class MyApp(wx.App):
         # misc.init sets the paths (progPath, confPath) and platform flags
         # that GlobalData and everything after it rely on
         misc.init()
-        util.init()
+        gutil.init()
 
         gd = GlobalData()
 
@@ -103,7 +103,7 @@ class MyApp(wx.App):
         s = None
         confExists = util.fileExists(gd.confFilename)
         if confExists:
-            s = util.loadFile(gd.confFilename, None)
+            s = gutil.loadFile(gd.confFilename, None)
 
         cfgGl = loadGlobalCfg(s)
 
@@ -120,7 +120,7 @@ class MyApp(wx.App):
         if not confExists:
             # we want to write out a default config file at startup for
             # various reasons, if no default config file yet exists
-            util.writeToFile(gd.confFilename, cfgGl.save(), None)
+            gutil.writeToFile(gd.confFilename, cfgGl.save(), None)
 
         # errors are shown on the Theme settings page
         for err in config.loadCustomThemes():
@@ -135,7 +135,7 @@ class MyApp(wx.App):
         misc.scriptDir = cfgGl.scriptDir
 
         if util.fileExists(gd.stateFilename):
-            s = util.loadFile(gd.stateFilename, None)
+            s = gutil.loadFile(gd.stateFilename, None)
 
             if s:
                 gd.load(s)
@@ -148,7 +148,7 @@ class MyApp(wx.App):
         gd.cfgGui = configgui.ConfigGui(gd.cfgGl, gd.zoom)
 
         if util.fileExists(gd.scDictFilename):
-            s = util.loadFile(gd.scDictFilename, None)
+            s = gutil.loadFile(gd.scDictFilename, None)
 
             if s:
                 gd.scDict.load(s)

@@ -67,7 +67,6 @@ def init():
     if _cfgGl is None:
         translations.trelby_translations_load()
         misc.init(False)
-        util.init(False)
 
         _cfgGl = config.ConfigGlobal()
 

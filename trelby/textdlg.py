@@ -2,7 +2,6 @@ import wx
 
 import trelby.gutil as gutil
 import trelby.misc as misc
-import trelby.util as util
 
 
 # shows a multi-line string to the user in a scrollable text control.
@@ -28,7 +27,7 @@ class TextDlg(wx.Dialog):
         okBtn = gutil.createStockButton(self, "OK")
         vsizer.Add(okBtn, 0, wx.ALIGN_CENTER)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
 
@@ -77,7 +76,7 @@ class TextInputDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 5)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())

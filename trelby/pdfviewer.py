@@ -1,12 +1,12 @@
 # Built-in PDF viewer: shows PDFs in an embedded web view, using the PDF
 # support of the platform's browser engine (Edge WebView2 on Windows,
-# WebKit on macOS). Elsewhere, or if the engine fails, util.showPDF falls
+# WebKit on macOS). Elsewhere, or if the engine fails, gutil.showPDF falls
 # back to the external viewer application.
 
 import shutil
 
+import trelby.gutil as gutil
 import trelby.misc as misc
-import trelby.util as util
 import wx
 import wx.html2
 
@@ -118,14 +118,14 @@ class PDFViewerFrame(wx.Frame):
         dlg.Destroy()
 
     def OnExternal(self, event):
-        util.showPDFExternal(self.filename, self.cfgGl, self)
+        gutil.showPDFExternal(self.filename, self.cfgGl, self)
 
     # the browser engine couldn't show the file (e.g. its PDF support is
     # disabled by policy), so hand it to the external viewer instead.
     def OnWebViewError(self, event):
         filename = self.filename
         self.Close()
-        util.showPDFExternal(filename, self.cfgGl, wx.GetApp().GetTopWindow())
+        gutil.showPDFExternal(filename, self.cfgGl, wx.GetApp().GetTopWindow())
 
     def OnClose(self, event):
         global _viewer

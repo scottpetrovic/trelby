@@ -2,7 +2,6 @@ import wx
 
 import trelby.config as config
 import trelby.gutil as gutil
-import trelby.util as util
 
 
 class ImportDlg(wx.Dialog):
@@ -38,7 +37,7 @@ class ImportDlg(wx.Dialog):
 
         self.styleCombo.Append(_("Ignore"), IGNORE)
 
-        util.setWH(self.styleCombo, w=150)
+        gutil.setWH(self.styleCombo, w=150)
 
         hsizer.Add(self.styleCombo, 0, wx.LEFT, 10)
 
@@ -63,7 +62,7 @@ class ImportDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.Bind(wx.EVT_COMBOBOX, self.OnStyleCombo, id=self.styleCombo.GetId())
         self.Bind(wx.EVT_LISTBOX, self.OnInputLb, id=self.inputLb.GetId())
@@ -83,7 +82,7 @@ class ImportDlg(wx.Dialog):
     def OnInputLb(self, event=None):
         self.selected = self.inputLb.GetClientData(self.inputLb.GetSelection())
 
-        util.reverseComboSelect(self.styleCombo, self.selected.lt)
+        gutil.reverseComboSelect(self.styleCombo, self.selected.lt)
         self.linesEntry.SetValue("\n".join(self.selected.lines))
 
     def OnStyleCombo(self, event):

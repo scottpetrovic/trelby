@@ -46,23 +46,23 @@ class SplashWindow(wx.Frame):
 
         self.w, self.h = w, h
 
-        util.setWH(self, w, h)
+        gutil.setWH(self, w, h)
         self.CenterOnScreen()
 
         # dark slate, matching the wordmark in logo.jpg
         self.textColor = wx.Colour(52, 66, 82)
 
-        self.font = util.createPixelFont(14, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.font = gutil.createPixelFont(14, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
-        self.versionFont = util.createPixelFont(
+        self.versionFont = gutil.createPixelFont(
             19, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
         )
 
-        self.quoteFont = util.createPixelFont(
+        self.quoteFont = gutil.createPixelFont(
             16, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
         )
 
-        self.sourceFont = util.createPixelFont(
+        self.sourceFont = gutil.createPixelFont(
             15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL
         )
 
@@ -89,17 +89,17 @@ class SplashWindow(wx.Frame):
 
         # version and website in the empty top-right corner
         dc.SetFont(self.versionFont)
-        util.drawText(dc, "Version %s" % (misc.version), self.w - 12, 10, util.ALIGN_RIGHT)
+        gutil.drawText(dc, "Version %s" % (misc.version), self.w - 12, 10, util.ALIGN_RIGHT)
 
         dc.SetFont(self.font)
-        util.drawText(dc, "http://www.trelby.org/", self.w - 12, 34, util.ALIGN_RIGHT)
+        gutil.drawText(dc, "http://www.trelby.org/", self.w - 12, 34, util.ALIGN_RIGHT)
 
         # quote centered in the band below the wordmark, bottom-aligned
         if self.quote:
             cx = self.w // 2
 
             dc.SetFont(self.sourceFont)
-            util.drawText(dc, "— " + self.quote.source, cx, self.h - 28, util.ALIGN_CENTER)
+            gutil.drawText(dc, "— " + self.quote.source, cx, self.h - 28, util.ALIGN_CENTER)
 
             dc.SetFont(self.quoteFont)
 
@@ -113,7 +113,7 @@ class SplashWindow(wx.Frame):
                 if i == (count - 1):
                     line = line + "”"
 
-                util.drawText(dc, line, cx, y, util.ALIGN_CENTER)
+                gutil.drawText(dc, line, cx, y, util.ALIGN_CENTER)
 
     def OnTimer(self, event):
         self.timer.Stop()
@@ -132,7 +132,7 @@ class SplashWindow(wx.Frame):
     @staticmethod
     def loadQuotes(parent):
         try:
-            data = util.loadFile(
+            data = gutil.loadFile(
                 misc.getFullPath("trelby/resources/quotes.txt"), parent
             )
             if data is None:

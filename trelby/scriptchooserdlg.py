@@ -1,7 +1,6 @@
 import wx
 
 import trelby.gutil as gutil
-import trelby.util as util
 
 
 # dialog that shows two lists of script names, allowing user to choose one
@@ -38,7 +37,7 @@ class ScriptChooserDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
@@ -53,7 +52,7 @@ class ScriptChooserDlg(wx.Dialog):
         sizer.Add(wx.StaticText(parent, -1, descr), 0, al, 10)
 
         combo = wx.ComboBox(parent, -1, style=wx.CB_READONLY)
-        util.setWH(combo, w=200)
+        gutil.setWH(combo, w=200)
 
         for s in items:
             combo.Append(s)

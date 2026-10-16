@@ -1,4 +1,5 @@
 import trelby.config as config
+import trelby.gutil as gutil
 import trelby.util as util
 import wx
 
@@ -74,7 +75,7 @@ class PaperPanel(wx.Panel):
 
         vsizer.Add(self.linesLabel, 0, wx.TOP, 20)
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         ptype = "Custom"
         for k, v in list(self.paperSizes.items()):

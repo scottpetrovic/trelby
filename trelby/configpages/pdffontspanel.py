@@ -3,7 +3,6 @@ import os.path
 import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.truetype as truetype
-import trelby.util as util
 import wx
 
 
@@ -71,7 +70,7 @@ class PDFFontsPanel(wx.Panel):
 
         vsizer.Add(gsizer, 0, wx.EXPAND)
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_COMBOBOX, self.OnTypeCombo, id=self.typeCombo.GetId())
 
@@ -154,7 +153,7 @@ class PDFFontsPanel(wx.Panel):
         # passing around scripts containing references to fonts with
         # filenames like "/dev/zero" etc. no real font that I know of is
         # this big so it shouldn't hurt.
-        fontProgram = util.loadFile(filename, self.cfgFrame, 10 * 1024 * 1024, True)
+        fontProgram = gutil.loadFile(filename, self.cfgFrame, 10 * 1024 * 1024, True)
 
         if fontProgram is None:
             return ""

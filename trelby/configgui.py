@@ -8,7 +8,6 @@ import trelby.config as config
 import trelby.gutil as gutil
 import trelby.screenplay as screenplay
 import trelby.themes as themes
-import trelby.util as util
 
 # key = line type, value = the name of its text color in a theme
 _lt2themeElem = {
@@ -212,7 +211,7 @@ class ConfigGui:
             if zoom != 100:
                 fi.font = fi.font.Scaled(zoom / 100.0)
 
-            fx, fy = util.getTextExtent(fi.font, "O")
+            fx, fy = gutil.getTextExtent(fi.font, "O")
 
             fi.fx = max(1, fx)
             fi.fy = max(1, fy)

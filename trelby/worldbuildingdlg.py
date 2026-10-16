@@ -1,7 +1,6 @@
 import wx
 
 import trelby.gutil as gutil
-import trelby.util as util
 
 # shown above the text to suggest what to write about: list of (topic,
 # description). a function so that the strings are translated when used.
@@ -93,7 +92,7 @@ class WorldBuildingDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        util.finishWindow(self, vsizer, center=True)
+        gutil.finishWindow(self, vsizer, center=True)
 
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())

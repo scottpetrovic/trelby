@@ -1,5 +1,5 @@
+import trelby.gutil as gutil
 import trelby.misc as misc
-import trelby.util as util
 import wx
 
 
@@ -32,7 +32,7 @@ class PDFPanel(wx.Panel):
 
         self.cfg2gui()
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
     def addCb(self, descr, sizer, pad):
         ctrl = wx.CheckBox(self, -1, descr)

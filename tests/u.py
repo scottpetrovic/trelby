@@ -4,7 +4,6 @@ import os
 import trelby.config as config
 import trelby.misc as misc
 import trelby.screenplay as screenplay
-import trelby.util as util
 
 initDone = False
 
@@ -14,7 +13,6 @@ def init():
 
     if not initDone:
         misc.init(False)
-        util.init(False)
 
         initDone = True
 

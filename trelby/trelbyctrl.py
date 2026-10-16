@@ -187,7 +187,7 @@ class MyCtrl(wx.Control):
     # load script from path and show it as fileName. returns True on
     # success.
     def loadFile(self, fileName, path=None):
-        s = util.loadFile(path or fileName, self.gd.mainFrame)
+        s = gutil.loadFile(path or fileName, self.gd.mainFrame)
         if s is None:
             return False
 
@@ -242,7 +242,7 @@ class MyCtrl(wx.Control):
     def saveFile(self, fileName):
         fileName = str(textutil.ensureEndsIn(fileName, ".trelby"))
 
-        if util.writeToFile(
+        if gutil.writeToFile(
             fileName, self.ed.save(), self.gd.mainFrame, backup=True
         ):
             self.sp.markChanged(False)
@@ -661,7 +661,7 @@ class MyCtrl(wx.Control):
             mcpapp.configure(self.gd, self.gd.mainFrame)
 
         if writeCfg:
-            util.writeToFile(
+            gutil.writeToFile(
                 self.gd.confFilename, self.gd.cfgGl.save(), self.gd.mainFrame
             )
 
@@ -1503,7 +1503,7 @@ class MyCtrl(wx.Control):
 
         wx.BeginBusyCursor()
 
-        if not spellcheck.loadDict(self.gd.mainFrame):
+        if not spellcheckdlg.loadDict(self.gd.mainFrame):
             wx.EndBusyCursor()
 
             return
@@ -1635,7 +1635,7 @@ class MyCtrl(wx.Control):
             fileName = textutil.ensureEndsIn(dlg.GetPath(), suffix)
 
             if data:
-                util.writeToFile(fileName, data, self.gd.mainFrame)
+                gutil.writeToFile(fileName, data, self.gd.mainFrame)
 
         dlg.Destroy()
 
@@ -2005,14 +2005,14 @@ class MyCtrl(wx.Control):
                     dc.DrawRectangle(nx, y, nw, lineh)
 
                     dc.SetPen(self.gd.cfgGui.textPen)
-                    util.drawLine(dc, nx - 1, y, 0, lineh)
-                    util.drawLine(dc, nx + nw, y, 0, lineh)
+                    gutil.drawLine(dc, nx - 1, y, 0, lineh)
+                    gutil.drawLine(dc, nx + nw, y, 0, lineh)
 
                     if self.sp.isFirstLineOfElem(i):
-                        util.drawLine(dc, nx - 1, y - 1, nw + 2, 0)
+                        gutil.drawLine(dc, nx - 1, y - 1, nw + 2, 0)
 
                     if self.sp.isLastLineOfElem(i):
-                        util.drawLine(dc, nx - 1, y + lineh, nw + 2, 0)
+                        gutil.drawLine(dc, nx - 1, y + lineh, nw + 2, 0)
 
                 if marked and self.ed.isLineMarked(i, marked):
                     c1, c2 = self.ed.getMarkedColumns(i, marked)
@@ -2027,11 +2027,11 @@ class MyCtrl(wx.Control):
                     lx = int(t.x - self.sp.getCenterOffset(i) * fx)
 
                     dc.SetPen(self.gd.cfgGui.bluePen)
-                    util.drawLine(dc, lx, y, 0, lineh)
+                    gutil.drawLine(dc, lx, y, 0, lineh)
 
                     extraIndent = 1 if self.sp.needsExtraParenIndent(i) else 0
 
-                    util.drawLine(
+                    gutil.drawLine(
                         dc,
                         lx + (self.sp.cfg.getType(l.lt).width - extraIndent) * fx,
                         y,
@@ -2049,7 +2049,7 @@ class MyCtrl(wx.Control):
                             i + 1
                         ):
                             dc.SetPen(self.gd.cfgGui.pagebreakNoAdjustPen)
-                            util.drawLine(dc, 0, y + lineh - 1, size.width, 0)
+                            gutil.drawLine(dc, 0, y + lineh - 1, size.width, 0)
 
                     if self.gd.cfgGl.pbi in (
                         config.PBI_REAL,
@@ -2059,7 +2059,7 @@ class MyCtrl(wx.Control):
 
                         if thisPage != self.sp.line2page(i + 1):
                             dc.SetPen(self.gd.cfgGui.pagebreakPen)
-                            util.drawLine(dc, 0, y + lineh - 1, size.width, 0)
+                            gutil.drawLine(dc, 0, y + lineh - 1, size.width, 0)
 
                 if i == self.ed.line:
                     posX = t.x
@@ -2128,13 +2128,13 @@ class MyCtrl(wx.Control):
             dc.SetPen(self.gd.cfgGui.textPen)
 
             for ul in ulines:
-                util.drawLine(dc, ul[0], ul[1], ul[2], 0)
+                gutil.drawLine(dc, ul[0], ul[1], ul[2], 0)
 
         if ulinesHdr:
             dc.SetPen(self.gd.cfgGui.textHdrPen)
 
             for ul in ulinesHdr:
-                util.drawLine(dc, ul[0], ul[1], ul[2], 0)
+                gutil.drawLine(dc, ul[0], ul[1], ul[2], 0)
 
         for tl in texts:
             self.gd.vm.drawTexts(self, dc, tl)

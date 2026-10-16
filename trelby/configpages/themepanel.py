@@ -3,7 +3,6 @@ import os
 import trelby.config as config
 import trelby.gutil as gutil
 import trelby.themes as themes
-import trelby.util as util
 import wx
 
 
@@ -77,7 +76,7 @@ class ThemePanel(wx.Panel):
         # pick up theme files added since the last time
         self.reload()
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_LISTBOX, self.OnMisc, id=self.themeList.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnExport, id=self.exportBtn.GetId())
@@ -196,7 +195,7 @@ class ThemePanel(wx.Panel):
             )
             return
 
-        if util.writeToFile(path, themes.toJson(theme, name), self):
+        if gutil.writeToFile(path, themes.toJson(theme, name), self):
             self.reload()
 
     def updateExportBtn(self):

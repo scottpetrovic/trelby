@@ -5,7 +5,6 @@ import wx
 
 import trelby.config as config
 import trelby.gutil as gutil
-import trelby.util as util
 from trelby.configpages.displaypanel import DisplayPanel
 from trelby.configpages.draftpanel import DraftPanel
 from trelby.configpages.elementsglobalpanel import ElementsGlobalPanel
@@ -68,7 +67,7 @@ def askSettingsFile(parent, filename, save):
 # viewer) aren't filled in for settings the file doesn't have: those stay
 # empty, and ConfigGui falls back to a generic font for an empty font.
 def loadGlobalCfg(filename, parent):
-    s = util.loadFile(filename, parent)
+    s = gutil.loadFile(filename, parent)
 
     if not s:
         return None
@@ -116,7 +115,7 @@ def askScriptSettingsFile(parent, dirName, save):
 # load script settings from the given file. returns a Config, or None on
 # error.
 def loadScriptCfg(filename, parent):
-    s = util.loadFile(filename, parent)
+    s = gutil.loadFile(filename, parent)
 
     if not s:
         return None
@@ -193,7 +192,7 @@ class CfgDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
         # self.Center()
 
         self.Bind(wx.EVT_BUTTON, self.OnApply, id=applyBtn.GetId())
@@ -320,7 +319,7 @@ class CfgDlg(wx.Dialog):
         c = copy.deepcopy(self.cfg)
         c.recalc()
 
-        if util.writeToFile(path, c.save(), self):
+        if gutil.writeToFile(path, c.save(), self):
             if self.isGlobal:
                 self.confFilename = path
             else:

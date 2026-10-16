@@ -800,7 +800,7 @@ class MyFrame(wx.Frame):
         failed = []
 
         for i, fi in enumerate(self.gd.cfgGui.fonts):
-            if not util.isFixedWidth(fi.font):
+            if not gutil.isFixedWidth(fi.font):
                 failed.append(names[i])
 
         if failed:
@@ -984,7 +984,7 @@ class MyFrame(wx.Frame):
         if not path:
             return
 
-        if util.writeToFile(path, self.gd.cfgGl.save(), self):
+        if gutil.writeToFile(path, self.gd.cfgGl.save(), self):
             self.gd.confFilename = path
 
     def OnUndo(self, event=None):
@@ -1605,7 +1605,7 @@ class MyFrame(wx.Frame):
         if not path:
             return
 
-        if util.writeToFile(path, self.panel.ctrl.sp.saveCfg(), self):
+        if gutil.writeToFile(path, self.panel.ctrl.sp.saveCfg(), self):
             self.gd.scriptSettingsPath = os.path.dirname(path)
 
     def OnReportCharacter(self, event=None):
@@ -1724,7 +1724,7 @@ class MyFrame(wx.Frame):
             return
 
         self.gd.cfgGl.language = language
-        util.writeToFile(self.gd.confFilename, self.gd.cfgGl.save(), self)
+        gutil.writeToFile(self.gd.confFilename, self.gd.cfgGl.save(), self)
 
         # in the new language, which whoever picked it can presumably read
         newGettext = translations.getTranslation(language).gettext
@@ -1791,7 +1791,7 @@ class MyFrame(wx.Frame):
                 else:
                     c.autosave()
 
-            util.writeToFile(self.gd.stateFilename, self.gd.save(), self)
+            gutil.writeToFile(self.gd.stateFilename, self.gd.save(), self)
             util.removeTempFiles(misc.tmpPrefix)
             mcpapp.shutdown()
             self.Destroy()

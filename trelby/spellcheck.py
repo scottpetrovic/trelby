@@ -1,7 +1,6 @@
 import trelby
 import trelby.mypickle as mypickle
 import trelby.textutil as textutil
-import trelby.util as util
 
 # words loaded from dict_en.dat.
 gdict = set()
@@ -17,16 +16,14 @@ gdict = set()
 prefixDict = {}
 
 
-# load word dictionary. returns True on success or if it's already loaded,
-# False on errors.
-def loadDict(frame):
-    if gdict:
-        return True
+# the word dictionary file. packaged versions have only the gzipped copy,
+# which gutil.loadMaybeCompressedFile falls back to.
+DICT_FILENAME = trelby.__path__[0] + "/dict_en.dat"
 
-    s = util.loadMaybeCompressedFile(trelby.__path__[0] + "/dict_en.dat", frame)
-    if not s:
-        return False
 
+# load the word dictionary from s, the contents of DICT_FILENAME.
+# spellcheckdlg.loadDict reads the file and calls this.
+def loadDict(s):
     lines = s.splitlines()
 
     chars = "abcdefghijklmnopqrstuvwxyz"
@@ -48,8 +45,6 @@ def loadDict(frame):
 
         if len(word) > 2:
             prefixDict[gwp(word)].add(word)
-
-    return True
 
 
 # dictionary, a list of known words that the user has specified.

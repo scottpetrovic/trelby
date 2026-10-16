@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 import tests.u as u
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.translations as translations
 import trelby.util as util
@@ -25,7 +26,7 @@ def testLoadFileMemoryError():
             pass
 
     with mock.patch.object(builtins, "open", lambda *args, **kw: TooBig()):
-        assert util.loadFile("x.trelby", None) is None
+        assert gutil.loadFile("x.trelby", None) is None
 
 
 def testTimerDev(capsys):
@@ -59,10 +60,10 @@ def testShowPDFExternalFallbackMessage():
         mock.patch.object(misc, "isMac", False),
         mock.patch.object(util, "fileExists", lambda p: False),
         mock.patch.object(util, "getPDFViewer", lambda: ("/found/viewer", "")),
-        mock.patch.object(util.wx, "MessageBox") as box,
+        mock.patch.object(gutil.wx, "MessageBox") as box,
         mock.patch.object(os, "spawnv") as spawnv,
     ):
-        util.showPDFExternal("/tmp/x.pdf", cfgGl, None)
+        gutil.showPDFExternal("/tmp/x.pdf", cfgGl, None)
 
     msg = box.call_args[0][0]
     assert "/no/such/viewer" in msg

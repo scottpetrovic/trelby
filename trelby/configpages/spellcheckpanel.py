@@ -1,6 +1,5 @@
 import trelby.gutil as gutil
 import trelby.misc as misc
-import trelby.util as util
 import wx
 
 
@@ -35,7 +34,7 @@ class SpellCheckPanel(wx.Panel):
 
         self.itemsEntry.SetValue("\n".join(self.cfgFrame.scDict.get()))
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.itemsEntry.GetId())
 

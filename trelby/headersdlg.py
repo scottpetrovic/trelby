@@ -4,7 +4,6 @@ import trelby.gutil as gutil
 import trelby.headers as headers
 import trelby.misc as misc
 import trelby.textutil as textutil
-import trelby.util as util
 from trelby.headerspreview import HeadersPreview
 
 
@@ -163,7 +162,7 @@ class HeadersDlg(wx.Dialog):
 
         topSizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 20)
 
-        util.finishWindow(self, topSizer)
+        gutil.finishWindow(self, topSizer)
 
         self.Bind(wx.EVT_BUTTON, self.OnApply, id=applyBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
@@ -288,7 +287,7 @@ class HeadersDlg(wx.Dialog):
         if self.block:
             return
 
-        self.headers.emptyLinesAfter = util.getSpinValue(self.elinesEntry)
+        self.headers.emptyLinesAfter = gutil.getSpinValue(self.elinesEntry)
         self.previewCtrl.Refresh()
 
         if self.hdrIndex == -1:
@@ -299,8 +298,8 @@ class HeadersDlg(wx.Dialog):
         h.text = textutil.toInputStr(misc.fromGUI(self.textEntry.GetValue()))
         self.stringsLb.SetString(self.hdrIndex, h.text)
 
-        h.xoff = util.getSpinValue(self.xoffEntry)
-        h.line = util.getSpinValue(self.lineEntry)
+        h.xoff = gutil.getSpinValue(self.xoffEntry)
+        h.line = gutil.getSpinValue(self.lineEntry)
         h.align = gutil.getAlignment(self.alignBtns)
 
         h.isBold = self.boldBtn.GetValue()

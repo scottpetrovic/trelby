@@ -1,4 +1,4 @@
-import trelby.util as util
+import trelby.gutil as gutil
 import wx
 
 
@@ -45,7 +45,7 @@ class DraftPanel(wx.Panel):
 
         self.cfg2gui()
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
         self.Bind(wx.EVT_RADIOBOX, self.OnMisc, id=self.pbRb.GetId())
 
@@ -67,7 +67,7 @@ class DraftPanel(wx.Panel):
         event.Skip()
 
     def OnMisc(self, event=None):
-        self.cfg.fontYdelta = util.getSpinValue(self.spacingEntry)
+        self.cfg.fontYdelta = gutil.getSpinValue(self.spacingEntry)
         self.cfg.pbi = self.pbRb.GetSelection()
 
     def cfg2gui(self):

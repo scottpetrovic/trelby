@@ -1,7 +1,6 @@
 import wx
 
 import trelby.gutil as gutil
-import trelby.util as util
 
 
 # shows one or two (one if cbil2 = None) checklistbox widgets with
@@ -36,7 +35,7 @@ class CheckBoxDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
@@ -89,7 +88,7 @@ class CheckBoxDlg(wx.Dialog):
             h = len(items)
             if longest != -1:
                 w = (
-                    util.getTextExtent(tmp.GetFont(), "[x] " + items[longest].text)[0]
+                    gutil.getTextExtent(tmp.GetFont(), "[x] " + items[longest].text)[0]
                     + 15
                 )
         else:
@@ -99,7 +98,7 @@ class CheckBoxDlg(wx.Dialog):
         h = h * tmp.list.rowHeight + 2
         h = max(25, h)
 
-        util.setWH(tmp, w, h)
+        gutil.setWH(tmp, w, h)
         sizer.Add(tmp, 0, wx.EXPAND)
 
         return tmp

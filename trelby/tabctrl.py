@@ -288,7 +288,7 @@ class MyTabCtrl(wx.Window):
         radius = 5
 
         if not self.font:
-            self.font = util.createPixelFont(
+            self.font = gutil.createPixelFont(
                 h // 2, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
             )
 
@@ -367,17 +367,17 @@ class MyTabCtrl(wx.Window):
             dc.DestroyClippingRegion()
             dc.SetPen(cfgGui.tabTextPen)
 
-            util.drawLine(
+            gutil.drawLine(
                 dc, rx - self.arrowSpacing - 1, self.arrowY, 0, self.arrowHeight
             )
-            util.drawLine(
+            gutil.drawLine(
                 dc,
                 rx - self.arrowSpacing - 2,
                 self.arrowY,
                 -self.arrowWidth + 1,
                 self.arrowHeight // 2 + 1,
             )
-            util.drawLine(
+            gutil.drawLine(
                 dc,
                 rx - self.arrowSpacing - self.arrowWidth,
                 self.arrowY + self.arrowHeight // 2,
@@ -389,11 +389,11 @@ class MyTabCtrl(wx.Window):
             dc.DestroyClippingRegion()
             dc.SetPen(cfgGui.tabTextPen)
 
-            util.drawLine(dc, rx, self.arrowY, 0, self.arrowHeight)
-            util.drawLine(
+            gutil.drawLine(dc, rx, self.arrowY, 0, self.arrowHeight)
+            gutil.drawLine(
                 dc, rx + 1, self.arrowY, self.arrowWidth - 1, self.arrowHeight // 2 + 1
             )
-            util.drawLine(
+            gutil.drawLine(
                 dc,
                 rx + 1,
                 self.arrowY + self.arrowHeight - 1,

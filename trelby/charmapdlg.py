@@ -71,7 +71,7 @@ class CharMapDlg(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnInsert, id=self.insertButton.GetId())
         gutil.btnDblClick(self.insertButton, self.OnInsert)
 
-        util.finishWindow(self, hsizer, 0)
+        gutil.finishWindow(self, hsizer, 0)
 
     def OnBlock(self, event):
         self.charMap.setChars(
@@ -104,13 +104,13 @@ class MyCharMap(wx.Window):
         # size of the zoomed-in character boxes
         self.boxSize = 60
 
-        self.smallFont = util.createPixelFont(
+        self.smallFont = gutil.createPixelFont(
             18, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
         )
-        self.normalFont = util.createPixelFont(
+        self.normalFont = gutil.createPixelFont(
             self.cellSize - 2, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
         )
-        self.bigFont = util.createPixelFont(
+        self.bigFont = gutil.createPixelFont(
             self.boxSize - 2, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
         )
 
@@ -119,7 +119,7 @@ class MyCharMap(wx.Window):
         self.Bind(wx.EVT_MOTION, self.OnMotion)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
-        util.setWH(
+        gutil.setWH(
             self,
             self.cols * self.cellSize + 2 * self.offset,
             self.offset + maxRows * self.cellSize + self.boxSize + 15,
@@ -171,7 +171,7 @@ class MyCharMap(wx.Window):
         dc.SetTextForeground(wx.BLACK)
 
         for y in range(self.rows + 1):
-            util.drawLine(
+            gutil.drawLine(
                 dc,
                 self.offset,
                 self.offset + y * self.cellSize,
@@ -180,7 +180,7 @@ class MyCharMap(wx.Window):
             )
 
         for x in range(self.cols + 1):
-            util.drawLine(
+            gutil.drawLine(
                 dc,
                 self.offset + x * self.cellSize,
                 self.offset,
@@ -194,7 +194,7 @@ class MyCharMap(wx.Window):
             for x in range(self.cols):
                 i = y * self.cols + x
                 if i < len(self.chars):
-                    util.drawText(
+                    gutil.drawText(
                         dc,
                         self.chars[i],
                         x * self.cellSize + self.offset + self.cellSize // 2 + 1,
@@ -247,7 +247,7 @@ class MyCharMap(wx.Window):
         dc.DrawRectangle(boxX, y, self.boxSize, self.boxSize)
 
         dc.SetFont(self.bigFont)
-        util.drawText(
+        gutil.drawText(
             dc,
             char,
             boxX + self.boxSize // 2 + 1,

@@ -153,7 +153,7 @@ class PhotoViewDlg(wx.Dialog):
         okBtn = gutil.createStockButton(self, "OK")
         vsizer.Add(okBtn, 0, wx.ALIGN_RIGHT | wx.TOP, 10)
 
-        util.finishWindow(self, vsizer, 10, center=True)
+        gutil.finishWindow(self, vsizer, 10, center=True)
 
         panel.setImage(img)
 
@@ -215,7 +215,7 @@ class NameGeneratorDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.typeChoice.SetSelection(
             self.typeNames.index(lastNameType) if lastNameType in self.typeNames else 0
@@ -437,7 +437,7 @@ class CharacterProfilesDlg(wx.Dialog):
 
         topVsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        util.finishWindow(self, topVsizer, center=True)
+        gutil.finishWindow(self, topVsizer, center=True)
 
         self.charList.Bind(wx.EVT_LISTBOX, self.OnCharSelected)
         self.Bind(wx.EVT_BUTTON, self.OnNew, id=newBtn.GetId())

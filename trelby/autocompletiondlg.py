@@ -3,7 +3,6 @@ import wx
 import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.textutil as textutil
-import trelby.util as util
 
 
 class AutoCompletionDlg(wx.Dialog):
@@ -66,7 +65,7 @@ class AutoCompletionDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         self.elementsCombo.SetSelection(0)
         self.OnElementCombo()

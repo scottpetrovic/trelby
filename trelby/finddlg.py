@@ -5,7 +5,6 @@ import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.textutil as textutil
 import trelby.undo as undo
-import trelby.util as util
 
 
 class FindDlg(wx.Dialog):
@@ -138,7 +137,7 @@ class FindDlg(wx.Dialog):
         self.direction.Bind(wx.EVT_CHAR, self.OnCharMisc)
         self.elements.Bind(wx.EVT_CHAR, self.OnCharMisc)
 
-        util.finishWindow(self, hsizer, center=False)
+        gutil.finishWindow(self, hsizer, center=False)
 
         self.loadState()
         self.findEntry.SetFocus()

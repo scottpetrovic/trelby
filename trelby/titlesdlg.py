@@ -189,7 +189,7 @@ class TitlesDlg(wx.Dialog):
 
         topSizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 20)
 
-        util.finishWindow(self, topSizer)
+        gutil.finishWindow(self, topSizer)
 
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
@@ -614,7 +614,7 @@ class TitlesDlg(wx.Dialog):
         gutil.setAlignment(self.alignBtns, ts.getAlignment())
         self.kindChoice.SetSelection(titles.KINDS.index(ts.kind or titles.TEXT))
 
-        util.reverseComboSelect(self.fontCombo, ts.font)
+        gutil.reverseComboSelect(self.fontCombo, ts.font)
         self.sizeEntry.SetValue(ts.size)
 
         self.boldBtn.SetValue(ts.isBold)
@@ -637,7 +637,7 @@ class TitlesDlg(wx.Dialog):
         ts.setAlignment(gutil.getAlignment(self.alignBtns))
         self.xEntry.Enable(not ts.isCentered)
 
-        ts.size = util.getSpinValue(self.sizeEntry)
+        ts.size = gutil.getSpinValue(self.sizeEntry)
         ts.font = self.fontCombo.GetClientData(self.fontCombo.GetSelection())
 
         ts.isBold = self.boldBtn.GetValue()

@@ -3,8 +3,8 @@ import xml.sax.saxutils as xss
 import wx
 import wx.html
 
+import trelby.gutil as gutil
 import trelby.keys as keys
-import trelby.util as util
 
 
 class CommandsDlg(wx.Frame):
@@ -119,6 +119,6 @@ R                      Replace
         )
 
         if dlg.ShowModal() == wx.ID_OK:
-            util.writeToFile(dlg.GetPath(), self.html, self)
+            gutil.writeToFile(dlg.GetPath(), self.html, self)
 
         dlg.Destroy()

@@ -2,7 +2,6 @@ import wx
 
 import trelby.gutil as gutil
 import trelby.keys as keys
-import trelby.util as util
 
 
 # asks the user for a keypress and stores it.
@@ -27,7 +26,7 @@ class KeyDlg(wx.Dialog):
         tmp = KeyDlgWidget(self, -1, (1, 1))
         vsizer.Add(tmp)
 
-        util.finishWindow(self, vsizer)
+        gutil.finishWindow(self, vsizer)
 
         tmp.SetFocus()
 

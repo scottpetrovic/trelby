@@ -1,6 +1,5 @@
 import trelby.gutil as gutil
 import trelby.misc as misc
-import trelby.util as util
 import wx
 
 
@@ -79,7 +78,7 @@ class FormattingPanel(wx.Panel):
 
         self.cfg2gui()
 
-        util.finishWindow(self, vsizer, center=False)
+        gutil.finishWindow(self, vsizer, center=False)
 
     def addSpin(self, name, descr, parent, sizer, cfgName):
         sizer.Add(
@@ -102,14 +101,14 @@ class FormattingPanel(wx.Panel):
         event.Skip()
 
     def OnMisc(self, event=None):
-        self.cfg.pbActionLines = util.getSpinValue(self.actionEntry)
-        self.cfg.pbDialogueLines = util.getSpinValue(self.dialogueEntry)
+        self.cfg.pbActionLines = gutil.getSpinValue(self.actionEntry)
+        self.cfg.pbDialogueLines = gutil.getSpinValue(self.dialogueEntry)
         self.cfg.pbActNewPage = self.actNewPageCb.GetValue()
         self.cfg.sceneContinueds = self.sceneContinuedsCb.GetValue()
-        self.cfg.sceneContinuedIndent = util.getSpinValue(
+        self.cfg.sceneContinuedIndent = gutil.getSpinValue(
             self.sceneContinuedIndentEntry
         )
-        self.cfg.fontSize = util.getSpinValue(self.fontSizeEntry)
+        self.cfg.fontSize = gutil.getSpinValue(self.fontSizeEntry)
         self.cfg.doubleWidth = self.doubleWidthCb.GetValue()
         self.cfg.pdfShowSceneNumbers = self.scenesCb.GetValue()
         self.cfg.pdfShowLineNumbers = self.lineNumbersCb.GetValue()
