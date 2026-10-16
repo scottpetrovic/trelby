@@ -2,6 +2,7 @@ import wx
 
 import trelby.ui.gutil as gutil
 import trelby.keys as keys
+import trelby.ui.widgets as widgets
 
 
 # asks the user for a keypress and stores it.
@@ -14,7 +15,7 @@ class KeyDlg(wx.Dialog):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         vsizer.Add(
-            gutil.WrappedText(
+            widgets.WrappedText(
                 self,
                 _("Press the key combination you want to bind to the command '{}'.").format(
                     cmdName

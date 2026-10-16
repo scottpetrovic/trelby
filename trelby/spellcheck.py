@@ -16,7 +16,7 @@ prefixDict = {}
 
 
 # the word dictionary file. packaged versions have only the gzipped copy,
-# which gutil.loadMaybeCompressedFile falls back to.
+# which fileio.loadMaybeCompressedFile falls back to.
 DICT_FILENAME = trelby.__path__[0] + "/dict_en.dat"
 
 

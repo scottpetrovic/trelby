@@ -10,9 +10,10 @@ import re
 import wx
 import wx.html
 
-import trelby.ui.gutil as gutil
 import trelby.misc as misc
 import trelby.pdf.pml as pml
+import trelby.ui.fileio as fileio
+import trelby.ui.theming as theming
 import trelby.util as util
 
 # open report windows. key = (window class, id of the Screenplay), value =
@@ -91,7 +92,7 @@ class ReportFrame(wx.Frame):
         self.update()
 
         panel.SetSizer(vsizer)
-        gutil.themeWindow(self)
+        theming.themeWindow(self)
 
         self.Bind(wx.EVT_ACTIVATE, self.OnActivate)
         self.Bind(wx.EVT_CHAR_HOOK, self.OnCharHook)
@@ -148,7 +149,7 @@ class ReportFrame(wx.Frame):
         )
 
         if dlg.ShowModal() == wx.ID_OK:
-            gutil.writeToFile(dlg.GetPath(), self.getPDF(), self)
+            fileio.writeToFile(dlg.GetPath(), self.getPDF(), self)
 
         dlg.Destroy()
 
@@ -206,7 +207,7 @@ class TextReportFrame(ReportFrame):
         if not body:
             body = "<i>%s</i>" % html.escape(self.getEmptyMessage())
 
-        cfgGui = gutil.currentCfgGui()
+        cfgGui = theming.currentCfgGui()
 
         if cfgGui:
             bg, fg = cfgGui.textBgColor, cfgGui.textColor

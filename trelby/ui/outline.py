@@ -1,9 +1,10 @@
 import wx
 from wx.lib.wordwrap import wordwrap
 
-import trelby.ui.gutil as gutil
 import trelby.screenplay as screenplay
-from trelby.ui.gutil import blendColors
+import trelby.ui.icons as icons
+import trelby.ui.widgets as widgets
+from trelby.ui.theming import blendColors
 from trelby.ui.scrollbar import ScrollBar
 
 # max number of lines of summary text shown under each scene
@@ -392,7 +393,7 @@ class OutlinePanel(wx.Panel):
         hdr.Add(self.title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, self.FromDIP(6))
 
         def addBtn(iconFilename, toolTip):
-            bitmap = gutil.svgBitmap(iconFilename, wx.Size(16, 16))
+            bitmap = icons.svgBitmap(iconFilename, wx.Size(16, 16))
             btn = wx.BitmapButton(self, -1, bitmap, style=wx.BORDER_NONE)
             btn.SetToolTip(toolTip)
             hdr.Add(btn, 0, wx.ALL, self.FromDIP(2))
@@ -411,7 +412,7 @@ class OutlinePanel(wx.Panel):
         self.closeBtn = addBtn("closepanel.svg", _("Hide the outline"))
 
         vsizer.Add(hdr, 0, wx.EXPAND)
-        self.separator = gutil.Separator(self)
+        self.separator = widgets.Separator(self)
         vsizer.Add(self.separator, 0, wx.EXPAND)
 
         # the list's native scrollbar ignores the theme's colors, so when

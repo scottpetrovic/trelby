@@ -6,6 +6,7 @@ import trelby.config as config
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
 import trelby.screenplay.search as search
+import trelby.ui.widgets as widgets
 
 
 # what the dialog was left showing, kept per script (MyCtrl.findState) for
@@ -93,7 +94,7 @@ class FindDlg(wx.Dialog):
         self.extraLabel = wx.StaticText(self, -1, _("Search in:"))
         vsizer.Add(self.extraLabel)
 
-        self.elements = gutil.ThemedListBox(self, -1, checkable=True)
+        self.elements = widgets.ThemedListBox(self, -1, checkable=True)
 
         # sucky wxMSW doesn't support client data for checklistbox items,
         # so we have to store it ourselves

@@ -17,7 +17,6 @@ import trelby.dialogs.checkboxdlg as checkboxdlg
 import trelby.checkboxitem as checkboxitem
 import trelby.config as config
 import trelby.dialogs.finddlg as finddlg
-import trelby.ui.gutil as gutil
 import trelby.dialogs.headersdlg as headersdlg
 import trelby.keys as keys
 import trelby.dialogs.locationsdlg as locationsdlg
@@ -39,6 +38,7 @@ import trelby.textutil as textutil
 import trelby.dialogs.titlesdlg as titlesdlg
 import trelby.dialogs.watermarkdlg as watermarkdlg
 import trelby.dialogs.worldbuildingdlg as worldbuildingdlg
+import trelby.ui.fileio as fileio
 
 
 # change the type of the element at the cursor or the selected ones to lt
@@ -249,7 +249,7 @@ def compareScripts(frame, ctrl):
     s = compare.compareScripts(sp1, sp2)
 
     if s:
-        gutil.showTempPDF(s, ctrl.gd.cfgGl, frame)
+        fileio.showTempPDF(s, ctrl.gd.cfgGl, frame)
     else:
         wx.MessageBox(
             _("The scripts are identical."), _("Results"), wx.OK, frame
@@ -741,7 +741,7 @@ def exportScript(frame, ctrl, fmt):
         if (options is not None) and (
             (fmt.key != "pdf") or confirmPdfChars(frame, sp)
         ):
-            gutil.writeToFile(fileName, fmt.generate(sp, **options), frame)
+            fileio.writeToFile(fileName, fmt.generate(sp, **options), frame)
 
     dlg.Destroy()
 
@@ -779,7 +779,7 @@ def saveScriptSettingsAs(frame, ctrl):
     if not path:
         return
 
-    if gutil.writeToFile(path, ctrl.sp.saveCfg(), frame):
+    if fileio.writeToFile(path, ctrl.sp.saveCfg(), frame):
         ctrl.gd.scriptSettingsPath = os.path.dirname(path)
 
 

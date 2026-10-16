@@ -1,5 +1,6 @@
 import wx
 
+import trelby.ui.fileio as fileio
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
 import trelby.spellcheck as spellcheck
@@ -11,7 +12,7 @@ def loadDict(frame):
     if spellcheck.gdict:
         return True
 
-    s = gutil.loadMaybeCompressedFile(spellcheck.DICT_FILENAME, frame)
+    s = fileio.loadMaybeCompressedFile(spellcheck.DICT_FILENAME, frame)
     if not s:
         return False
 

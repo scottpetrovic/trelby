@@ -4,7 +4,10 @@ import os.path
 import wx
 
 import trelby.config as config
+import trelby.ui.fileio as fileio
 import trelby.ui.gutil as gutil
+import trelby.ui.theming as theming
+import trelby.ui.widgets as widgets
 from trelby.dialogs.configpages.displaypanel import DisplayPanel
 from trelby.dialogs.configpages.draftpanel import DraftPanel
 from trelby.dialogs.configpages.elementsglobalpanel import ElementsGlobalPanel
@@ -67,7 +70,7 @@ def askSettingsFile(parent, filename, save):
 # viewer) aren't filled in for settings the file doesn't have: those stay
 # empty, and ConfigGui falls back to a generic font for an empty font.
 def loadGlobalCfg(filename, parent):
-    s = gutil.loadFile(filename, parent)
+    s = fileio.loadFile(filename, parent)
 
     if not s:
         return None
@@ -115,7 +118,7 @@ def askScriptSettingsFile(parent, dirName, save):
 # load script settings from the given file. returns a Config, or None on
 # error.
 def loadScriptCfg(filename, parent):
-    s = gutil.loadFile(filename, parent)
+    s = fileio.loadFile(filename, parent)
 
     if not s:
         return None
@@ -154,7 +157,7 @@ class CfgDlg(wx.Dialog):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.listbook = gutil.ThemedListbook(self)
+        self.listbook = widgets.ThemedListbook(self)
 
         if isGlobal:
             self.SetTitle(_("Settings"))
@@ -165,7 +168,7 @@ class CfgDlg(wx.Dialog):
 
         vsizer.Add(self.listbook, 1, wx.EXPAND)
 
-        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 15)
+        vsizer.Add(widgets.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 15)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -302,7 +305,7 @@ class CfgDlg(wx.Dialog):
         self.listbook.DeleteAllPages()
         self.addPages()
         self.listbook.SetSelection(sel)
-        gutil.themeWindow(self)
+        theming.themeWindow(self)
 
     def OnSaveAs(self, event):
         self.checkForErrors()
@@ -319,7 +322,7 @@ class CfgDlg(wx.Dialog):
         c = copy.deepcopy(self.cfg)
         c.recalc()
 
-        if gutil.writeToFile(path, c.save(), self):
+        if fileio.writeToFile(path, c.save(), self):
             if self.isGlobal:
                 self.confFilename = path
             else:

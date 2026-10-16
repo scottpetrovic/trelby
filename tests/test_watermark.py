@@ -34,7 +34,7 @@ def testFileNamesAreStripped():
     dlg = FakeDlg(sp, " Jane Doe \nBob\n\n")
 
     with (
-        mock.patch.object(watermarkdlg.gutil, "writeToFile", return_value=True) as w,
+        mock.patch.object(watermarkdlg.fileio, "writeToFile", return_value=True) as w,
         mock.patch.object(watermarkdlg.wx, "MessageBox"),
     ):
         dlg.OnGenerate(None)

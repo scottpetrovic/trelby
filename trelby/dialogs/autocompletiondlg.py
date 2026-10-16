@@ -3,6 +3,7 @@ import wx
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
 import trelby.textutil as textutil
+import trelby.ui.widgets as widgets
 
 
 class AutoCompletionDlg(wx.Dialog):
@@ -39,7 +40,7 @@ class AutoCompletionDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        vsizer.Add(widgets.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
         self.enabledCb = wx.CheckBox(self, -1, _("Auto-completion enabled"))
         self.Bind(wx.EVT_CHECKBOX, self.OnMisc, id=self.enabledCb.GetId())

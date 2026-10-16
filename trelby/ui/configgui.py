@@ -8,6 +8,7 @@ import trelby.config as config
 import trelby.ui.gutil as gutil
 import trelby.screenplay as screenplay
 import trelby.ui.themes as themes
+import trelby.ui.theming as theming
 
 # key = line type, value = the name of its text color in a theme
 _lt2themeElem = {
@@ -44,7 +45,7 @@ def getTheme(name):
     theme = config.findTheme(name)
 
     if theme is None:
-        return themes.DARK if gutil.isDarkAppearance() else themes.LIGHT
+        return themes.DARK if theming.isDarkAppearance() else themes.LIGHT
 
     return theme
 

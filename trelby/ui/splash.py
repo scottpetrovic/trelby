@@ -4,8 +4,10 @@ import random
 
 import wx
 
+import trelby.ui.fileio as fileio
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
+import trelby.ui.icons as icons
 import trelby.util as util
 
 
@@ -37,7 +39,7 @@ class SplashWindow(wx.Frame):
 
         self.pickRandomQuote()
 
-        self.pic = gutil.getBitmap("trelby/resources/logo.jpg")
+        self.pic = icons.getBitmap("trelby/resources/logo.jpg")
 
         if self.pic.IsOk():
             w, h = (self.pic.GetWidth(), self.pic.GetHeight())
@@ -132,7 +134,7 @@ class SplashWindow(wx.Frame):
     @staticmethod
     def loadQuotes(parent):
         try:
-            data = gutil.loadFile(
+            data = fileio.loadFile(
                 misc.getFullPath("trelby/resources/quotes.txt"), parent
             )
             if data is None:

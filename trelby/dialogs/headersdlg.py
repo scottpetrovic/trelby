@@ -4,6 +4,7 @@ import trelby.ui.gutil as gutil
 import trelby.headers as headers
 import trelby.misc as misc
 import trelby.textutil as textutil
+import trelby.ui.widgets as widgets
 from trelby.dialogs.headerspreview import HeadersPreview
 
 
@@ -47,12 +48,12 @@ class HeadersDlg(wx.Dialog):
 
         vsizer.Add(hsizer)
 
-        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        vsizer.Add(widgets.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
         tmp = wx.StaticText(self, -1, _("Strings:"))
         vsizer.Add(tmp)
 
-        self.stringsLb = gutil.ThemedListBox(self, -1, size=(200, 100))
+        self.stringsLb = widgets.ThemedListBox(self, -1, size=(200, 100))
         vsizer.Add(self.stringsLb, 0, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -120,13 +121,13 @@ class HeadersDlg(wx.Dialog):
         )
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.alignBtns = gutil.addAlignToggles(self, hsizer, self.OnMisc)
+        self.alignBtns = widgets.addAlignToggles(self, hsizer, self.OnMisc)
         gsizer.Add(hsizer)
 
         gsizer.Add(wx.StaticText(self, -1, _("Format:")), 0, wx.ALIGN_CENTER_VERTICAL)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.boldBtn, self.italicBtn, self.underlinedBtn = gutil.addStyleToggles(
+        self.boldBtn, self.italicBtn, self.underlinedBtn = widgets.addStyleToggles(
             self, hsizer, self.OnMisc
         )
         gsizer.Add(hsizer)
@@ -257,7 +258,7 @@ class HeadersDlg(wx.Dialog):
             self.boldBtn.SetValue(False)
             self.italicBtn.SetValue(False)
             self.underlinedBtn.SetValue(False)
-            gutil.setAlignment(self.alignBtns, None)
+            widgets.setAlignment(self.alignBtns, None)
             self.previewCtrl.Refresh()
 
             return
@@ -272,7 +273,7 @@ class HeadersDlg(wx.Dialog):
         self.textEntry.SetValue(h.text)
         self.xoffEntry.SetValue(h.xoff)
 
-        gutil.setAlignment(self.alignBtns, h.align)
+        widgets.setAlignment(self.alignBtns, h.align)
         self.lineEntry.SetValue(h.line)
 
         self.boldBtn.SetValue(h.isBold)
@@ -300,7 +301,7 @@ class HeadersDlg(wx.Dialog):
 
         h.xoff = gutil.getSpinValue(self.xoffEntry)
         h.line = gutil.getSpinValue(self.lineEntry)
-        h.align = gutil.getAlignment(self.alignBtns)
+        h.align = widgets.getAlignment(self.alignBtns)
 
         h.isBold = self.boldBtn.GetValue()
         h.isItalic = self.italicBtn.GetValue()

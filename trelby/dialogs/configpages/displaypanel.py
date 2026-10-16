@@ -1,5 +1,6 @@
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
+import trelby.ui.widgets as widgets
 import wx
 
 
@@ -13,7 +14,7 @@ class DisplayPanel(wx.Panel):
 
         vsizer.Add(wx.StaticText(self, -1, _("Screen fonts:")))
 
-        self.fontsLb = gutil.ThemedListBox(self, -1, size=(300, 100))
+        self.fontsLb = widgets.ThemedListBox(self, -1, size=(300, 100))
 
         for it in ["fontNormal", "fontBold", "fontItalic", "fontBoldItalic"]:
             self.fontsLb.Append("", it)

@@ -1,8 +1,10 @@
 import os
 
 import trelby.config as config
+import trelby.ui.fileio as fileio
 import trelby.ui.gutil as gutil
 import trelby.ui.themes as themes
+import trelby.ui.widgets as widgets
 import wx
 
 
@@ -30,11 +32,11 @@ class ThemePanel(wx.Panel):
 
         vsizer.Add(wx.StaticText(self, -1, _("Theme:")), 0, wx.BOTTOM, 5)
 
-        self.themeList = gutil.ThemedListBox(self, -1, size=self.FromDIP(wx.Size(250, 220)))
+        self.themeList = widgets.ThemedListBox(self, -1, size=self.FromDIP(wx.Size(250, 220)))
         vsizer.Add(self.themeList, 0, wx.BOTTOM, 10)
 
         vsizer.Add(
-            gutil.WrappedText(
+            widgets.WrappedText(
                 self,
                 _(
                     "System default follows the light or dark mode setting "
@@ -195,7 +197,7 @@ class ThemePanel(wx.Panel):
             )
             return
 
-        if gutil.writeToFile(path, themes.toJson(theme, name), self):
+        if fileio.writeToFile(path, themes.toJson(theme, name), self):
             self.reload()
 
     def updateExportBtn(self):

@@ -6,8 +6,8 @@ import pytest
 import tests.u as u
 import trelby.config as config
 import trelby.ui.configgui as configgui
-import trelby.ui.gutil as gutil
 import trelby.ui.themes as themes
+import trelby.ui.theming as theming
 import trelby.translations as translations
 
 _ = translations.trelby_translations_load()
@@ -261,7 +261,7 @@ def testReloadReplacesCustomThemes(themesDir):
 
 def testCustomThemeSettingFallsBack(themesDir, monkeypatch):
     u.init()
-    monkeypatch.setattr(gutil, "isDarkAppearance", lambda: True)
+    monkeypatch.setattr(theming, "isDarkAppearance", lambda: True)
     writeTheme(themesDir, "mine.json", themeDict("Mine"))
     themes.loadCustom(str(themesDir))
 
