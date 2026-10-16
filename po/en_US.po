@@ -3295,8 +3295,16 @@ msgid "Language"
 msgstr "Language"
 
 #: trelby/trelbyframe.py
-msgid "Restart Trelby to use the new language."
-msgstr "Restart Trelby to use the new language."
+msgid "Language change needs a restart."
+msgstr "Language change needs a restart."
+
+#: trelby/trelbyframe.py
+msgid "Restart now"
+msgstr "Restart now"
+
+#: trelby/trelbyframe.py
+msgid "Restart later"
+msgstr "Restart later"
 
 #~ msgid "Restore default"
 #~ msgstr "Restore default"

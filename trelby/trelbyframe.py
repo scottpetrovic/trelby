@@ -1599,12 +1599,22 @@ class MyFrame(wx.Frame):
         # in the new language, which whoever picked it can presumably read
         newGettext = translations.getTranslation(language).gettext
 
-        wx.MessageBox(
-            newGettext("Restart Trelby to use the new language."),
-            newGettext("Language"),
-            wx.OK,
+        dlg = wx.MessageDialog(
             self,
+            newGettext("Language change needs a restart."),
+            newGettext("Language"),
+            wx.YES_NO | wx.YES_DEFAULT | wx.ICON_INFORMATION,
         )
+        dlg.SetYesNoLabels(newGettext("Restart now"), newGettext("Restart later"))
+        restart = dlg.ShowModal() == wx.ID_YES
+        dlg.Destroy()
+
+        if restart:
+            # main() starts Trelby again once this one has closed, which
+            # asks about unsaved changes first and may be cancelled
+            self.myApp.restart = True
+            if not self.Close():
+                self.myApp.restart = False
 
     def OnAbout(self, event=None):
         win = splash.SplashWindow(self, -1)
@@ -1636,6 +1646,11 @@ class MyFrame(wx.Frame):
 
         if doExit:
             self.autosaveTimer.Stop()
+
+            # for the restart to open them again
+            self.myApp.restartFiles = [
+                os.path.abspath(c.fileName) for c in self.getCtrls() if c.fileName
+            ]
 
             # changes the user didn't explicitly discard but that still
             # aren't saved (e.g. other tabs, or a cancelled save) are kept

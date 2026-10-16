@@ -3,6 +3,7 @@
 import gettext
 import os
 import os.path
+import subprocess
 import sys
 
 import wx
@@ -35,6 +36,10 @@ _ = translations.trelby_translations_load()
 
 
 class MyApp(wx.App):
+    # set by the Language menu's "Restart now", for main() to start Trelby
+    # again after it closes, with the scripts that were open
+    restart = False
+    restartFiles = []
 
     def OnInit(self):
         # replaced below if the config picks a language
@@ -175,6 +180,48 @@ def loadGlobalCfg(s):
     return cfgGl
 
 
+def restartArgs(files):
+    """Return the command line arguments that start Trelby again in the
+    same mode, opening files."""
+
+    args = []
+
+    if opts.isTest:
+        args.append("--test")
+
+    if opts.conf:
+        args += ["--conf", opts.conf]
+
+    return args + files
+
+
+def restartCommand(args):
+    """Return the command and environment that start a new Trelby with the
+    arguments args."""
+
+    env = dict(os.environ)
+
+    if getattr(sys, "frozen", False):
+        # a new instance of the exe rather than a child of this one, whose
+        # unpacked files are about to go away
+        env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+
+        return [sys.executable] + args, env
+
+    # from source, however it was started (trelby.py, the trelby entry
+    # point, ...), and wherever the package is
+    pkgParent = os.path.dirname(os.path.dirname(os.path.abspath(trelby.__file__)))
+    env["PYTHONPATH"] = os.pathsep.join(
+        p for p in (pkgParent, env.get("PYTHONPATH")) if p
+    )
+
+    return [
+        sys.executable,
+        "-c",
+        "import trelby.trelby; trelby.trelby.main()",
+    ] + args, env
+
+
 def main():
     # Trelby.exe --mcp-bridge [--port N]: run as the stdio bridge to the MCP
     # server in a running Trelby (see mcpserver.py), for exe users with no
@@ -186,8 +233,16 @@ def main():
 
         return
 
+    # OnInit changes to misc.progPath, but relative paths in the arguments
+    # (--test's config directory, --conf) are from here
+    startDir = os.getcwd()
+
     opts.init()
 
     myApp = MyApp(0)
 
     myApp.MainLoop()
+
+    if myApp.restart:
+        cmd, env = restartCommand(restartArgs(myApp.restartFiles))
+        subprocess.Popen(cmd, cwd=startDir, env=env)
