@@ -1030,6 +1030,7 @@ def loadFile(
             ret = f.read(maxSize)
         except MemoryError as error:
             print(_("File too large: {}").format(error))
+            ret = None
         finally:
             f.close()
 
@@ -1239,7 +1240,7 @@ class TimerDev:
         self.t = time.time() - self.t
         self.__class__.nestingLevel -= 1
         print(
-            _("{}{} took {.5f} seconds").format(
+            "{}{} took {:.5f} seconds".format(
                 " " * self.__class__.nestingLevel, self.msg, self.t
             )
         )
@@ -1292,7 +1293,7 @@ def getPDFViewer():
         # Need to check for Mac before Unix as macOS is a Unix
         progs = [("/System/Applications/Preview.app", "")]
     elif misc.isUnix:
-        progs = [("/usr/bin/xdg-open/", "")]
+        progs = [("/usr/bin/xdg-open", "")]
     elif misc.isWindows:
         # get value via registry if possible, or fallback to old method.
         viewer = _getWindowsPDFViewer()
@@ -1379,7 +1380,7 @@ def showPDFExternal(
 
         if regPDF:
             wx.MessageBox(
-                _("Currently set PDF viewer ({}) was not found.\nChange this in Edit/Settings/Misc.\n\nUsing the default PDF viewer instead:\n%s").format(
+                _("Currently set PDF viewer ({}) was not found.\nChange this in Edit/Settings/Misc.\n\nUsing the default PDF viewer instead:\n{}").format(
                     pdfProgram, regPDF
                 ),
                 _("Warning"),

@@ -2602,13 +2602,13 @@ msgid ""
 "Change this in Edit/Settings/Misc.\n"
 "\n"
 "Using the default PDF viewer instead:\n"
-"%s"
+"{}"
 msgstr ""
 "找不到当前设置的 PDF 查看器（{}）。\n"
 "请在“编辑/设置/其他”中更改。\n"
 "\n"
 "改用默认的 PDF 查看器：\n"
-"%s"
+"{}"
 
 #: trelby/viewmode.py:91 trelby/viewmode.py:95 trelby/viewmode.py:99
 #: trelby/viewmode.py:111 trelby/viewmode.py:116 trelby/viewmode.py:122

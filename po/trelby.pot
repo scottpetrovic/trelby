@@ -2530,7 +2530,7 @@ msgid ""
 "Change this in Edit/Settings/Misc.\n"
 "\n"
 "Using the default PDF viewer instead:\n"
-"%s"
+"{}"
 msgstr ""
 
 #: trelby/viewmode.py:91 trelby/viewmode.py:95 trelby/viewmode.py:99
