@@ -576,6 +576,15 @@ class Config:
         # Screenplay.isActStart)
         v.addBool("pbActNewPage", True, "PageBreakActNewPage")
 
+        # whether every character takes up two columns instead of one, for
+        # Chinese, Japanese and Korean, whose characters are twice as wide
+        # as Latin ones (see getCharWidth)
+        v.addBool("doubleWidth", False, "DoubleWidth")
+
+        # whether the user has been asked about switching to double-width
+        # characters after typing one, so it's only asked once per script
+        v.addBool("doubleWidthAsked", False, "DoubleWidthAsked")
+
         # whether scene continueds are enabled
         v.addBool("sceneContinueds", False, "SceneContinueds")
 
@@ -683,6 +692,12 @@ class Config:
 
     def getType(self, lt):
         return self.types[lt]
+
+    # return how many columns each character takes up: 2 with double-width
+    # characters, otherwise 1. element widths and indents are in columns,
+    # so a line holds width // getCharWidth() characters.
+    def getCharWidth(self):
+        return 2 if self.doubleWidth else 1
 
     # return (indent, width) of element type lt (character, parenthetical
     # or dialogue) in the given column (1 = left, 2 = right) of a dual

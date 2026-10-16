@@ -125,6 +125,18 @@ def isValidInputChar(kc):
     return unicodedata.category(chr(kc)) not in _invalidCategories
 
 
+# returns True if ch is a wide character, one that takes up two columns in
+# a monospaced font: Chinese, Japanese and Korean characters, and the
+# full-width forms of Latin letters and punctuation.
+def isWideChar(ch):
+    return unicodedata.east_asian_width(ch) in ("W", "F")
+
+
+# returns True if s contains any wide characters (see isWideChar)
+def hasWideChars(s):
+    return not s.isascii() and any(isWideChar(ch) for ch in s)
+
+
 # return s with the characters that can't be in a script dropped, except
 # for the ones in 'keep'
 def removeInvalidChars(s, keep="\n"):

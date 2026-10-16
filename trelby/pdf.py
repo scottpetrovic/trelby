@@ -2,6 +2,7 @@ import uuid
 from typing import AnyStr, Dict, Optional, Tuple
 
 from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
 
@@ -49,8 +50,14 @@ def unsupportedChars(doc: "pml.Document") -> str:
                     continue
 
                 for ch in op.text[a:b]:
-                    if not isWinAnsi(ch):
-                        chars.add(ch)
+                    if isWinAnsi(ch):
+                        continue
+
+                    # double-width text uses CJK_FONT for these
+                    if (op.charWidth != 1) and isInCJKFont(ch):
+                        continue
+
+                    chars.add(ch)
 
     return "".join(sorted(chars))
 
@@ -59,6 +66,24 @@ def unsupportedChars(doc: "pml.Document") -> str:
 def isWinAnsi(ch: str) -> bool:
     try:
         ch.encode("cp1252")
+    except UnicodeEncodeError:
+        return False
+
+    return True
+
+
+# the font double-width characters that the standard PDF fonts don't have
+# are drawn in: one of the Adobe Asian fonts, which PDF viewers have or
+# substitute, so it isn't embedded. it covers Simplified Chinese (the
+# Adobe-GB1 character collection), and with it most Traditional Chinese
+# and Japanese characters, but not Korean Hangul.
+CJK_FONT = "STSong-Light"
+
+
+# return True if ch is in CJK_FONT. Adobe-GB1 is roughly the GBK encoding.
+def isInCJKFont(ch: str) -> bool:
+    try:
+        ch.encode("gbk")
     except UnicodeEncodeError:
         return False
 
@@ -121,6 +146,8 @@ class PDFTextOp(PDFDrawOp):
             else:
                 # unsupported angle, don't print it.
                 pass
+        elif pmlOp.charWidth != 1:
+            self.drawCells(pmlOp, pe, canvas, x, y)
         elif pmlOp.fmt:
             # bold / italic / underlined parts of the text are drawn
             # separately, each in its own font
@@ -146,8 +173,8 @@ class PDFTextOp(PDFDrawOp):
         else:
             canvas.drawString(x, y, pmlOp.text)
 
-        if (pmlOp.flags & pml.UNDERLINED) and not (
-            pmlOp.fmt and (pmlOp.angle is None)
+        if (pmlOp.flags & pml.UNDERLINED) and (
+            (pmlOp.angle is not None) or not (pmlOp.fmt or (pmlOp.charWidth != 1))
         ):
             undLen = canvas.stringWidth(pmlOp.text, newFont, pmlOp.size)
             self.underline(canvas, x, y, undLen, pmlOp.size)
@@ -160,6 +187,48 @@ class PDFTextOp(PDFDrawOp):
             canvas.bookmarkHorizontal(bookmarkKey, pe.x(pmlOp.x), pe.y(pmlOp.y))
             canvas.addOutlineEntry(pmlOp.toc.text, bookmarkKey)
 
+
+    # draw a text with double-width characters (see pml.TextOp), starting
+    # at (x, y) in PDF coordinates: each character centered in its own
+    # cell. characters the style's font doesn't have are drawn in the
+    # Chinese CID font, if they're in it (see isInCJKFont).
+    def drawCells(self, pmlOp, pe, canvas, x, y):
+        size = pmlOp.size
+
+        # Courier characters are 600/1000 of the font size wide
+        cellW = pmlOp.charWidth * 0.6 * size
+
+        if pmlOp.fmt:
+            runs = textfmt.runs(pmlOp.fmt, len(pmlOp.text))
+        else:
+            runs = [(0, len(pmlOp.text), 0)]
+
+        for a, b, style in runs:
+            flags = pmlOp.flags | (style & (pml.BOLD | pml.ITALIC))
+
+            if style & textfmt.UNDERLINED:
+                flags |= pml.UNDERLINED
+
+            font = pe.getFontForFlags(flags)
+            hasCustomFont = (flags & 15) in pe.doc.fonts
+
+            for i in range(a, b):
+                ch = pmlOp.text[i]
+
+                if ch == " ":
+                    continue
+
+                chFont = font
+
+                if not hasCustomFont and not isWinAnsi(ch) and isInCJKFont(ch):
+                    chFont = pe.getCJKFont()
+
+                w = canvas.stringWidth(ch, chFont, size)
+                canvas.setFont(chFont, size)
+                canvas.drawString(x + i * cellW + (cellW - w) / 2.0, y, ch)
+
+            if flags & pml.UNDERLINED:
+                self.underline(canvas, x + a * cellW, y, (b - a) * cellW, size)
 
     # underline text of width w drawn at (x, y) in the given font size
     @staticmethod
@@ -400,6 +469,13 @@ class PDFExporter:
             )
 
         return customFontInfo.name
+
+    # get the name of CJK_FONT, registering it with reportlab if needed
+    def getCJKFont(self) -> str:
+        if CJK_FONT not in pdfmetrics.getRegisteredFontNames():
+            pdfmetrics.registerFont(UnicodeCIDFont(CJK_FONT))
+
+        return CJK_FONT
 
     # escape string
     def escapeStr(self, s: str) -> str:

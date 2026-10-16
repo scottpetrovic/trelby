@@ -16,7 +16,7 @@ TITLE_BUTTON_H = 44
 
 # a piece of text on screen.
 class TextString:
-    def __init__(self, line, text, x, y, fi, isUnderlined, fmt=None):
+    def __init__(self, line, text, x, y, fi, isUnderlined, fmt=None, charWidth=1):
 
         # if this object is a screenplay line, this is the index of the
         # corresponding line in the Screenplay.lines list. otherwise this
@@ -35,6 +35,13 @@ class TextString:
         # format string for bold / italic / underlined parts of the text
         # (see textfmt), or None
         self.fmt = fmt
+
+        # how many columns each character takes up (see pml.TextOp)
+        self.charWidth = charWidth
+
+    # return the width of one character in pixels
+    def getCharPixels(self):
+        return self.fi.fx * self.charWidth
 
 
 # a page shown on screen.
@@ -148,7 +155,7 @@ class ViewMode:
         line = sel.line
         l = ctrl.sp.lines[line]
 
-        column = util.clamp(int((x - sel.x) / sel.fi.fx), 0, len(l.text))
+        column = util.clamp(int((x - sel.x) / sel.getCharPixels()), 0, len(l.text))
 
         return (line, column)
 
@@ -263,6 +270,7 @@ class ViewModeDraft(ViewMode):
                     fi,
                     tcfg.screen.isUnderlined,
                     l.fmt,
+                    cfg.getCharWidth(),
                 )
             )
 
@@ -402,6 +410,7 @@ class ViewModeLayout(ViewMode):
                         cfgGui.fonts[op.flags & 3],
                         op.flags & pml.UNDERLINED,
                         op.fmt,
+                        op.charWidth,
                     )
                 )
 
@@ -510,6 +519,7 @@ class ViewModeSideBySide(ViewMode):
                         cfgGui.fonts[op.flags & 3],
                         op.flags & pml.UNDERLINED,
                         op.fmt,
+                        op.charWidth,
                     )
                 )
 
@@ -547,7 +557,7 @@ class ViewModeSideBySide(ViewMode):
                 continue
 
             # to the right
-            w = t.fi.fx * (len(ls[t.line].text) + 1)
+            w = t.getCharPixels() * (len(ls[t.line].text) + 1)
             if x > (t.x + w - 1):
                 continue
 
@@ -560,7 +570,7 @@ class ViewModeSideBySide(ViewMode):
         line = sel.line
         l = ls[line]
 
-        column = util.clamp(int((x - sel.x) / sel.fi.fx), 0, len(l.text))
+        column = util.clamp(int((x - sel.x) / sel.getCharPixels()), 0, len(l.text))
 
         return (line, column)
 

@@ -191,6 +191,8 @@ class MyCtrl(wx.Control):
         # display the first page
         self.makeLineVisible(self.sp.line)
 
+        self.checkWideChars("".join(ln.text for ln in self.sp.lines))
+
         return True
 
     # load the recovery copy described by the autosave.RecoveryEntry, and
@@ -304,6 +306,8 @@ class MyCtrl(wx.Control):
         self.sp.reformatAll()
         self.sp.paginate()
         self.sp.markChanged(True)
+
+        self.checkWideChars("".join(ln.text for ln in self.sp.lines))
 
     # generate exportable text from given screenplay, or None.
     def getExportText(self, sp):
@@ -508,6 +512,42 @@ class MyCtrl(wx.Control):
         self.gd.mainFrame.toolBar.EnableTool(ID_EDIT_REDO, canRedo)
 
         self.panel.outline.scheduleRefresh()
+
+    # if text has wide characters (Chinese, Japanese, Korean) and the
+    # script doesn't use double-width characters, offer to switch to them,
+    # only once per script. the question is asked after the current event,
+    # so that an input method's whole input gets added first.
+    def checkWideChars(self, text):
+        cfg = self.sp.cfg
+
+        if cfg.doubleWidth or cfg.doubleWidthAsked or not util.hasWideChars(text):
+            return
+
+        cfg.doubleWidthAsked = True
+        wx.CallAfter(self.offerDoubleWidth, self.sp)
+
+    # ask whether to switch script sp to double-width characters, if it's
+    # still the one shown
+    def offerDoubleWidth(self, sp):
+        if (sp is not self.sp) or sp.cfg.doubleWidth:
+            return
+
+        if (
+            wx.MessageBox(
+                _(
+                    "This script has Chinese, Japanese or Korean characters, which are\ntwice as wide as Latin letters, so they don't fit in the columns\nof the page.\n\nSwitch the script to double-width characters? Every character,\nLatin ones too, will then take up two columns.\n\nThis clears the undo history. It can be changed back in\nScript/Script settings/Formatting."
+                ),
+                _("Double-width characters"),
+                wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION,
+                self.gd.mainFrame,
+            )
+            != wx.YES
+        ):
+            return
+
+        cfg = copy.deepcopy(sp.cfg)
+        cfg.doubleWidth = True
+        self.applyCfg(cfg)
 
     # apply per-script config
     def applyCfg(self, newCfg):
@@ -1193,6 +1233,8 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(self.sp.line)
         self.updateScreen()
 
+        self.checkWideChars("".join(ln.text for ln in clines))
+
     def OnPasteSystemCb(self):
         s = ""
 
@@ -1773,6 +1815,7 @@ class MyCtrl(wx.Control):
                     self.cmdSpeedTest(cs)
                 else:
                     self.sp.addCharCmd(cs)
+                    self.checkWideChars(cs.char)
 
         else:
             cmd = self.gd.mainFrame.kbdCommands.get(
@@ -1834,6 +1877,11 @@ class MyCtrl(wx.Control):
 
         strings, dpages = self.gd.vm.getScreen(self, True, True)
 
+        # key = id() of a wx.Font, which isn't hashable, value = x offset
+        # (pixels) of a wide character in a double-width cell (see
+        # cellOffset)
+        wideOffsets = {}
+
         dc.SetBrush(self.gd.cfgGui.workspaceBrush)
         dc.SetPen(self.gd.cfgGui.workspacePen)
         dc.DrawRectangle(0, 0, size.width, size.height)
@@ -1878,6 +1926,10 @@ class MyCtrl(wx.Control):
             fi = t.fi
             fx = fi.fx
 
+            # width of one character; differs from fx with double-width
+            # characters
+            cfx = t.getCharPixels()
+
             if i != -1:
                 l = ls[i]
 
@@ -1906,7 +1958,7 @@ class MyCtrl(wx.Control):
                     dc.SetPen(self.gd.cfgGui.selectedPen)
                     dc.SetBrush(self.gd.cfgGui.selectedBrush)
 
-                    dc.DrawRectangle(t.x + c1 * fx, y, (c2 - c1 + 1) * fx, lineh)
+                    dc.DrawRectangle(t.x + c1 * cfx, y, (c2 - c1 + 1) * cfx, lineh)
 
                 if self.gd.mainFrame.showFormatting:
                     # a centered line's text doesn't start at its margin
@@ -1953,7 +2005,7 @@ class MyCtrl(wx.Control):
                     acFi = fi
                     dc.SetPen(self.gd.cfgGui.cursorPen)
                     dc.SetBrush(self.gd.cfgGui.cursorBrush)
-                    dc.DrawRectangle(t.x + self.sp.column * fx, y, fx, fi.fy)
+                    dc.DrawRectangle(t.x + self.sp.column * cfx, y, cfx, fi.fy)
 
             if len(t.text) != 0:
                 if t.line != -1:
@@ -1964,7 +2016,7 @@ class MyCtrl(wx.Control):
                     uli = ulinesHdr
 
                 if t.isUnderlined:
-                    uli.append((t.x, y + lineh - 1, len(t.text) * fx - 1))
+                    uli.append((t.x, y + lineh - 1, len(t.text) * cfx - 1))
 
                 # bold / italic / underlined parts of the text are drawn
                 # separately, each in its own font
@@ -1975,16 +2027,34 @@ class MyCtrl(wx.Control):
                     parts = []
 
                     for a, b, style in textfmt.runs(t.fmt, len(t.text)):
-                        x = t.x + a * fx
+                        x = t.x + a * cfx
                         parts.append((fonts[base | (style & 3)].font, a, b, x))
 
                         if (style & textfmt.UNDERLINED) and not t.isUnderlined:
-                            uli.append((x, y + lineh - 1, (b - a) * fx - 1))
+                            uli.append((x, y + lineh - 1, (b - a) * cfx - 1))
                 else:
                     parts = [(fi.font, 0, len(t.text), t.x)]
 
                 for font, a, b, x in parts:
-                    tl = ([t.text[a:b]], [(x, y)], [color])
+                    if t.charWidth == 1:
+                        tl = ([t.text[a:b]], [(x, y)], [color])
+                    else:
+                        # each character centered in its own cell
+                        chars = []
+                        coords = []
+
+                        for k in range(a, b):
+                            ch = t.text[k]
+
+                            if ch != " ":
+                                off = self.cellOffset(
+                                    dc, font, ch, fx, cfx, wideOffsets
+                                )
+                                chars.append(ch)
+                                coords.append((t.x + k * cfx + off, y))
+
+                        tl = (chars, coords, [color] * len(chars))
+
                     texts.append((font, tl))
 
         if ulines:
@@ -2004,6 +2074,24 @@ class MyCtrl(wx.Control):
 
         if self.sp.acItems and (cursorY > 0):
             self.drawAutoComp(dc, posX, cursorY, acFi)
+
+    # return the x offset (pixels) at which to draw character ch in a
+    # double-width cell cfx pixels wide, for it to be centered. fx is the
+    # width of a narrow (Latin) character in font. wideOffsets caches the
+    # offsets of wide characters, which are all the same width, by font.
+    @staticmethod
+    def cellOffset(dc, font, ch, fx, cfx, wideOffsets):
+        if not util.isWideChar(ch):
+            return (cfx - fx) // 2
+
+        off = wideOffsets.get(id(font))
+
+        if off is None:
+            w = dc.GetFullTextExtent(chr(0x4E2D), font)[0]
+            off = max(0, (cfx - w) // 2)
+            wideOffsets[id(font)] = off
+
+        return off
 
     # draw the button that opens the title pages dialog, centered just
     # above the first page (dp), if there's room for it.

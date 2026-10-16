@@ -1216,6 +1216,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         fs = cfg.fontSize
         chX = util.getTextWidth(" ", pml.COURIER, fs)
         chY = util.getTextHeight(fs)
+        cw = cfg.getCharWidth()
         length = len(ls)
 
         start = self.pages[pageNr - 1] + 1
@@ -1258,6 +1259,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                             cfg.marginLeft + pager.sceneIndent * chX,
                             cfg.marginTop + (y / 10.0) * chY,
                             fs,
+                            charWidth=cw,
                         )
                     )
 
@@ -1283,6 +1285,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                             cfg.marginLeft + pager.charIndent * chX,
                             cfg.marginTop + (y / 10.0) * chY,
                             fs,
+                            charWidth=cw,
                         )
                     )
 
@@ -1345,6 +1348,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 typ,
                 line=i,
                 fmt=line.fmt,
+                charWidth=cw,
             )
 
             pg.add(to)
@@ -1429,6 +1433,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                         cfg.marginLeft + pager.charIndent * chX,
                         cfg.marginTop + (y / 10.0) * chY,
                         fs,
+                        charWidth=cw,
                     )
                 )
 
@@ -1442,6 +1447,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                         cfg.marginLeft + cfg.sceneContinuedIndent * chX,
                         cfg.marginTop + (y / 10.0 + 1.0) * chY,
                         fs,
+                        charWidth=cw,
                     )
                 )
 
@@ -1486,8 +1492,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             return 0
 
         width = self.cfg.getType(ACTION).width
+        cols = len(self.lines[i].text) * self.cfg.getCharWidth()
 
-        return max(0, width - len(self.lines[i].text)) / 2.0
+        return max(0, width - cols) / 2.0
 
     # get topLine, clamping it to the valid range in the process.
     def getTopLine(self):
@@ -1533,8 +1540,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 break
 
     # wraps a single line into however many lines are needed, according to
-    # the given width, or the type's width if it's None. doesn't modify the
-    # input line, returns a list of new lines.
+    # the given width (in columns), or the type's width if it's None.
+    # doesn't modify the input line, returns a list of new lines.
     def wrapLine(self, line, width=None):
         ret = []
 
@@ -1542,6 +1549,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             width = self.cfg.getType(line.lt).width
 
         isParen = line.lt == PAREN
+        charWidth = self.cfg.getCharWidth()
 
         # text remaining to be wrapped, and its format string (or None)
         text = line.text
@@ -1565,11 +1573,26 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             else:
                 w = width
 
+            # how many characters fit
+            w = max(1, w // charWidth)
+
             if len(text) <= w:
                 add(line.lb, 0, len(text), len(text))
                 break
             else:
                 i = text.rfind(" ", 0, w + 1)
+
+                # Chinese and Japanese have no spaces between words, and
+                # can be broken before or after any of their characters.
+                # breaking right after a space would leave it at the end
+                # of an LB_NONE line, so that's left to the space handling.
+                if (charWidth == 2) and (i < w):
+                    k = self.findWideBreak(text, i + 2, w)
+
+                    if k is not None:
+                        add(LB_NONE, 0, k, k)
+
+                        continue
 
                 if i == w:
 
@@ -1606,6 +1629,17 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     add(LB_NONE, 0, w, w)
 
         return ret
+
+    # return the largest k in [lo, hi] such that text can be broken
+    # between text[k - 1] and text[k] because one of them is a wide
+    # character, or None if there's no such place.
+    @staticmethod
+    def findWideBreak(text, lo, hi):
+        for k in range(hi, max(lo, 1) - 1, -1):
+            if util.isWideChar(text[k - 1]) or util.isWideChar(text[k]):
+                return k
+
+        return None
 
     # rewrap paragraph starting at given line. returns the number of lines
     # in the wrapped paragraph. if line1 is -1, rewraps paragraph
@@ -3931,7 +3965,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 msg = _("Line contains invalid characters (BUG).")
                 break
 
-            if len(ln.text.rstrip(" ")) > tcfg.width:
+            if len(ln.text.rstrip(" ")) > (tcfg.width // cfg.getCharWidth()):
                 msg = _("Line is too long (BUG).")
                 break
 
@@ -5190,7 +5224,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             # lines shouldn't be longer than the type's maximum width,
             # unless the extra characters are all spaces
-            assert len(ln.text.rstrip(" ")) <= tcfg.width
+            assert len(ln.text.rstrip(" ")) <= (tcfg.width // self.cfg.getCharWidth())
 
             # lines with LB_NONE linebreaks that end in a space should be
             # LB_SPACE instead

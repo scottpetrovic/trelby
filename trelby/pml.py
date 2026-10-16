@@ -130,12 +130,14 @@ class TextOp(DrawOp):
         line: int = -1,
         angle: Optional[int] = None,
         fmt: Optional[str] = None,
+        charWidth: int = 1,
     ):
         """
         :param line: index of line in `Screenplay.lines`, or -1 if some other text. only used when drawing display, pdf output doesn't use this.
         :param size: the font size
         :param angle: one of 45, 90
         :param fmt: format string for bold / italic / underlined parts of the text, on top of what flags says (see textfmt), or None
+        :param charWidth: how many Courier columns each character takes up. with 2 (double-width characters, see config.Config.getCharWidth), each character is drawn centered in a cell two columns wide.
         """
         self.text: str = text
         self.x: float = x
@@ -144,6 +146,7 @@ class TextOp(DrawOp):
         self.flags: int = flags
         self.angle: Optional[int] = angle
         self.fmt: Optional[str] = fmt
+        self.charWidth: int = charWidth
 
         # TOCItem, by default we have none
         self.toc: Optional[TOCItem] = None

@@ -38,6 +38,12 @@ class FormattingPanel(wx.Panel):
         self.addSpin("fontSize", _("Font size:"), self, hsizer, "fontSize")
         vsizer.Add(hsizer, 0, wx.TOP, 20)
 
+        self.doubleWidthCb = wx.CheckBox(
+            self, -1, _("Double-width characters (for Chinese, Japanese, Korean)")
+        )
+        self.Bind(wx.EVT_CHECKBOX, self.OnMisc, id=self.doubleWidthCb.GetId())
+        vsizer.Add(self.doubleWidthCb, 0, wx.TOP, 10)
+
         vsizer.Add(wx.StaticText(self, -1, _("Scene CONTINUEDs:")), 0, wx.TOP, 20)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -103,6 +109,7 @@ class FormattingPanel(wx.Panel):
             self.sceneContinuedIndentEntry
         )
         self.cfg.fontSize = util.getSpinValue(self.fontSizeEntry)
+        self.cfg.doubleWidth = self.doubleWidthCb.GetValue()
         self.cfg.pdfShowSceneNumbers = self.scenesCb.GetValue()
         self.cfg.pdfShowLineNumbers = self.lineNumbersCb.GetValue()
 
@@ -119,5 +126,6 @@ class FormattingPanel(wx.Panel):
         self.sceneContinuedsCb.SetValue(self.cfg.sceneContinueds)
         self.sceneContinuedIndentEntry.SetValue(self.cfg.sceneContinuedIndent)
         self.fontSizeEntry.SetValue(self.cfg.fontSize)
+        self.doubleWidthCb.SetValue(self.cfg.doubleWidth)
         self.scenesCb.SetValue(self.cfg.pdfShowSceneNumbers)
         self.lineNumbersCb.SetValue(self.cfg.pdfShowLineNumbers)
