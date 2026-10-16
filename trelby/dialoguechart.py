@@ -1,16 +1,15 @@
-import functools
-from typing import List
+# The dialogue chart: who speaks on which page, one row per character,
+# with a bar above showing each page's mix of action, dialogue and
+# character lines. DialogueChart collects the data from a script, and
+# generateDoc lays it out as a landscape pml.Document. Its window is
+# reports.DialogueChartFrame.
 
-import wx
+from typing import List, Optional
 
-import trelby.checkboxitem as checkboxitem
-import trelby.pdf as pdf
 import trelby.pml as pml
-import trelby.reportwindow as reportwindow
 import trelby.screenplay as screenplay
 import trelby.screenplay.speeches as speeches
 import trelby.util as util
-
 
 # colors (r, g, b, each 0-1) for the page content bars and their legend.
 # the speaking bars in the chart use the dialogue color.
@@ -28,92 +27,48 @@ def fillColor(color):
     return pml.PDFOp("%.3f %.3f %.3f rg" % color)
 
 
-def genDialogueChart(mainFrame, sp, scriptName):
-    reportwindow.show(DialogueChartFrame, mainFrame, sp, scriptName)
+# the orders the characters can be sorted in: (name, label function, sort
+# key for a CharInfo). ties are broken down to the name, which is unique.
+SORTS = [
+    (
+        "first",
+        lambda: _("Sorted by: First appearance"),
+        lambda ci: (ci.firstPage, -ci.lastPage, -ci.lineCnt, ci.name),
+    ),
+    (
+        "last",
+        lambda: _("Sorted by: Last appearance"),
+        lambda ci: (ci.lastPage, ci.name),
+    ),
+    (
+        "count",
+        lambda: _("Sorted by: Number of lines spoken"),
+        lambda ci: (-ci.lineCnt, ci.firstPage, -ci.lastPage, ci.name),
+    ),
+    (
+        "name",
+        lambda: _("Sorted by: Name"),
+        lambda ci: ci.name,
+    ),
+]
+
+_sorts = {name: (label, key) for name, label, key in SORTS}
 
 
-class DialogueChartFrame(reportwindow.ReportFrame):
-    def __init__(self, parent, sp, scriptName):
-        # (label, compare function) for each sort order
-        self.sorts = [
-            (_("Sorted by: First appearance"), cmpFirst),
-            (_("Sorted by: Last appearance"), cmpLast),
-            (_("Sorted by: Number of lines spoken"), cmpCount),
-            (_("Sorted by: Name"), cmpName),
-        ]
-
-        self.allChars = True
-        self.doc = None
-
-        reportwindow.ReportFrame.__init__(self, parent, sp, scriptName, (1100, 800))
-
-    def getName(self):
-        return _("Dialogue Chart")
-
-    def makeReport(self):
-        self.chart = DialogueChart(self.sp, 1 if self.allChars else 10)
-
-    def createControls(self, panel):
-        self.allCharsCb = wx.CheckBox(panel, -1, _("Characters with < 10 lines"))
-        self.allCharsCb.SetValue(self.allChars)
-        self.Bind(wx.EVT_CHECKBOX, self.OnAllChars, id=self.allCharsCb.GetId())
-        self.optionsSizer.Add(
-            self.allCharsCb, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 15
-        )
-
-        self.sortChoice = wx.Choice(panel, -1, choices=[s[0] for s in self.sorts])
-        self.sortChoice.SetSelection(0)
-        self.Bind(wx.EVT_CHOICE, lambda e: self.update(), id=self.sortChoice.GetId())
-        self.optionsSizer.Add(self.sortChoice, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        self.view = reportwindow.PageView(panel)
-        self.contentSizer.Add(self.view, 1, wx.EXPAND)
-
-    def OnAllChars(self, event):
-        self.allChars = self.allCharsCb.GetValue()
-        self.makeReport()
-        self.update()
-
-    def updateView(self):
-        if not self.chart.cinfo:
-            self.doc = None
-
-            if self.allChars:
-                msg = _("No characters speaking found.")
-            else:
-                msg = _("No characters with 10 or more lines found.")
-
-            self.view.setDoc(None, msg)
-        else:
-            label, func = self.sorts[self.sortChoice.GetSelection()]
-            self.doc = self.chart.generateDoc([checkboxitem.CheckBoxItem(label, cdata=func)])
-            self.view.setDoc(self.doc)
-
-        self.hasContents = self.doc is not None
-
-    def getPDF(self):
-        return pdf.generate(self.doc)
-
-
+# the chart's data: what's on each page, and who speaks where
 class DialogueChart:
-    def __init__(self, sp, minLines):
-
-        self.sp = sp
-
+    def __init__(self, sp):
         ls = sp.lines
 
         # PageInfo's for each page, 0-indexed. (sp.pages has a dummy
         # entry at index 0, and sp.line2page is 1-based.)
-        self.pages = []
-
-        for i in range(len(sp.pages) - 1):
-            self.pages.append(PageInfo())
-
-        # map of CharInfo objects. key = name, value = CharInfo.
-        tmpCinfo = {}
+        self.pages = [PageInfo(sp.getPageLabel(i + 1)) for i in range(len(sp.pages) - 1)]
 
         for i in range(len(ls)):
             self.pages[sp.line2page(i) - 1].addLine(ls[i].lt)
+
+        # key = name, value = CharInfo
+        chars = {}
 
         # every dialogue line is counted. a speech with no character
         # element before it is spoken by "UNKNOWN".
@@ -127,18 +82,47 @@ class DialogueChart:
                 pgNr = sp.line2page(i) - 1
                 self.pages[pgNr].addLineToSpeaker(name)
 
-                ci = tmpCinfo.get(name)
+                ci = chars.get(name)
 
                 if ci:
                     ci.addLine(pgNr)
                 else:
-                    tmpCinfo[name] = CharInfo(name, pgNr)
+                    chars[name] = CharInfo(name, pgNr)
 
-        # CharInfo's.
-        self.cinfo = []
-        for v in list(tmpCinfo.values()):
-            if v.lineCnt >= minLines:
-                self.cinfo.append(v)
+        # CharInfo's, in order of first appearance
+        self.cinfo = list(chars.values())
+
+    # return the CharInfos of characters with at least 'minLines' lines
+    # of dialogue, sorted in the order named 'sort' (see SORTS)
+    def getChars(self, minLines=1, sort="first"):
+        chars = [ci for ci in self.cinfo if ci.lineCnt >= minLines]
+
+        return sorted(chars, key=_sorts[sort][1])
+
+
+# return a pml.Document with a page for each sort order named in 'sorts'
+# (see SORTS), showing the characters with at least 'minLines' lines, or
+# None if there are none. cfg is the script's config, for the paper size
+# and lines per page.
+def generateDoc(chart, cfg, sorts, minLines=1) -> Optional[pml.Document]:
+    if not chart.getChars(minLines):
+        return None
+
+    doc = pml.Document(cfg.paperHeight, cfg.paperWidth)
+
+    for name in sorts:
+        label, key = _sorts[name]
+        chars = chart.getChars(minLines, name)
+        doc.add(ChartLayout(cfg, chars).generatePage(label(), chart.pages, chars, doc))
+
+    return doc
+
+
+# the positions and sizes (mm) of the chart's parts, for the given
+# config and characters
+class ChartLayout:
+    def __init__(self, cfg, chars):
+        self.linesOnPage = cfg.linesOnPage
 
         # start Y of page markers
         self.pageY = 20.0
@@ -168,12 +152,12 @@ class DialogueChart:
             self.charY = util.getTextHeight(self.charFs)
 
             # height of chart
-            self.chartHeight = len(self.cinfo) * self.charY
+            self.chartHeight = len(chars) * self.charY
 
             if size <= 6:
                 break
 
-            if (self.chartY + self.chartHeight) <= (sp.cfg.paperWidth - self.margin):
+            if (self.chartY + self.chartHeight) <= (cfg.paperWidth - self.margin):
                 break
 
             size -= 1
@@ -182,7 +166,7 @@ class DialogueChart:
         # of chart from that
 
         maxLen = 0
-        for ci in self.cinfo:
+        for ci in chars:
             maxLen = max(maxLen, len(ci.name))
         maxLen = max(10, maxLen)
 
@@ -192,7 +176,7 @@ class DialogueChart:
         self.chartX = self.margin + maxLen * charX + 3
 
         # width of chart
-        self.chartWidth = sp.cfg.paperHeight - self.chartX - self.margin
+        self.chartWidth = cfg.paperHeight - self.chartX - self.margin
 
         # page contents bar legends' size and position
         self.legendWidth = 23.0
@@ -209,22 +193,11 @@ class DialogueChart:
         # spacing from one legend item to next
         self.legendSize = 4.0
 
-    # return a pml.Document with a page for each selected sort order in
-    # 'cbil'.
-    def generateDoc(self, cbil: List[checkboxitem.CheckBoxItem]) -> pml.Document:
-        doc = pml.Document(self.sp.cfg.paperHeight, self.sp.cfg.paperWidth)
-
-        for it in cbil:
-            if it.selected:
-                self.cinfo = sorted(self.cinfo, key=functools.cmp_to_key(it.cdata))
-                doc.add(self.generatePage(it.text, doc))
-
-        return doc
-
-    def generate(self, cbil: List[checkboxitem.CheckBoxItem]) -> bytes:
-        return pdf.generate(self.generateDoc(cbil))
-
-    def generatePage(self, title, doc):
+    # return a pml.Page titled 'title', for the PageInfos 'pages' and the
+    # CharInfos 'chars', in that order
+    def generatePage(
+        self, title: str, pages: List["PageInfo"], chars: List["CharInfo"], doc
+    ) -> pml.Page:
         pg = pml.Page(doc)
 
         pg.add(
@@ -241,14 +214,14 @@ class DialogueChart:
         # the x axis is the script's pages, each getting an equal-width
         # column of the chart. colors are set with pml.PDFOps, which stay in
         # effect until changed, so each colored part resets to black after.
-        pageCnt = len(self.pages)
+        pageCnt = len(pages)
         mmPerPage = max(0.1, self.chartWidth / pageCnt)
 
         pg.add(pml.TextOp("Page:", self.chartX - 1.0, self.pageY - 5.0, 10))
 
         # draw backround for every other row. this needs to be done before
         # drawing the grid.
-        for i in range(len(self.cinfo)):
+        for i in range(len(chars)):
             y = self.chartY + i * self.charY
 
             if (i % 2) == 1:
@@ -270,7 +243,7 @@ class DialogueChart:
                 x = self.chartX + i * mmPerPage
                 pg.add(
                     pml.TextOp(
-                        self.sp.getPageLabel(i + 1),
+                        pages[i].label,
                         x,
                         self.pageY,
                         10,
@@ -319,26 +292,19 @@ class DialogueChart:
         for i in range(pageCnt):
             x = self.chartX + i * mmPerPage
             y = self.barY + self.barHeight
-            pi = self.pages[i]
+            pi = pages[i]
             tlc = pi.getTotalLineCount()
 
-            pg.add(fillColor(ACTION_COLOR))
-            pct = util.safeDivInt(pi.getLineCount(screenplay.ACTION), tlc)
-            barH = self.barHeight * pct
-            pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
-            y -= barH
-
-            pg.add(fillColor(DIALOGUE_COLOR))
-            pct = util.safeDivInt(pi.getLineCount(screenplay.DIALOGUE), tlc)
-            barH = self.barHeight * pct
-            pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
-            y -= barH
-
-            pg.add(fillColor(CHARACTER_COLOR))
-            pct = util.safeDivInt(pi.getLineCount(screenplay.CHARACTER), tlc)
-            barH = self.barHeight * pct
-            pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
-            y -= barH
+            for lt, color in (
+                (screenplay.ACTION, ACTION_COLOR),
+                (screenplay.DIALOGUE, DIALOGUE_COLOR),
+                (screenplay.CHARACTER, CHARACTER_COLOR),
+            ):
+                pg.add(fillColor(color))
+                pct = util.safeDivInt(pi.getLineCount(lt), tlc)
+                barH = self.barHeight * pct
+                pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
+                y -= barH
 
         pg.add(pml.PDFOp("0.0 g"))
 
@@ -349,9 +315,9 @@ class DialogueChart:
             )
         )
 
-        for i in range(len(self.cinfo)):
+        for i in range(len(chars)):
             y = self.chartY + i * self.charY
-            ci = self.cinfo[i]
+            ci = chars[i]
 
             pg.add(
                 pml.TextOp(
@@ -368,11 +334,10 @@ class DialogueChart:
             # a bar for each page the character speaks on, as tall (within
             # the row, centered) as their share of a full page of lines
             for i in range(pageCnt):
-                pi = self.pages[i]
-                cnt = pi.getSpeakerLineCount(ci.name)
+                cnt = pages[i].getSpeakerLineCount(ci.name)
 
                 if cnt > 0:
-                    h = self.charY * (float(cnt) / self.sp.cfg.linesOnPage)
+                    h = self.charY * (float(cnt) / self.linesOnPage)
 
                     pg.add(
                         pml.RectOp(
@@ -403,14 +368,14 @@ class DialogueChart:
 
 # keeps track of information for one page
 class PageInfo:
-    def __init__(self):
+    def __init__(self, label):
+        # the page's label, e.g. "16" or "15A"
+        self.label = label
+
         # how many lines of each type this page contains. key = line type,
         # value = int. note that if value would be 0, this doesn't have
         # the key at all, so use the helper functions below.
         self.lineCounts = {}
-
-        # total line count
-        self.totalLineCount = -1
 
         # how many lines each character speaks on this page. key =
         # character name, value = int. note that if someone doesn't speak
@@ -423,10 +388,7 @@ class PageInfo:
 
     # get total number of lines.
     def getTotalLineCount(self):
-        if self.totalLineCount == -1:
-            self.totalLineCount = sum(iter(self.lineCounts.values()), 0)
-
-        return self.totalLineCount
+        return sum(self.lineCounts.values())
 
     # get number of lines of given type.
     def getLineCount(self, lt):
@@ -453,56 +415,3 @@ class CharInfo:
     def addLine(self, page):
         self.lastPage = page
         self.lineCnt += 1
-
-
-def cmpfunc(a, b):
-    return (a > b) - (a < b)
-
-
-def cmpCount(c1, c2):
-    ret = cmpfunc(c2.lineCnt, c1.lineCnt)
-
-    if ret != 0:
-        return ret
-    else:
-        return cmpFirst(c1, c2)
-
-
-def cmpCountThenName(c1, c2):
-    ret = cmpfunc(c2.lineCnt, c1.lineCnt)
-
-    if ret != 0:
-        return ret
-    else:
-        return cmpName(c1, c2)
-
-
-def cmpFirst(c1, c2):
-    ret = cmpfunc(c1.firstPage, c2.firstPage)
-
-    if ret != 0:
-        return ret
-    else:
-        return cmpLastRev(c1, c2)
-
-
-def cmpLast(c1, c2):
-    ret = cmpfunc(c1.lastPage, c2.lastPage)
-
-    if ret != 0:
-        return ret
-    else:
-        return cmpName(c1, c2)
-
-
-def cmpLastRev(c1, c2):
-    ret = cmpfunc(c2.lastPage, c1.lastPage)
-
-    if ret != 0:
-        return ret
-    else:
-        return cmpCountThenName(c1, c2)
-
-
-def cmpName(c1, c2):
-    return cmpfunc(c1.name, c2.name)

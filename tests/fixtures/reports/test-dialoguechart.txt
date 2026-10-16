@@ -13,7 +13,7 @@ page 3 types=[(2, 2), (3, 5), (4, 31)] speakers=[('JASON', 28), ('SARAH', 2), ('
 with 10 or more lines: ['JASON']
 doc 297.00 x 210.00
 page 0
-  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=First toc=None x=138.975 y=10.000
+  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Sorted by: First appearance toc=None x=97.065 y=10.000
   TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=Page: toc=None x=37.400 y=15.000
   PDFOp cmds=0.933 0.957 0.988 rg
   RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=53.528
@@ -118,7 +118,7 @@ page 0
 
 doc 297.00 x 210.00
 page 0
-  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Last toc=None x=140.880 y=10.000
+  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Sorted by: Last appearance toc=None x=98.970 y=10.000
   TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=Page: toc=None x=37.400 y=15.000
   PDFOp cmds=0.933 0.957 0.988 rg
   RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=53.528
@@ -223,7 +223,7 @@ page 0
 
 doc 297.00 x 210.00
 page 0
-  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Count toc=None x=138.975 y=10.000
+  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Sorted by: Number of lines spoken toc=None x=85.635 y=10.000
   TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=Page: toc=None x=37.400 y=15.000
   PDFOp cmds=0.933 0.957 0.988 rg
   RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=53.528
@@ -328,7 +328,7 @@ page 0
 
 doc 297.00 x 210.00
 page 0
-  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Name toc=None x=140.880 y=10.000
+  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Sorted by: Name toc=None x=119.925 y=10.000
   TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=Page: toc=None x=37.400 y=15.000
   PDFOp cmds=0.933 0.957 0.988 rg
   RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=53.528

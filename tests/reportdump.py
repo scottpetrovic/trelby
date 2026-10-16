@@ -9,7 +9,6 @@ import os
 
 import tests.u as u
 import trelby.characterreport as characterreport
-import trelby.checkboxitem as checkboxitem
 import trelby.dialoguechart as dialoguechart
 import trelby.locationreport as locationreport
 import trelby.scenereport as scenereport
@@ -59,7 +58,7 @@ def dumpDoc(doc):
 # the dialogue chart's data, and its layout in each sort order
 def dumpChart(sp):
     out = []
-    chart = dialoguechart.DialogueChart(sp, 1)
+    chart = dialoguechart.DialogueChart(sp)
 
     for ci in sorted(chart.cinfo, key=lambda ci: ci.name):
         out.append(
@@ -74,20 +73,11 @@ def dumpChart(sp):
         )
 
     out.append(
-        "with 10 or more lines: %s"
-        % sorted(ci.name for ci in dialoguechart.DialogueChart(sp, 10).cinfo)
+        "with 10 or more lines: %s" % sorted(ci.name for ci in chart.getChars(10))
     )
 
-    sorts = [
-        ("First", dialoguechart.cmpFirst),
-        ("Last", dialoguechart.cmpLast),
-        ("Count", dialoguechart.cmpCount),
-        ("Name", dialoguechart.cmpName),
-    ]
-
-    for label, func in sorts:
-        doc = chart.generateDoc([checkboxitem.CheckBoxItem(label, cdata=func)])
-        out.append(dumpDoc(doc))
+    for name, label, key in dialoguechart.SORTS:
+        out.append(dumpDoc(dialoguechart.generateDoc(chart, sp.cfg, [name])))
 
     return "\n".join(out)
 

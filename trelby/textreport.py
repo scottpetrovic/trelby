@@ -7,8 +7,10 @@
 import html
 from typing import List, Optional
 
-import trelby.pdf as pdf
-import trelby.pml as pml
+# pml before pdf: pml needs pdf's classes while it loads, so importing pdf
+# first fails on their circular import
+import trelby.pml as pml  # isort: skip
+import trelby.pdf as pdf  # isort: skip
 import trelby.util as util
 
 

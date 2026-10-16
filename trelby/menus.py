@@ -19,11 +19,11 @@ from trelby.globaldata import GlobalData
 from trelby.ids import *
 from trelby.reports import (
     genCharacterReport,
+    genDialogueChart,
     genLocationReport,
     genSceneReport,
     genScriptReport,
 )
-from trelby.dialoguechart import genDialogueChart
 
 
 # runs a scriptactions function on the current script, as func(frame,

@@ -1,8 +1,10 @@
 import wx
 
 import trelby.characterreport as characterreport
+import trelby.dialoguechart as dialoguechart
 import trelby.gutil as gutil
 import trelby.locationreport as locationreport
+import trelby.pdf as pdf
 import trelby.reportwindow as reportwindow
 import trelby.scenereport as scenereport
 import trelby.scriptreport as scriptreport
@@ -104,6 +106,62 @@ class CharacterReportFrame(reportwindow.TextReportFrame):
         return _("No characters selected.")
 
 
+# the dialogue chart, with its sort order and whether to show the
+# characters with only a few lines
+class DialogueChartFrame(reportwindow.ReportFrame):
+    def __init__(self, parent, sp, scriptName):
+        self.allChars = True
+        self.doc = None
+
+        reportwindow.ReportFrame.__init__(self, parent, sp, scriptName, (1100, 800))
+
+    def getName(self):
+        return _("Dialogue Chart")
+
+    def makeReport(self):
+        self.chart = dialoguechart.DialogueChart(self.sp)
+
+    def createControls(self, panel):
+        self.allCharsCb = wx.CheckBox(panel, -1, _("Characters with < 10 lines"))
+        self.allCharsCb.SetValue(self.allChars)
+        self.Bind(wx.EVT_CHECKBOX, self.OnAllChars, id=self.allCharsCb.GetId())
+        self.optionsSizer.Add(
+            self.allCharsCb, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 15
+        )
+
+        self.sortChoice = wx.Choice(
+            panel, -1, choices=[label() for name, label, key in dialoguechart.SORTS]
+        )
+        self.sortChoice.SetSelection(0)
+        self.Bind(wx.EVT_CHOICE, lambda e: self.update(), id=self.sortChoice.GetId())
+        self.optionsSizer.Add(self.sortChoice, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.view = reportwindow.PageView(panel)
+        self.contentSizer.Add(self.view, 1, wx.EXPAND)
+
+    def OnAllChars(self, event):
+        self.allChars = self.allCharsCb.GetValue()
+        self.update()
+
+    def updateView(self):
+        sort = dialoguechart.SORTS[self.sortChoice.GetSelection()][0]
+        minLines = 1 if self.allChars else 10
+
+        self.doc = dialoguechart.generateDoc(self.chart, self.sp.cfg, [sort], minLines)
+
+        if self.doc:
+            self.view.setDoc(self.doc)
+        elif self.allChars:
+            self.view.setDoc(None, _("No characters speaking found."))
+        else:
+            self.view.setDoc(None, _("No characters with 10 or more lines found."))
+
+        self.hasContents = self.doc is not None
+
+    def getPDF(self):
+        return pdf.generate(self.doc)
+
+
 def genSceneReport(mainFrame, sp, scriptName):
     reportwindow.show(SceneReportFrame, mainFrame, sp, scriptName)
 
@@ -118,3 +176,7 @@ def genCharacterReport(mainFrame, sp, scriptName):
 
 def genScriptReport(mainFrame, sp, scriptName):
     reportwindow.show(ScriptReportFrame, mainFrame, sp, scriptName)
+
+
+def genDialogueChart(mainFrame, sp, scriptName):
+    reportwindow.show(DialogueChartFrame, mainFrame, sp, scriptName)
