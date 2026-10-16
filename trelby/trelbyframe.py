@@ -222,7 +222,6 @@ class MyFrame(wx.Frame):
             ID_SCRIPT_SC_DICT, misc.mnemonic("d", _("Script dictionary") + "...")
         )
         scriptMenu.AppendSeparator()
-        scriptMenu.Append(ID_SCRIPT_PAGINATE, misc.mnemonic("P", _("Paginate")))
         scriptMenu.Append(ID_SCRIPT_LOCK_PAGES, misc.mnemonic("L", _("Lock pages")))
         scriptMenu.Append(
             ID_SCRIPT_UNLOCK_PAGES, misc.mnemonic("U", _("Unlock pages"))
@@ -433,7 +432,6 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnZoomReset, id=ID_VIEW_ZOOM_RESET)
 
         self.Bind(wx.EVT_MENU, self.OnFindNextError, id=ID_SCRIPT_FIND_ERROR)
-        self.Bind(wx.EVT_MENU, self.OnPaginate, id=ID_SCRIPT_PAGINATE)
         self.Bind(wx.EVT_MENU, self.OnLockPages, id=ID_SCRIPT_LOCK_PAGES)
         self.Bind(wx.EVT_MENU, self.OnUnlockPages, id=ID_SCRIPT_UNLOCK_PAGES)
         self.Bind(wx.EVT_MENU, self.OnLockScenes, id=ID_SCRIPT_LOCK_SCENES)
@@ -1473,9 +1471,6 @@ class MyFrame(wx.Frame):
         self.ShowFullScreen(fullScreen, wx.FULLSCREEN_ALL)
         self.Layout()
         self.panel.ctrl.SetFocus()
-
-    def OnPaginate(self, event=None):
-        self.panel.ctrl.OnPaginate()
 
     def OnLockPages(self, event=None):
         self.panel.ctrl.OnLockPages()

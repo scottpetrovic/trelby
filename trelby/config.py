@@ -1101,7 +1101,6 @@ class ConfigGlobal:
                     isFixed=True,
                     isMenu=True,
                 ),
-                Command("Paginate", _("Paginate current script."), isMenu=True),
                 Command(
                     "Paste",
                     _("Paste text from the internal clipboard."),
@@ -1349,9 +1348,6 @@ class ConfigGlobal:
 
         # how many lines to scroll per mouse wheel event
         v.addInt("mouseWheelLines", 4, "MouseWheelLines", 1, 50)
-
-        # interval in seconds between automatic pagination (0 = disabled)
-        v.addInt("paginateInterval", 1, "PaginateInterval", 0, 10)
 
         # interval in minutes between writing recovery copies of modified
         # scripts (0 = disabled)

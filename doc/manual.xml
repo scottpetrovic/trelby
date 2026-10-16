@@ -360,22 +360,12 @@
 	  <para>'Page' mode shows an almost exact representation of the page
 	  as it would appear when printed. Page borders, margins, headers,
 	  CONTINUED/(MORE) and so on are all shown at their correct
-	  places.</para>
+	  places, and page breaks are updated as you type.</para>
 
 	  <para>Ways in which the display in this mode can differ from the
 	  printed output:</para>
 
 	  <itemizedlist>
-
-		<listitem>
-
-		  <para>If pagination is not up-to-date, text around page breaks
-		  can sometimes show in incorrect places. We recommend that when
-		  using this mode, auto-pagination is kept on and the interval at
-		  a low value, preferably 1 second (see <xref
-		  linkend="misc_cfg"/>).</para>
-
-		</listitem>
 
 		<listitem>
 
@@ -812,16 +802,6 @@
 	  spell checker dictionary. Insert new words by entering them on
 	  separate lines, or delete existing words by deleting the lines they
 	  are on.</para>
-
-	</sect1>
-
-	<sect1>
-	  <title>Script/Paginate</title>
-
-	  <para>'Paginate' simply repaginates the script. You normally don't
-	  need to run this if you have automatic repagination enabled, but the
-	  command is available for use when automatic repagination is disabled
-	  or you want immediate repagination for some reason.</para>
 
 	</sect1>
 
@@ -1365,14 +1345,6 @@
 		there's an error on one of them, fixing of which causes
 		repagination of the entire script, and having to print all the 100
 		pages again.</para>
-
-		<para>'Auto-paginate interval' defines how often to repaginate the
-		script automatically. If you have a particularly slow machine, you
-		might want to increase this number. Note that automatic
-		repagination is only done when you modify the script, so you can't
-		just sit back and wait for the repagination to happen, you have to
-		keep making changes. (You can always use Script/Paginate if you
-		want immediate repagination.)</para>
 
 		<para>'Lines to scroll per mouse wheel event' needs no
 		explaining.</para>

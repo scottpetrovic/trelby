@@ -432,6 +432,10 @@ class FindDlg(wx.Dialog):
         u.setAfter(sp)
         sp.addUndo(u)
 
+        # Replace All paginates once at the end instead
+        if not autoFind:
+            sp.paginate()
+
         self.OnFind(autoFind=autoFind)
 
         return True
@@ -447,6 +451,7 @@ class FindDlg(wx.Dialog):
             count += 1
 
         if count != 0:
+            self.ctrl.sp.paginate()
             self.ctrl.makeLineVisible(self.ctrl.sp.line)
             self.ctrl.updateScreen()
 

@@ -105,6 +105,7 @@ class MyCtrl(wx.Control):
 
         self.sp.convertTypeTo(lt, True)
         self.sp.cmdPost(cs)
+        self.sp.paginate()
 
         if cs.needsVisifying:
             self.makeLineVisible(self.sp.line)
@@ -635,7 +636,9 @@ class MyCtrl(wx.Control):
     def applyHeaders(self, newHeaders):
         self.sp.headers = newHeaders
         self.sp.markChanged()
-        self.OnPaginate()
+        self.sp.paginate()
+        self.makeLineVisible(self.sp.line)
+        self.updateScreen()
 
     # return an exportable, paginated Screenplay object, or None if for
     # some reason that's not possible / wanted. 'action' is the name of
@@ -887,11 +890,6 @@ class MyCtrl(wx.Control):
         pos = self.panel.scrollBar.GetThumbPosition()
         self.sp.setTopLine(pos)
         self.sp.clearAutoComp()
-        self.updateScreen()
-
-    def OnPaginate(self):
-        self.sp.paginate()
-        self.makeLineVisible(self.sp.line)
         self.updateScreen()
 
     def OnLockPages(self):
@@ -1175,6 +1173,9 @@ class MyCtrl(wx.Control):
             self.gd.mainFrame.clipboard = cd
 
         if doUpdate:
+            if doDelete:
+                self.sp.paginate()
+
             self.makeLineVisible(self.sp.line)
             self.updateScreen()
 
@@ -1229,6 +1230,7 @@ class MyCtrl(wx.Control):
             clines = cd.lines
 
         self.sp.paste(clines)
+        self.sp.paginate()
 
         self.makeLineVisible(self.sp.line)
         self.updateScreen()
@@ -1411,6 +1413,7 @@ class MyCtrl(wx.Control):
         self.clearAutoComp()
 
         if self.sp.toggleCentered():
+            self.sp.paginate()
             self.updateScreen()
 
     def OnFindNextError(self):
@@ -1835,16 +1838,12 @@ class MyCtrl(wx.Control):
 
         self.sp.cmdPost(cs)
 
-        if self.gd.cfgGl.paginateInterval > 0:
-            now = time.time()
-
-            if (now - self.sp.lastPaginated) >= self.gd.cfgGl.paginateInterval:
-                self.sp.paginate()
-
-                cs.needsVisifying = True
-
-        if cs.needsVisifying:
-            self.makeLineVisible(self.sp.line, scrollDirection)
+        # pagination is cheap (a couple of milliseconds even for a long
+        # script), so redo it after every key to keep page breaks current.
+        # it can move the cursor's line on screen, so always make sure it's
+        # still visible.
+        self.sp.paginate()
+        self.makeLineVisible(self.sp.line, scrollDirection)
 
         self.updateScreen()
 

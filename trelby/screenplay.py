@@ -28,7 +28,6 @@ import copy
 import difflib
 import re
 import sys
-import time
 from typing import Tuple
 
 from lxml import etree
@@ -87,9 +86,6 @@ class Screenplay:
         self.pages = [-1, 0]
         self.pagesNoAdjust = [-1, 0]
         self.pageLabels = ["", "1"]
-
-        # time when last paginated
-        self.lastPaginated = 0.0
 
         # list of active auto-completion strings
         self.acItems = None
@@ -2336,8 +2332,6 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                 cnt = self.paginateRange(line, end)
                 self.pageLabels.extend(pagelock.segmentLabels(label, nextLabel, cnt))
-
-        self.lastPaginated = time.time()
 
     # set up what paginateRange needs to know about dual dialogues, for
     # paginate to call before it:
