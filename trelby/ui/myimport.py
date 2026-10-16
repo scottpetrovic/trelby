@@ -98,9 +98,26 @@ def askTextOptions(data, frame, sp):
     return text.Options(lineTypes={ind.indent: ind.lt for ind in indents})
 
 
+# the same for a PDF file, whose lines are indented like a text file's.
+# return importers.pdf.Options, or None if cancelled.
+def askPdfOptions(data, frame, sp):
+    pdf = importers.pdf
+    indents = pdf.guessIndents(data)
+
+    dlg = ImportDlg(frame, indents, importers.text.SCENE_ACTION, importers.text.IGNORE)
+    ok = dlg.ShowModal() == wx.ID_OK
+    dlg.Destroy()
+
+    if not ok:
+        return None
+
+    return pdf.Options(lineTypes={ind.indent: ind.lt for ind in indents})
+
+
 # the formats with import options, by key, and the function asking for
 # them
 ASK_OPTIONS = {
     "fountain": askFountainOptions,
+    "pdf": askPdfOptions,
     "text": askTextOptions,
 }

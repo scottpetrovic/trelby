@@ -43,7 +43,8 @@ class Indent:
         # how many of the lines start with "EXT." or "INT."
         self.sceneStart = 0
 
-        # how many of the lines have "CUT TO:" or "DISSOLVE TO:"
+        # how many of the lines have "CUT TO:" or "DISSOLVE TO:", or start
+        # with "FADE OUT" or "FADE TO"
         self.trans = 0
 
         # how many of the lines have a form of "^ +\(.*)$", i.e. are most
@@ -52,10 +53,15 @@ class Indent:
 
 
 class Options:
-    def __init__(self, lineTypes=None):
+    def __init__(self, lineTypes=None, sceneLines=None):
         # dict of indent -> line type (a screenplay line type, SCENE_ACTION
         # or IGNORE) for the indents not to use the guess for
         self.lineTypes = lineTypes or {}
+
+        # indexes of data's lines to take as scene headings if their
+        # indent is SCENE_ACTION, besides the ones starting with "EXT." or
+        # "INT.", for callers that know more than the text (importers/pdf)
+        self.sceneLines = sceneLines or frozenset()
 
 
 # return the Indents of data's lines, with their line types guessed
@@ -73,7 +79,7 @@ def parse(data, options=None):
     for indent, lt in options.lineTypes.items():
         indDict[indent].lt = lt
 
-    return ImportResult(_convert(lines, indDict))
+    return ImportResult(_convert(lines, indDict, options.sceneLines))
 
 
 # return data's lines (tabs expanded, trailing spaces removed, and blank
@@ -109,7 +115,9 @@ def _analyze(data):
         if textutil.multiFind(tmp, ["EXT.", "INT."]):
             ind.sceneStart += 1
 
-        if textutil.multiFind(tmp, ["CUT TO:", "DISSOLVE TO:"]):
+        if textutil.multiFind(tmp, ["CUT TO:", "DISSOLVE TO:"]) or (
+            tmp.lstrip().startswith(("FADE OUT", "FADE TO"))
+        ):
             ind.trans += 1
 
         if re.match(r"^ +\(.*\)$", tmp):
@@ -167,8 +175,9 @@ def _guessTypes(indDict):
             v.lt = screenplay.ACTION
 
 
-# return lines (as from _analyze) as Lines, with the line types in indDict
-def _convert(lines, indDict):
+# return lines (as from _analyze) as Lines, with the line types in indDict.
+# sceneLines are as in Options.
+def _convert(lines, indDict, sceneLines):
     ret = []
 
     # consecutive lines of the same type are taken to be one paragraph
@@ -188,7 +197,7 @@ def _convert(lines, indDict):
                 continue
 
             if lt == SCENE_ACTION:
-                if s.startswith("EXT.") or s.startswith("INT."):
+                if s.startswith("EXT.") or s.startswith("INT.") or (i in sceneLines):
                     lt = screenplay.SCENE
                 else:
                     lt = screenplay.ACTION

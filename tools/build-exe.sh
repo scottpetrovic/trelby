@@ -21,6 +21,10 @@ $PY -m PyInstaller --version >/dev/null 2>&1 || $PY -m pip install pyinstaller
 # and pyinstaller-hooks-contrib covers uvicorn's dynamic ones.
 $PY -c "import mcp.server.mcpserver, uvicorn" 2>/dev/null || $PY -m pip install "mcp>=2.3,<3"
 
+# pypdf, for importing PDF files (trelby/importers/pdf.py). optional when
+# running from source, but always bundled in the exe.
+$PY -c "import pypdf" 2>/dev/null || $PY -m pip install "pypdf>=5,<7"
+
 # packaged copies of the data files (see CLAUDE.md; don't commit these)
 gzip -c trelby/names.txt > trelby/names.txt.gz
 gzip -c trelby/dict_en.dat > trelby/dict_en.dat.gz
@@ -60,5 +64,10 @@ for m in mcp.server.mcpserver mcp.server.stdio uvicorn.loops.asyncio \
         exit 1
     fi
 done
+
+if ! grep -q "'pypdf'" build/Trelby/PYZ-00.toc; then
+    echo "pypdf is missing from the build; importing PDF files won't work." >&2
+    exit 1
+fi
 
 echo "Built $(pwd)/dist/Trelby/Trelby.exe"

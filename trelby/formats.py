@@ -158,6 +158,15 @@ IMPORT_FORMATS = [
         ["fadein"],
         importer=importers.fadein,
     ),
+    # only PDFs with text in them can be imported, not scanned pages
+    Format(
+        "pdf",
+        lambda: _("PDF with text"),
+        lambda: _("PDF (Text-Based)"),
+        "P",
+        ["pdf"],
+        importer=importers.pdf,
+    ),
     Format(
         "text",
         lambda: _("Formatted text"),

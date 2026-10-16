@@ -24,6 +24,8 @@ dependencies = [
 [project.optional-dependencies]
 # for the MCP server (trelby-mcp), see trelby/mcpserver/
 mcp = ["mcp>=2.3,<3"]
+# for importing PDF files, see trelby/importers/pdf.py
+pdf = ["pypdf>=5,<7"]
 
 [project.urls]
 Homepage = "https://www.trelby.org"

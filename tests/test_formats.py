@@ -52,6 +52,7 @@ def testImportersExist():
         ("a.celtx", "celtx"),
         ("a.astx", "astx"),
         ("a.fadein", "fadein"),
+        ("a.PDF", "pdf"),
         # Fountain files can be .txt too, but formatted text comes first
         ("a.txt", "text"),
         ("a.doc", "text"),

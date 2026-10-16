@@ -66,6 +66,7 @@ import pytest
         "mcpserver.tools",
         "importers",
         "importers.fountain",
+        "importers.pdf",
         "importers.text",
         "ui.myimport",
         "reports.scenereport",
@@ -124,6 +125,7 @@ def testImportFirst(module):
         "importers.fadein",
         "importers.fdx",
         "importers.fountain",
+        "importers.pdf",
         "importers.text",
     ],
 )

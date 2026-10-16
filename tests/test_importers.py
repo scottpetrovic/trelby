@@ -2,15 +2,19 @@
 # lines, line types and title pages each one makes, and the errors it
 # reports. tests/importrun.py runs them with the options dialogs answered.
 
+import sys
 import zipfile
 
 import pytest
 
 import tests.importrun as importrun
+import tests.pdffixture as pdffixture
 import tests.u as u
 import trelby.formats as formats
 import trelby.importers as importers
+import trelby.pdf.pml as pml
 import trelby.screenplay as screenplay
+import trelby.screenplay.export as export
 import trelby.screenplay.titles as titles
 from tests.importrun import Failed, dumpLines, dumpTitles
 
@@ -183,6 +187,210 @@ def testTextCancel():
     assert run("text", sample("txt"), cancel=True) is None
 
 
+# sample.pdf (made by tests/pdffixture.py) with the guessed line types:
+# the scene numbers, page numbers, CONTINUED, (MORE) and the repeated name
+# are gone, the dialogue split by the page break is joined up, the
+# right-aligned transitions are one indent level, and the dual dialogue's
+# columns come one after the other
+PDF_GUESSED = [
+    "LAST ACTION 'FADE IN:'",
+    "LAST SCENE 'INT. KITCHEN - DAY'",
+    "SPACE ACTION 'Anna stirs a pot. Steam rises and fills the small'",
+    "LAST ACTION 'room.'",
+    "LAST CHARACTER 'ANNA'",
+    "LAST PAREN '(quietly)'",
+    "SPACE DIALOGUE \"It's almost ready. Just a few\"",
+    "LAST DIALOGUE 'more minutes.'",
+    "LAST CHARACTER 'BEN (V.O.)'",
+    "LAST DIALOGUE \"Good. I'm starving.\"",
+    "LAST ACTION 'He sits down.'",
+    "LAST TRANSITION 'CUT TO:'",
+    "LAST SCENE 'EXT. GARDEN - NIGHT'",
+    "LAST ACTION 'Crickets.'",
+    "LAST CHARACTER 'ANNA'",
+    "SPACE DIALOGUE 'Did you hear that? Something is out'",
+    "SPACE DIALOGUE 'there in the dark, waiting for us'",
+    "LAST DIALOGUE 'to make a mistake.'",
+    "LAST CHARACTER 'BEN'",
+    "SPACE DIALOGUE \"Nothing's there.\"",
+    "LAST DIALOGUE 'Go to sleep.'",
+    "LAST CHARACTER 'ANNA'",
+    "LAST DIALOGUE \"Something's there.\"",
+    "LAST ACTION 'They look at each other.'",
+    "LAST TRANSITION 'DISSOLVE TO:'",
+    "LAST SCENE 'INT. KITCHEN - LATER'",
+    "LAST ACTION 'The pot is empty.'",
+    "LAST TRANSITION 'FADE OUT.'",
+]
+
+PDF_TITLES = [
+    [
+        (["THE TEST SCRIPT"], 0.0, 98.7, True, "title"),
+        (["Written by", "", "Some Writer"], 0.0, 114.96, True, "byline"),
+        (["Some Writer", "writer@example.com"], 38.1, 233.5, False, "contact"),
+    ]
+]
+
+
+def testPdf():
+    lines, titlePages = run("pdf", sample("pdf"), titlePages=defaultTitlePages())
+
+    assert dumpLines(lines) == PDF_GUESSED
+    assert dumpTitles(titlePages) == PDF_TITLES
+
+    title = titlePages[0][0]
+    assert (title.size, title.isBold, title.font) == (24, True, pml.HELVETICA)
+
+
+# the transitions ignored and the dialogue taken as action in the dialog
+def testPdfChangedTypes():
+    lines, titlePages = run(
+        "pdf", sample("pdf"), lineTypes={63: IGNORE, 25: screenplay.ACTION}
+    )
+
+    assert dumpLines(lines)[:8] == PDF_GUESSED[:6] + [
+        "SPACE ACTION \"It's almost ready. Just a few\"",
+        "LAST ACTION 'more minutes.'",
+    ]
+    assert "LAST TRANSITION 'CUT TO:'" not in dumpLines(lines)
+
+
+def testPdfCancel():
+    assert run("pdf", sample("pdf"), cancel=True) is None
+
+
+# a PDF of the sample script, made by Trelby's own export, imports as the
+# script it was made from: the same elements, in capitals where the export
+# makes them so, with the same title page. the one difference is that
+# lines in capitals on their own, at the scene heading indent, are taken
+# as scene headings ("MAP OF THE ATLANTIC OCEAN" is one in the sample,
+# "LATER" isn't).
+def testPdfRoundTrip(tmp_path):
+    with open("trelby/sample.trelby", encoding="UTF-8") as f:
+        sp = u.loadString(f.read())
+
+    sp.paginate()
+    path = tmp_path / "sample.pdf"
+    path.write_bytes(export.generatePDF(sp))
+
+    lines, titlePages = run("pdf", path)
+
+    def elems(lines):
+        ret = []
+        texts = []
+
+        for ln in lines:
+            texts.append(ln.text)
+
+            if ln.lb == screenplay.LB_LAST:
+                ret.append((ln.lt, " ".join(texts).upper()))
+                texts = []
+
+        return ret
+
+    orig = elems(sp.lines)
+    imported = elems(lines)
+
+    assert len(imported) == len(orig)
+
+    diffs = [(a, b) for a, b in zip(orig, imported) if a != b]
+
+    assert diffs == [
+        ((screenplay.ACTION, text), (screenplay.SCENE, text))
+        for text in ["LATER", "LATER", "2 MINUTES LATER"]
+    ]
+
+    # x doesn't matter for centered strings, and the kinds are guessed
+    def dumpTitle(ts):
+        return (
+            ts.items,
+            None if ts.isCentered else round(ts.x, 2),
+            round(ts.y, 2),
+            ts.getAlignment(),
+            ts.size,
+            ts.getStyle(),
+        )
+
+    assert [[dumpTitle(ts) for ts in page] for page in titlePages] == [
+        [dumpTitle(ts) for ts in page] for page in sp.titles.pages
+    ]
+    assert [ts.kind for ts in titlePages[0]] == [
+        "title",
+        "byline",
+        "copyright",
+        "contact",
+    ]
+
+
+# headers repeated on most pages are taken out, wherever they are
+def testPdfRepeatedHeader(tmp_path):
+    path = str(tmp_path / "header.pdf")
+    w = pdffixture.Writer(path)
+
+    words = ["One", "Two", "Three", "Four"]
+
+    for n, word in enumerate(words):
+        if n:
+            w.page(n + 1)
+
+        w.line(15, "Blue draft 10/%d/26" % (n + 1))
+        w.blank()
+        w.line(15, "INT. ROOM %s - DAY" % word.upper())
+        w.blank()
+        w.line(15, "Action on page %s." % word)
+        w.blank()
+        w.line(15, "Page %s goes on." % word)
+
+    w.save()
+
+    lines, titlePages = run("pdf", path)
+
+    assert titlePages is None
+    assert dumpLines(lines) == [
+        s
+        for word in words
+        for s in [
+            "LAST SCENE 'INT. ROOM %s - DAY'" % word.upper(),
+            "LAST ACTION 'Action on page %s.'" % word,
+            "LAST ACTION 'Page %s goes on.'" % word,
+        ]
+    ]
+
+
+# a PDF with only page furniture in it
+def testPdfOnlyFurniture(tmp_path):
+    path = str(tmp_path / "numbers.pdf")
+    w = pdffixture.Writer(path)
+    w.page(2)
+    w.save()
+
+    with pytest.raises(Failed) as e:
+        run("pdf", path)
+
+    assert e.value.message == "The file contains no importable lines"
+
+
+def testPdfNoText(tmp_path):
+    path = str(tmp_path / "empty.pdf")
+    pdffixture.Writer(path).save()
+
+    with pytest.raises(Failed) as e:
+        run("pdf", path)
+
+    assert e.value.message.startswith("The PDF file contains no text.")
+
+
+def testPdfWithoutPypdf(monkeypatch):
+    # a None in sys.modules makes importing it fail
+    monkeypatch.setitem(sys.modules, "pypdf", None)
+    importers.pdf._convertPDF.cache_clear()
+
+    with pytest.raises(Failed) as e:
+        run("pdf", sample("pdf"))
+
+    assert "pypdf" in e.value.message
+
+
 FOUNTAIN_SCRIPT = [
     "LAST SCENE 'INT. KITCHEN - DAY'",
     "LAST ACTION 'Steam rises from a pot.  It bubbles.'"
@@ -340,6 +548,8 @@ def writeZip(path, files):
             "The file contains no importable lines",
         ),
         ("fountain", "", "File is empty."),
+        ("pdf", "", "File is empty."),
+        ("pdf", "not a PDF file", "Error reading PDF file: "),
         ("text", "", "File is empty."),
         ("text", "  \n\t\n", "File contains only empty lines."),
         ("fadein", "not a zip", "File is not a valid .fadein file."),
