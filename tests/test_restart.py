@@ -21,7 +21,8 @@ def testRestartArgs(monkeypatch):
     opts.init()
     assert trelbyapp.restartArgs([]) == []
 
-    monkeypatch.setattr(opts, "conf", "my.conf")
+    monkeypatch.setattr(sys, "argv", ["trelby.py", "--conf", "my.conf"])
+    opts.init()
     assert trelbyapp.restartArgs(["/x/b.trelby"]) == [
         "--conf",
         "my.conf",
