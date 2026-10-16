@@ -22,6 +22,7 @@ import trelby.error as error
 import trelby.formats as formats
 import trelby.misc as misc
 import trelby.screenplay as screenplay
+import trelby.screenplay.speeches as speeches
 import trelby.textutil as textutil
 import trelby.translations as translations
 import trelby.undo as undo
@@ -496,13 +497,7 @@ def getInfo(doc):
             titles.append("\n".join(ts.items))
 
     outline = sp.getOutline()
-    characters = {
-        characterprofiles.normalizeName(e["text"])
-        for first, last in getParts(sp)
-        for e in getElements(sp, first, last)
-        if e["type"] == typeName(CHARACTER)
-    }
-    characters.discard("")
+    characters = {s.name for s in speeches.iterSpeeches(sp)}
 
     ret = doc.describe(sp)
     ret.update(
@@ -555,24 +550,23 @@ def listCharacters(doc):
     sp, rev = doc.read()
 
     chars = {}
-    charType = typeName(CHARACTER)
 
-    for idx, (first, last) in enumerate(getParts(sp)):
-        for e in getElements(sp, first, last):
-            if e["type"] != charType:
-                continue
+    # key = first line of a part, value = its index. a speech's scene is
+    # the first line of its part, or None for part 0.
+    partIndexes = {first: idx for idx, (first, last) in enumerate(getParts(sp))}
+    partIndexes[None] = 0
 
-            name = characterprofiles.normalizeName(e["text"])
-            if not name:
-                continue
+    for speech in speeches.iterSpeeches(sp):
+        name = speech.name
+        idx = partIndexes[speech.scene]
 
-            c = chars.setdefault(
-                name, {"name": name, "speeches": 0, "scenes": [], "has_profile": False}
-            )
-            c["speeches"] += 1
+        c = chars.setdefault(
+            name, {"name": name, "speeches": 0, "scenes": [], "has_profile": False}
+        )
+        c["speeches"] += 1
 
-            if idx not in c["scenes"]:
-                c["scenes"].append(idx)
+        if idx not in c["scenes"]:
+            c["scenes"].append(idx)
 
     for c in chars.values():
         c["has_profile"] = sp.characterProfiles.get(c["name"]) is not None

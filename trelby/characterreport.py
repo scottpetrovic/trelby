@@ -21,32 +21,19 @@ class CharacterReport(textreport.TextReport):
         # key = character name, value = CharInfo
         chars = {}
 
-        # speeches with no speaker, or an empty name, are left out. the
-        # per-scene counts are of dialogue and parenthetical lines, by the
-        # last scene heading before the speech.
+        # what counts as a speech, and as a spoken line, is described in
+        # screenplay/speeches.py
         for speech in speeches.iterSpeeches(sp):
-            name = speech.name
-
-            if not name:
-                continue
-
-            ci = chars.get(name)
+            ci = chars.get(speech.name)
             if not ci:
-                ci = CharInfo(name, sp)
-                chars[name] = ci
+                ci = CharInfo(speech.name, sp)
+                chars[speech.name] = ci
 
-            if speech.scene is None:
-                scene = "(NO SCENE NAME)"
-            else:
-                scene = speeches.sceneName(sp, speech.scene)
-
-            if scene:
-                lines = speech.end - speech.start + 1
-                ci.scenes[scene] = ci.scenes.get(scene, 0) + lines
+            scene = speeches.sceneName(sp, speech.scene)
+            ci.scenes[scene] = ci.scenes.get(scene, 0) + len(speech.dialogue)
 
             ci.speechCnt += 1
 
-            # PAREN lines don't count as spoken words
             for i in speech.dialogue:
                 ci.lineCnt += 1
 
@@ -55,7 +42,6 @@ class CharacterReport(textreport.TextReport):
                 ci.wordCnt += len(words)
                 ci.wordCharCnt += sum(len(w) for w in words)
 
-            for i in range(speech.start, speech.end + 1):
                 ci.pages.addPage(sp.line2pageLabel(i))
 
         # list of CharInfo objects, the most lines first

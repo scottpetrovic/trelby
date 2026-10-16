@@ -15,23 +15,22 @@ def testData():
     sp = u.load("reports/edge.trelby")
     chart = dialoguechart.DialogueChart(sp)
 
-    # every dialogue line is counted: lines with no character right
-    # before them (skipping parentheticals) are spoken by "UNKNOWN", and
-    # a two-line name is its last line
+    # the speakers are those of screenplay.speeches: dialogue with no
+    # character before it isn't counted
     assert chars(chart.cinfo) == {
-        "": (0, 0, 1),
         "ANN": (1, 1, 1),
-        "BOB": (0, 1, 3),
+        "BOB": (0, 1, 4),
+        "DR. JOHN SMITH": (1, 1, 1),
         "NARRATOR": (0, 0, 1),
-        "SMITH": (1, 1, 1),
-        "UNKNOWN": (0, 1, 3),
     }
 
     assert [pi.label for pi in chart.pages] == ["1", "2"]
-    assert chart.pages[1].speakers == {"ANN": 1, "BOB": 1, "SMITH": 1, "UNKNOWN": 1}
-    assert chart.pages[1].getLineCount(screenplay.DIALOGUE) == 4
+    assert chart.pages[1].speakers == {"ANN": 1, "BOB": 2, "DR. JOHN SMITH": 1}
 
-    assert chars(chart.getChars(3)).keys() == {"BOB", "UNKNOWN"}
+    # the page content bars count every dialogue line
+    assert chart.pages[1].getLineCount(screenplay.DIALOGUE) == 5
+
+    assert chars(chart.getChars(3)).keys() == {"BOB"}
 
 
 def testSorts():
@@ -42,10 +41,10 @@ def testSorts():
         return [ci.name for ci in chart.getChars(sort=sort)]
 
     # first page, then last page descending, then lines descending
-    assert names("first") == ["BOB", "UNKNOWN", "", "NARRATOR", "ANN", "SMITH"]
-    assert names("last") == ["", "NARRATOR", "ANN", "BOB", "SMITH", "UNKNOWN"]
-    assert names("count") == ["BOB", "UNKNOWN", "", "NARRATOR", "ANN", "SMITH"]
-    assert names("name") == ["", "ANN", "BOB", "NARRATOR", "SMITH", "UNKNOWN"]
+    assert names("first") == ["BOB", "NARRATOR", "ANN", "DR. JOHN SMITH"]
+    assert names("last") == ["NARRATOR", "ANN", "BOB", "DR. JOHN SMITH"]
+    assert names("count") == ["BOB", "NARRATOR", "ANN", "DR. JOHN SMITH"]
+    assert names("name") == ["ANN", "BOB", "DR. JOHN SMITH", "NARRATOR"]
 
 
 def testDoc():
@@ -63,7 +62,7 @@ def testDoc():
 
     # a row for each character, and their names in the sort order
     texts = [op.text for op in doc.pages[3].ops if isinstance(op, pml.TextOp)]
-    assert texts[-6:] == ["", "ANN", "BOB", "NARRATOR", "SMITH", "UNKNOWN"]
+    assert texts[-4:] == ["ANN", "BOB", "DR. JOHN SMITH", "NARRATOR"]
 
     # nothing to show
     assert dialoguechart.generateDoc(chart, sp.cfg, sorts, 10) is None

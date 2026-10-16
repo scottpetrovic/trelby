@@ -70,13 +70,9 @@ class DialogueChart:
         # key = name, value = CharInfo
         chars = {}
 
-        # every dialogue line is counted. a speech with no character
-        # element before it is spoken by "UNKNOWN".
+        # who speaks is worked out in screenplay/speeches.py
         for speech in speeches.iterSpeeches(sp):
-            if speech.name is None:
-                name = "UNKNOWN"
-            else:
-                name = speech.name
+            name = speech.name
 
             for i in speech.dialogue:
                 pgNr = sp.line2page(i) - 1

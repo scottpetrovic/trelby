@@ -5,11 +5,10 @@ char JASON first=0 last=3 lines=39
 char KEVIN first=0 last=1 lines=5
 char REPORTER first=2 last=2 lines=9
 char SARAH first=1 last=3 lines=5
-char UNKNOWN first=3 last=3 lines=1
 page 0 types=[(1, 4), (2, 20), (3, 5), (4, 12), (5, 1), (6, 1)] speakers=[('FISHERMAN #1', 5), ('FISHERMAN #2', 2), ('JASON', 3), ('KEVIN', 2)]
 page 1 types=[(1, 4), (2, 15), (3, 7), (4, 16)] speakers=[('CAPTAIN', 5), ('JASON', 6), ('KEVIN', 3), ('SARAH', 2)]
 page 2 types=[(1, 5), (2, 15), (3, 6), (4, 13)] speakers=[('CAPTAIN', 1), ('JASON', 2), ('REPORTER', 9), ('SARAH', 1)]
-page 3 types=[(2, 2), (3, 5), (4, 31)] speakers=[('JASON', 28), ('SARAH', 2), ('UNKNOWN', 1)]
+page 3 types=[(2, 2), (3, 5), (4, 31)] speakers=[('JASON', 28), ('SARAH', 2)]
 with 10 or more lines: ['JASON']
 doc 297.00 x 210.00
 page 0
@@ -24,13 +23,10 @@ page 0
   PDFOp cmds=0.933 0.957 0.988 rg
   RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=67.639
   PDFOp cmds=0.0 g
-  PDFOp cmds=0.933 0.957 0.988 rg
-  RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=74.694
-  PDFOp cmds=0.0 g
   PDFOp cmds=0.5 G
   PDFOp cmds=[2 2] 0 d
   TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=1 toc=None x=37.342 y=20.000
-  RectOp fillType=0 height=28.222 lw=0.250 width=248.600 x=38.400 y=50.000
+  RectOp fillType=0 height=24.694 lw=0.250 width=248.600 x=38.400 y=50.000
   PDFOp cmds=0.0 G
   PDFOp cmds=[] 0 d
   RectOp fillType=0 height=23.000 lw=0.250 width=23.000 x=12.000 y=22.000
@@ -111,10 +107,6 @@ page 0
   PDFOp cmds=0.922 0.408 0.204 rg
   RectOp fillType=1 height=0.520 lw=-1 width=62.150 x=162.700 y=72.670
   PDFOp cmds=0.0 g
-  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=UNKNOWN toc=None x=10.000 y=74.694
-  PDFOp cmds=0.922 0.408 0.204 rg
-  RectOp fillType=1 height=0.058 lw=-1 width=62.150 x=224.850 y=76.429
-  PDFOp cmds=0.0 g
 
 doc 297.00 x 210.00
 page 0
@@ -129,13 +121,10 @@ page 0
   PDFOp cmds=0.933 0.957 0.988 rg
   RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=67.639
   PDFOp cmds=0.0 g
-  PDFOp cmds=0.933 0.957 0.988 rg
-  RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=74.694
-  PDFOp cmds=0.0 g
   PDFOp cmds=0.5 G
   PDFOp cmds=[2 2] 0 d
   TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=1 toc=None x=37.342 y=20.000
-  RectOp fillType=0 height=28.222 lw=0.250 width=248.600 x=38.400 y=50.000
+  RectOp fillType=0 height=24.694 lw=0.250 width=248.600 x=38.400 y=50.000
   PDFOp cmds=0.0 G
   PDFOp cmds=[] 0 d
   RectOp fillType=0 height=23.000 lw=0.250 width=23.000 x=12.000 y=22.000
@@ -216,10 +205,6 @@ page 0
   RectOp fillType=1 height=0.058 lw=-1 width=62.150 x=162.700 y=72.902
   RectOp fillType=1 height=0.116 lw=-1 width=62.150 x=224.850 y=72.873
   PDFOp cmds=0.0 g
-  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=UNKNOWN toc=None x=10.000 y=74.694
-  PDFOp cmds=0.922 0.408 0.204 rg
-  RectOp fillType=1 height=0.058 lw=-1 width=62.150 x=224.850 y=76.429
-  PDFOp cmds=0.0 g
 
 doc 297.00 x 210.00
 page 0
@@ -234,13 +219,10 @@ page 0
   PDFOp cmds=0.933 0.957 0.988 rg
   RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=67.639
   PDFOp cmds=0.0 g
-  PDFOp cmds=0.933 0.957 0.988 rg
-  RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=74.694
-  PDFOp cmds=0.0 g
   PDFOp cmds=0.5 G
   PDFOp cmds=[2 2] 0 d
   TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=1 toc=None x=37.342 y=20.000
-  RectOp fillType=0 height=28.222 lw=0.250 width=248.600 x=38.400 y=50.000
+  RectOp fillType=0 height=24.694 lw=0.250 width=248.600 x=38.400 y=50.000
   PDFOp cmds=0.0 G
   PDFOp cmds=[] 0 d
   RectOp fillType=0 height=23.000 lw=0.250 width=23.000 x=12.000 y=22.000
@@ -321,10 +303,6 @@ page 0
   PDFOp cmds=0.922 0.408 0.204 rg
   RectOp fillType=1 height=0.116 lw=-1 width=62.150 x=38.400 y=72.873
   PDFOp cmds=0.0 g
-  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=UNKNOWN toc=None x=10.000 y=74.694
-  PDFOp cmds=0.922 0.408 0.204 rg
-  RectOp fillType=1 height=0.058 lw=-1 width=62.150 x=224.850 y=76.429
-  PDFOp cmds=0.0 g
 
 doc 297.00 x 210.00
 page 0
@@ -339,13 +317,10 @@ page 0
   PDFOp cmds=0.933 0.957 0.988 rg
   RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=67.639
   PDFOp cmds=0.0 g
-  PDFOp cmds=0.933 0.957 0.988 rg
-  RectOp fillType=1 height=3.528 lw=-1 width=248.600 x=38.400 y=74.694
-  PDFOp cmds=0.0 g
   PDFOp cmds=0.5 G
   PDFOp cmds=[2 2] 0 d
   TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=1 toc=None x=37.342 y=20.000
-  RectOp fillType=0 height=28.222 lw=0.250 width=248.600 x=38.400 y=50.000
+  RectOp fillType=0 height=24.694 lw=0.250 width=248.600 x=38.400 y=50.000
   PDFOp cmds=0.0 G
   PDFOp cmds=[] 0 d
   RectOp fillType=0 height=23.000 lw=0.250 width=23.000 x=12.000 y=22.000
@@ -425,8 +400,4 @@ page 0
   RectOp fillType=1 height=0.116 lw=-1 width=62.150 x=100.550 y=72.873
   RectOp fillType=1 height=0.058 lw=-1 width=62.150 x=162.700 y=72.902
   RectOp fillType=1 height=0.116 lw=-1 width=62.150 x=224.850 y=72.873
-  PDFOp cmds=0.0 g
-  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=UNKNOWN toc=None x=10.000 y=74.694
-  PDFOp cmds=0.922 0.408 0.204 rg
-  RectOp fillType=1 height=0.058 lw=-1 width=62.150 x=224.850 y=76.429
   PDFOp cmds=0.0 g
