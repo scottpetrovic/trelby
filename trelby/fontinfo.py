@@ -1,3 +1,5 @@
+from reportlab.pdfbase import pdfmetrics
+
 import trelby.pml as pml
 
 # character widths and general font information for each font. acquired
@@ -56,7 +58,15 @@ class FontMetrics:
 
         total = 0
         for ch in text:
-            total += widths[ord(ch)]
+            c = ord(ch)
+
+            if c < 256:
+                total += widths[c]
+            else:
+                # the table only covers Latin-1. reportlab draws other
+                # characters in the font's WinAnsi encoding or a fallback
+                # font, so ask it for the width it uses.
+                total += pdfmetrics.stringWidth(ch, self.pdfName, 1000)
 
         return (total / 1000.0) * size
 
@@ -2287,3 +2297,20 @@ _fontMetrics = {
         ],
     ),
 }
+
+# the names of the standard PDF fonts, which reportlab knows the metrics of
+for _style, _name in {
+    pml.COURIER: "Courier",
+    pml.COURIER | pml.BOLD: "Courier-Bold",
+    pml.COURIER | pml.ITALIC: "Courier-Oblique",
+    pml.COURIER | pml.BOLD | pml.ITALIC: "Courier-BoldOblique",
+    pml.HELVETICA: "Helvetica",
+    pml.HELVETICA | pml.BOLD: "Helvetica-Bold",
+    pml.HELVETICA | pml.ITALIC: "Helvetica-Oblique",
+    pml.HELVETICA | pml.BOLD | pml.ITALIC: "Helvetica-BoldOblique",
+    pml.TIMES_ROMAN: "Times-Roman",
+    pml.TIMES_ROMAN | pml.BOLD: "Times-Bold",
+    pml.TIMES_ROMAN | pml.ITALIC: "Times-Italic",
+    pml.TIMES_ROMAN | pml.BOLD | pml.ITALIC: "Times-BoldItalic",
+}.items():
+    _fontMetrics[_style].pdfName = _name

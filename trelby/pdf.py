@@ -23,6 +23,48 @@ def generate(doc: "pml.Document") -> bytes:
     return tmp.generate()
 
 
+# return the characters in doc's text that its fonts can't show, sorted
+# and without duplicates, as a string. the standard PDF fonts (used when
+# no TrueType font is set for a style) only have the WinAnsi (cp1252)
+# characters. reportlab draws others with a fallback font: Greek letters
+# come out in the proportional Symbol font, most others as black boxes.
+def unsupportedChars(doc: "pml.Document") -> str:
+    chars = set()
+
+    for page in doc.pages:
+        for op in page.ops:
+            if not isinstance(op, pml.TextOp) or op.text.isascii():
+                continue
+
+            if op.fmt and (op.angle is None):
+                runs = [
+                    (a, b, op.flags | (style & (pml.BOLD | pml.ITALIC)))
+                    for a, b, style in textfmt.runs(op.fmt, len(op.text))
+                ]
+            else:
+                runs = [(0, len(op.text), op.flags)]
+
+            for a, b, flags in runs:
+                if (flags & 15) in doc.fonts:
+                    continue
+
+                for ch in op.text[a:b]:
+                    if not isWinAnsi(ch):
+                        chars.add(ch)
+
+    return "".join(sorted(chars))
+
+
+# return True if ch is in the WinAnsi encoding of the standard PDF fonts
+def isWinAnsi(ch: str) -> bool:
+    try:
+        ch.encode("cp1252")
+    except UnicodeEncodeError:
+        return False
+
+    return True
+
+
 # An abstract base class for all PDF drawing operations.
 class PDFDrawOp:
 

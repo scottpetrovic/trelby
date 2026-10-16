@@ -22,6 +22,7 @@ import trelby.mcpapp as mcpapp
 import trelby.misc as misc
 import trelby.myimport as myimport
 import trelby.opts as opts
+import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.reports as reports
 import trelby.screenplay as screenplay
@@ -333,6 +334,31 @@ class MyCtrl(wx.Control):
             return None
 
         return sp.generateHtml(inf[0].selected)
+
+    # generate a PDF of the given screenplay, or None if the user cancels
+    # because the PDF fonts can't show some of its characters.
+    def getExportPdf(self, sp):
+        doc = sp.generatePML()
+        chars = pdf.unsupportedChars(doc)
+
+        if chars:
+            if len(chars) > 40:
+                chars = chars[:40] + "..."
+
+            if (
+                wx.MessageBox(
+                    _(
+                        "The built-in PDF fonts can't show these characters, so they will\nbe shown as boxes or in a different font:\n\n{}\n\nTo show them, choose a TrueType font that has them in\nScript/Script settings/PDF/Fonts.\n\nExport anyway?"
+                    ).format(" ".join(chars)),
+                    _("Confirm"),
+                    wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+                    self.gd.mainFrame,
+                )
+                == wx.NO
+            ):
+                return None
+
+        return pdf.generate(doc)
 
     def setFile(self, fileName):
         self.fileName = fileName
@@ -1173,7 +1199,7 @@ class MyCtrl(wx.Control):
 
             wx.TheClipboard.Close()
 
-        s = util.fixNL(s)
+        s = util.removeInvalidChars(util.toInputStr(util.fixNL(s)))
 
         if len(s) == 0:
             return
@@ -1478,7 +1504,7 @@ class MyCtrl(wx.Control):
     # without the dot ("pdf", "rtf", "fdx", "html", "fountain" or "txt").
     def OnExportScript(self, fmt):
         name, generate = {
-            "pdf": ("PDF", lambda sp: sp.generatePDF()),
+            "pdf": ("PDF", self.getExportPdf),
             "rtf": ("RTF", lambda sp: sp.generateRTF()),
             "fdx": ("Final Draft XML", lambda sp: sp.generateFDX()),
             "html": ("HTML", self.getExportHtml),
@@ -1697,23 +1723,28 @@ class MyCtrl(wx.Control):
         pass
 
     def OnKeyChar(self, ev):
-        kc = ev.GetUnicodeKey()
+        uc = ev.GetUnicodeKey()
 
-        # non-character keys (arrows, Home, PgUp, F-keys...) have no
-        # Unicode value, so fall back to the key code for those
-        if kc == wx.WXK_NONE:
+        # the key code to look up commands with. non-character keys
+        # (arrows, Home, PgUp, F-keys...) have no Unicode value, only a key
+        # code. key codes above 255 are wx.WXK_ constants, so a character
+        # above 255 must not be used as one: "ł" (322) is wx.WXK_INSERT.
+        if (uc != wx.WXK_NONE) and (uc < 256):
+            kc = uc
+        else:
             kc = ev.GetKeyCode()
 
         cs = screenplay.CommandState()
         cs.mark = bool(ev.ShiftDown())
         scrollDirection = config.SCROLL_CENTER
 
-        if not ev.ControlDown() and not ev.AltDown() and util.isValidInputChar(kc):
-            # WX2.6-FIXME: we should probably use GetUnicodeKey() (dunno
-            # how to get around the isValidInputChar test in the preceding
-            # line, need to test what GetUnicodeKey() returns on
-            # non-input-character events)
-
+        if (
+            not ev.ControlDown()
+            and not ev.AltDown()
+            and (uc != wx.WXK_NONE)
+            and util.isValidInputChar(uc)
+        ):
+            kc = uc
             addChar = True
 
             # If there's something selected, either remove it, or clear selection.

@@ -150,8 +150,8 @@ class TextEdit:
     def insert(self, s):
         self.deleteSelection()
 
-        s = util.toInputStr(s.replace("\r\n", "\n").replace("\r", "\n"))
-        s = "".join(ch for ch in s if (ch == "\n") or util.isValidInputChar(ord(ch)))
+        s = util.toInputStr(util.fixNL(util.cleanInput(s)))
+        s = util.removeInvalidChars(s)
 
         line, col = self.caret
         cur = self.lines[line]

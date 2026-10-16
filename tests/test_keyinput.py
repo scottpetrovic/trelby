@@ -9,6 +9,7 @@ import trelby.opts as opts
 import trelby.screenplay as screenplay
 import trelby.translations as translations
 import trelby.trelbyctrl as trelbyctrl
+import trelby.util as util
 
 _ = translations.trelby_translations_load()
 
@@ -145,3 +146,106 @@ def testUnboundKeyIsSkipped():
     ev = press(ctrl, KeyEvent(ord("q"), ord("Q"), ctrl=True, alt=True))
     assert ev.skipped
     assert sp.lines[0].text == ""
+
+
+# characters above U+00FF: Polish, Czech, the euro sign, Cyrillic and
+# Greek
+def testCharsAboveLatin1():
+    ctrl = newCtrl()
+    sp = ctrl.sp
+    typeChars(ctrl, "zażółć gęślą jaźń, čeština 5 €. привет. ωμέγα")
+
+    assert sp.lines[0].text == "Zażółć gęślą jaźń, čeština 5 €. Привет. Ωμέγα"
+
+
+def testCharsAboveLatin1InSceneHeading():
+    ctrl = newCtrl()
+    sp = ctrl.sp
+    sp.lines[0].lt = screenplay.SCENE
+    typeChars(ctrl, "int. łódź")
+    press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_RETURN))
+    typeChars(ctrl, "x")
+
+    assert sp.lines[0].text == "Int. Łódź"
+    assert sp.getExportText(0) == "INT. ŁÓDŹ"
+
+
+def testInvalidCharsNotTyped():
+    ctrl = newCtrl()
+    sp = ctrl.sp
+
+    # C1 control, soft hyphen, zero-width space, line separator, BOM
+    for kc in (0x85, 0xAD, 0x200B, 0x2028, 0xFEFF):
+        press(ctrl, KeyEvent(kc, wx.WXK_NONE))
+
+    assert sp.lines[0].text == ""
+
+
+# key codes above 255 are wx.WXK_ constants, which as code points are
+# letters: WXK_HOME is 313 = "Ĺ", WXK_INSERT is 322 = "ł"
+def testSpecialKeysNotTypedAsChars():
+    ctrl = newCtrl()
+    sp = ctrl.sp
+    typeChars(ctrl, "abc")
+
+    for kc in (wx.WXK_HOME, wx.WXK_INSERT, wx.WXK_F2, wx.WXK_END):
+        press(ctrl, KeyEvent(wx.WXK_NONE, kc))
+
+    assert sp.lines[0].text == "Abc"
+
+
+def testCtrlWithCharAboveLatin1():
+    ctrl = newCtrl()
+    sp = ctrl.sp
+    typeChars(ctrl, "abc")
+
+    # must not be taken for CTRL+Home (MoveStartOfScript)
+    ev = press(ctrl, KeyEvent(wx.WXK_HOME, wx.WXK_NONE, ctrl=True))
+    assert ev.skipped
+    assert sp.column == 3
+
+    # CTRL+Home itself still works
+    press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_HOME, ctrl=True))
+    assert sp.column == 0
+
+
+# the character map and the names database insert characters with
+# util.MyKeyEvent
+def testFakeKeyEvent():
+    ctrl = newCtrl()
+    sp = ctrl.sp
+
+    for ch in "łódź €":
+        press(ctrl, util.MyKeyEvent(ord(ch)))
+
+    assert sp.lines[0].text == "Łódź €"
+
+    press(ctrl, util.MyKeyEvent(wx.WXK_BACK))
+    assert sp.lines[0].text == "Łódź "
+
+
+def testPasteSystemClipboard():
+    ctrl = newCtrl()
+    sp = ctrl.sp
+    text = "Łódź\x85\xad €\r\nc\u030capek\u200b Пётр\tΩ"
+
+    class Clipboard:
+        def Open(self):
+            return True
+
+        def Close(self):
+            pass
+
+        def UsePrimarySelection(self, primary):
+            pass
+
+        def IsSupported(self, df):
+            return True
+
+        def GetData(self, data):
+            data.SetText(text)
+
+    with mock.patch.object(wx, "TheClipboard", Clipboard()):
+        ctrl.OnPasteSystemCb()
+
+    assert [ln.text for ln in sp.lines] == ["Łódź €", "čapek Пётр|Ω"]

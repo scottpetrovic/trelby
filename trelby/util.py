@@ -9,6 +9,7 @@ import shutil
 import stat
 import tempfile
 import time
+import unicodedata
 from typing import AnyStr, Optional
 
 import trelby.config as config
@@ -33,81 +34,6 @@ VALIGN_BOTTOM = 3
 # circular dependencies
 import trelby.fontinfo as fontinfo
 
-# mappings from lowercase to uppercase letters for different charsets
-_iso_8859_1_map = {
-    97: 65,
-    98: 66,
-    99: 67,
-    100: 68,
-    101: 69,
-    102: 70,
-    103: 71,
-    104: 72,
-    105: 73,
-    106: 74,
-    107: 75,
-    108: 76,
-    109: 77,
-    110: 78,
-    111: 79,
-    112: 80,
-    113: 81,
-    114: 82,
-    115: 83,
-    116: 84,
-    117: 85,
-    118: 86,
-    119: 87,
-    120: 88,
-    121: 89,
-    122: 90,
-    224: 192,
-    225: 193,
-    226: 194,
-    227: 195,
-    228: 196,
-    229: 197,
-    230: 198,
-    231: 199,
-    232: 200,
-    233: 201,
-    234: 202,
-    235: 203,
-    236: 204,
-    237: 205,
-    238: 206,
-    239: 207,
-    240: 208,
-    241: 209,
-    242: 210,
-    243: 211,
-    244: 212,
-    245: 213,
-    246: 214,
-    248: 216,
-    249: 217,
-    250: 218,
-    251: 219,
-    252: 220,
-    253: 221,
-    254: 222,
-}
-
-# current mappings, 256 chars long.
-_to_upper = ""
-_to_lower = ""
-
-# translate table for converting strings to only contain valid input
-# characters
-_input_tbl = ""
-
-# translate table that converts A-Z -> a-z, keeps a-z as they are, and
-# converts everything else to z.
-_normalize_tbl = ""
-
-# identity table that maps each character to itself. used by deleteChars.
-_identity_tbl = ""
-
 # map some fancy unicode characters to their nearest ASCII/Latin-1
 # equivalents so when people import text it's not mangled to uselessness
 _fancy_unicode_map = {
@@ -124,45 +50,7 @@ permDc = None
 
 
 def init(doWX=True):
-    global _to_upper, _to_lower, _input_tbl, _normalize_tbl, _identity_tbl, permDc
-
-    # setup ISO-8859-1 case-conversion stuff
-    tmpUpper = []
-    tmpLower = []
-
-    for i in range(256):
-        tmpUpper.append(i)
-        tmpLower.append(i)
-
-    for k, v in _iso_8859_1_map.items():
-        tmpUpper[k] = v
-        tmpLower[v] = k
-
-    for i in range(256):
-        _to_upper += chr(tmpUpper[i])
-        _to_lower += chr(tmpLower[i])
-
-    # valid input string stuff
-    for i in range(256):
-        if isValidInputChar(i):
-            _input_tbl += chr(i)
-        else:
-            _input_tbl += "|"
-
-    for i in range(256):
-        # "a" - "z"
-        if (i >= 97) and (i <= 122):
-            ch = chr(i)
-        # "A" - "Z"
-        elif (i >= 65) and (i <= 90):
-            # + 32 ("A" - "a") lowercases it
-            ch = chr(i + 32)
-        else:
-            ch = "z"
-
-        _normalize_tbl += ch
-
-    _identity_tbl = "".join([chr(i) for i in range(256)])
+    global permDc
 
     if doWX:
         # dunno if the bitmap needs to be big enough to contain the text
@@ -171,14 +59,30 @@ def init(doWX=True):
         permDc.SelectObject(wx.Bitmap(512, 32))
 
 
-# like string.upper/lower/capitalize, but we do our own charset-handling
-# that doesn't need locales etc
+# like str.upper/lower, but the result always has the same length as s,
+# since the script's layout counts characters. characters whose case
+# mapping is longer than one character (e.g. "ß" -> "SS") are kept as they
+# are.
 def upper(s):
-    return s.upper()
+    u = s.upper()
+
+    if len(u) == len(s):
+        return u
+
+    return "".join(_sameLength(c, c.upper()) for c in s)
 
 
 def lower(s):
-    return s.lower()
+    l = s.lower()
+
+    if len(l) == len(s):
+        return l
+
+    return "".join(_sameLength(c, c.lower()) for c in s)
+
+
+def _sameLength(c, mapped):
+    return mapped if len(mapped) == 1 else c
 
 
 def capitalize(s):
@@ -204,17 +108,27 @@ def fromUTF8(s):
     return s
 
 
-# returns True if kc (key-code) is a valid character to add to the script.
+# Unicode general categories of characters that can't be in a script:
+# control characters (C0, DEL and C1), format characters (soft hyphen,
+# zero-width and bidi marks, ...), surrogates, private use, unassigned code
+# points, and the line and paragraph separators.
+_invalidCategories = frozenset(("Cc", "Cf", "Cs", "Co", "Cn", "Zl", "Zp"))
+
+
+# returns True if kc, a Unicode code point, is a valid character to add to
+# the script. 0xA0 (non-breaking space) is valid.
+@functools.lru_cache(maxsize=4096)
 def isValidInputChar(kc):
-    # [0x80, 0x9F] = unspecified control characters in ISO-8859-1, added
-    # characters like euro etc in windows-1252. 0x7F = backspace, 0xA0 =
-    # non-breaking space, 0xAD = soft hyphen.
-    return (
-        (kc >= 32)
-        and (kc <= 255)
-        and not ((kc >= 0x7F) and (kc < 0xA0))
-        and (kc != 0xAD)
-    )
+    if (kc < 32) or (kc > 0x10FFFF):
+        return False
+
+    return unicodedata.category(chr(kc)) not in _invalidCategories
+
+
+# return s with the characters that can't be in a script dropped, except
+# for the ones in 'keep'
+def removeInvalidChars(s, keep="\n"):
+    return "".join(ch for ch in s if (ch in keep) or isValidInputChar(ord(ch)))
 
 
 # return s with all non-valid input characters converted to valid input
@@ -229,9 +143,10 @@ def removeFancyUnicode(s):
 
 
 # transform external input (unicode) into a form suitable for having in a
-# script
+# script: compose accented letters that come as a letter followed by a
+# combining accent, since each character takes up one column.
 def cleanInput(s):
-    return s
+    return unicodedata.normalize("NFC", s)
 
 
 # replace s[start:start + width] with toInputStr(new) and return s
@@ -446,9 +361,28 @@ def _decodeRepl(mo):
         return ""
 
 
-# return string s escaped for use in RTF.
+# return string s escaped for use in RTF. non-ASCII characters are written
+# as \uN control words (N being a signed 16-bit UTF-16 code unit), each
+# followed by "?" for readers that don't know them.
 def escapeRTF(s):
-    return s.replace("\\", "\\\\").replace("{", r"\{").replace("}", r"\}")
+    s = s.replace("\\", "\\\\").replace("{", r"\{").replace("}", r"\}")
+
+    if s.isascii():
+        return s
+
+    out = []
+
+    for ch in s:
+        if ord(ch) < 128:
+            out.append(ch)
+        else:
+            data = ch.encode("UTF-16-LE")
+
+            for i in range(0, len(data), 2):
+                unit = int.from_bytes(data[i : i + 2], "little", signed=True)
+                out.append("\\u%d?" % unit)
+
+    return "".join(out)
 
 
 # convert mm to twips (1/1440 inch = 1/20 point).
@@ -622,10 +556,20 @@ def splitToWords(s):
     return tmp.split()
 
 
-# return two-character prefix of s, using characters a-z only. len(s) must
-# be at least 2.
+# return two-character prefix of s, using characters a-z only: A-Z are
+# lowercased and everything else becomes "z". len(s) must be at least 2.
 def getWordPrefix(s):
-    return s[:2].translate(_normalize_tbl)
+    return "".join(_prefixChar(c) for c in s[:2])
+
+
+def _prefixChar(c):
+    if "a" <= c <= "z":
+        return c
+
+    if "A" <= c <= "Z":
+        return chr(ord(c) + 32)
+
+    return "z"
 
 
 # return count of how many 'ch' characters 's' begins with.
@@ -762,15 +706,18 @@ def finishWindow(window, topSizer, pad=20, center=False):
 # fake key event, supports same operations as the real one
 class MyKeyEvent:
     def __init__(self, kc=0):
-        # keycode
+        # Unicode code point of the character, or a key code below 32 such
+        # as wx.WXK_BACK
         self.kc = kc
 
         self.controlDown = False
         self.altDown = False
         self.shiftDown = False
 
+    # like real events, characters above 255 have no key code (WXK_NONE),
+    # since key codes above 255 are wx.WXK_* constants
     def GetKeyCode(self):
-        return self.kc
+        return self.kc if self.kc < 256 else 0
 
     def GetUnicodeKey(self):
         return self.kc
@@ -858,9 +805,14 @@ class Key:
     def __init__(self, kc, ctrl=False, alt=False, shift=False):
 
         # we don't want to handle ALT+a/ALT+A etc separately, so uppercase
-        # input char combinations
+        # input char combinations. a few Latin-1 letters uppercase to
+        # characters above 255 ("ÿ" -> "Ÿ"), which would clash with the
+        # wx.WXK_ constants, so those are left as they are.
         if (kc < 256) and (ctrl or alt):
-            kc = ord(upper(chr(kc)))
+            up = ord(upper(chr(kc)))
+
+            if up < 256:
+                kc = up
 
         # even though the wxWidgets documentation clearly states that
         # CTRL+[A-Z] should be returned as keycodes 1-26, wxGTK2 2.6 does
@@ -881,7 +833,13 @@ class Key:
 
     # returns True if key is a valid input character
     def isValidInputChar(self):
-        return not self.ctrl and not self.alt and isValidInputChar(self.kc)
+        return not self.ctrl and not self.alt and self.isChar()
+
+    # returns True if the key code is a character rather than a special key
+    # like an arrow or F1. key codes only go up to 255, above that they are
+    # wx.WXK_ constants (wx.WXK_LEFT is 314, which as a code point is "ĺ").
+    def isChar(self):
+        return (self.kc < 256) and isValidInputChar(self.kc)
 
     # toInt/fromInt serialize/deserialize to/from a 35-bit integer, laid
     # out like this:
@@ -919,7 +877,7 @@ class Key:
         if self.shift:
             s += "SHIFT+"
 
-        if isValidInputChar(self.kc):
+        if self.isChar():
             if self.kc == wx.WXK_SPACE:
                 s += "Space"
             else:
