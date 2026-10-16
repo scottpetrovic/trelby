@@ -2075,6 +2075,8 @@ class MyCtrl(wx.Control):
         for tl in texts:
             self.gd.vm.drawTexts(self, dc, tl)
 
+        self.drawLocks(dc, strings, dpages, size)
+
         if self.sp.acItems and (cursorY > 0):
             self.drawAutoComp(dc, posX, cursorY, acFi)
 
@@ -2095,6 +2097,86 @@ class MyCtrl(wx.Control):
             wideOffsets[id(font)] = off
 
         return off
+
+    # mark each locked page with a lock icon in its right margin, level
+    # with the page number, and each scene heading whose number is locked
+    # with one in the left margin, left of the scene number. these are
+    # only shown on screen. in draft mode, where there are no pages, a
+    # locked page's icon goes on the line it starts at.
+    def drawLocks(self, dc, strings, dpages, size):
+        cfg = self.sp.cfg
+        ls = self.sp.lines
+        mm2p = self.mm2p
+
+        h = max(6, self.gd.cfgGui.fonts[pml.NORMAL].fy)
+        w = h * 3 // 4
+        gap = h // 3
+
+        # x offsets (pixels) of the icons from the left edge of the page
+        pageX = int((cfg.paperWidth - cfg.marginRight) * mm2p) + gap
+        sceneX = int((cfg.marginLeft - 6 * self.chX) * mm2p) - gap - w
+
+        draftX = util.clamp((size.width - self.pageW) // 2, 0)
+
+        for dp in dpages:
+            if ls[self.sp.page2lines(dp.pageNr)[0]].pageLock:
+                self.drawLock(
+                    dc, dp.x1 + pageX, dp.y1 + int(cfg.marginTop * mm2p), h, w
+                )
+
+        for t in strings:
+            i = t.line
+
+            if i == -1:
+                continue
+
+            pageLocked = not dpages and ls[i].pageLock
+            sceneLocked = self.sp.getSceneLock(i)
+
+            if not (pageLocked or sceneLocked):
+                continue
+
+            x = draftX
+
+            for dp in dpages:
+                if dp.x1 <= t.x <= dp.x2:
+                    x = dp.x1
+
+            if pageLocked:
+                self.drawLock(dc, x + pageX, t.y, h, w)
+
+            if sceneLocked:
+                self.drawLock(dc, x + sceneX, t.y, h, w)
+
+    # draw a padlock w pixels wide and h pixels high, with its top left
+    # corner at (x, y)
+    def drawLock(self, dc, x, y, h, w):
+        color = self.gd.cfgGui.textHdrColor
+
+        bodyH = h // 2 + 1
+        bodyY = y + h - bodyH
+
+        # the shackle, whose lower half the body covers
+        pw = max(1, h // 8)
+        sw = w - 2 * max(1, w // 6)
+        sx = x + (w - sw) // 2
+
+        dc.SetPen(wx.Pen(color, pw))
+        dc.SetBrush(wx.TRANSPARENT_BRUSH)
+        dc.DrawRoundedRectangle(
+            sx, y + pw // 2, sw, (bodyY - y - pw // 2) * 2, sw / 2.0
+        )
+
+        dc.SetPen(wx.Pen(color))
+        dc.SetBrush(wx.Brush(color))
+        dc.DrawRoundedRectangle(x, bodyY, w, bodyH, max(1, h // 10))
+
+        # keyhole, when there's room for one
+        if h >= 12:
+            kw = max(2, w // 6)
+            dc.SetPen(self.gd.cfgGui.textBgPen)
+            dc.SetBrush(self.gd.cfgGui.textBgBrush)
+            dc.DrawRectangle(x + (w - kw) // 2, bodyY + bodyH // 3, kw, bodyH // 3)
 
     # draw the button that opens the title pages dialog, centered just
     # above the first page (dp), if there's room for it.
