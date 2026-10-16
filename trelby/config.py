@@ -718,6 +718,9 @@ class ConfigGlobal:
         # whether to auto-capitalize i -> I
         v.addBool("capitalizeI", True, "CapitalizeI")
 
+        # whether to underline misspelled words in the editor
+        v.addBool("checkSpelling", True, "CheckSpellingAsYouType")
+
         # whether to open scripts on their last saved position
         v.addBool("honorSavedPos", True, "OpenScriptOnSavedPos")
 

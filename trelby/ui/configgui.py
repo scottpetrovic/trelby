@@ -98,6 +98,7 @@ class ConfigGui:
         }
 
         self.textPen = wx.Pen(self.textColor)
+        self.spellErrorPen = wx.Pen(wx.Colour(*theme.spellErrorColor()))
         self.textHdrPen = wx.Pen(self.textHdrColor)
 
         self.workspaceBrush = wx.Brush(self.workspaceColor)

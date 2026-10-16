@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 import wx
 
@@ -6,6 +8,7 @@ import trelby.config as config
 import trelby.ui.configgui as configgui
 import trelby.ui.gutil as gutil
 import trelby.screenplay as screenplay
+import trelby.spellcheck as spellcheck
 import trelby.ui.scriptpainter as scriptpainter
 import trelby.translations as translations
 import trelby.ui.viewmode as viewmode
@@ -36,7 +39,7 @@ def loadSample():
     return screenplay.Editor(sp)
 
 
-def paint(ed, vm, showFormatting=False, size=(900, 1200)):
+def paint(ed, vm, showFormatting=False, size=(900, 1200), scDict=None):
     cfgGl = ed.sp.cfgGl
     cfgGui = configgui.ConfigGui(cfgGl, 100)
     vp = scriptpainter.Viewport.make(
@@ -45,7 +48,9 @@ def paint(ed, vm, showFormatting=False, size=(900, 1200)):
 
     bmp = wx.Bitmap(*size)
     dc = wx.MemoryDC(bmp)
-    rect = scriptpainter.ScriptPainter(vp, vm, cfgGl, showFormatting).paint(dc)
+    rect = scriptpainter.ScriptPainter(
+        vp, vm, cfgGl, showFormatting, scDict
+    ).paint(dc)
     dc.SelectObject(wx.NullBitmap)
 
     return vp, rect, bmp
@@ -87,3 +92,33 @@ def testPaintEverything(app):
     # too small for the title page button
     vp, rect, bmp = paint(ed, viewmode.ViewModeLayout(), size=(300, 40))
     assert rect is None
+
+
+# how many pixels of bmp are the given (r, g, b) color
+def countColor(bmp, rgb):
+    data = bmp.ConvertToImage().GetData()
+
+    return sum(
+        1 for i in range(0, len(data), 3) if tuple(data[i : i + 3]) == rgb
+    )
+
+
+@pytest.mark.parametrize("vm", [viewmode.ViewModeDraft, viewmode.ViewModeLayout])
+def testPaintSpellingErrors(app, vm):
+    ed = loadSample()
+    ed.sp.lines[1].text = "Wrogn wurds"
+    ed.sp.paginate()
+    ed.line = 0
+    red = configgui.getTheme(ed.sp.cfgGl.theme).spellErrorColor()
+
+    # the main dictionary isn't loaded, so nothing is checked
+    with mock.patch.object(spellcheck, "gdict", set()):
+        vp, rect, bmp = paint(ed, vm(), scDict=spellcheck.Dict())
+        assert countColor(bmp, red) == 0
+
+    with mock.patch.object(spellcheck, "gdict", {"x"}):
+        vp, rect, bmp = paint(ed, vm())
+        assert countColor(bmp, red) == 0
+
+        vp, rect, bmp = paint(ed, vm(), scDict=spellcheck.Dict())
+        assert countColor(bmp, red) > 0

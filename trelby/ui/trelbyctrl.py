@@ -18,6 +18,7 @@ import trelby.misc as misc
 import trelby.ui.myimport as myimport
 import trelby.opts as opts
 import trelby.screenplay as screenplay
+import trelby.spellcheck as spellcheck
 import trelby.ui.scriptactions as scriptactions
 import trelby.ui.scriptpainter as scriptpainter
 import trelby.dialogs.textdlg as textdlg
@@ -73,6 +74,10 @@ EDITOR_COMMANDS = {
 }
 
 
+# how many replacements the right-click menu suggests for a misspelled word
+SUGGESTIONS = 5
+
+
 # the editor for one open script, one per tab. it owns the Screenplay
 # (self.sp) and the Editor on it (self.ed), draws it the way the current
 # view mode (gd.vm) lays it out, and turns keys, mouse clicks and menu
@@ -115,6 +120,20 @@ class MyCtrl(wx.Control):
         # wx.Rect of the "Title pages" link above the first page, or None
         # if it's not on screen. set by OnPaint.
         self.titleButtonRect = None
+
+        # the right-click menu's items for a misspelled word: its
+        # suggested replacements, and adding it to the user's or the
+        # script's dictionary
+        self.suggestionIds = [wx.NewIdRef() for i in range(SUGGESTIONS)]
+        self.addWordId = wx.NewIdRef()
+        self.addScriptWordId = wx.NewIdRef()
+
+        for id in self.suggestionIds + [self.addWordId, self.addScriptWordId]:
+            self.Bind(wx.EVT_MENU, self.OnSpellingMenu, id=id)
+
+        # (line, col, word, suggestions) of the misspelled word the
+        # right-click menu was last opened on, or None
+        self.spellingWord = None
 
         self.createEmptySp()
         self.updateScreen(redraw=False)
@@ -615,9 +634,69 @@ class MyCtrl(wx.Control):
             bool(self.ed.mark),
             dualState,
             self.ed.getCenteredState(),
+            self.spellingMenu(line, col),
         )
         self.PopupMenu(m)
         m.Destroy()
+
+    # the right-click menu's items for the word at (line, col), if it's
+    # misspelled and misspelled words are underlined, otherwise None. sets
+    # self.spellingWord.
+    def spellingMenu(self, line, col):
+        self.spellingWord = None
+
+        if (line is None) or not self.gd.cfgGl.checkSpelling or not spellcheck.gdict:
+            return None
+
+        found = spellcheck.wordAt(self.sp.lines[line].text, col)
+
+        if not found:
+            return None
+
+        start, word = found
+        sc = spellcheck.SpellChecker(self.sp, self.gd.scDict)
+
+        if sc.isKnown(word):
+            return None
+
+        items = spellcheck.suggest(
+            word, [self.gd.scDict, self.sp.scDict], SUGGESTIONS
+        )
+        self.spellingWord = (line, start, word, items)
+
+        res = list(zip(self.suggestionIds, items))
+
+        if not items:
+            res.append((None, _("No suggestions")))
+
+        res.append((self.addWordId, _("Add to dictionary")))
+        res.append((self.addScriptWordId, _("Add to script dictionary")))
+
+        return res
+
+    def OnSpellingMenu(self, event):
+        if not self.spellingWord:
+            return
+
+        line, col, word, items = self.spellingWord
+        self.spellingWord = None
+        id = event.GetId()
+
+        # the other tabs are drawn again when they're switched to
+        if id == int(self.addWordId):
+            self.gd.scDict.add(word)
+            self.gd.saveScDict()
+        elif id == int(self.addScriptWordId):
+            self.sp.scDict.add(word)
+            self.sp.markChanged()
+        else:
+            self.clearAutoComp()
+            i = [int(x) for x in self.suggestionIds].index(id)
+            self.ed.replaceRange(line, col, len(word), items[i])
+            self.sp.paginate()
+            self.makeLineVisible(self.ed.line)
+
+        self.updateScreen()
 
     def OnMouseWheel(self, event):
         if event.ControlDown():
@@ -939,6 +1018,10 @@ class MyCtrl(wx.Control):
             dc = wx.PaintDC(self)
 
         painter = scriptpainter.ScriptPainter(
-            self.getViewport(), self.gd.vm, self.gd.cfgGl, self.gd.showFormatting
+            self.getViewport(),
+            self.gd.vm,
+            self.gd.cfgGl,
+            self.gd.showFormatting,
+            self.gd.scDict if self.gd.cfgGl.checkSpelling else None,
         )
         self.titleButtonRect = painter.paint(dc)

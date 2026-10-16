@@ -982,8 +982,12 @@ def onUpdateUI(frame, event, canUse):
 # curLt is the type of the element(s) it applies to, or None if they're of
 # more than one type. dualState: None if dual dialogue can't be toggled at
 # the cursor, otherwise whether the cursor is in a dual dialogue.
-# centeredState is likewise for centering action elements.
-def makeRightClickMenu(actions, curLt, withCut, dualState=None, centeredState=None):
+# centeredState is likewise for centering action elements. spelling, for a
+# misspelled word, is a list of (id, label) items to put first, an id of
+# None making the label a disabled item.
+def makeRightClickMenu(
+    actions, curLt, withCut, dualState=None, centeredState=None, spelling=None
+):
     def append(menu, name, kind=wx.ITEM_NORMAL):
         a = actions[name]
 
@@ -991,6 +995,15 @@ def makeRightClickMenu(actions, curLt, withCut, dualState=None, centeredState=No
 
     types = elemTypes()
     m = wx.Menu()
+
+    if spelling:
+        for id, label in spelling:
+            if id is None:
+                m.Append(wx.ID_ANY, label).Enable(False)
+            else:
+                m.Append(id, label)
+
+        m.AppendSeparator()
 
     if curLt is None:
         header = _("Multiple types")

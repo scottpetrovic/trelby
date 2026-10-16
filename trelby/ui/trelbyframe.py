@@ -24,6 +24,7 @@ import trelby.ui.menus as menus
 import trelby.misc as misc
 import trelby.ui.scriptactions as scriptactions
 import trelby.dialogs.spellcheckcfgdlg as spellcheckcfgdlg
+import trelby.dialogs.spellcheckdlg as spellcheckdlg
 import trelby.ui.splash as splash
 import trelby.ui.statusbar as statusbar
 import trelby.ui.tabctrl as tabctrl
@@ -482,6 +483,9 @@ class MyFrame(wx.Frame):
         self.gd.cfgGl.recalc()
         self.refreshGuiConfig()
         self.updateKeyMap()
+
+        if self.gd.cfgGl.checkSpelling:
+            spellcheckdlg.loadDict(self)
 
         # every script keeps a reference to the global config, which has
         # just been replaced by a copy

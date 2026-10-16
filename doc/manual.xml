@@ -834,8 +834,16 @@
 
 	</sect1>
 
-	<sect1>
+	<sect1 id="spell_checker">
 	  <title>Tools/Spell checker</title>
+
+	  <para>Words the spell checker doesn't recognize are underlined
+	  with a red wavy line as you write, unless 'Underline misspelled
+	  words' is turned off in the Misc settings. The word you're
+	  typing isn't underlined until you move on from it. Right-clicking
+	  an underlined word shows up to 5 similar words to replace it with,
+	  and lets you add it to the global or the script's
+	  dictionary.</para>
 
 	  <para>This spell checks the current script beginning at the current
 	  position. If you want to spell check the entire script, be sure to
@@ -1229,7 +1237,8 @@
 			  actBreak and noteText, which default to text; and accent and
 			  accentText, for the selected item in lists, which go
 			  together and default to the operating system's highlight
-			  colors.</para>
+			  colors; and spellError, the underline of misspelled words,
+			  which defaults to red.</para>
 
 			</listitem>
 		  </varlistentry>
@@ -1323,6 +1332,10 @@
 		<para>'Auto-capitalize i -> I', if on, causes solitary 'i'
 		characters in the middle of sentences to be changed to a 'I'
 		character automatically.</para>
+
+		<para>'Underline misspelled words', if on, draws a wavy line under
+		words the spell checker doesn't recognize as you write (see <link
+		linkend="spell_checker">Tools/Spell checker</link>).</para>
 
 		<para>'When opening a script, start at last saved position' causes
 		the cursor position be restored to the point it was at when the

@@ -33,6 +33,8 @@ COLORS = [
 # colors a theme may define. the per-element text colors default to "text".
 # "accent" and "accentText", for the selected item in lists and toolbars
 # we draw ourselves, default to the system's highlight colors.
+# "spellError", the underline of misspelled words, defaults to a red that
+# suits the theme's background (see spellErrorColor).
 ELEMENTS = [
     "scene",
     "action",
@@ -44,7 +46,7 @@ ELEMENTS = [
     "actBreak",
     "noteText",
 ]
-OPTIONAL = ELEMENTS + ["accent", "accentText"]
+OPTIONAL = ELEMENTS + ["accent", "accentText", "spellError"]
 
 
 class Theme:
@@ -81,6 +83,12 @@ class Theme:
     # the (r, g, b) text color of the given element (see ELEMENTS)
     def elementColor(self, elem):
         return self.colors.get(elem, self.colors["text"])
+
+    # the (r, g, b) color of the underline under misspelled words
+    def spellErrorColor(self):
+        return self.colors.get(
+            "spellError", (255, 110, 110) if self.dark else (220, 0, 0)
+        )
 
     def isBuiltin(self):
         return self.path is None

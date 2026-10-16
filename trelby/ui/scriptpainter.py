@@ -10,6 +10,7 @@ import trelby.config as config
 import trelby.ui.gutil as gutil
 import trelby.pdf.pml as pml
 import trelby.screenplay as screenplay
+import trelby.spellcheck as spellcheck
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.util as util
@@ -69,13 +70,20 @@ class Viewport:
 class ScriptPainter:
     # vp is the Viewport, vm the viewmode.ViewMode, cfgGl the global
     # config, and showFormatting whether to show the margins and line
-    # break types (View / Show formatting)
-    def __init__(self, vp, vm, cfgGl, showFormatting):
+    # break types (View / Show formatting). misspelled words are
+    # underlined if scDict, the user's global spell checker dictionary,
+    # is given and the main dictionary is loaded.
+    def __init__(self, vp, vm, cfgGl, showFormatting, scDict=None):
         self.vp = vp
         self.vm = vm
         self.cfgGl = cfgGl
         self.cfgGui = vp.cfgGui
         self.showFormatting = showFormatting
+
+        self.spellChecker = None
+
+        if scDict and spellcheck.gdict:
+            self.spellChecker = spellcheck.SpellChecker(vp.sp, scDict)
 
         # wx.Rect of the title page button, set by paint
         self.titleButtonRect = None
@@ -103,6 +111,10 @@ class ScriptPainter:
         # for header texts. list objects are (x, y, width) tuples.
         ulines = []
         ulinesHdr = []
+
+        # misspelled words to underline, as (x, y, width) tuples, y being
+        # the bottom of the text
+        squiggles = []
 
         strings, dpages = self.vm.getScreen(vp, True, True)
 
@@ -250,6 +262,16 @@ class ScriptPainter:
                 if t.isUnderlined:
                     uli.append((t.x, y + lineh - 1, len(t.text) * cfx - 1))
 
+                if self.spellChecker and (t.line != -1):
+                    cursorCol = vp.ed.column if t.line == vp.ed.line else None
+
+                    # in the page modes the lines are closer than the
+                    # font's height
+                    bottom = y + min(fi.fy, lineh)
+
+                    for col, n in self.spellChecker.lineErrors(t.line, cursorCol):
+                        squiggles.append((t.x + col * cfx, bottom, n * cfx))
+
                 # bold / italic / underlined parts of the text are drawn
                 # separately, each in its own font
                 #
@@ -309,12 +331,32 @@ class ScriptPainter:
         for tl in texts:
             self.vm.drawTexts(vp, dc, tl)
 
+        if squiggles:
+            dc.SetPen(self.cfgGui.spellErrorPen)
+
+            for x, y, w in squiggles:
+                self.drawSquiggle(dc, x, y, w)
+
         self.drawLocks(dc, strings, dpages, size)
 
         if vp.ed.acItems and (cursorY > 0):
             self.drawAutoComp(dc, posX, cursorY, acFi)
 
         return self.titleButtonRect
+
+    # draw a wavy line w pixels wide from x, its bottom at y
+    def drawSquiggle(self, dc, x, y, w):
+        # the height of the wave, and the width of each half of it
+        h = max(1, self.vp.dip(2))
+        step = h
+
+        points = []
+
+        for i in range(w // step + 1):
+            points.append(wx.Point(x + i * step, y - (h if i % 2 else 0)))
+
+        if len(points) > 1:
+            dc.DrawLines(points)
 
     # return the x offset (pixels) at which to draw character ch in a
     # double-width cell cfx pixels wide, for it to be centered. fx is the

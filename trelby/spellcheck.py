@@ -1,3 +1,5 @@
+import re
+
 import trelby
 import trelby.mypickle as mypickle
 import trelby.textutil as textutil
@@ -184,10 +186,18 @@ class SpellChecker:
 
             col += len(word)
 
-    # return True if word is a known word.
+    # return True if word is a known word. apostrophes around it are
+    # quotes, not part of it, and the possessive of a known word, e.g. a
+    # character's name, is known too.
     def isKnown(self, word):
-        word = textutil.lower(word)
+        word = textutil.lower(word).strip("'")
 
+        if not word or self._isKnown(word):
+            return True
+
+        return word.endswith("'s") and self._isKnown(word[:-2])
+
+    def _isKnown(self, word):
         return (
             word in gdict
             or word in self.cnames
@@ -195,6 +205,48 @@ class SpellChecker:
             or self.gScDict.isKnown(word)
             or word.isdigit()
         )
+
+    # return the misspelled words on the given line as (col, length)
+    # pairs, for underlining them. apostrophes around a word aren't part
+    # of it. if cursorCol is given, the word ending there isn't included,
+    # as it's probably still being typed.
+    def lineErrors(self, line, cursorCol=None):
+        res = []
+
+        for start, word in lineWords(self.sp.lines[line].text):
+            if (start + len(word) != cursorCol) and not self.isKnown(word):
+                res.append((start, len(word)))
+
+        return res
+
+
+# the words in text (as SpellChecker / Screenplay.getWord split them,
+# with apostrophes around them left out), as (col, word) pairs
+def lineWords(text):
+    res = []
+
+    for m in _wordRe.finditer(text):
+        s = m.group()
+        word = s.strip("'")
+
+        if word:
+            res.append((m.start() + len(s) - len(s.lstrip("'")), word))
+
+    return res
+
+
+# return the (col, word) of lineWords(text) that col is in or right
+# after, or None
+def wordAt(text, col):
+    for start, word in lineWords(text):
+        if start <= col <= start + len(word):
+            return (start, word)
+
+    return None
+
+
+# letters, digits and apostrophes, like textutil.isWordBoundary
+_wordRe = re.compile(r"(?:[^\W_]|')+")
 
 
 # return up to n replacements for a misspelled word, closest first (by

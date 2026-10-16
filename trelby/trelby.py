@@ -10,6 +10,7 @@ import wx
 
 import trelby
 import trelby.config as config
+import trelby.dialogs.spellcheckdlg as spellcheckdlg
 import trelby.ui.configgui as configgui
 import trelby.ui.fileio as fileio
 import trelby.ui.gutil as gutil
@@ -160,6 +161,10 @@ class MyApp(wx.App):
         mainFrame = MyFrame(None, -1, "Trelby", gd, self)
         gd.mainFrame = mainFrame
         mainFrame.init()
+
+        # for underlining misspelled words. it takes a tenth of a second.
+        if gd.cfgGl.checkSpelling:
+            spellcheckdlg.loadDict(mainFrame)
 
         for arg in opts.filenames:
             mainFrame.openScript(arg)
