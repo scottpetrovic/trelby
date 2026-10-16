@@ -165,6 +165,13 @@ class ConfigGui:
         self.tabNonActiveBgBrush = wx.Brush(self.tabNonActiveBgColor)
         self.tabNonActiveBgPen = wx.Pen(self.tabNonActiveBgColor)
 
+        # push buttons in dialogs: like a non-active tab in dark themes;
+        # light themes' non-active tabs are too dark for that, so halfway
+        # there from the background
+        self.buttonBgColor = theming.blendColors(
+            self.tabBarBgColor, self.tabNonActiveBgColor, 1.0 if theme.dark else 0.5
+        )
+
         # a 4-item list of FontInfo objects, indexed by the two lowest
         # bits of pml.TextOp.flags.
         self.fonts = []

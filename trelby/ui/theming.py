@@ -5,9 +5,9 @@ import trelby.misc as misc
 # the colors of dialogs and other windows besides the main one. those use
 # native controls, which wx draws in the system's light or dark colors.
 # themeWindow gives them the theme's colors where the native controls allow
-# it, and the classes in widgets stand in for the ones that don't: Separator
-# for wx.StaticLine, ThemedListBox for wx.ListBox and wx.CheckListBox, and
-# ThemedListbook for wx.Treebook.
+# it (including push buttons), and the classes in widgets stand in for the
+# ones that don't: Separator for wx.StaticLine, ThemedListBox for wx.ListBox
+# and wx.CheckListBox, and ThemedListbook for wx.Treebook.
 
 
 # the current configgui.ConfigGui, or None before the app has started
@@ -51,7 +51,14 @@ def themeWindow(win, cfgGui=None):
 
     win.themed = True
     setTitleBarColors(win, cfgGui)
-    _themeTree(win, cfgGui)
+
+    # the windows holding buttons that _padButton made bigger
+    grown = set()
+    _themeTree(win, cfgGui, grown)
+
+    for w in grown:
+        w.Layout()
+
     win.Refresh()
 
 
@@ -62,7 +69,7 @@ def themeAllWindows():
             themeWindow(w)
 
 
-def _themeTree(w, cfgGui):
+def _themeTree(w, cfgGui, grown):
     if hasattr(w, "applyTheme"):
         w.applyTheme(cfgGui)
 
@@ -70,6 +77,13 @@ def _themeTree(w, cfgGui):
 
     if isinstance(w, (wx.TextCtrl, wx.SpinCtrl, wx.SpinCtrlDouble, wx.ListCtrl)):
         _setColors(w, cfgGui.textBgColor, cfgGui.textColor)
+    elif isinstance(w, wx.Button) and not isinstance(w, wx.BitmapButton):
+        # not toggle buttons, which are wx.AnyButtons but not wx.Buttons
+        _setColors(w, cfgGui.buttonBgColor, cfgGui.tabTextColor)
+        _drawButtonThemed(w)
+
+        if _padButton(w):
+            grown.add(w.GetParent())
     elif isinstance(
         w,
         (
@@ -86,7 +100,126 @@ def _themeTree(w, cfgGui):
 
     for c in w.GetChildren():
         if not c.IsTopLevel():
-            _themeTree(c, cfgGui)
+            _themeTree(c, cfgGui, grown)
+
+
+# give push button w more room around its label than the native size, which
+# is snug, unless it was made to fit its label exactly. returns whether its
+# minimum size changed.
+def _padButton(w):
+    if w.HasFlag(wx.BU_EXACTFIT):
+        return False
+
+    # the best size includes the minimum size, so clear that first
+    old = w.GetMinSize()
+    w.SetMinSize(wx.DefaultSize)
+    w.InvalidateBestSize()
+    best = w.GetBestSize()
+    textW = w.GetTextExtent(w.GetLabelText()).width
+    size = wx.Size(
+        max(best.width, textW + w.FromDIP(32)), best.height + w.FromDIP(6)
+    )
+
+    w.SetMinSize(size)
+
+    return size != old
+
+
+# BM_GETSTATE, and the bits of its result we use
+_BM_GETSTATE = 0xF2
+_BST_PUSHED = 0x4
+_BST_FOCUS = 0x8
+
+
+# draw push button w ourselves from now on, in its background and
+# foreground colors: a rounded rectangle with a border in the text's color.
+# only on Windows, where the native button's border can't be colored; other
+# systems keep it, with the colors.
+def _drawButtonThemed(w):
+    if not misc.isWindows or getattr(w, "drawnThemed", False):
+        return
+
+    w.drawnThemed = True
+    w.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+    w.Bind(wx.EVT_PAINT, _onButtonPaint)
+
+    for evt in (
+        wx.EVT_ENTER_WINDOW,
+        wx.EVT_LEAVE_WINDOW,
+        wx.EVT_LEFT_DOWN,
+        wx.EVT_LEFT_UP,
+        wx.EVT_SET_FOCUS,
+        wx.EVT_KILL_FOCUS,
+        wx.EVT_MOUSE_CAPTURE_LOST,
+    ):
+        w.Bind(evt, _onButtonStateChange)
+
+
+def _onButtonStateChange(event):
+    event.GetEventObject().Refresh()
+    event.Skip()
+
+
+# user32's SendMessageW, with its argument types (a private copy, so as not
+# to change ctypes.windll's for other code), made on first use
+_sendMessageW = None
+
+
+def _sendMessage(hwnd, msg, wParam, lParam):
+    global _sendMessageW
+
+    if _sendMessageW is None:
+        import ctypes
+        from ctypes import wintypes
+
+        f = ctypes.WinDLL("user32").SendMessageW
+        f.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+        f.restype = wintypes.LPARAM
+        _sendMessageW = f
+
+    return _sendMessageW(hwnd, msg, wParam, lParam)
+
+
+def _onButtonPaint(event):
+    w = event.GetEventObject()
+    dc = wx.AutoBufferedPaintDC(w)
+    dc.SetBackground(wx.Brush(w.GetParent().GetBackgroundColour()))
+    dc.Clear()
+
+    # the native button keeps track of being pushed (by the mouse or the
+    # keyboard) and focused
+    state = _sendMessage(w.GetHandle(), _BM_GETSTATE, 0, 0)
+    hover = w.GetScreenRect().Contains(wx.GetMousePosition())
+
+    bg = w.GetBackgroundColour()
+    fg = w.GetForegroundColour()
+
+    if not w.IsEnabled():
+        fg = blendColors(fg, bg, 0.6)
+    elif state & _BST_PUSHED:
+        bg = blendColors(bg, fg, 0.25)
+    elif hover:
+        bg = blendColors(bg, fg, 0.12)
+
+    width, height = w.GetClientSize()
+    penW = w.FromDIP(2 if state & _BST_FOCUS else 1)
+
+    gc = wx.GraphicsContext.Create(dc)
+    gc.SetPen(gc.CreatePen(wx.GraphicsPenInfo(fg).Width(penW)))
+    gc.SetBrush(wx.Brush(bg))
+    gc.DrawRoundedRectangle(
+        penW / 2, penW / 2, width - penW, height - penW, w.FromDIP(5)
+    )
+
+    label = w.GetLabelText()
+    gc.SetFont(w.GetFont(), fg)
+    tw, th = gc.GetTextExtent(label)
+    gc.DrawText(label, (width - tw) / 2, (height - th) / 2)
+
+    # the drawing reaches the buffer when gc goes, and the buffer the
+    # screen when dc goes, so gc must go first
+    del gc
+    del dc
 
 
 # set w's colors, unless its own code has set them. a window whose color

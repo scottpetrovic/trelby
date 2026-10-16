@@ -164,14 +164,15 @@ def drawText(dc, text, x, y, align=util.ALIGN_LEFT, valign=util.VALIGN_TOP):
 # 'pad' pixels of padding on each side, resize window to correct size, and
 # optionally center it.
 def finishWindow(window, topSizer, pad=20, center=False):
+    # dialogs and other top-level windows are shown in the theme's colors.
+    # before the layout, since it pads the buttons.
+    if window.IsTopLevel():
+        theming.themeWindow(window)
+
     padSizer = wx.BoxSizer(wx.VERTICAL)
     padSizer.Add(topSizer, 1, wx.EXPAND | wx.ALL, pad)
     window.SetSizerAndFit(padSizer)
     window.Layout()
-
-    # dialogs and other top-level windows are shown in the theme's colors
-    if window.IsTopLevel():
-        theming.themeWindow(window)
 
     if center:
         window.Center()
