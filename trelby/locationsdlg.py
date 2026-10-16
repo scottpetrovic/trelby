@@ -4,6 +4,11 @@ import trelby.gutil as gutil
 import trelby.util as util
 
 
+# edits the grouping of scene names into locations (see locations.py).
+# the upper list box is the data being edited: each location is a run of
+# scene name rows (client data = the scene name) ended by a separator row
+# (client data None). OnOK turns that back into a list of lists. the lower
+# list has the scenes not in any location.
 class LocationsDlg(wx.Dialog):
     def __init__(self, parent, sp):
         wx.Dialog.__init__(

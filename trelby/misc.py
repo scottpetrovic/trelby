@@ -21,6 +21,20 @@ TAB_BAR_HEIGHT = 30
 version = "2.4.16.2"
 
 
+# set the platform and path globals below. they don't exist until this has
+# run, so it must come before anything that reads them (getFullPath,
+# config.ConfigGlobal, ...): the app calls it at startup, tests and the
+# MCP server with doWX=False.
+#
+# progPath is the folder containing the trelby package, which data files
+# are found relative to: the repo root when running from source, or the
+# exe's _internal folder in the PyInstaller build. in test mode (--test,
+# or doWX=False) it's "." and confPath is ".trelby", both relative to the
+# current directory, so those must be run from the repo root.
+#
+# one more global, scriptDir (the folder file dialogs start in), isn't set
+# here but by trelby.py once the global config is loaded, and updated as
+# the user picks folders in the open, import and export dialogs.
 def init(doWX=True):
     global isWindows, isUnix, isMac, unicodeFS, doDblBuf, progPath, confPath, tmpPrefix
 
@@ -1213,8 +1227,10 @@ class MRUFiles:
         # menu showing the items, set by useMenu
         self.menu = None
 
-        # contiguous menu ids. keep the refs alive so wx doesn't reuse them;
-        # store plain ints since the code below does arithmetic on them.
+        # contiguous menu ids, since the frame binds them as one
+        # EVT_MENU_RANGE and gets the item's index as id - firstId. keep the
+        # refs alive so wx doesn't reuse them; store plain ints since the
+        # code below does arithmetic on them.
         self.idRefs = wx.NewIdRef(count=self.maxCount)
         if self.maxCount == 1:
             self.idRefs = [self.idRefs]

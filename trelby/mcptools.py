@@ -93,6 +93,12 @@ def typeFromName(name):
     )
 
 
+# there are two kinds of revision: a FileDoc's is the hash of the file's
+# bytes, so any change to the file (e.g. saving it in the app) is caught,
+# and a LiveDoc's is linesRevision's hash of the script in memory. they
+# differ even for the same script, so a revision from the file server
+# can't be used with the app's, or the other way around. 16 hex digits
+# are plenty, since a revision is only compared with the current one.
 def revisionOf(data):
     return hashlib.sha256(data).hexdigest()[:16]
 
@@ -100,6 +106,12 @@ def revisionOf(data):
 # revision of a script in memory: covers everything the tools can see or
 # change in the script's text, world building notes and character
 # profiles, but not e.g. the cursor position.
+#
+# the lines are hashed as wrapped, so a rewrap alone (e.g. after a
+# formatting setting changes) also changes the revision. each Line
+# attribute must be listed here, or changing only it won't be noticed
+# (see undo.lines2storage). the title page isn't covered: tools only
+# report it, never change it.
 def linesRevision(sp):
     s = "\n".join(
         "%s|%s|%s|%s|%s|%s|%s"
@@ -188,6 +200,9 @@ class FileDoc:
         if revision != current:
             raise staleError(revision, current)
 
+        # the changed-lines range edit returns and ownUndo don't matter
+        # here: save() rewraps the whole script and throws away the undo
+        # history anyway
         edit(sp)
 
         return (sp, save(sp, self.path))
@@ -254,6 +269,11 @@ class LiveDoc:
         sp.clearAutoComp()
         sp.clearMark()
 
+        # the undo step spans both the edit and the rewrapping it causes,
+        # so undoing it restores the old lines exactly. an edit with
+        # ownUndo records its own step, which must not be wrapped in a
+        # second one, and returns None, leaving any rewrapping to the
+        # Screenplay method it uses.
         u = None if ownUndo else undo.AnyDifference(sp)
 
         changedLines = edit(sp)
@@ -314,6 +334,13 @@ def partOfLine(sp, line):
 
 
 # return the elements on lines first - last as a list of dicts.
+#
+# sp.lines are wrapped lines, and an element runs up to the next LB_LAST
+# line, so first must be the start of an element. lb2str turns each line
+# break back into what the user typed: the space(s) a word wrap replaced
+# (" ", "  " or ""), or "\n" for a forced break. text formatting
+# (Line.fmt) and scene locks are not returned, and buildLines doesn't take
+# them, so replacing a scene drops its bold / italic / underline.
 def getElements(sp, first, last):
     ls = sp.lines
     ret = []
@@ -404,6 +431,9 @@ def buildLines(elements, needHeading):
 
         parts = util.fixNL(text).replace("\t", " ").split("\n")
 
+        # one Line per forced-break segment, not yet word wrapped (the
+        # document's write does that). the element's flags only go on its
+        # first line, the only one where Line gives them a meaning.
         for i, part in enumerate(parts):
             isFirst = i == 0
             lb = LB_LAST if (i == len(parts) - 1) else LB_FORCED
@@ -724,6 +754,8 @@ def moveScene(doc, revision, index, newIndex):
         if index == newIndex:
             raise ToolError("The scene is already at index %d." % index)
 
+        # part n is outline item n - 1: moveSceneTo counts from 0, without
+        # the opening part
         if not sp.moveSceneTo(first, newIndex - 1):
             raise ToolError("Moving scene %d to %d failed." % (index, newIndex))
 

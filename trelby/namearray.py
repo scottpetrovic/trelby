@@ -3,8 +3,14 @@ import collections
 import random
 
 
+# the name database, as parallel arrays indexed by name number: name[i],
+# type[i] (a type id, see typeNamesById) and sex[i]. the types and sexes
+# are byte arrays (so there can be at most 256 types), and the arrays are
+# allocated up front, which keeps the memory use and load time of the
+# ~200,000 names down.
 class NameArray:
     def __init__(self):
+        # room for the names in names.txt, without growing the arrays
         self.maxCount = 205000
         self.count = 0
 

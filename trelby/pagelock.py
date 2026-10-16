@@ -32,6 +32,7 @@ def _key(s):
     prefix, num, suffix, sub = m.groups()
     sub = int(sub or 0)
 
+    # "A1A" mixes both kinds, and "15.0" would have the same key as "15"
     if (prefix and suffix) or (sub == 0 and m.group(4) is not None):
         return None
 
@@ -123,6 +124,11 @@ def _nextLetters(s):
 # which must sort before 'bound' (the key of the next locked page, or None
 # if there is none). in the very unlikely case that there is no room left
 # before 'bound', the result may sort after it.
+#
+# it tries, in order: the next letter (15A -> 15B), another letter level,
+# which sorts between a label and its next letter (15A -> 15AA, before
+# 15B), and the next ".n" (15 -> 15.1, when 15A is the bound). once a key
+# has a ".n", only that number goes up.
 def _keyAfter(key, bound):
     num, kind, letters, sub = key
 
@@ -167,6 +173,8 @@ def segmentLabels(label, nextLabel, count):
 def labelsBefore(firstLabel, count):
     num = labelRange(firstLabel)[0][0]
 
+    # (num, 0, "", 0) is no real label, but sorts just before "A<num>",
+    # so the labels after it are A<num>, B<num>, ...
     return _labelsAfter((num, 0, "", 0), labelRange(firstLabel)[0], count)
 
 

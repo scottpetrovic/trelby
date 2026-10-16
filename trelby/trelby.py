@@ -33,6 +33,10 @@ KC_CTRL_P = 16
 KC_CTRL_V = 22
 
 
+# besides returning it, this installs _ in builtins, which is where every
+# other module gets it from. done on import, in the system's language, so
+# it's there before anything is translated; OnInit installs the configured
+# language once it has read the config.
 _ = translations.trelby_translations_load()
 
 
@@ -61,6 +65,8 @@ class MyApp(wx.App):
         # and the exe
         self.SetAppName("Trelby")
 
+        # misc.init sets the paths (progPath, confPath) and platform flags
+        # that GlobalData and everything after it rely on
         misc.init()
         util.init()
 
@@ -133,6 +139,8 @@ class MyApp(wx.App):
             if s:
                 gd.load(s)
 
+        # gd.load only sets the viewMode number from the state file, not
+        # the ViewMode object (gd.vm) that goes with it
         gd.setViewMode(gd.viewMode)
 
         # refreshGuiConfig()
@@ -144,6 +152,9 @@ class MyApp(wx.App):
             if s:
                 gd.scDict.load(s)
 
+        # built in two steps: init creates the first script tab, and a
+        # MyCtrl's constructor already calls the frame through gd.mainFrame
+        # (tab names, status bar, toolbar), so that has to be set first
         mainFrame = MyFrame(None, -1, "Trelby", gd, self)
         gd.mainFrame = mainFrame
         mainFrame.init()

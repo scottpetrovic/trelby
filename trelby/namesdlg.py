@@ -26,6 +26,9 @@ def readNames(frame):
         res = namearray.NameArray()
         nameType = None
 
+        # one entry per line, its kind given by the first character: "#"
+        # comment, "N" starts a new name type (origin), "M" / "F" a male /
+        # female name of the current type. see the top of names.txt.
         for line in data.splitlines():
             ch = line[0]
             if ch == "#":
@@ -203,6 +206,8 @@ class NamesDlg(wx.Dialog):
         # don't see a way of getting other columns' texts...
         name = self.list.GetItemText(item)
 
+        # typed into the script through the normal key handler, so that
+        # it's inserted at the cursor just like typing it would be
         for ch in name:
             self.ctrl.OnKeyChar(util.MyKeyEvent(ord(ch)))
 
@@ -232,6 +237,9 @@ class NamesDlg(wx.Dialog):
         else:
             doTypes = True
 
+        # sexRb's choices are Male (0), Female (1), Both, while nameArr.sex
+        # is 0 for female and 1 for male, so skipping names whose code
+        # equals the selection is what keeps the selected sex
         for i in range(nameArr.count):
             if (sex != 2) and (sex == nameArr.sex[i]):
                 continue

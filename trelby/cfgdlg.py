@@ -62,6 +62,11 @@ def askSettingsFile(parent, filename, save):
 
 # load global settings from the given file. returns a ConfigGlobal, or None
 # on error.
+#
+# unlike trelby.loadGlobalCfg, used at startup, this doesn't call
+# ConfigGlobal.setDefaults, so the platform defaults (screen fonts, PDF
+# viewer) aren't filled in for settings the file doesn't have: those stay
+# empty, and ConfigGui falls back to a generic font for an empty font.
 def loadGlobalCfg(filename, parent):
     s = util.loadFile(filename, parent)
 
@@ -122,6 +127,12 @@ def loadScriptCfg(filename, parent):
     return c
 
 
+# the settings dialog, for the global settings (isGlobal) or a script's.
+# cfg is a copy of the config, which the pages edit in place; the
+# program's settings only change when Apply calls applyFunc(cfg), or when
+# the caller applies dlg.cfg after OK.
+# the apply functions copy the config again, so the dialog can keep
+# editing its own after Apply.
 class CfgDlg(wx.Dialog):
     def __init__(self, parent, cfg, applyFunc, isGlobal, gd=None):
         wx.Dialog.__init__(
@@ -212,6 +223,10 @@ class CfgDlg(wx.Dialog):
 
     def AddPage(self, classObj, name):
         # stupid hack to get correct window modality stacking for dialogs
+        #
+        # these pages also get the dialog itself: they use it as the parent
+        # of the dialogs and message boxes they open, and SpellCheckPanel
+        # edits the dialog's scDict copy through it.
         needs_frame_ref = [
             DisplayPanel,
             KeyboardPanel,

@@ -3,6 +3,11 @@ import trelby.screenplay as screenplay
 
 
 # used to iteratively add PML pages to a document
+#
+# besides the document, this holds the state that page generation
+# (Screenplay.generatePMLPage) carries over from one page to the next, for
+# the "CONTINUED:" lines and scene numbers. ViewModeLayout uses one too
+# when generating the pages it shows on screen.
 class Pager:
     def __init__(self, cfg):
         self.doc = pml.Document(cfg.paperWidth, cfg.paperHeight)

@@ -126,6 +126,9 @@ class Element(BaseModel):
 Elements = Annotated[list[Element], Field(min_length=1)]
 
 
+# exclude_unset: a field the client left out stays out of the dict, which
+# isn't the same as null for color (replace_scene keeps the old color only
+# if there's no "color" key at all).
 def toDicts(elements):
     return [e.model_dump(exclude_unset=True) for e in elements]
 
@@ -459,6 +462,12 @@ def makeBridgeServer(port):
 
     url = "http://127.0.0.1:%d/mcp" % port
 
+    # every call opens a session of its own: the app's server is stateless,
+    # so there's nothing to keep, and the app can be restarted (or turned
+    # on) between calls. the except is for failing to talk to the app; a
+    # tool that fails there comes back as an is_error result, whose
+    # message is passed on as is. on success, the app's result dict is
+    # returned, for this server to send on unchanged.
     async def run(name, args):
         try:
             async with streamable_http_client(url) as (r, w):

@@ -95,15 +95,14 @@ def toLatin1(s):
     return s.encode("ISO-8859-1", "ignore")
 
 
-# return 's', which must be a string of ISO-8859-1 characters, converted
-# to UTF-8.
+# toUTF8 and fromUTF8 converted between the Latin-1 strings the program
+# used internally and the UTF-8 in its files. strings are Unicode
+# throughout now, and files are decoded when read, so both return s as it
+# is; they're kept to mark the places that read and write saved text.
 def toUTF8(s):
     return s
 
 
-# return 's', which must be a string of UTF-8 characters, converted to
-# ISO-8859-1, with characters not representable in ISO-8859-1 discarded
-# and any invalid UTF-8 sequences ignored.
 def fromUTF8(s):
     return s
 
@@ -351,6 +350,10 @@ def bools2flags(chars, *bools):
 # return items, which is a list of ISO-8859-1 strings, as a single string
 # with \n between each string. any \ characters in the individual strings
 # are escaped as \\.
+#
+# the \n is the two characters "\" and "n", not a newline, so the result
+# fits on one line of a saved script (title page strings are stored this
+# way). an empty last item doesn't survive unescapeStrings.
 def escapeStrings(items):
     return "\\n".join([s.replace("\\", "\\\\") for s in items])
 
@@ -390,6 +393,11 @@ def unescapeStrings(s):
 
 # return s encoded so that all characters outside the range [32,126] (and
 # "\\") are escaped.
+#
+# the escape is "\" plus the code point in hex, which is two digits only up
+# to U+00FF. decodeStr always reads two digits, so anything above that
+# comes back garbled: U+30B4 is written as "\30B4" and read back as "0"
+# followed by "B4".
 def encodeStr(s):
     ret = ""
 
@@ -799,6 +807,10 @@ class MyKeyEvent:
 
 # one key press
 class Key:
+    # names toStr shows for keys that aren't printable characters. 1-26 are
+    # CTRL+A..Z, which Key stores as those codes (see __init__). 8, 9 and
+    # 13 (CTRL+H, I and M) have no entries of their own, since they're the
+    # same codes as wx.WXK_BACK, TAB and RETURN.
     keyMap = {
         1: "A",
         2: "B",
@@ -1017,6 +1029,9 @@ def loadFile(
     return ret
 
 
+# unused. note that the encoding name lands in loadFile's 'binary'
+# parameter, so this reads the file as bytes rather than decoding it as
+# Latin-1.
 def loadLatin1EncodedFile(
     filename: str, frame: Optional[wx.Frame], maxSize: int = -1
 ) -> Optional[AnyStr]:
@@ -1049,8 +1064,6 @@ def loadMaybeCompressedFile(filename, frame):
         return None
 
 
-# write 'data' to 'filename', popping up a messagebox using 'frame' as
-# parent on errors. returns True on success.
 # write data to filename so that a crash or error halfway through never
 # leaves a partially written file behind: the data goes to a temp file in
 # the same directory, which then replaces the target in one step. if

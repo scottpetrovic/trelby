@@ -41,7 +41,12 @@ class MyFrame(wx.Frame):
             # automatically reaps zombies
             signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
+        # Trelby's own clipboard (a screenplay.ClipData, keeping element
+        # types), shared by all tabs. the system clipboard is only used by
+        # the Copy / Paste (system) commands.
         self.clipboard = None
+
+        # read by MyCtrl.OnPaint
         self.showFormatting = False
         self.gd = gd
         self.myApp = myApp
@@ -684,6 +689,10 @@ class MyFrame(wx.Frame):
     #         ID_ELEM_TO_NOTE: screenplay.NOTE,
     #     }
 
+    # add a tab with an empty script. addPage selects it, so OnPageChange
+    # has set self.panel to it by the time this returns. the tab text is
+    # set again here because the MyCtrl's constructor set it before the
+    # page was added, when findPage couldn't find it.
     def createNewPanel(self):
         newPanel = MyPanel(self.tabCtrl.getTabParent(), -1, self.gd)
         self.tabCtrl.addPage(newPanel, "")
@@ -694,6 +703,9 @@ class MyFrame(wx.Frame):
 
     # show the current script's name in the window title. if ctrl is
     # given, only does anything if that's the current script.
+    #
+    # this, updateAutosaveStatus and OnUpdateMenuItem can be called while
+    # init creates the first tab, before self.panel exists, hence getattr.
     def updateTitle(self, ctrl=None):
         panel = getattr(self, "panel", None)
 
@@ -708,7 +720,7 @@ class MyFrame(wx.Frame):
         if i != -1:
             # strip out ".trelby" suffix from tab names (it's a bit
             # complicated since if we open the same file multiple times,
-            # we have e.g. "foo.trelby" and "foo.trelby<2>", so actually
+            # we have e.g. "foo.trelby" and "foo.trelby-2", so actually
             # we just strip out ".trelby" if it's found anywhere in the
             # string)
 
@@ -742,6 +754,13 @@ class MyFrame(wx.Frame):
 
         return False
 
+    # rebuild self.kbdCommands (key = util.Key.toInt(), value =
+    # config.Command), which MyCtrl.OnKeyChar looks keys up in. it calls
+    # MyCtrl.cmd<name>(cs) for an editing command, and On<name>() here,
+    # with no event, for a menu command, which is why the On* handlers
+    # default event to None. fixed menu commands (New, Open, Save, Quit...)
+    # are left out: their keys are their menu items' accelerators, which
+    # wx handles before a key reaches MyCtrl.
     def updateKbdCommands(self):
         self.gd.cfgGl.addShiftKeys()
 
@@ -1059,11 +1078,11 @@ class MyFrame(wx.Frame):
         self.menuBar.Check(ID_VIEW_STYLE_DRAFT, True)
         self.OnViewModeChange()
 
-    # (re)create the toolbar's tools, with icons at the size set in the
-    # global config.
     # names of the controls fillToolBar puts in the toolbar
     TB_CONTROLS = ("elemTypeBar", "formatBar", "alignBar")
 
+    # (re)create the toolbar's tools, with icons at the size set in the
+    # global config.
     def fillToolBar(self):
         tb = self.toolBar
         size = wx.Size(self.gd.cfgGl.toolbarIconSize, self.gd.cfgGl.toolbarIconSize)
@@ -1487,6 +1506,10 @@ class MyFrame(wx.Frame):
 
         self.gd.zoom = zoom
         self.updateZoomStatus()
+
+        # zooming scales the screen fonts in gd.cfgGui, which all tabs
+        # share, so it's rebuilt once. each tab's page size and mm2p
+        # follow from the font sizes, so refreshCache recomputes them.
         self.panel.ctrl.refreshGuiConfig()
 
         for c in self.getCtrls():

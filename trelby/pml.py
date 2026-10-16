@@ -20,6 +20,10 @@ import trelby.pdf as pdf
 import trelby.util as util
 
 # text flags. don't change these unless you know what you're doing.
+#
+# bits 0-1 are bold / italic, bits 2-3 the font family (Courier being 0)
+# and bit 4 underlining, so 'flags & 15' identifies one font: the font
+# tables in pdf.PDFExporter and fontinfo are keyed by that.
 NORMAL = 0
 BOLD = 1
 ITALIC = 2
@@ -100,12 +104,19 @@ class PDFFontInfo:
         # etc.). if empty, use the default PDF font.
         self.name: str = name
 
-        # the font program (in practise, the contents of the .ttf file for
-        # the font), or None, in which case the font is not embedded.
+        # path of the TrueType file for the font, which reportlab reads and
+        # embeds (see pdf.PDFExporter.getFontForFlags). only optional if a
+        # font of this name has already been registered with reportlab.
         self.fontFileName: Optional[str] = fontFileName
 
 
 # An abstract base class for all drawing operations.
+#
+# each subclass names the pdf.PDFDrawOp that renders it in 'pdfOp' (one
+# shared instance per class), and pdf.PDFExporter just calls
+# op.pdfOp.draw(...). this is why pml and pdf import each other. other
+# renderers (the screen, reportwindow._PageRenderer) dispatch on the op's
+# class instead.
 class DrawOp:
     pdfOp: pdf.PDFDrawOp
 
@@ -153,6 +164,10 @@ class TextOp(DrawOp):
 
         self.line: int = line
 
+        # alignment is resolved once, here, so that renderers only ever see
+        # (x, y) as the top left corner of the text. it uses the standard
+        # font metrics (fontinfo), so text drawn in a user-set TrueType
+        # font of a different width can end up slightly off.
         if align != util.ALIGN_LEFT:
             w = util.getTextWidth(text, flags, size)
 
@@ -238,6 +253,11 @@ class QuarterCircleOp(DrawOp):
 # Arbitrary PDF commands. Should not have whitespace in the beginning or
 # the end. Should be used only for non-critical things like tweaking line
 # join styles etc, because non-PDF renderers will ignore these.
+#
+# in practice they're also how colors and dash patterns are set (e.g.
+# "0.5 g" for the fill gray level): what they set stays in effect for the
+# ops after them on the page, so code using them resets it afterwards.
+# reportwindow._PageRenderer understands the few forms the reports use.
 class PDFOp(DrawOp):
     pdfOp = pdf.PDFArbitraryOp()
 

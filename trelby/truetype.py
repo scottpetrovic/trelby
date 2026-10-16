@@ -27,6 +27,12 @@ def check(val):
 # a parser for TrueType/OpenType fonts.
 # http://www.microsoft.com/typography/otspec/default.htm contained the
 # spec at the time of the writing.
+#
+# it only reads what the PDF font settings need to check a font file (see
+# configpages/pdffontspanel.py): the PostScript name, from the 'name'
+# table, and whether the license allows embedding, from the 'OS/2' table.
+# only TrueType-outline fonts (version 0x00010000) are accepted, not
+# CFF-based OpenType ones ("OTTO").
 class Font:
 
     # load font from string s, which is the whole contents of a font file
@@ -64,7 +70,9 @@ class Font:
     def allowsEmbedding(self):
         return self.embeddingOK
 
-    # parse whole file
+    # parse whole file. it starts with a 12-byte offset table (version and
+    # number of tables), followed by a 16-byte directory entry (tag,
+    # checksum, offset, length) for each table.
     def parse(self, s):
         version, self.tableCnt = unpack(">LH", s[:6])
 
@@ -118,6 +126,10 @@ class Font:
 
     # parse a single name record. s2 is string storage. returns True if
     # this record is a valid Postscript name.
+    #
+    # name id 6 is the PostScript name. only the Mac Roman / English and
+    # Windows Unicode / US English records are used; either way psName is
+    # stored as bytes.
     def parseNameRecord(self, s, s2):
         platformID, encodingID, langID, nameID, strLen, strOffset = unpack(">6H", s)
 

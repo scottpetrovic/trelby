@@ -388,6 +388,8 @@ class _PageRenderer:
         )
         self.gc.SetFont(font)
 
+        # wx draws text from its top left corner, which is what a TextOp's
+        # (x, y) is, so unlike in the PDF there's no baseline adjustment
         angle = math.radians(op.angle) if op.angle else 0.0
         self.gc.DrawText(op.text, self.x(op.x), self.y(op.y), angle)
 

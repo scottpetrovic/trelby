@@ -48,7 +48,7 @@ class TextString:
 class DisplayPage:
     def __init__(self, pageNr, x1, y1, x2, y2):
 
-        # page number (index in MyCtrl.pages)
+        # page number (1-based index in Screenplay.pages)
         self.pageNr = pageNr
 
         # coordinates in pixels
@@ -83,10 +83,10 @@ class ViewMode:
 
     # get a description of what the current screen contains. returns
     # (texts, dpages), where texts = [TextString, ...], dpages =
-    # [DisplayPage, ...]. dpages is None if draft mode is in use or
-    # doExtra is False. doExtra has same meaning as for generatePMLPage
-    # otherwise. pageCache, if given, is used in layout mode to cache PML
-    # pages. it should only be given when doExtra = False as the cached
+    # [DisplayPage, ...]. dpages is empty if draft mode is in use, which
+    # callers test with "if not dpages". doExtra has same meaning as for
+    # generatePMLPage. pageCache, if given, is used in layout mode to cache
+    # PML pages. it should only be given when doExtra = False as the cached
     # pages aren't accurate down to that level.
     #
     # partial lines (some of the the text is clipped off-screen) are only
@@ -160,6 +160,11 @@ class ViewMode:
         return (line, column)
 
     # semi-generic implementation, for use by Draft and Layout modes.
+    #
+    # with recenterOnScroll off, the MoveUp / MoveDown commands (the only
+    # ones with a direction) scroll just far enough, so the screen moves
+    # smoothly. otherwise, or if the line is too far away for that, the
+    # line is put in the middle of the screen.
     def makeLineVisibleGeneric(self, ctrl, line, texts, direction, jumpAhead):
         if not ctrl.sp.cfgGl.recenterOnScroll and (direction != config.SCROLL_CENTER):
             if self._makeLineVisibleHelper(ctrl, line, direction, jumpAhead):
@@ -171,7 +176,12 @@ class ViewMode:
         if not ctrl.isLineVisible(line):
             ctrl.sp.setTopLine(line)
 
-    # helper function for makeLineVisibleGeneric
+    # helper function for makeLineVisibleGeneric. moves the top line in
+    # 'direction' until line is visible, by 1 line at first and then by
+    # jumpAhead more lines each try (each try lays out the screen again,
+    # which is slower in layout mode, so it uses bigger steps). returns
+    # False, leaving the top line moved, if it isn't visible within
+    # MAX_JUMP_DISTANCE lines.
     def _makeLineVisibleHelper(self, ctrl, line, direction, jumpAhead):
         startLine = ctrl.sp.getTopLine()
         sign = 1 if (direction == config.SCROLL_DOWN) else -1
@@ -187,6 +197,12 @@ class ViewMode:
         return True
 
     # semi-generic implementation, for use by Draft and Layout modes.
+    #
+    # page down puts the last line on screen at the top, with the cursor
+    # on it. page up puts the cursor on the top line, then scrolls back one
+    # line at a time for as long as that line stays on screen, so it ends
+    # up at the bottom. (if the top line is also the last one on screen,
+    # the window is too small for that, so it just goes back 5 lines.)
     def pageCmdGeneric(self, ctrl, cs, dir, texts, dpages):
         if dir > 0:
             line = texts[-1].line
@@ -240,6 +256,7 @@ class ViewModeDraft(ViewMode):
         texts = []
 
         while (y < height) and (i < length):
+            # spacing is in tenths of a line
             y += int((ctrl.sp.getSpacingBefore(i) / 10.0) * fyd)
 
             if y >= height:
@@ -326,11 +343,18 @@ class ViewModeLayout(ViewMode):
         topLine = ctrl.sp.getTopLine()
         pageNr = ctrl.sp.line2page(topLine)
 
+        # the pager tracks the current scene's number as it lays out a page,
+        # so start it with that of the scene the page begins in
         if doExtra and ctrl.sp.cfg.pdfShowSceneNumbers:
             pager.scene = ctrl.sp.getSceneNumber(ctrl.sp.page2lines(pageNr)[0] - 1)
 
         # find out starting place (if something bugs, generatePMLPage
         # below could return None, but it shouldn't happen...)
+        #
+        # y is the screen position of the top of topLine's page: if topLine
+        # is the page's first line, the whole page is shown, below a gap
+        # (and the title page button on page 1), otherwise the page starts
+        # above the screen so that topLine is at the very top
         if pageCache:
             pg = pageCache.getPage(pager, pageNr)
         else:
@@ -390,6 +414,7 @@ class ViewModeLayout(ViewMode):
 
                 ypos = int(pageY + op.y * mm2p)
 
+                # above the screen, on a page that starts above it
                 if ypos < 0:
                     continue
 
@@ -433,6 +458,9 @@ class ViewModeLayout(ViewMode):
         # lines.
         return int(ctrl.chY * ctrl.mm2p + 1.0)
 
+    # the paper's width in characters (of the PDF font) times the screen
+    # font's character width, so that the screen font's characters line up
+    # with where the PDF puts them (see MyCtrl.refreshCache)
     def getPageWidth(self, ctrl):
         return (ctrl.sp.cfg.paperWidth / ctrl.chX) * ctrl.getCfgGui().fonts[
             pml.NORMAL
@@ -574,9 +602,12 @@ class ViewModeSideBySide(ViewMode):
 
         return (line, column)
 
+    # the screen always starts at the top of the top line's page, so this
+    # shows line's page first
     def makeLineVisible(self, ctrl, line, texts, direction=config.SCROLL_CENTER):
         ctrl.sp.setTopLine(line)
 
+    # move a screenful of pages back or forward
     def pageCmd(self, ctrl, cs, dir, texts, dpages):
         if dir < 0:
             pageNr = dpages[0].pageNr - len(dpages)

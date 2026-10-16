@@ -5,6 +5,16 @@ import trelby.util as util
 
 
 # keep track about one object's variables
+#
+# settings are saved as plain text, one "Name:value" line per variable.
+# nested objects prepend a slash-separated prefix to their names, so e.g.
+# the per-script config's action element is saved as lines like
+# "Element/Action/Indent:0" and "Element/Action/Screen/AllCaps:False".
+#
+# a class using this keeps one Vars, shared by all its instances, in its
+# class attribute 'cvars', built by the first instance's __init__ (see
+# config.TextType for the pattern). setDefaults then gives each instance
+# its own copy of the defaults as ordinary attributes.
 class Vars:
     def __init__(self):
         self.cvars = []
@@ -13,7 +23,11 @@ class Vars:
         for v in self.cvars:
             yield v
 
-    # make various dictionaries pointing to the config variables.
+    # make various dictionaries pointing to the config variables. must be
+    # called after the last add*, as getDefault/getMin/getMax (e.g. the
+    # settings pages' spin control ranges) and the recalc methods that
+    # clamp numeric values use these; a class that
+    # never calls them (e.g. config.TextType) can skip this.
     def makeDicts(self):
         self.all = self.getDict()
         self.numeric = self.getDict(NumericVar)
@@ -52,7 +66,10 @@ class Vars:
             setattr(obj, it.name, copy.deepcopy(it.defVal))
 
     # transform string 's' (loaded from file) into a form suitable for
-    # load() to take.
+    # load() to take: a dict of full name (prefix included) -> value
+    # string. lines are split at the first ":", so values may contain ":"
+    # but names can't. lines without one are ignored, and a name that
+    # appears twice gets the later value.
     @staticmethod
     def makeVals(s):
         tmp = util.fixNL(str(s)).split("\n")
@@ -74,6 +91,9 @@ class Vars:
 
         return s
 
+    # set obj's variables from vals (see makeVals). a variable missing from
+    # vals keeps its current value, normally its default, so files from
+    # older versions without newer settings load fine.
     def load(self, vals, prefix, obj):
         for it in self.cvars:
             if it.name2:
@@ -162,7 +182,10 @@ class IntVar(NumericVar):
         return util.str2int(val, self.defVal, self.minVal, self.maxVal)
 
 
-# ISO-8859-1 (Latin 1) string.
+# originally an ISO-8859-1 (Latin 1) string. util.toUTF8/fromUTF8 no longer
+# convert anything, so it now holds any Unicode text, like StrUnicodeVar.
+# the remaining difference is that Config.recalc passes Config's own
+# variables of this type through util.toInputStr (see Vars.stringLatin1).
 class StrLatin1Var(ConfVar):
     def __init__(self, name, defVal, name2):
         ConfVar.__init__(self, name, defVal, name2)
@@ -188,7 +211,8 @@ class StrUnicodeVar(ConfVar):
 
 # binary string, can contain anything. characters outside of printable
 # ASCII (and \ itself) are encoded as \XX, where XX is the hex code of the
-# character.
+# character. only characters up to U+00FF survive a save and load (see
+# util.encodeStr).
 class StrBinaryVar(ConfVar):
     def __init__(self, name, defVal, name2):
         ConfVar.__init__(self, name, defVal, name2)
@@ -217,6 +241,9 @@ class ElementNameVar(ConfVar):
             return self.defVal
 
 
+# a list, saved as its length followed by one line per item, numbered
+# from 1, e.g. "Command/Undo/Keys:2", "Command/Undo/Keys/1:...",
+# "Command/Undo/Keys/2:...". the item type's own name2 is not used.
 class ListVar(ConfVar):
     def __init__(self, name, defVal, name2, itemType):
         ConfVar.__init__(self, name, defVal, name2)

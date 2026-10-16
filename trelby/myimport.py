@@ -335,6 +335,9 @@ def importFDX(fileName, frame):
             if not lns[-1] and (len(lns) > 1):
                 lns = lns[:-1]
 
+            # fmt has a character for each one of eleText, newlines
+            # included, so each line's part starts one past the previous
+            # line's end
             pos = 0
 
             for i, s in enumerate(lns):
@@ -473,6 +476,11 @@ def importFountain(fileName, frame, titlePages):
 
     tabWidth = 4
     lns = []
+
+    # in Fountain, a line of just two spaces is a blank line that doesn't
+    # end the element. two trailing spaces are also used here as a marker
+    # on title page lines that go into the script, which keeps the first
+    # pass from taking them for scene headings or character names.
     TWOSPACE = "  "
     skipone = False
 
@@ -484,7 +492,9 @@ def importFountain(fileName, frame, titlePages):
         else:
             break
 
-    # prelines[0:i] are the first bunch of lines, that could be titles.
+    # prelines[0:c] are the first bunch of lines, that could be titles,
+    # and prelines[c] is the blank line after them (prelines[c + 1:] is
+    # the script proper).
     # Our check for title is simple:
     #   - the line does not start with 'fade'
     #   - the first line has a single ':'
@@ -524,7 +534,13 @@ def importFountain(fileName, frame, titlePages):
                         rejects.append(l)
                     titleIdx += 1
                     l = prelines[titleIdx]
-                # replace default titles with imported ones
+                # replace default titles with imported ones. Title, Author
+                # and Contact overwrite strings 0 - 2 of titlePages[0]
+                # (changed in place), assuming the order of the default
+                # title page made by Titles.addDefaults.
+                # other keys become new strings: Credit / Source centered,
+                # going down the page from y = 150 (mm from the top), the
+                # rest at the left, going up from y = 220.
                 leftX = 15.0
                 leftY = 220.0
                 centreX = 0.0
@@ -589,7 +605,7 @@ def importFountain(fileName, frame, titlePages):
     def isPrevType(ltype):
         return lns and lns[-1].lt == ltype
 
-    # looks ahead to check if next line is not empty
+    # looks ahead to check if next line exists and is empty
     def isNextEmpty(i):
         return i + 1 < len(lines) and lines[i + 1] == ""
 
@@ -636,7 +652,12 @@ def importFountain(fileName, frame, titlePages):
     def isSynopsis(s):
         return s.startswith("=") and not s.startswith("==")
 
-    # first pass - identify linetypes
+    # first pass - identify linetypes. each source line (but skipped
+    # sections / synopses) becomes a Line of its own with LB_FORCED, blank
+    # lines included (as empty actions); the
+    # second pass groups them into elements. the checks rely on Fountain's
+    # blank-line rules, e.g. a character name has a blank line before it
+    # and none after it, and a transition has blank lines on both sides.
     for i in range(linesLen):
         if skipone:
             skipone = False
@@ -740,6 +761,11 @@ def importFountain(fileName, frame, titlePages):
         return ret and ret[-1].lt == t
 
     # second pass - remove unneeded empty lines, and fix the linebreaks.
+    # consecutive lines of the same type (and centering) stay one element,
+    # and a change of type ends it. a blank line ends the open element
+    # and is dropped, or if none is open (e.g. right after another blank
+    # line), it's kept as an empty line, which the next blank line ends.
+    # so runs of blank lines still leave some space.
     for ln in lns:
         if ln.text == "":
             if isLastLBForced():
@@ -822,6 +848,11 @@ def importTextFile(fileName: str, frame: wx.Frame) -> Optional[List[Line]]:
 
         return None
 
+    # guess each indent level's type. the order matters: each setType only
+    # looks at the levels not assigned yet, so e.g. dialogue is the
+    # most-used level once scene/action has been taken. the user can fix
+    # the guesses in the ImportDlg below.
+
     # scene/action indent
     setType(SCENE_ACTION, indDict, lambda v: v.sceneStart)
 
@@ -869,6 +900,10 @@ def importTextFile(fileName: str, frame: wx.Frame) -> Optional[List[Line]]:
 
     ret = []
 
+    # consecutive lines of the same type are taken to be one paragraph
+    # wrapped in the source, so they're joined with LB_SPACE (rewrapped
+    # later by reformatAll). a blank line or a change of type ends the
+    # element.
     for i in range(len(lines)):
         s = lines[i]
         cnt = util.countInitial(s, " ")

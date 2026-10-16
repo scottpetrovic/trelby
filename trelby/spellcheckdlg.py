@@ -228,6 +228,11 @@ class SpellCheckDlg(wx.Dialog):
 
     # if w2 is closer to w1 in Levenshtein distance than d, add it to
     # fifo. return min(d, new_distance).
+    #
+    # since d only shrinks, the fifo ends up with the last (up to) five
+    # words that were at least as close as the best one seen so far when
+    # they were tried: a cheap approximation of the five closest words.
+    # words differing in length by more than 3 are skipped unscored.
     def tryWord(self, w1, w1len, w2, d, fifo):
         if abs(w1len - len(w2)) > 3:
             return d

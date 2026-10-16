@@ -19,6 +19,10 @@ class FindDlg(wx.Dialog):
 
         self.ctrl = ctrl
 
+        # the match found last: its line (-1 if none), start column and
+        # length. it's what Replace replaces, and Find steps past it when
+        # the cursor is still at its start. the options and texts outlive
+        # the dialog in ctrl.findDlg* (see loadState / saveState).
         self.searchLine = -1
         self.searchColumn = -1
         self.searchWidth = -1
@@ -272,10 +276,14 @@ class FindDlg(wx.Dialog):
         else:
             inc = 1
 
+        # each line is searched on its own, so text that wraps from one
+        # line to the next isn't found
         line = self.ctrl.sp.line
         col = self.ctrl.sp.column
         ls = self.ctrl.sp.lines
 
+        # the cursor is still at the start of the last match, so start one
+        # character past it, so as not to find it again
         if (line == self.searchLine) and (col == self.searchColumn):
             text = ls[line].text
 
@@ -288,6 +296,9 @@ class FindDlg(wx.Dialog):
                 if line >= 0:
                     col = max(len(ls[line].text) - 1, 0)
 
+        # True when this search covers the whole script: it starts at the
+        # very start (or end, going up), or it has wrapped around. then
+        # reaching the other end means there are no matches at all.
         fullSearch = False
         if inc > 0:
             if (line == 0) and (col == 0):
@@ -311,11 +322,16 @@ class FindDlg(wx.Dialog):
                     if not self.matchCase:
                         text = util.upper(text)
 
+                    # going up, the match's last character must be at or
+                    # before col
                     if inc > 0:
                         res = text.find(value, col)
                     else:
                         res = text.rfind(value, 0, col + 1)
 
+                    # the neighboring characters are sliced rather than
+                    # indexed, so that past the ends of the line they're
+                    # "", which isWordBoundary counts as a boundary
                     if res != -1:
                         if not self.matchWhole or (
                             util.isWordBoundary(text[res - 1 : res])
@@ -408,6 +424,9 @@ class FindDlg(wx.Dialog):
 
         diff = len(value) - self.searchWidth
 
+        # put the cursor where the next search should start: past the
+        # replacement going down, just before it going up, so that it
+        # isn't searched again
         if not self.dirUp:
             sp.column += self.searchWidth + diff
         else:
@@ -440,6 +459,9 @@ class FindDlg(wx.Dialog):
 
         return True
 
+    # searches with autoFind=True don't offer to wrap around, so this only
+    # replaces the matches from the cursor to the end of the script (or the
+    # start, when searching up)
     def OnReplaceAll(self, event=None):
         self.getParams()
 

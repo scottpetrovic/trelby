@@ -22,6 +22,10 @@ else:
 # non-zero padding (in DIPs) adds that much empty space on every side of the
 # icon, by growing the SVG's viewBox, so the bundle is size + 2 * padding.
 # a color (wx.Colour) draws the icon in that color instead.
+#
+# the recoloring is a plain text replace, so it only reaches the parts of
+# an icon written as "fill:#000000" in a style attribute, which is how all
+# the bundled icons do it; any other way of writing black stays black.
 def svgBitmap(iconFilename, size, padding=0, color=None):
     filepath = misc.getFullPath("trelby/resources/%s" % iconFilename)
 
@@ -148,6 +152,8 @@ def loadWxTranslations(language):
     wxTranslations.SetLanguage(language)
 
     if wxTranslations.AddStdCatalog():
+        # every module calls wx.MessageBox through the wx module, so this
+        # reroutes all of them
         wx.MessageBox = messageBox
 
 
@@ -418,6 +424,10 @@ def _themeTree(w, cfgGui):
             _themeTree(c, cfgGui)
 
 
+# set w's colors, unless its own code has set them. a window whose color
+# was never set, or is one an earlier call (of any theme) gave it, gets the
+# new one. the catch is that a color some code set on purpose which
+# happens to equal a theme color is replaced too.
 def _setColors(w, bg, fg):
     if (not w.UseBackgroundColour()) or (
         w.GetBackgroundColour().Get() in _themeColors

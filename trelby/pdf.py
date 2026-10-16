@@ -12,6 +12,10 @@ import trelby.textfmt as textfmt
 
 # PDF transform matrixes where key is the angle from x-axis
 # in counter-clockwise direction.
+#
+# these are the (a, b, c, d) of a PDF text matrix (cos, sin, -sin, cos).
+# the 45 degree one isn't normalized (cos 45 = 0.707, not 1), so text at
+# that angle (the watermarks) comes out sqrt(2) times its nominal size.
 TRANSFORM_MATRIX = {
     45: (1, 1, -1, 1),
     90: (0, 1, -1, 0),
@@ -93,8 +97,8 @@ def isInCJKFont(ch: str) -> bool:
 # An abstract base class for all PDF drawing operations.
 class PDFDrawOp:
 
-    # write PDF drawing operations corresponding to the PML object pmlOp
-    # to output (util.String). pe = PDFExporter.
+    # draw the PML object pmlOp on the reportlab canvas. pe = PDFExporter,
+    # which has the coordinate conversions and font lookup.
     def draw(
         self, pmlOp: "pml.DrawOp", pageNr: int, pe: "PDFExporter", canvas: Canvas
     ) -> None:
@@ -124,6 +128,10 @@ class PDFTextOp(PDFDrawOp):
         newFont = pe.getFontForFlags(pmlOp.flags)
         canvas.setFont(newFont, pmlOp.size)
 
+        # rotated text is written as raw PDF operators, since reportlab's
+        # drawString can't rotate. the font comes from the setFont call
+        # above: it emits a Tf operator, and the font is part of the PDF
+        # graphics state, so it carries over into this text object.
         if pmlOp.angle is not None:
             matrix = TRANSFORM_MATRIX.get(pmlOp.angle)
 
@@ -173,6 +181,9 @@ class PDFTextOp(PDFDrawOp):
         else:
             canvas.drawString(x, y, pmlOp.text)
 
+        # formatted and double-width text underlines its runs itself
+        # (above, and in drawCells), so the whole text is only underlined
+        # here for plain and rotated text
         if (pmlOp.flags & pml.UNDERLINED) and (
             (pmlOp.angle is not None) or not (pmlOp.fmt or (pmlOp.charWidth != 1))
         ):
@@ -335,7 +346,10 @@ class PDFArbitraryOp(PDFDrawOp):
         canvas.addLiteral("%s\n" % pmlOp.cmds)
 
 
-# used for keeping track of used fonts
+# used for keeping track of used fonts. only 'name' is used now; 'number'
+# and 'pdfObj', like PDFObject and PDFExporter.genStream / _widthsStr, are
+# left over from when Trelby wrote the PDF file structure itself, which
+# reportlab does now.
 class FontInfo:
     def __init__(self, name: str):
         self.name: str = name
@@ -454,9 +468,14 @@ class PDFExporter:
         # the "& 15" gets rid of the underline flag
         customFontInfo = self.doc.fonts.get(flags & 15)
 
+        # user fonts can only be set for the Courier styles (keys 0 - 3),
+        # so Helvetica and Times text always uses the standard fonts
         if not customFontInfo:
             return fontInfo.name
 
+        # reportlab's font registry is global to the process, so a name is
+        # only registered (and its file read) once; pointing the same name
+        # at a different file has no effect until Trelby is restarted.
         if not customFontInfo.name in pdfmetrics.getRegisteredFontNames():
             if not customFontInfo.fontFileName:
                 raise Exception(
@@ -490,7 +509,8 @@ class PDFExporter:
     def x(self, x: float) -> float:
         return self.mm2points(x)
 
-    # convert y coordinate
+    # convert y coordinate. PML measures y down from the top of the page,
+    # PDF up from the bottom.
     def y(self, y: float) -> float:
         return self.mm2points(self.doc.h - y)
 

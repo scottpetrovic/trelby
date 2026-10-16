@@ -22,7 +22,9 @@ class Line:
         sceneLock=None,
     ):
 
-        # line break type
+        # line break type: what separates this line from the next one
+        # (LB_LAST ends the element). see the LB_* constants in
+        # screenplay.
         self.lb = lb
 
         # line type
@@ -141,6 +143,8 @@ class Line:
 
         self.setText(self.text + other.text, self.getFmt() + other.getFmt())
 
+    # only the line break, type and text. undo.lines2storage keeps the
+    # other attributes alongside, and fromStr below leaves them unset.
     def __str__(self):
         return config.lb2char(self.lb) + config.lt2char(self.lt) + self.text
 

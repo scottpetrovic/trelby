@@ -43,6 +43,8 @@ class HeadersPreview(wx.Window):
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
 
+    # return the index of the header at widget point 'pos', or -1. later
+    # headers are drawn on top of earlier ones, so they're checked first.
     def hitTest(self, pos):
         for i, rect in reversed(self.rects):
             if rect.Contains(pos):

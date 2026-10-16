@@ -29,6 +29,7 @@ from trelby.line import Line
 # convertTypeTo          ManyElems(N, N)
 # cut                    AnyDifference
 # paste                  AnyDifference
+# (MCP) scene edits      AnyDifference (move: moveSceneTo's own)
 # (MCP) world building   WorldBuildingText
 # (MCP) char. profiles   CharacterProfiles
 # renameCharacters       RenameCharacters (a FullCopy)
@@ -92,6 +93,11 @@ def lines2storage(lines):
     centers = tuple(i for i, ln in enumerate(lines) if ln.centered) or None
     sceneLocks = {i: ln.sceneLock for i, ln in enumerate(lines) if ln.sceneLock}
 
+    # str(ln) only holds the line break, type and text, which is all
+    # Line.fromStr can restore, so every other Line attribute travels in
+    # the side tables above. a new Line attribute must be added there (as
+    # well as to Line.copy, Line.__ne__ and mcptools.linesRevision), or
+    # undo silently drops it.
     lines = [str(ln) for ln in lines]
     linesStr = "\n".join(lines)
 
@@ -199,6 +205,15 @@ class Base:
 
     # default implementation for undo. can be overridden by subclasses
     # that need something different.
+    #
+    # subclasses using it set elemStartLine and linesBefore / linesAfter
+    # (lines2storage tuples, whose [0] is the line count). undo replaces
+    # the linesAfter[0] lines at elemStartLine with linesBefore, and redo
+    # the other way around. these are absolute line indexes, so they're
+    # only right if sp.lines is exactly as this object left it: undo/redo
+    # must go strictly through the history in order, and every change to
+    # sp.lines must be recorded with addUndo. anything that changes lines
+    # without doing so (like reformatAll) must clear the history first.
     def undo(self, sp):
         sp.line, sp.column = self.startPos.line, self.startPos.column
 
@@ -336,8 +351,15 @@ class AnyDifference(Base):
     def __init__(self, sp):
         Base.__init__(self, sp, CMD_MISC)
 
+        # kept as Line copies (not storage) until setAfter, since the diff
+        # compares them with Line.__ne__, i.e. all attributes and not just
+        # the text. this is a full copy of the script for the duration of
+        # the action.
         self.linesBefore = [ln.copy() for ln in sp.lines]
 
+    # [a:b] of the old lines was replaced by [x:y] of the new ones (a ==
+    # x). only that block is stored, and undo / redo swap it back in, so
+    # unlike the other classes these don't use elemStartLine.
     def setAfter(self, sp):
         self.a, self.b, self.x, self.y = mySequenceMatcher(self.linesBefore, sp.lines)
 
@@ -417,6 +439,13 @@ class CharacterProfiles(Base):
 #
 # Return a, b, x, y such that l1[a:b] could be replaced with l2[x:y] to
 # convert l1 into l2.
+#
+# it only strips the longest common prefix and then the longest common
+# suffix, so it finds a single changed block (a == x always): two
+# separate changes far apart yield one block spanning both. the suffix
+# scan is capped at the end of the prefix, so the block in the shorter
+# list never ends before it starts (d >= a below). the work is done on
+# (bigger, smaller), and the final swap maps the ends back to (l1, l2).
 def mySequenceMatcher(l1, l2):
     len1 = len(l1)
     len2 = len(l2)

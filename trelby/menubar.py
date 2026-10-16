@@ -57,6 +57,8 @@ class MyMenuBar(wx.Control):
         self.SetMinSize(wx.Size(-1, self.GetCharHeight() + self.FromDIP(16)))
 
         # notices the mouse moving to another title while a menu is open
+        # (the open menu has the mouse captured, so we get no motion
+        # events then)
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
 
@@ -67,6 +69,9 @@ class MyMenuBar(wx.Control):
         self.Bind(wx.EVT_MOTION, self.OnMotion)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeave)
 
+        # on the frame, since the keyboard focus is normally in a script's
+        # MyCtrl, and a top-level window sees char hook events before the
+        # focused window gets the key
         frame.Bind(wx.EVT_CHAR_HOOK, self.OnCharHook)
 
     def AcceptsFocus(self):
@@ -195,6 +200,10 @@ class MyMenuBar(wx.Control):
     # show menu 'i' below its title, and if the user switches to another
     # menu while it's open, that one after it. a menu opened from the
     # keyboard starts with its first item highlighted, like native ones.
+    #
+    # PopupMenu doesn't return until the menu is closed, and there's no
+    # opening another one from inside it, so switchTo just closes the open
+    # one and sets self.pending, and this loop then opens that.
     def popup(self, i, fromKeyboard=False):
         while i != -1:
             self.open = i

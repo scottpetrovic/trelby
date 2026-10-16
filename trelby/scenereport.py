@@ -13,6 +13,10 @@ class SceneReport(textreport.TextReport):
         # list of SceneInfos
         self.scenes = []
 
+        # split the whole script into consecutive parts, each starting at
+        # a scene heading or act break. the part before the first heading,
+        # if any, and the parts starting at act breaks get the name
+        # "(NO SCENE NAME)".
         line = 0
         while 1:
             if line >= len(sp.lines):
@@ -133,8 +137,8 @@ class SceneInfo:
                 break
 
     # read information for one (or zero) speech, beginning at given line.
-    # return line number of the last line of the speech + 1, or endLine +
-    # 1 if no speech found.
+    # return line number of the last line of the speech + 1, or endLine if
+    # no speech found.
     def readSpeech(self, sp, line, endLine):
         ls = sp.lines
 

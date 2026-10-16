@@ -216,6 +216,11 @@ class AutoCompletion:
         items = self.getType(lt).items
 
         mlist = None
+
+        # the configured items count as uses on no line (inf), so the
+        # part-at-a-time matchers split them into prefix / location / time
+        # or name / extension like headings in the script, but they never
+        # count as the most recently used
         allUses = uses + [(float("inf"), s) for s in items]
 
         if lt == screenplay.SCENE:

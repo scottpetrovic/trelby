@@ -148,9 +148,14 @@ class WatermarkDlg(wx.Dialog):
             # ...and back to black
             ops.append(pml.PDFOp("0.0 g"))
 
+            # drawn first, so that the script's text is drawn over the
+            # watermark rather than hidden by it
             for page in pmldoc.pages:
                 page.addOpsToFront(ops)
 
+            # a random id written into the PDF's keywords, different for
+            # each recipient's copy, so that a copy can be traced back to
+            # whom it was given
             pmldoc.uniqueId = self.getUniqueId(usedIds)
 
             pdfdata = pdf.generate(pmldoc)

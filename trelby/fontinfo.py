@@ -32,10 +32,14 @@ class FontMetrics:
     ):
 
         # character widths in an array of 256 integers, or None for the
-        # Courier fonts.
+        # Courier fonts. indexed by Latin-1 code point, in 1/1000 of the
+        # font size. they match what reportlab has for these standard
+        # fonts, except at the control characters, 127-160 and the soft
+        # hyphen, which hold a placeholder width.
         self.widths = widths
 
-        # see the PDF spec for the details on what these are.
+        # see the PDF spec for the details on what these are. nothing reads
+        # them at the moment; only getTextWidth is used.
         self.fontWeight = fontWeight
         self.flags = flags
         self.bbox = bbox

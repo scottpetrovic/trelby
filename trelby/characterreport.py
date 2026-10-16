@@ -26,6 +26,11 @@ class CharacterReport(textreport.TextReport):
         # how many lines processed for current speech
         curSpeechLines = 0
 
+        # 'name' is the current speaker: set by the last line of a
+        # character element, and cleared by any line that isn't dialogue
+        # or a parenthetical. 'scene' is the last line of the latest scene
+        # heading. the per-scene counts are of dialogue and parenthetical
+        # lines.
         for i in range(len(ls)):
             line = ls[i]
 

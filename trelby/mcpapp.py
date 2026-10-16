@@ -58,12 +58,15 @@ def isModalOpen():
     )
 
 
-# a script open in the app
+# a script open in the app. one is made for each tool call, in the GUI
+# thread.
 class AppDoc(mcptools.LiveDoc):
     def __init__(self, gd, ctrl):
         self.gd = gd
         self.ctrl = ctrl
 
+    # LiveDoc's sp, taken from the tab each time rather than stored, as
+    # the tab may replace its Screenplay
     @property
     def sp(self):
         return self.ctrl.sp
@@ -137,7 +140,12 @@ def perform(gd, name, args):
 
 
 # call fn in the GUI thread and return its result, or raise what it
-# raised. called from the server thread.
+# raised. called from one of the server's worker threads (see Server).
+#
+# the lock makes starting and cancelling exclusive: either the GUI thread
+# runs fn to the end and we report its outcome, or we cancel it before it
+# starts and it never runs. so a call reported as timed out never makes
+# its edit later, behind the client's back.
 def callInGui(fn):
     done = threading.Event()
     lock = threading.Lock()
@@ -180,6 +188,13 @@ def callInGui(fn):
 
 
 class Server:
+    # the SDK and uvicorn are imported here, not at the top, since they're
+    # optional: the app must start without them (see isAvailable).
+    #
+    # a tool call goes: uvicorn's event loop (the server thread) -> run()
+    # -> runSync() in an anyio worker thread, which blocks in callInGui
+    # while perform() runs in the GUI thread. blocking a worker rather
+    # than the event loop keeps the server answering other requests.
     def __init__(self, gd, port):
         import anyio
         import uvicorn
@@ -212,6 +227,9 @@ class Server:
             ],
         )
 
+        # stateless: no session is kept between requests, so clients (like
+        # the bridge, which opens a session per call) keep working when the
+        # server is restarted
         app = mcp.streamable_http_app(
             stateless_http=True,
             json_response=True,

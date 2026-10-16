@@ -7,6 +7,12 @@ gdict = set()
 
 # key = util.getWordPrefix(word), value = set of words beginning with
 # that prefix (only words in gdict)
+#
+# only used by spellcheckdlg to narrow down the words to suggest. words of
+# two letters or less aren't in it, so the main dictionary never suggests
+# them, and
+# getWordPrefix maps non-letters to "z", so a set can hold words that
+# don't start with its key; the caller checks startswith itself.
 prefixDict = {}
 
 
@@ -140,7 +146,8 @@ class SpellChecker:
         # user's global dictionary (Dict)
         self.gScDict = gScDict
 
-        # key = word found in character names, value = None
+        # key = word found in character names, value = None. the names
+        # come lower-cased from getCharacterNames, matching isKnown.
         self.cnames = {}
 
         for it in sp.getCharacterNames():

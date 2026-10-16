@@ -159,6 +159,8 @@ class TitlesPreview(wx.Window):
         self.blinkTimer.Stop()
         event.Skip()
 
+    # return the index of the string at widget point 'pos', or -1. later
+    # strings are drawn on top of earlier ones, so they're checked first.
     def hitTest(self, pos):
         for i, rect, lines in reversed(self.layouts):
             if rect.Contains(pos):
@@ -416,6 +418,9 @@ class TitlesPreview(wx.Window):
         if ts.isUnderlined:
             flags |= wx.FONTFLAG_UNDERLINED
 
+        # the font is ts.size points (sizeMM mm) high, as in the PDF, which
+        # at 'scale' pixels per mm gives the pixel size CreateFont wants.
+        # the layout mirrors TitleString.generatePML.
         sizeMM = util.getTextHeight(ts.size)
         fontPx = max(1.0, sizeMM * scale)
 
@@ -489,6 +494,9 @@ class TitlesPreview(wx.Window):
         if isSelected:
             self.drawCaret(gc, layout, fontPx)
 
+    # the layout comes from the string's items, the caret and selection
+    # from self.edit, which is only replaced by resetEdit. they're only
+    # drawn if the two have the same lines, in case they're out of step.
     def drawSelection(self, gc, layout):
         ed = self.edit
 

@@ -2,6 +2,27 @@
 import wx
 
 # linebreak types
+#
+# a script is a flat list of Lines, one per displayed / printed line, and
+# each line's lb says what separates it from the next one:
+#
+#  LB_SPACE: the line was wrapped at a space. the space isn't stored
+#  anywhere; it's implied between this line and the next one.
+#
+#  LB_NONE: the line was wrapped with nothing between it and the next
+#  one, in the middle of a word too long for the line, or between
+#  double-width characters.
+#
+#  LB_FORCED: a line break typed by the user inside an element. it ends
+#  a paragraph, the unit that is rewrapped (see rewrapPara).
+#
+#  LB_LAST: the last line of an element. it ends a paragraph too. all
+#  lines of an element have the same lt, and the script's last line is
+#  always LB_LAST.
+#
+# only LB_FORCED and LB_LAST carry information from the user; LB_SPACE and
+# LB_NONE are recomputed by wrapLine whenever a paragraph is rewrapped.
+# config.lb2str gives the text each one stands for.
 
 LB_SPACE = 1
 
@@ -24,6 +45,10 @@ SHOT = 7
 NOTE = 8
 ACTBREAK = 9
 
+# these imports come after the constants above on purpose: config and line
+# import this module and use the constants at import time (config's lb
+# tables, Line's default arguments), which only works in this circular
+# import if they're already defined when it gets back here.
 import copy
 import difflib
 import re
@@ -140,6 +165,10 @@ class Screenplay:
     def needsExtraParenIndent(self, line):
         return (self.lines[line].lt == PAREN) and not self.isFirstLineOfElem(line)
 
+    # return the empty space above line i, in tenths of a line (the unit of
+    # all vertical spacing here, see paginateRange): its type's
+    # beforeSpacing if it starts an element, otherwise its intraSpacing.
+    # the text-based exports round it down to whole lines.
     def getSpacingBefore(self, i):
         if i == 0:
             return 0
@@ -180,6 +209,9 @@ class Screenplay:
         sp.line = self.line
         sp.column = self.column
 
+        # everything else (pagination, undo history, selection,
+        # auto-completion) starts out fresh, so a caller that needs page
+        # numbers from the copy must paginate it first.
         return sp
 
     # save script to a utf-8 encoded string and return that
@@ -236,6 +268,10 @@ class Screenplay:
 
         output += "#Start-Script \n"
 
+        # a line's attributes are written as config lines just before it,
+        # and load attaches them to the next script line it reads. they're
+        # only written where they mean something (e.g. hasDualFlag rather
+        # than ln.dual), which drops flags left on other lines by editing.
         for i, ln in enumerate(self.lines):
             if ln.pageLock:
                 output += "#Page-Lock %s\n" % ln.pageLock
@@ -299,6 +335,11 @@ class Screenplay:
         # current position at 'lines'
         index = 1
 
+        # the optional #Begin-X / #End-X sections come right after the
+        # version line, in the order save writes them. getConfigPart only
+        # looks at the current position, so a missing section is simply
+        # skipped, while one out of order ends up in the loop below as
+        # unknown information.
         s, index = Screenplay.getConfigPart(lines, "Auto-Completion", index)
         if s:
             sp.autoCompletion.load(s)
@@ -423,6 +464,8 @@ class Screenplay:
 
                     continue
 
+                # a script line is <lb char><lt char><text>, as written by
+                # Line.__str__ (see config's char tables)
                 lb = config.char2lb(s[0], False)
                 lt = config.char2lt(s[1], False)
                 text = util.toInputStr(util.fromUTF8(s[2:]))
@@ -482,6 +525,8 @@ class Screenplay:
             sp.column = sp.cfg.cursorColumn
             sp.validatePos()
 
+        # lines are stored already wrapped, but they're rewrapped with the
+        # current rules anyway, which also converts old LB_SPACE2 breaks
         sp.reformatAll()
         sp.paginate()
         sp.titles.sort()
@@ -541,6 +586,10 @@ class Screenplay:
             return (None, None)
 
     # apply new config.
+    #
+    # a new config can change the width of every element, and undo
+    # objects refer to line numbers in the old wrapping, so the undo
+    # history is thrown away (reformatAll insists on that).
     def applyCfg(self, cfg):
         self.firstUndo = None
         self.lastUndo = None
@@ -944,6 +993,11 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             else:
                 flines.append(keyword + " " + titleLine[startAt])
 
+        # fountain's title page is "Key: value" pairs, while Trelby's title
+        # strings are free text, so the keys are guessed: the first bold
+        # centered string is the title, "by" introduces the author, a
+        # string that starts with something like "Draft date:" is used as
+        # its own key, and anything else becomes a contact.
         titleNeeded = True
         kwPattern = re.compile(r"^([A-za-z][^:]+:)")
         for page in self.titles.pages:
@@ -1083,6 +1137,12 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 tmp += r" \ul"
 
             # some hairy conversions going on here...
+            #
+            # RTF measures in twips (1/20 pt). indent and width are in
+            # characters, and a 12pt Courier character is 7.2pt = 144
+            # twips wide; the right indent is what's left of the paper
+            # after the margins and indent + width. beforeSpacing is in
+            # tenths of a 12pt (240 twips) line, so 24 twips each.
             tmp += r" \li%d\ri%d" % (
                 sf * t.indent * 144,
                 mt(self.cfg.paperWidth)
@@ -1238,6 +1298,12 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # margin, units = line / 10
         y = 0
 
+        # the first page has no header and never continues anything. on
+        # the others, the header, a "CONTINUED:" plus a blank line when the
+        # page starts mid-scene, and "NAME (cont'd)" when it starts
+        # mid-speech take the room paginateRange reserved for them. pager
+        # carries the scene number and CONTINUED count over from the
+        # previous pages, so pages must be generated in order, 1 to n.
         if pageNr != 1:
             if doExtra:
                 self.headers.generatePML(pg, self.getPageLabel(pageNr), cfg)
@@ -1459,6 +1525,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         return pg
 
+    # print scene number s on both sides of the scene heading line at y
+    # (in tenths of a line), as in shooting scripts: in the left margin,
+    # and one character past the heading's width (in characters).
     def addSceneNumbers(self, pg, s, width, y, chX, chY):
         cfg = self.cfg
 
@@ -1521,6 +1590,13 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def reformatRange(self, par1, par2):
         ls = self.lines
 
+        # rewrapping changes how many lines the paragraphs before par2
+        # have, so its index can't tell us when to stop. the Line object
+        # is tagged instead; rewrapPara replaces it with new Lines only
+        # when rewrapping its own paragraph, after the tag has been seen.
+        # par2 must be the first line of a paragraph, or the tag is never
+        # found.
+        #
         # add special tag to last paragraph we'll reformat
         ls[par2].reformatMarker = 0
         end = False
@@ -1651,6 +1727,12 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         while ls[line2].lb not in (LB_LAST, LB_FORCED):
             line2 += 1
 
+        # offsets into the paragraph count each line's text plus what its
+        # line break stands for (config.lb2str: " " for LB_SPACE, "" for
+        # LB_NONE, and one character at the paragraph's end, so that the
+        # end of its last line is a valid position), i.e. they're
+        # positions in the paragraph's text as one string (s below), which
+        # stay valid however it gets rewrapped.
         if (self.line >= line1) and (self.line <= line2):
             # cursor is in this paragraph, save its offset from the
             # beginning of the paragraph
@@ -1725,7 +1807,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                 self.addPageLock(i, label)
 
-        # adjust cursor position
+        # adjust cursor position. an offset at an LB_SPACE break (on the
+        # implied space) stays at the end of that line, while one at an
+        # LB_NONE break goes to the start of the next line.
         if cursorOffset != -1:
             for i in range(line1, line1 + len(wrappedLines)):
                 ln = ls[i]
@@ -2396,6 +2480,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         dualCost = self.dualCost
         actStarts = self.actStarts
 
+        # each iteration makes one page, starting at line i. heights are
+        # in tenths of a line, like the spacing settings: lp is the room on
+        # the page for script lines, and pageLines how much of it lines
+        # i.. take.
         i = start
         while 1:
             lp = cfg.linesOnPage * 10
@@ -2492,6 +2580,17 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             elif line.lt in (DIALOGUE, PAREN):
 
+                # if the speech continues on the next page, this page ends
+                # with (MORE), for which lp has no room yet. walking
+                # backwards: a parenthetical moves to the next page, and
+                # then the dialogue before it can end this one. a dialogue
+                # element that started on this page keeps at least
+                # pbDialogueLines lines here, plus one given up for (MORE)
+                # unless moving something off already freed a line, or
+                # else moves to the next page too. one that started at the
+                # top of the page (or earlier) just gives up a line for
+                # (MORE). if all that leaves the character name at the
+                # bottom, it moves as well, with a scene heading above it.
                 if line.lb != LB_LAST or self.getTypeOfNextElem(i) in (DIALOGUE, PAREN):
 
                     cutDialogue = False
@@ -2638,6 +2737,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             if (r != speech[0]) and self.getDualBlock(r):
                 continue
 
+            # see whether setting the flag on r would make it the right
+            # column of a dual dialogue, without changing anything
             old = ls[r].dual
             ls[r].dual = True
             block = self.getDualBlockFromRight(r)
@@ -2708,6 +2809,11 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         if label and (last + 1) < len(ls):
             self.addPageLock(last + 1, label)
 
+    # used by paginateRange, with 'line' being the line it's about to end
+    # a page on: if it's of type lt, return the last line before its
+    # element, so that the element goes to the next page instead of
+    # dangling at the bottom of this one. otherwise 'line' is returned
+    # as it is. never goes back past the page's first line, lastBreak + 1.
     def removeDanglingElement(self, line, lt, lastBreak):
         ls = self.lines
         startLine = line
@@ -2831,6 +2937,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 ln.pageLock = label
                 ln.pageLockCol = pos
 
+        # if line + 1 started another element, the two are one now (this
+        # line took over its line break above), so the rest of that
+        # element gets this line's type
         self.setLineTypes(line + 1, ln.lt)
         del ls[line + 1]
 
@@ -2871,6 +2980,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         u = undo.ManyElems(self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt + 1)
 
+        # with the auto-completion list showing, the selected item is
+        # accepted first. at the end of a parenthetical, the cursor steps
+        # over the ")" so that it stays in the parenthetical.
         if not self.acItems:
             if self.isAtEndOfParen():
                 self.column += 1
@@ -2878,6 +2990,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             ls[self.line].setText(self.acItems[self.acSel])
             self.column = len(ls[self.line].text)
 
+        # splitLine makes a forced line break; making it LB_LAST instead
+        # turns the text after the cursor into a new element, which is
+        # where the cursor is for convertTypeTo
         self.splitLine()
         ls[self.line - 1].lb = LB_LAST
 
@@ -2935,6 +3050,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def line2pageNoAdjust(self, line):
         return self.line2pageReal(line, self.pagesNoAdjust)
 
+    # return the page (1-based) that 'line' is on, given p, a list of each
+    # page's last line in the format of self.pages: binary search for the
+    # first page whose last line is >= line. lines past the end are on the
+    # last page.
     def line2pageReal(self, line, p):
         lo = 1
         hi = len(p) - 1
@@ -3606,6 +3725,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 )
             )
 
+        # the selection can end mid-element, but paste needs every
+        # paragraph in the clip to end with LB_FORCED or LB_LAST
         cd.lines[-1].lb = LB_LAST
 
         if not doDelete:
@@ -4012,6 +4133,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # get rid of stupid delta generator object that doesn't allow
         # subscription or anything else really. also expands hunk
         # separators into three lines.
+        #
+        # the first three lines skipped are the "---" / "+++" headers and
+        # the first "@@" hunk header. each later "@@" becomes the
+        # pseudo-lines "1", "2", "3"; see the drawing loop below.
         dlt = []
         i = 0
         for s in dltTmp:
@@ -4099,6 +4224,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # some characters.
         textOps = []
 
+        # each entry's first character says how to draw it: "1" and "3"
+        # are blank lines and "2" a grey bar (together, a separator between
+        # hunks), and "-", "+" and "^" lines get a red, green or yellow
+        # background. the rest of the entry is the text.
         for s in dlt:
 
             if y >= cfg.linesOnPage:
@@ -4634,6 +4763,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     if not mergeUndo:
                         u = undo.ManyElems(self, undo.CMD_DEL_BACKWARD, self.line, 1, 1)
 
+                # joinLines removes the break, which for LB_SPACE deletes
+                # its implied space. an LB_NONE break has no character of
+                # its own, so the last one before it is deleted instead.
                 if ln.lb == LB_NONE:
                     self.deleteChar(self.line - 1, len(ln.text) - 1, False)
 
@@ -4701,6 +4833,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     if not mergeUndo:
                         u = undo.ManyElems(self, undo.CMD_DEL_FORWARD, self.line, 1, 1)
 
+                # as in deleteBackwardCmd, an LB_NONE break has no
+                # character of its own, so the one after it is deleted
                 if ln.lb == LB_NONE:
                     self.deleteChar(self.line + 1, 0, False)
 
@@ -4913,6 +5047,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         ls = self.lines
         s = ls[self.line].text
 
+        # a lone "i" becomes "I" when the character typed after it isn't
+        # alphanumeric, and neither is the one before it (or the "i"
+        # starts the line, and doesn't continue a word broken there with
+        # LB_NONE).
         if self.cfgGl.capitalizeI and (self.column > 0):
             s = ls[self.line].text
 
@@ -4945,6 +5083,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         self.column += 1
 
+        # typing "INT." or "EXT." as all of a one-line element makes it a
+        # scene heading, and typing "(" into an empty character or
+        # dialogue element makes it a parenthetical, with the ")" added
+        # after the cursor.
         tmp = s.upper()
         if (tmp == "EXT.") or (tmp == "INT."):
             if self.isOnlyLineOfElem(self.line):
@@ -5006,6 +5148,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         style = textfmt.ALL
         empty = True
 
+        # format string characters are "0" - "7": the style bits plus
+        # ord("0") (see textfmt.char), hence the "- 48" here and in
+        # toggleFormat
         for i in range(marked[0], marked[1] + 1):
             c1, c2 = self.getMarkedColumns(i, marked)
 
@@ -5302,7 +5447,11 @@ class OutlineItem:
 # stuff we need when handling commands in Screenplay.
 class CommandState:
 
-    # what to do about auto-completion
+    # what to do about auto-completion after the command (see cmdPost):
+    # AC_DEL closes the list, which is the default so that any command
+    # that doesn't care about it closes it; AC_REDO refills it from the
+    # current line's text; AC_KEEP leaves it as it is, e.g. when moving
+    # the selection in it.
     AC_DEL, AC_REDO, AC_KEEP = list(range(3))
 
     def __init__(self):

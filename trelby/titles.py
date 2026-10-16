@@ -165,6 +165,10 @@ class Titles:
 
     # sort the title strings in y,x order (makes editing them easier
     # and RTF output better)
+    #
+    # note: as written this has no effect. sorted() makes a new list that
+    # is only bound to the loop variable, and the x tie-break compares
+    # a.x with a.y.
     def sort(self):
         def cmpfunc(a, b):
             return ((a.y > b.y) - (a.y < b.y)) or ((a.x > b.x) - (a.x < a.y))
@@ -194,7 +198,9 @@ class TitleString:
         # list of text strings
         self.items = items
 
-        # position
+        # position, in mm from the top left corner of the page. y is the
+        # top of the first line. x is the left edge, or the right edge if
+        # isRightJustified, and is ignored if isCentered.
         self.x = x
         self.y = y
 

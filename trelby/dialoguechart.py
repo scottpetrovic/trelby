@@ -101,7 +101,8 @@ class DialogueChart:
 
         ls = sp.lines
 
-        # PageInfo's for each page, 0-indexed.
+        # PageInfo's for each page, 0-indexed. (sp.pages has a dummy
+        # entry at index 0, and sp.line2page is 1-based.)
         self.pages = []
 
         for i in range(len(sp.pages) - 1):
@@ -110,6 +111,9 @@ class DialogueChart:
         # map of CharInfo objects. key = name, value = CharInfo.
         tmpCinfo = {}
 
+        # the speaker of the dialogue lines that follow: set by the last
+        # line of a character element, kept over parentheticals, and
+        # reset by any other element type
         name = "UNKNOWN"
 
         for i in range(len(ls)):
@@ -156,6 +160,10 @@ class DialogueChart:
 
         # try point sizes 10,9,8,7,6 until all characters fit on the page
         # (if 6 is still too big, too bad)
+        #
+        # the chart is printed in landscape (see generateDoc), so the
+        # page's height is the paper's width, and vice versa for chartWidth
+        # below
         size = 10
         while 1:
             # character font size in points
@@ -235,6 +243,9 @@ class DialogueChart:
             )
         )
 
+        # the x axis is the script's pages, each getting an equal-width
+        # column of the chart. colors are set with pml.PDFOps, which stay in
+        # effect until changed, so each colored part resets to black after.
         pageCnt = len(self.pages)
         mmPerPage = max(0.1, self.chartWidth / pageCnt)
 
@@ -307,7 +318,9 @@ class DialogueChart:
         self.drawLegend(pg, 2, DIALOGUE_COLOR, "Dialogue", lw)
         self.drawLegend(pg, 3, ACTION_COLOR, "Action", lw)
 
-        # page content bars
+        # page content bars: each page's share of action, dialogue and
+        # character lines, stacked up from the bottom of the bar. the rest
+        # (other line types) is left white.
         for i in range(pageCnt):
             x = self.chartX + i * mmPerPage
             y = self.barY + self.barHeight
@@ -357,6 +370,8 @@ class DialogueChart:
 
             pg.add(fillColor(DIALOGUE_COLOR))
 
+            # a bar for each page the character speaks on, as tall (within
+            # the row, centered) as their share of a full page of lines
             for i in range(pageCnt):
                 pi = self.pages[i]
                 cnt = pi.getSpeakerLineCount(ci.name)

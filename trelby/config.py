@@ -19,7 +19,10 @@ if "TRELBY_TESTING" in os.environ:
 else:
     import wx
 
-# mapping from character to linebreak
+# mapping from character to linebreak. in a saved script (and in
+# line.Line's string form) every line starts with two characters, this one
+# for how the line ends and then its element type's TypeInfo.char, followed
+# by the text. both are part of the file format, so don't change them.
 _char2lb = {
     ">": screenplay.LB_SPACE,
     "+": screenplay.LB_SPACE2,
@@ -185,6 +188,12 @@ class TypeInfo:
 
 
 # text type
+#
+# like the other config classes here, this keeps its mypickle.Vars in the
+# class attribute cvars, built by the first instance rather than at import
+# time: the variables' defaults can depend on things set up at startup
+# (ConfigGlobal's scriptDir default reads misc.progPath, which misc.init
+# sets).
 class TextType:
     cvars = None
 
@@ -344,6 +353,10 @@ class Command:
 
         self.keys = copy.deepcopy(self.defKeys)
 
+    # fixed commands aren't saved, so their keys can't be changed by
+    # editing the config file either. a command the user has removed all
+    # keys from is saved with the single key 0, since an empty list would
+    # load as "not in the file" and get the default keys back (see load).
     def save(self, prefix):
         if self.isFixed:
             return ""
@@ -375,7 +388,8 @@ class Command:
         elif self.keys[0] == 0:
             self.keys = []
 
-        # weed out invalid bindings
+        # weed out invalid bindings: a plain character key (no CTRL or ALT)
+        # can't be a command, since it's needed for typing
         tmp2 = self.keys
         self.keys = []
 
@@ -698,7 +712,8 @@ class Config:
 
         h = self.paperHeight - self.marginTop - self.marginBottom
 
-        # how many lines on a page
+        # how many lines on a page. a line is exactly as tall as the font
+        # size, so 12 point gives the standard 6 lines per inch.
         self.linesOnPage = int(h / util.getTextHeight(self.fontSize))
 
     def getType(self, lt):
@@ -823,6 +838,10 @@ class ConfigGlobal:
         self.types[t.lt] = t
 
         # keyboard commands. these must be in alphabetical order.
+        #
+        # tests run with wx replaced by a mock (TRELBY_TESTING), whose
+        # wx.WXK_* key codes can't be turned into util.Key ints, so they
+        # get no commands.
         self.commands = (
             []
             if "TRELBY_TESTING" in os.environ
@@ -1460,7 +1479,8 @@ class ConfigGlobal:
         return self.types[lt]
 
     # add SHIFT+Key alias for all keys bound to movement commands, so
-    # selection-movement works.
+    # selection-movement works. the aliases are real entries in cmd.keys,
+    # which removeKey takes out along with the key itself.
     def addShiftKeys(self):
         for cmd in self.commands:
             if cmd.isMovement:
@@ -1537,6 +1557,14 @@ class ConfigGlobal:
         self.findPDFViewer()
 
     # set default fonts
+    #
+    # the strings are wx.NativeFontInfo.ToString() output, which differs
+    # per platform: a Pango font description on GTK, and on Windows a
+    # version number (0) followed by the fields of a LOGFONT: height (-13,
+    # negative meaning character height in pixels), width, escapement,
+    # orientation, weight (400 normal, 700 bold), italic (255 = on),
+    # underline, strikeout, charset, out precision, clip precision,
+    # quality, pitch and family (49 = fixed pitch, modern), face name.
     def setDefaultFonts(self):
         fn = ["", "", "", ""]
 
@@ -1739,6 +1767,10 @@ class ConfigGui:
         return self._lt2textColor[lt]
 
 
+# look up key in one of the mapping tables above. a missing key is a
+# programming error and raises ConfigError, unless raiseException is
+# False, which code reading untrusted input (e.g. Screenplay.load) uses to
+# get None instead and handle the unknown value itself.
 def _conv(dict, key, raiseException=True):
     val = dict.get(key)
     if (val == None) and raiseException:

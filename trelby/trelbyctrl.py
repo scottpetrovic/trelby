@@ -54,6 +54,11 @@ KC_CTRL_P = 16
 KC_CTRL_V = 22
 
 
+# the editor for one open script, one per tab. it owns the Screenplay
+# (self.sp), draws it the way the current view mode (gd.vm) lays it out,
+# and turns keys, mouse clicks and menu commands into Screenplay commands.
+# menu items reach it through MyFrame's On* methods, which forward to the
+# current tab's MyCtrl.
 class MyCtrl(wx.Control):
 
     # panel is the trelbypanel.MyPanel we belong to
@@ -144,9 +149,15 @@ class MyCtrl(wx.Control):
 
     # update stuff that depends on configuration / view mode etc.
     def refreshCache(self):
+        # width of one character and height of one line on paper, in mm,
+        # at the script's (PDF) font size
         self.chX = util.getTextWidth(" ", pml.COURIER, self.sp.cfg.fontSize)
         self.chY = util.getTextHeight(self.sp.cfg.fontSize)
 
+        # the scale comes from the screen font, not the paper: the page is
+        # drawn as many screen characters wide as the paper holds, so text
+        # laid out in mm for the PDF lands on whole character cells. zoom
+        # works by scaling the screen fonts.
         self.pageW = self.gd.vm.getPageWidth(self)
 
         # conversion factor from mm to pixels
@@ -376,6 +387,8 @@ class MyCtrl(wx.Control):
 
         self.setTabText()
 
+    # set the name shown for the script to name, made unique among the open
+    # scripts by adding "-2", "-3"... if needed
     def setDisplayName(self, name):
         i = 1
         while 1:
@@ -451,6 +464,9 @@ class MyCtrl(wx.Control):
         # about draft / layout mode differences.
         approx = int(((height / self.mm2p) / self.chY) / 1.3)
 
+        # positions are line numbers: the thumb's position is the top line.
+        # the range has a screenful of padding beyond the last line, so the
+        # thumb can go far enough to put the last line at the top.
         self.panel.scrollBar.SetScrollbar(
             self.sp.getTopLine(), approx, len(self.sp.lines) + approx - 1, approx
         )
@@ -585,6 +601,8 @@ class MyCtrl(wx.Control):
         self.refreshGuiConfig()
         self.gd.mainFrame.updateKbdCommands()
 
+        # every script keeps a reference to the global config, which has
+        # just been replaced by a copy
         for c in self.gd.mainFrame.getCtrls():
             c.sp.cfgGl = self.gd.cfgGl
             c.refreshCache()
@@ -718,6 +736,11 @@ class MyCtrl(wx.Control):
     def OnSize(self, event):
         size = self.GetClientSize()
 
+        # OnPaint draws into screenBuf, a class attribute: one bitmap
+        # shared by all the tabs, as only the selected one is shown, and
+        # only replaced when the size changes. not used when doDblBuf is
+        # False (Unix, see misc.init), where wx double-buffers by itself.
+        #
         # we can briefly be zero-sized while the outline view's splitter
         # lays us out, and wx can't create empty bitmaps
         if misc.doDblBuf and (size.width > 0) and (size.height > 0):
@@ -732,8 +755,13 @@ class MyCtrl(wx.Control):
             ):
                 self.__class__.screenBuf = sb
 
+        # a different number of lines fits now
         self.makeLineVisible(self.sp.line)
 
+    # also called by OnMotion while the button is held down, with mark
+    # True: the first such call sets the selection's other end, at about
+    # where the button went down, and later ones only move the cursor, so
+    # dragging selects text
     def OnLeftDown(self, event, mark=False):
         if not mark and self.isOverTitleButton(event.GetPosition()):
             self.gd.mainFrame.OnTitlesDlg()
@@ -1815,6 +1843,11 @@ class MyCtrl(wx.Control):
             if addChar:
                 cs.char = chr(kc)
 
+                # test mode hooks, originally typed as the Latin-1
+                # characters 0xE5, 0xA4 and 0xBD. those were lost when this
+                # file was re-encoded: the literals are now the UTF-8 bytes
+                # of U+FFFD, which Python reads per the iso-8859-1 coding
+                # line as three characters, so none of them can match.
                 if opts.isTest and (cs.char == "�"):
                     self.loadFile("sample.trelby")
                 elif opts.isTest and (cs.char == "�"):
@@ -1826,6 +1859,11 @@ class MyCtrl(wx.Control):
                     self.checkWideChars(cs.char)
 
         else:
+            # a bound key (see MyFrame.updateKbdCommands). a menu command
+            # runs MyFrame.On<name>, which updates the screen itself, so
+            # we're done. other commands are cmd<name> methods here, which
+            # work on self.sp and leave updating the screen to the code
+            # below.
             cmd = self.gd.mainFrame.kbdCommands.get(
                 util.Key(kc, ev.ControlDown(), ev.AltDown(), ev.ShiftDown()).toInt()
             )
@@ -1871,7 +1909,8 @@ class MyCtrl(wx.Control):
         # auto-comp FontInfo
         acFi = None
 
-        # key = font, value = ([text, ...], [(x, y), ...], [wx.Colour, ...])
+        # list of (font, ([text, ...], [(x, y), ...], [wx.Colour, ...]))
+        # tuples, drawn after everything else by ViewMode.drawTexts
         texts = []
 
         # lists of underline-lines to draw, one for normal text and one
@@ -1941,6 +1980,9 @@ class MyCtrl(wx.Control):
                     dc.SetPen(self.gd.cfgGui.notePen)
                     dc.SetBrush(self.gd.cfgGui.noteBrush)
 
+                    # element widths are in columns, fx pixels each,
+                    # while positions in the text are in characters, cfx
+                    # pixels each
                     nx = t.x - 5
                     nw = self.sp.cfg.getType(l.lt).width * fx + 10
 
@@ -2024,6 +2066,11 @@ class MyCtrl(wx.Control):
 
                 # bold / italic / underlined parts of the text are drawn
                 # separately, each in its own font
+                #
+                # cfgGui.fonts is indexed by the bold / italic bits, which
+                # textfmt and pml share, so a run's style bits are added to
+                # the element's own font, e.g. italic text in a bold scene
+                # heading gets the bold italic font
                 if t.fmt:
                     fonts = self.gd.cfgGui.fonts
                     base = fonts.index(fi)
@@ -2115,6 +2162,9 @@ class MyCtrl(wx.Control):
 
         # x offsets (pixels) of the icons from the left edge of the page
         pageX = int((cfg.paperWidth - cfg.marginRight) * mm2p) + gap
+
+        # the left scene number starts 6 characters left of the margin (see
+        # Screenplay.addSceneNumbers)
         sceneX = int((cfg.marginLeft - 6 * self.chX) * mm2p) - gap - w
 
         draftX = util.clamp((size.width - self.pageW) // 2, 0)
@@ -2229,6 +2279,9 @@ class MyCtrl(wx.Control):
         show = min(self.sp.acMax, len(ac))
         doSbw = show < len(ac)
 
+        # the items shown scroll a page (show items) at a time: the page
+        # with the selected item, except that the last page is moved back
+        # to be a full one
         startPos = (asel // show) * show
         endPos = min(startPos + show, len(ac))
         if endPos == len(ac):

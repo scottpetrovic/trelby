@@ -122,7 +122,10 @@ class ScrollBar(wx.Window):
 
         return (self.margin, max(0, height - 2 * self.margin))
 
-    # return the thumb's wx.Rect, or None if there's no thumb
+    # return the thumb's wx.Rect, or None if there's no thumb. its height
+    # is the visible part's share of the track (but at least
+    # minThumbHeight), and its top moves over the rest of the track in
+    # proportion to pos / maxPos.
     def getThumbRect(self):
         if not self.canScroll():
             return None

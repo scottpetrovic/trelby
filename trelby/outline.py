@@ -538,6 +538,8 @@ class OutlinePanel(wx.Panel):
 
         items = self.getCtrl().sp.getOutline()
 
+        # OutlineItems compare by value, so the list is only refilled (and
+        # its rows re-measured) when something it shows has changed
         if items != self.items:
             self.items = items
             self.fillList()
