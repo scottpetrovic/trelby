@@ -1368,6 +1368,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                         pml.QuarterCircleOp(nx + nw, ny + chY, offset, lw, True, True)
                     )
 
+            if doExtra and (tcfg.lt == ACTBREAK) and self.isFirstLineOfElem(i):
+                pager.sceneContNr = 0
+
             if doExtra and (tcfg.lt == SCENE) and self.isFirstLineOfElem(i):
                 pager.sceneContNr = 0
 
@@ -2036,18 +2039,21 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             self.getElemLastIndexFromLine(line),
         )
 
+    # for scene CONTINUEDs, an act break ends a scene the same way a new
+    # scene heading does.
     def isFirstLineOfScene(self, line):
         if line == 0:
             return True
 
         ls = self.lines
+        lt = ls[line].lt
 
-        if ls[line].lt != SCENE:
+        if lt not in (SCENE, ACTBREAK):
             return False
 
         l = ls[line - 1]
 
-        return (l.lt != SCENE) or (l.lb == LB_LAST)
+        return (l.lt != lt) or (l.lb == LB_LAST)
 
     def isLastLineOfScene(self, line):
         ls = self.lines
@@ -2058,7 +2064,22 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         if line == (len(ls) - 1):
             return True
 
-        return ls[line + 1].lt == SCENE
+        return ls[line + 1].lt in (SCENE, ACTBREAK)
+
+    # is the given line the first line of an act heading, i.e. an act break
+    # that's the last one in a run of act breaks, followed by the act
+    # itself. in "END OF ACT ONE", "ACT TWO", "INT. HOUSE", it's "ACT TWO";
+    # "END OF ACT ONE" isn't one, and neither is an act break that ends
+    # the script.
+    def isActStart(self, line):
+        ls = self.lines
+
+        if (ls[line].lt != ACTBREAK) or not self.isFirstLineOfElem(line):
+            return False
+
+        nextLt = self.getTypeOfNextElem(line)
+
+        return (nextLt is not None) and (nextLt != ACTBREAK)
 
     def getTypeOfPrevElem(self, line):
         line = self.getElemFirstIndexFromLine(line)
@@ -2239,6 +2260,11 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         self.initDualPagination()
 
+        if self.cfg.pbActNewPage:
+            self.actStarts = {i for i in range(1, length) if self.isActStart(i)}
+        else:
+            self.actStarts = set()
+
         if not locks:
             self.paginateRange(0, length - 1)
             self.pageLabels.extend(str(p) for p in range(1, len(self.pages)))
@@ -2320,6 +2346,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         hdrLines = self.headers.getNrOfLines()
         dualBlockAt = self.dualBlockAt
         dualCost = self.dualCost
+        actStarts = self.actStarts
 
         i = start
         while 1:
@@ -2349,6 +2376,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 # this page (before adjustments)
 
                 while i < (length - 1):
+
+                    if (i + 1) in actStarts:
+                        break
 
                     dual = dualCost.get(i + 1)
 
@@ -2465,6 +2495,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                         if i == oldI:
                             break
+
+            # don't leave an act heading at the bottom of a page, with
+            # the act itself starting on the next one
+            if ls[i].lt == ACTBREAK:
+                first = self.getElemFirstIndexFromLine(i)
+
+                if (first > (lastBreak + 1)) and self.isActStart(first):
+                    i = first - 1
 
             # make sure no matter how buggy the code above is, we always
             # advance at least one line per page

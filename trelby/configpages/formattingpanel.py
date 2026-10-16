@@ -30,6 +30,10 @@ class FormattingPanel(wx.Panel):
 
         vsizer.Add(gsizer, 0, wx.LEFT, 10)
 
+        self.actNewPageCb = wx.CheckBox(self, -1, _("Start each act on a new page"))
+        self.Bind(wx.EVT_CHECKBOX, self.OnMisc, id=self.actNewPageCb.GetId())
+        vsizer.Add(self.actNewPageCb, 0, wx.TOP, 10)
+
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.addSpin("fontSize", _("Font size:"), self, hsizer, "fontSize")
         vsizer.Add(hsizer, 0, wx.TOP, 20)
@@ -93,6 +97,7 @@ class FormattingPanel(wx.Panel):
     def OnMisc(self, event=None):
         self.cfg.pbActionLines = util.getSpinValue(self.actionEntry)
         self.cfg.pbDialogueLines = util.getSpinValue(self.dialogueEntry)
+        self.cfg.pbActNewPage = self.actNewPageCb.GetValue()
         self.cfg.sceneContinueds = self.sceneContinuedsCb.GetValue()
         self.cfg.sceneContinuedIndent = util.getSpinValue(
             self.sceneContinuedIndentEntry
@@ -110,6 +115,7 @@ class FormattingPanel(wx.Panel):
 
         self.actionEntry.SetValue(self.cfg.pbActionLines)
         self.dialogueEntry.SetValue(self.cfg.pbDialogueLines)
+        self.actNewPageCb.SetValue(self.cfg.pbActNewPage)
         self.sceneContinuedsCb.SetValue(self.cfg.sceneContinueds)
         self.sceneContinuedIndentEntry.SetValue(self.cfg.sceneContinuedIndent)
         self.fontSizeEntry.SetValue(self.cfg.fontSize)

@@ -521,7 +521,7 @@ class Config:
         t = Type(screenplay.ACTBREAK)
         t.beforeSpacing = 10
         t.indent = 25
-        t.width = 10
+        t.width = 20
         t.screen.isCaps = True
         t.screen.isBold = True
         t.screen.isUnderlined = True
@@ -571,6 +571,10 @@ class Config:
 
         # leave at least this many dialogue lines on the end of a page
         v.addInt("pbDialogueLines", 2, "PageBreakDialogueLines", 1, 30)
+
+        # whether each act starts on a new page (see
+        # Screenplay.isActStart)
+        v.addBool("pbActNewPage", True, "PageBreakActNewPage")
 
         # whether scene continueds are enabled
         v.addBool("sceneContinueds", False, "SceneContinueds")
