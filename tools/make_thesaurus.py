@@ -21,6 +21,13 @@ MAX_SIMILAR = 20
 MAX_BROADER = 6
 MAX_NARROWER = 15
 
+# verbs whose past tense is the word itself, which verb.exc leaves out
+SAME_PAST = """
+    bet bid broadcast burst cast cost cut forecast hit hurt let offset put
+    quit read reset rid set shed shut slit split spread sublet thrust
+    undercut upset
+""".split()
+
 # the headwords we keep: single words the editor can find under the
 # cursor (see spellcheck.lineWords)
 HEADWORD_RE = re.compile(r"^[a-z0-9']+$")
@@ -135,18 +142,43 @@ def loadIndex(dictDir):
     return res
 
 
+# (form, pos, base) for each irregular form in WordNet's exception lists,
+# with "_" in phrases replaced by spaces
 def loadExceptions(dictDir):
-    res = collections.defaultdict(list)
+    res = []
 
-    for name in POS_FILES.values():
+    for pos, name in POS_FILES.items():
         for line in lines(f"{dictDir}/{name}.exc"):
             f = line.split()
+            form = f[0].replace("_", " ")
 
             for base in f[1:]:
-                if base not in res[f[0]]:
-                    res[f[0]].append(base)
+                res.append((form, pos, base.replace("_", " ")))
 
     return res
+
+
+# which inflection an irregular form is, as thesaurus.py's endings: "s",
+# "ed", "ing", "er" or "est"
+def endingOf(form, pos):
+    if pos == "n":
+        return "s"
+
+    if pos in "ar":
+        # "worst", "most", "least"
+        return "est" if form.endswith("st") else "er"
+
+    # a verb phrase's first word is the one inflected ("took pains")
+    form = form.split(" ")[0]
+
+    if form.endswith("ing"):
+        return "ing"
+
+    # "was" is the one past tense in verb.exc ending in "s"
+    if form.endswith("s") and form != "was":
+        return "s"
+
+    return "ed"
 
 
 def main(dictDir, outFile):
@@ -220,11 +252,17 @@ def main(dictDir, outFile):
     for lemma in sorted(heads):
         out.append("W\t%s\t%s" % (lemma, " ".join(str(ids[k]) for k in heads[lemma])))
 
-    for form in sorted(exceptions):
-        bases = [b for b in exceptions[form] if b in heads and b != form]
+    # the irregular forms of the words a sense can have
+    synonyms = {w.lower() for k in used for w in related(k)}
 
-        if bases and HEADWORD_RE.match(form):
-            out.append("X\t%s\t%s" % (form, " ".join(bases)))
+    # some exceptions are the base itself ("bed bed"), to stop WordNet
+    # from taking it for a form of something else ("b")
+    rows = {(f, p, b) for f, p, b in exceptions if f != b}
+    rows |= {(w, "v", w) for w in SAME_PAST}
+
+    for form, pos, base in sorted(rows):
+        if base in synonyms:
+            out.append("X	%s	%s	%s	%s" % (form, pos, base, endingOf(form, pos)))
 
     with open(outFile, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(out) + "\n")
