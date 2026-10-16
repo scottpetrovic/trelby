@@ -1,6 +1,6 @@
 import tests.u as u
 import trelby.screenplay.export as export
-import trelby.util as util
+import trelby.textutil as textutil
 
 
 def testRenderScreenplay() -> None:
@@ -8,7 +8,7 @@ def testRenderScreenplay() -> None:
     data = export.generatePDF(sp)
 
     assert len(data) > 200
-    assert data[:8] == util.toLatin1("%PDF-1.5")
+    assert data[:8] == textutil.toLatin1("%PDF-1.5")
 
 
 def testRenderScreenplayWithCustomFont() -> None:
@@ -21,4 +21,4 @@ def testRenderScreenplayWithCustomFont() -> None:
     data = export.generatePDF(sp)
 
     assert len(data) > 200
-    assert data[:8] == util.toLatin1("%PDF-1.5")
+    assert data[:8] == textutil.toLatin1("%PDF-1.5")

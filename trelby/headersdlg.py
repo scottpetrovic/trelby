@@ -3,6 +3,7 @@ import wx
 import trelby.gutil as gutil
 import trelby.headers as headers
 import trelby.misc as misc
+import trelby.textutil as textutil
 import trelby.util as util
 from trelby.headerspreview import HeadersPreview
 
@@ -295,7 +296,7 @@ class HeadersDlg(wx.Dialog):
 
         h = self.headers.hdrs[self.hdrIndex]
 
-        h.text = util.toInputStr(misc.fromGUI(self.textEntry.GetValue()))
+        h.text = textutil.toInputStr(misc.fromGUI(self.textEntry.GetValue()))
         self.stringsLb.SetString(self.hdrIndex, h.text)
 
         h.xoff = util.getSpinValue(self.xoffEntry)

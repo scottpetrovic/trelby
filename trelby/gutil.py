@@ -4,6 +4,7 @@ import tempfile
 from typing import TYPE_CHECKING
 
 import trelby.misc as misc
+import trelby.textutil as textutil
 import trelby.util as util
 from trelby.error import MiscError, TrelbyError
 
@@ -543,7 +544,7 @@ class WrappedText(wx.StaticText):
         dc = wx.ClientDC(self)
         dc.SetFont(self.GetFont())
 
-        label = util.wrapText(self.text, width, lambda s: dc.GetTextExtent(s)[0])
+        label = textutil.wrapText(self.text, width, lambda s: dc.GetTextExtent(s)[0])
         self.SetLabelText(label)
 
         # tall enough for the wrapped text. GetBestSize can't be used, as

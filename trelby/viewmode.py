@@ -4,6 +4,7 @@ import trelby.commands as commands
 import trelby.mypager as mypager
 import trelby.pml as pml
 import trelby.screenplay.render as render
+import trelby.textutil as textutil
 import trelby.util as util
 
 # Number of lines the smooth scroll will try to search. 15-20 is a good
@@ -270,7 +271,7 @@ class ViewModeDraft(ViewMode):
             tcfg = cfg.getType(l.lt)
 
             if tcfg.screen.isCaps:
-                text = util.upper(l.text)
+                text = textutil.upper(l.text)
             else:
                 text = l.text
 

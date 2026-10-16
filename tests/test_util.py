@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 
 import tests.u as u
-import trelby.util as util
+import trelby.textutil as textutil
 
 # test util stuff
 
@@ -9,7 +9,7 @@ import trelby.util as util
 def testReplace():
     u.init()
 
-    ur = util.replace
+    ur = textutil.replace
 
     assert ur("", "", 0, 0) == ""
     assert ur("", "jep", 0, 0) == "jep"
@@ -24,7 +24,7 @@ def testReplace():
 def testSplitToWords():
     u.init()
 
-    us = util.splitToWords
+    us = textutil.splitToWords
 
     assert us("") == []
     assert us("yo") == ["yo"]
@@ -48,7 +48,7 @@ def testSplitToWords():
 # def testToUTF8():
 #    u.init()
 #
-#    t = util.toUTF8
+#    t = textutil.toUTF8
 #
 #    assert t("") == ""
 #    assert t("yo") == "yo"
@@ -57,7 +57,7 @@ def testSplitToWords():
 # def testFromUTF8():
 #    u.init()
 #
-#    f = util.fromUTF8
+#    f = textutil.fromUTF8
 #
 #    assert f("") == ""
 #    assert f("yo") == "yo"
@@ -80,5 +80,5 @@ def testEscapeStrings():
     ]
 
     for items, s in data:
-        assert util.escapeStrings(items) == s
-        assert util.unescapeStrings(s) == items
+        assert textutil.escapeStrings(items) == s
+        assert textutil.unescapeStrings(s) == items

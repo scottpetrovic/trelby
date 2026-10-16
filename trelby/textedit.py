@@ -1,3 +1,4 @@
+import trelby.textutil as textutil
 import trelby.util as util
 
 
@@ -150,8 +151,8 @@ class TextEdit:
     def insert(self, s):
         self.deleteSelection()
 
-        s = util.toInputStr(util.fixNL(util.cleanInput(s)))
-        s = util.removeInvalidChars(s)
+        s = textutil.toInputStr(textutil.fixNL(textutil.cleanInput(s)))
+        s = textutil.removeInvalidChars(s)
 
         line, col = self.caret
         cur = self.lines[line]

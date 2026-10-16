@@ -3,6 +3,7 @@
 import trelby.config as config
 import trelby.error as error
 import trelby.textfmt as textfmt
+import trelby.textutil as textutil
 import trelby.util as util
 from trelby.screenplay.constants import (
     LB_FORCED,
@@ -100,7 +101,7 @@ def generateRTF(sp):
 
             # bold / italic / underlined runs go in groups of their own
             for a, b, style in textfmt.runs(ln.fmt, len(ln.text)):
-                part = util.escapeRTF(ln.text[a:b])
+                part = textutil.escapeRTF(ln.text[a:b])
 
                 if style:
                     codes = "".join(

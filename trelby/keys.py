@@ -1,7 +1,7 @@
 # key presses, as used for the keyboard commands (see commands.py). this
 # doesn't need wx, so the config can be loaded without it.
 
-import trelby.util as util
+import trelby.textutil as textutil
 
 # the wx.WXK_* key codes Key uses, so that it and the default key bindings
 # don't need to import wx. they're part of the config file format (see
@@ -157,7 +157,7 @@ class Key:
         # characters above 255 ("ÿ" -> "Ÿ"), which would clash with the
         # WXK_ constants, so those are left as they are.
         if (kc < 256) and (ctrl or alt):
-            up = ord(util.upper(chr(kc)))
+            up = ord(textutil.upper(chr(kc)))
 
             if up < 256:
                 kc = up
@@ -187,7 +187,7 @@ class Key:
     # like an arrow or F1. key codes only go up to 255, above that they are
     # WXK_ constants (WXK_LEFT is 314, which as a code point is "ĺ").
     def isChar(self):
-        return (self.kc < 256) and util.isValidInputChar(self.kc)
+        return (self.kc < 256) and textutil.isValidInputChar(self.kc)
 
     # toInt/fromInt serialize/deserialize to/from a 35-bit integer, laid
     # out like this:

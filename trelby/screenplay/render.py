@@ -5,6 +5,7 @@
 
 import trelby.mypager as mypager
 import trelby.pml as pml
+import trelby.textutil as textutil
 import trelby.util as util
 from trelby.screenplay.constants import (
     ACTBREAK,
@@ -173,7 +174,7 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
                 tt = tcfg.screen
 
             if tt.isCaps:
-                text = util.upper(line.text)
+                text = textutil.upper(line.text)
             else:
                 text = line.text
 

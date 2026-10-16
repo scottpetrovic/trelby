@@ -1,11 +1,12 @@
 import trelby
 import trelby.mypickle as mypickle
+import trelby.textutil as textutil
 import trelby.util as util
 
 # words loaded from dict_en.dat.
 gdict = set()
 
-# key = util.getWordPrefix(word), value = set of words beginning with
+# key = textutil.getWordPrefix(word), value = set of words beginning with
 # that prefix (only words in gdict)
 #
 # only used by spellcheckdlg to narrow down the words to suggest. words of
@@ -34,10 +35,10 @@ def loadDict(frame):
         for ch2 in chars:
             prefixDict[ch1 + ch2] = set()
 
-    gwp = util.getWordPrefix
+    gwp = textutil.getWordPrefix
 
     for word in lines:
-        # theoretically, we should do util.lower(util.toInputStr(it)), but:
+        # theoretically, we should do textutil.lower(textutil.toInputStr(it)), but:
         #
         #  -user's aren't supposed to modify the file
         #
@@ -130,7 +131,7 @@ class Dict:
     # clean up word in all possible ways and return it, or an empty string
     # if nothing remains.
     def cleanWord(self, word):
-        word = util.splitToWords(util.lower(util.toInputStr(word)))
+        word = textutil.splitToWords(textutil.lower(textutil.toInputStr(word)))
 
         if len(word) == 0:
             return ""
@@ -151,7 +152,7 @@ class SpellChecker:
         self.cnames = {}
 
         for it in sp.getCharacterNames():
-            for w in util.splitToWords(it):
+            for w in textutil.splitToWords(it):
                 self.cnames[w] = None
 
         self.word = None
@@ -191,7 +192,7 @@ class SpellChecker:
 
     # return True if word is a known word.
     def isKnown(self, word):
-        word = util.lower(word)
+        word = textutil.lower(word)
 
         return (
             word in gdict

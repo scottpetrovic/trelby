@@ -2,6 +2,7 @@ import trelby.misc as misc
 import trelby.pml as pml
 import trelby.screenplay as screenplay
 import trelby.textreport as textreport
+import trelby.textutil as textutil
 import trelby.util as util
 from trelby.pagelist import PageList
 
@@ -97,7 +98,7 @@ class SceneInfo:
 
         # TODO: handle multi-line scene names
         if ls[startLine].lt == screenplay.SCENE:
-            s = util.upper(ls[startLine].text)
+            s = textutil.upper(ls[startLine].text)
 
             if len(s.strip()) == 0:
                 self.name = "(EMPTY SCENE NAME)"
@@ -152,7 +153,7 @@ class SceneInfo:
             return endLine
 
         # TODO: handle multi-line character names
-        s = util.upper(ls[line].text)
+        s = textutil.upper(ls[line].text)
         if len(s.strip()) == 0:
             name = "(EMPTY CHARACTER NAME)"
         else:

@@ -2,7 +2,7 @@ import os
 
 import tests.u as u
 import trelby.screenplay as scr
-import trelby.util as util
+import trelby.textutil as textutil
 
 # tests for the outline view's model: Screenplay.getOutline and
 # Editor.moveScene
@@ -72,7 +72,7 @@ def testGetOutlineMultiLineHeading():
     ed.cmdChars("int. " + "very long place name " * 6 + "- day")
 
     assert len(ed.sp.lines) > 1
-    assert ed.sp.getOutline()[0].heading == util.upper(
+    assert ed.sp.getOutline()[0].heading == textutil.upper(
         "int. " + "very long place name " * 6 + "- day"
     )
 

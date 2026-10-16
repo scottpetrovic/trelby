@@ -1,8 +1,8 @@
 # the scene outline (the outline panel's data), scene colors, and moving
 # whole scenes around.
 
+import trelby.textutil as textutil
 import trelby.undo as undo
-import trelby.util as util
 from trelby.screenplay.constants import (
     ACTBREAK,
     ACTION,
@@ -55,7 +55,7 @@ class OutlineMixin:
             heading = self.getElemText(start)
 
             if self.cfg.getType(lt).screen.isCaps:
-                heading = util.upper(heading)
+                heading = textutil.upper(heading)
 
             sceneNr = sceneNrs.get(start, "")
 

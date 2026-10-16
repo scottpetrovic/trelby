@@ -10,6 +10,7 @@ import trelby.error as error
 import trelby.headers as headers
 import trelby.pagelock as pagelock
 import trelby.textfmt as textfmt
+import trelby.textutil as textutil
 import trelby.titles as titles
 import trelby.util as util
 from trelby.line import Line
@@ -275,7 +276,7 @@ def load(s: str, cfgGl):
             # Line.__str__ (see config's char tables)
             lb = config.char2lb(s[0], False)
             lt = config.char2lt(s[1], False)
-            text = util.toInputStr(util.fromUTF8(s[2:]))
+            text = textutil.toInputStr(textutil.fromUTF8(s[2:]))
 
             # an early development version had a separate centered
             # element type

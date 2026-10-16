@@ -8,6 +8,7 @@ import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.reportwindow as reportwindow
 import trelby.screenplay as screenplay
+import trelby.textutil as textutil
 import trelby.util as util
 
 
@@ -124,7 +125,7 @@ class DialogueChart:
             pi.addLine(line.lt)
 
             if (line.lt == screenplay.CHARACTER) and (line.lb == screenplay.LB_LAST):
-                name = util.upper(line.text)
+                name = textutil.upper(line.text)
 
             elif line.lt == screenplay.DIALOGUE:
                 pi.addLineToSpeaker(name)

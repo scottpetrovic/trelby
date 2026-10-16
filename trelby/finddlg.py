@@ -3,6 +3,7 @@ import wx
 import trelby.config as config
 import trelby.gutil as gutil
 import trelby.misc as misc
+import trelby.textutil as textutil
 import trelby.undo as undo
 import trelby.util as util
 
@@ -264,7 +265,7 @@ class FindDlg(wx.Dialog):
 
         value = misc.fromGUI(self.findEntry.GetValue())
         if not self.matchCase:
-            value = util.upper(value)
+            value = textutil.upper(value)
 
         if value == "":
             return
@@ -320,7 +321,7 @@ class FindDlg(wx.Dialog):
                     text = ls[line].text
                     value = str(value)
                     if not self.matchCase:
-                        text = util.upper(text)
+                        text = textutil.upper(text)
 
                     # going up, the match's last character must be at or
                     # before col
@@ -334,8 +335,8 @@ class FindDlg(wx.Dialog):
                     # "", which isWordBoundary counts as a boundary
                     if res != -1:
                         if not self.matchWhole or (
-                            util.isWordBoundary(text[res - 1 : res])
-                            and util.isWordBoundary(
+                            textutil.isWordBoundary(text[res - 1 : res])
+                            and textutil.isWordBoundary(
                                 text[res + len(value) : res + len(value) + 1]
                             )
                         ):
@@ -408,7 +409,7 @@ class FindDlg(wx.Dialog):
         if self.searchLine == -1:
             return False
 
-        value = util.toInputStr(misc.fromGUI(self.replaceEntry.GetValue()))
+        value = textutil.toInputStr(misc.fromGUI(self.replaceEntry.GetValue()))
         ls = self.ctrl.sp.lines
 
         sp = self.ctrl.sp
@@ -416,7 +417,7 @@ class FindDlg(wx.Dialog):
         u = undo.SinglePara(ed, undo.CMD_MISC, self.searchLine)
 
         ls[self.searchLine].replaceText(
-            self.searchColumn, self.searchWidth, util.toInputStr(value)
+            self.searchColumn, self.searchWidth, textutil.toInputStr(value)
         )
 
         ed.rewrapPara(sp.getParaFirstIndexFromLine(self.searchLine))

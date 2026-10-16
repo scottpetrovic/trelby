@@ -1,6 +1,7 @@
 import copy
 
 import trelby.config as config
+import trelby.textutil as textutil
 import trelby.util as util
 
 
@@ -72,7 +73,7 @@ class Vars:
     # appears twice gets the later value.
     @staticmethod
     def makeVals(s):
-        tmp = util.fixNL(str(s)).split("\n")
+        tmp = textutil.fixNL(str(s)).split("\n")
 
         vals = {}
         for it in tmp:
@@ -182,19 +183,19 @@ class IntVar(NumericVar):
         return util.str2int(val, self.defVal, self.minVal, self.maxVal)
 
 
-# originally an ISO-8859-1 (Latin 1) string. util.toUTF8/fromUTF8 no longer
+# originally an ISO-8859-1 (Latin 1) string. textutil.toUTF8/fromUTF8 no longer
 # convert anything, so it now holds any Unicode text, like StrUnicodeVar.
 # the remaining difference is that Config.recalc passes Config's own
-# variables of this type through util.toInputStr (see Vars.stringLatin1).
+# variables of this type through textutil.toInputStr (see Vars.stringLatin1).
 class StrLatin1Var(ConfVar):
     def __init__(self, name, defVal, name2):
         ConfVar.__init__(self, name, defVal, name2)
 
     def toStr(self, val, prefix):
-        return "%s:%s\n" % (prefix, util.toUTF8(val))
+        return "%s:%s\n" % (prefix, textutil.toUTF8(val))
 
     def fromStr(self, vals, val, prefix):
-        return util.fromUTF8(val)
+        return textutil.fromUTF8(val)
 
 
 # Unicode string.
@@ -211,16 +212,16 @@ class StrUnicodeVar(ConfVar):
 
 # binary string, can contain anything. characters outside of printable
 # ASCII (and \ itself) are escaped with their hex code: \XX up to U+00FF,
-# \uXXXX or \UXXXXXXXX above that (see util.encodeStr).
+# \uXXXX or \UXXXXXXXX above that (see textutil.encodeStr).
 class StrBinaryVar(ConfVar):
     def __init__(self, name, defVal, name2):
         ConfVar.__init__(self, name, defVal, name2)
 
     def toStr(self, val, prefix):
-        return "%s:%s\n" % (prefix, util.encodeStr(val))
+        return "%s:%s\n" % (prefix, textutil.encodeStr(val))
 
     def fromStr(self, vals, val, prefix):
-        return util.decodeStr(val)
+        return textutil.decodeStr(val)
 
 
 # screenplay.ACTION <-> "Action"

@@ -22,6 +22,7 @@ import trelby.error as error
 import trelby.misc as misc
 import trelby.screenplay as screenplay
 import trelby.screenplay.export as exporters
+import trelby.textutil as textutil
 import trelby.translations as translations
 import trelby.undo as undo
 import trelby.util as util
@@ -437,7 +438,7 @@ def buildLines(elements, needHeading):
         if centered and (lt != ACTION):
             raise ToolError("Only action elements can be centered.")
 
-        parts = util.fixNL(text).replace("\t", " ").split("\n")
+        parts = textutil.fixNL(text).replace("\t", " ").split("\n")
 
         # one Line per forced-break segment, not yet word wrapped (the
         # document's write does that). the element's flags only go on its
@@ -819,7 +820,7 @@ def setWorldBuilding(doc, revision, text):
     if not isinstance(text, str):
         raise ToolError("The text must be a string.")
 
-    text = util.fixNL(text)
+    text = textutil.fixNL(text)
 
     sp, current = doc.read()
 
@@ -910,7 +911,7 @@ def setCharacterProfile(doc, revision, name, notes):
     if not isinstance(notes, str):
         raise ToolError("The notes must be a string.")
 
-    notes = util.fixNL(notes)
+    notes = textutil.fixNL(notes)
 
     def edit(sp):
         profiles = sp.characterProfiles

@@ -2,6 +2,7 @@ import base64
 import re
 
 import trelby.mypickle as mypickle
+import trelby.textutil as textutil
 import trelby.util as util
 
 # profile fields stored as text, in the order they're saved: (attribute
@@ -68,7 +69,7 @@ def unescapeText(s):
 # and upper-case it, so that all the ways a character's name appears in
 # the script map to the same profile.
 def normalizeName(name):
-    name = util.upper(name)
+    name = textutil.upper(name)
 
     idx = name.find("(")
     if idx != -1:

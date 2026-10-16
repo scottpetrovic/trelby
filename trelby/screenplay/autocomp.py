@@ -2,8 +2,8 @@
 # names and transitions. the candidates come from trelby/autocompletion.py.
 
 import trelby.autocompletion as autocompletion
+import trelby.textutil as textutil
 import trelby.undo as undo
-import trelby.util as util
 from trelby.screenplay.constants import (
     CHARACTER,
     SCENE,
@@ -43,7 +43,7 @@ class AutoCompletionMixin:
         # BOBBY) is one Up away. the best match stays selected, so Enter
         # still completes. not after a space, where a word or a part of a
         # scene heading (like "INT. ") has just been finished.
-        typed = util.upper(text)
+        typed = textutil.upper(text)
         if (
             self.acItems
             and typed.strip()
@@ -113,13 +113,13 @@ class AutoCompletionMixin:
     # exact match first. also mixes in the type's default items from
     # config. ignores current line.
     def getMatchingText(self, text, lt):
-        text = util.upper(text)
+        text = textutil.upper(text)
         ls = self.sp.lines
         uses = []
 
         for i in range(len(ls)):
             if (ls[i].lt == lt) and (i != self.line) and self.sp.isOnlyLineOfElem(i):
-                upstr = util.upper(ls[i].text).rstrip()
+                upstr = textutil.upper(ls[i].text).rstrip()
 
                 if upstr:
                     uses.append((i, upstr))

@@ -6,6 +6,7 @@ import wx
 import trelby.characterprofiles as characterprofiles
 import trelby.gutil as gutil
 import trelby.namesdlg as namesdlg
+import trelby.textutil as textutil
 import trelby.util as util
 
 # photos are scaled down to fit in a square this big, in pixels, before
@@ -484,7 +485,7 @@ class CharacterProfilesDlg(wx.Dialog):
     def updateListItem(self, i):
         prof = self.profiles[i]
 
-        self.charList.SetString(i, util.upper(prof.name) or _("(unnamed)"))
+        self.charList.SetString(i, textutil.upper(prof.name) or _("(unnamed)"))
         self.charList.SetItemDimmed(i, not prof.hasInfo())
 
     # show profile number 'i', or nothing if it's out of range
@@ -563,7 +564,7 @@ class CharacterProfilesDlg(wx.Dialog):
         if not self.cur:
             return
 
-        name = util.upper(self.cur.name) or _("(unnamed)")
+        name = textutil.upper(self.cur.name) or _("(unnamed)")
 
         if self.cur.hasInfo() and (
             wx.MessageBox(
@@ -598,7 +599,7 @@ class CharacterProfilesDlg(wx.Dialog):
         dlg = NameGeneratorDlg(self)
 
         if dlg.ShowModal() == wx.ID_OK:
-            self.ctrls["name"].SetValue(util.upper(dlg.name))
+            self.ctrls["name"].SetValue(textutil.upper(dlg.name))
 
         dlg.Destroy()
 
@@ -665,7 +666,7 @@ class CharacterProfilesDlg(wx.Dialog):
     def OnPhotoDClick(self, event):
         if self.photoPanel.img:
             dlg = PhotoViewDlg(
-                self, self.photoPanel.img, util.upper(self.cur.name) or _("Photo")
+                self, self.photoPanel.img, textutil.upper(self.cur.name) or _("Photo")
             )
             dlg.ShowModal()
             dlg.Destroy()
@@ -705,7 +706,7 @@ class CharacterProfilesDlg(wx.Dialog):
                 return
 
             seen[name] = None
-            prof.name = util.upper(prof.name.strip())
+            prof.name = textutil.upper(prof.name.strip())
             keep.append(prof)
 
         self.renames = {}

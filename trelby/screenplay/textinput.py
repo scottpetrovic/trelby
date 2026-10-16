@@ -2,8 +2,8 @@
 # capitalization and type changes), deleting, line breaks, and tab.
 
 import trelby.textfmt as textfmt
+import trelby.textutil as textutil
 import trelby.undo as undo
-import trelby.util as util
 from trelby.screenplay.constants import (
     CHARACTER,
     DIALOGUE,
@@ -239,7 +239,7 @@ class TextInputMixin:
 
         kc = ord(char)
 
-        if not util.isValidInputChar(kc):
+        if not textutil.isValidInputChar(kc):
             return
 
         isSpace = char == " "
@@ -283,7 +283,7 @@ class TextInputMixin:
                 u = undo.SinglePara(self, undo.CMD_ADD_CHAR, self.line)
 
         if self.capitalizeNeeded():
-            char = util.upper(char)
+            char = textutil.upper(char)
 
         ls = self.sp.lines
         s = ls[self.line].text
@@ -296,18 +296,18 @@ class TextInputMixin:
             s = ls[self.line].text
 
             if s[self.column - 1] == "i":
-                if not util.isAlnum(char):
+                if not textutil.isAlnum(char):
                     doIt = False
 
                     if self.column > 1:
-                        if not util.isAlnum(s[self.column - 2]):
+                        if not textutil.isAlnum(s[self.column - 2]):
                             doIt = True
                     else:
                         if (self.line == 0) or (ls[self.line - 1].lb != LB_NONE):
                             doIt = True
 
                     if doIt:
-                        s = util.replace(s, "I", self.column - 1, 1)
+                        s = textutil.replace(s, "I", self.column - 1, 1)
 
         style, isSet = self.getTypingStyle()
         ln = ls[self.line]

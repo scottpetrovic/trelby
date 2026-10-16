@@ -7,8 +7,8 @@ import re
 import trelby.characterprofiles as characterprofiles
 import trelby.pagelock as pagelock
 import trelby.textfmt as textfmt
+import trelby.textutil as textutil
 import trelby.undo as undo
-import trelby.util as util
 from trelby.line import Line
 from trelby.screenplay.constants import (
     CHARACTER,
@@ -314,13 +314,13 @@ class EditingMixin:
             if found.isupper():
                 return new
             elif found.islower():
-                return util.lower(new)
+                return textutil.lower(new)
             else:
                 # capitalize each word, e.g. "MARY-ANNE O'NEIL" ->
                 # "Mary-Anne O'Neil"
                 return re.sub(
                     r"[^\W\d_]+",
-                    lambda m: util.upper(m.group(0)[:1]) + util.lower(m.group(0)[1:]),
+                    lambda m: textutil.upper(m.group(0)[:1]) + textutil.lower(m.group(0)[1:]),
                     new,
                 )
 

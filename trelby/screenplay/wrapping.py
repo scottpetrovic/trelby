@@ -3,7 +3,7 @@
 
 import trelby.config as config
 import trelby.textfmt as textfmt
-import trelby.util as util
+import trelby.textutil as textutil
 from trelby.line import Line
 from trelby.screenplay.constants import (
     CHARACTER,
@@ -156,7 +156,7 @@ class WrappingMixin:
     @staticmethod
     def findWideBreak(text, lo, hi):
         for k in range(hi, max(lo, 1) - 1, -1):
-            if util.isWideChar(text[k - 1]) or util.isWideChar(text[k]):
+            if textutil.isWideChar(text[k - 1]) or textutil.isWideChar(text[k]):
                 return k
 
         return None

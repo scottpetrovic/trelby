@@ -5,6 +5,7 @@ import trelby.misc as misc
 import trelby.pml as pml
 import trelby.screenplay as screenplay
 import trelby.textreport as textreport
+import trelby.textutil as textutil
 import trelby.util as util
 from trelby.pagelist import PageList
 
@@ -35,10 +36,10 @@ class CharacterReport(textreport.TextReport):
             line = ls[i]
 
             if (line.lt == screenplay.SCENE) and (line.lb == screenplay.LB_LAST):
-                scene = util.upper(line.text)
+                scene = textutil.upper(line.text)
 
             elif (line.lt == screenplay.CHARACTER) and (line.lb == screenplay.LB_LAST):
-                name = util.upper(line.text)
+                name = textutil.upper(line.text)
                 curSpeechLines = 0
 
             elif line.lt in (screenplay.DIALOGUE, screenplay.PAREN) and name:
@@ -59,7 +60,7 @@ class CharacterReport(textreport.TextReport):
                 if line.lt == screenplay.DIALOGUE:
                     ci.lineCnt += 1
 
-                    words = util.splitToWords(line.text)
+                    words = textutil.splitToWords(line.text)
 
                     ci.wordCnt += len(words)
                     ci.wordCharCnt += reduce(lambda x, y: x + len(y), words, 0)

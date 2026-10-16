@@ -2,6 +2,7 @@ import wx
 
 import trelby.gutil as gutil
 import trelby.misc as misc
+import trelby.textutil as textutil
 import trelby.util as util
 
 
@@ -100,7 +101,7 @@ class AutoCompletionDlg(wx.Dialog):
         # just the changed one.
         tmp = []
         for v in misc.fromGUI(self.itemsEntry.GetValue()).split("\n"):
-            v = util.toInputStr(v).strip()
+            v = textutil.toInputStr(v).strip()
 
             if len(v) > 0:
                 tmp.append(v)

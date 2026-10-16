@@ -1,4 +1,5 @@
 import trelby.pml as pml
+import trelby.textutil as textutil
 import trelby.util as util
 
 # kinds of title strings, in the order they're offered when adding one.
@@ -283,7 +284,7 @@ class TitleString:
             if self.isUnderlined:
                 tmp += r" \ul"
 
-            s += r"{\pard\plain%s %s}{\par}" % (tmp, util.escapeRTF(line))
+            s += r"{\pard\plain%s %s}{\par}" % (tmp, textutil.escapeRTF(line))
 
         return s
 
@@ -296,7 +297,7 @@ class TitleString:
     #
     # the kind field was empty and ignored before kinds existed.
     def load(self, s):
-        a = util.fromUTF8(s).split(",", 6)
+        a = textutil.fromUTF8(s).split(",", 6)
 
         if len(a) != 7:
             return
@@ -321,7 +322,7 @@ class TitleString:
 
         self.font = tmp.get(a[4], pml.COURIER)
         self.kind = a[5] if a[5] in KINDS else None
-        self.items = util.unescapeStrings(a[6])
+        self.items = textutil.unescapeStrings(a[6])
 
     def __str__(self):
         s = "%f,%f,%d," % (self.x, self.y, self.size)
@@ -343,6 +344,6 @@ class TitleString:
         else:
             s += "Times"
 
-        s += ",%s,%s" % (self.kind or "", util.escapeStrings(self.items))
+        s += ",%s,%s" % (self.kind or "", textutil.escapeStrings(self.items))
 
         return s

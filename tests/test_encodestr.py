@@ -1,11 +1,11 @@
 import tests.u as u
 import trelby.config as config
+import trelby.textutil as textutil
 import trelby.translations as translations
-import trelby.util as util
 
 _ = translations.trelby_translations_load()
 
-# util.encodeStr / decodeStr, used for StrBinaryVar config values (screen
+# textutil.encodeStr / decodeStr, used for StrBinaryVar config values (screen
 # font names, PDF viewer arguments).
 
 
@@ -22,16 +22,16 @@ def testRoundTrip():
         "\u0100 \uffff \U0001f600 \U0010ffff",
         'C:\\Program Files\\x.exe "%s"',
     ]:
-        assert util.decodeStr(util.encodeStr(s)) == s
+        assert textutil.decodeStr(textutil.encodeStr(s)) == s
 
 
 def testEncodeFormat():
     u.init()
 
-    assert util.encodeStr("a\\b") == "a\\5Cb"
-    assert util.encodeStr("\n\xe5") == "\\0A\\E5"
-    assert util.encodeStr("\u30b4") == "\\u30B4"
-    assert util.encodeStr("\U0001f600") == "\\U0001F600"
+    assert textutil.encodeStr("a\\b") == "a\\5Cb"
+    assert textutil.encodeStr("\n\xe5") == "\\0A\\E5"
+    assert textutil.encodeStr("\u30b4") == "\\u30B4"
+    assert textutil.encodeStr("\U0001f600") == "\\U0001F600"
 
 
 def testDecodeOldFormat():
@@ -39,21 +39,21 @@ def testDecodeOldFormat():
 
     # strings written by old versions, which existing config files contain,
     # must decode the same as they always did.
-    assert util.decodeStr("a\\5Cb\\E5\\0A") == "a\\b\xe5\n"
-    assert util.decodeStr("\\e5") == "\xe5"
+    assert textutil.decodeStr("a\\5Cb\\E5\\0A") == "a\\b\xe5\n"
+    assert textutil.decodeStr("\\e5") == "\xe5"
 
     # old versions wrote characters above U+00FF as "\" plus all their hex
     # digits, which were read back as two digits plus literal text.
-    assert util.decodeStr("MS \\30B4") == "MS 0B4"
+    assert textutil.decodeStr("MS \\30B4") == "MS 0B4"
 
 
 def testDecodeInvalid():
     u.init()
 
     # invalid escapes are dropped.
-    assert util.decodeStr("a\\zzb") == "ab"
-    assert util.decodeStr("a\\u12") == "a2"
-    assert util.decodeStr("\\UFFFFFFFF") == ""
+    assert textutil.decodeStr("a\\zzb") == "ab"
+    assert textutil.decodeStr("a\\u12") == "a2"
+    assert textutil.decodeStr("\\UFFFFFFFF") == ""
 
 
 def testFontNameSurvivesConfig():

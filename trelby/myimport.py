@@ -11,6 +11,7 @@ import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.screenplay as screenplay
 import trelby.textfmt as textfmt
+import trelby.textutil as textutil
 import trelby.titles as titles
 import trelby.util as util
 from trelby.importdlg import ImportDlg
@@ -68,9 +69,9 @@ def importAstx(fileName, frame):
             items = items[:-1]
 
         for s in items[:-1]:
-            lines.append(Line(screenplay.LB_FORCED, eleType, util.cleanInput(s)))
+            lines.append(Line(screenplay.LB_FORCED, eleType, textutil.cleanInput(s)))
 
-        lines.append(Line(screenplay.LB_LAST, eleType, util.cleanInput(items[-1])))
+        lines.append(Line(screenplay.LB_LAST, eleType, textutil.cleanInput(items[-1])))
 
     for para in root.xpath("/AdobeStory/document/stream/section/scene/paragraph"):
         lt = elemMap.get(para.get("element"), screenplay.ACTION)
@@ -142,9 +143,9 @@ def importFadein(fileName, frame):
             lns = lns[:-1]
 
         for s in lns[:-1]:
-            lines.append(Line(screenplay.LB_FORCED, eleType, util.cleanInput(s)))
+            lines.append(Line(screenplay.LB_FORCED, eleType, textutil.cleanInput(s)))
 
-        lines.append(Line(screenplay.LB_LAST, eleType, util.cleanInput(lns[-1])))
+        lines.append(Line(screenplay.LB_LAST, eleType, textutil.cleanInput(lns[-1])))
 
     # removes html formatting from s, and returns list of lines.
     # if s is None, return a list with single empty string.
@@ -272,9 +273,9 @@ def importCeltx(fileName, frame):
             lns = lns[:-1]
 
         for s in lns[:-1]:
-            lines.append(Line(screenplay.LB_FORCED, eleType, util.cleanInput(s)))
+            lines.append(Line(screenplay.LB_FORCED, eleType, textutil.cleanInput(s)))
 
-        lines.append(Line(screenplay.LB_LAST, eleType, util.cleanInput(lns[-1])))
+        lines.append(Line(screenplay.LB_LAST, eleType, textutil.cleanInput(lns[-1])))
 
     for para in root.xpath("/html/body/p"):
         items = []
@@ -345,7 +346,7 @@ def importFDX(fileName, frame):
                 lineFmt = fmt and fmt[pos : pos + len(s)]
                 pos += len(s) + 1
 
-                lines.append(Line(lb, eleType, util.cleanInput(s), fmt=lineFmt))
+                lines.append(Line(lb, eleType, textutil.cleanInput(s), fmt=lineFmt))
 
         for para in root.xpath("Content//Paragraph"):
             addedNote = False
@@ -464,9 +465,9 @@ def importFountain(fileName, frame, titlePages):
     importSectSyn = inf[3].selected
 
     # pre-process data - fix newlines, remove boneyard.
-    data = util.fixNL(data)
+    data = textutil.fixNL(data)
     data = boneyard_re.sub("", data)
-    prelines = [util.cleanInput(l) for l in data.split("\n")]
+    prelines = [textutil.cleanInput(l) for l in data.split("\n")]
     lines = []
 
     tabWidth = 4
@@ -496,7 +497,7 @@ def importFountain(fileName, frame, titlePages):
     #   - the first line has a single ':'
 
     if c > 0:
-        l = util.toInputStr(prelines[0].expandtabs(tabWidth).lstrip().lower())
+        l = textutil.toInputStr(prelines[0].expandtabs(tabWidth).lstrip().lower())
         if not l.startswith("fade") and l.count(":") == 1:
             # these are title lines. Now do what the user requested.
             if importTitlePage:
@@ -586,7 +587,7 @@ def importFountain(fileName, frame, titlePages):
 
     for l in prelines:
         if l != TWOSPACE:
-            lines.append(util.toInputStr(l.expandtabs(tabWidth)))
+            lines.append(textutil.toInputStr(l.expandtabs(tabWidth)))
         else:
             lines.append(TWOSPACE)
 
@@ -800,7 +801,7 @@ def importTextFile(fileName: str, frame: wx.Frame) -> Optional[List[Line]]:
 
         return None
 
-    data = util.fixNL(data)
+    data = textutil.fixNL(data)
     lines = data.split("\n")
 
     tabWidth = 4
@@ -809,7 +810,7 @@ def importTextFile(fileName: str, frame: wx.Frame) -> Optional[List[Line]]:
     indDict = {}
 
     for i in range(len(lines)):
-        s = util.toInputStr(lines[i].rstrip().expandtabs(tabWidth))
+        s = textutil.toInputStr(lines[i].rstrip().expandtabs(tabWidth))
 
         # don't count empty lines towards indentation statistics
         if s.strip() == "":
@@ -817,7 +818,7 @@ def importTextFile(fileName: str, frame: wx.Frame) -> Optional[List[Line]]:
 
             continue
 
-        cnt = util.countInitial(s, " ")
+        cnt = textutil.countInitial(s, " ")
 
         ind = indDict.get(cnt)
         if not ind:
@@ -826,10 +827,10 @@ def importTextFile(fileName: str, frame: wx.Frame) -> Optional[List[Line]]:
 
         tmp = s.upper()
 
-        if util.multiFind(tmp, ["EXT.", "INT."]):
+        if textutil.multiFind(tmp, ["EXT.", "INT."]):
             ind.sceneStart += 1
 
-        if util.multiFind(tmp, ["CUT TO:", "DISSOLVE TO:"]):
+        if textutil.multiFind(tmp, ["CUT TO:", "DISSOLVE TO:"]):
             ind.trans += 1
 
         if re.match(r"^ +\(.*\)$", tmp):
@@ -901,7 +902,7 @@ def importTextFile(fileName: str, frame: wx.Frame) -> Optional[List[Line]]:
     # element.
     for i in range(len(lines)):
         s = lines[i]
-        cnt = util.countInitial(s, " ")
+        cnt = textutil.countInitial(s, " ")
         s = s.lstrip()
         sUp = s.upper()
 

@@ -8,6 +8,7 @@ import trelby.misc as misc
 import trelby.mypickle as mypickle
 import trelby.pml as pml
 import trelby.screenplay as screenplay
+import trelby.textutil as textutil
 import trelby.themes as themes
 import trelby.util as util
 from trelby.error import ConfigError
@@ -304,7 +305,7 @@ class PDFFontInfo:
 
     # fix up invalid values.
     def refresh(self):
-        self.pdfName = util.deleteChars(self.pdfName, self.invalidChars)
+        self.pdfName = textutil.deleteChars(self.pdfName, self.invalidChars)
 
         # to avoid confused users not understanding why their embedded
         # font isn't working, put in an arbitrary font name if needed
@@ -538,7 +539,7 @@ class Config:
                 util.clampObj(el, it.name, it.minVal, it.maxVal)
 
         for it in self.cvars.stringLatin1.values():
-            setattr(self, it.name, util.toInputStr(getattr(self, it.name)))
+            setattr(self, it.name, textutil.toInputStr(getattr(self, it.name)))
 
         for pf in self.pdfFonts.values():
             pf.refresh()

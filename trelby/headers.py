@@ -1,4 +1,5 @@
 import trelby.pml as pml
+import trelby.textutil as textutil
 import trelby.util as util
 
 
@@ -108,7 +109,7 @@ class HeaderString:
     #
     # sample of the format: '1,0,r,,${PAGE}.'
     def load(self, s):
-        a = util.fromUTF8(s).split(",", 4)
+        a = textutil.fromUTF8(s).split(",", 4)
 
         if len(a) != 5:
             return

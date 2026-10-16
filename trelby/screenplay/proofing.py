@@ -1,7 +1,7 @@
 # the script checker (Script -> Check script): finds common formatting
 # mistakes.
 
-import trelby.util as util
+import trelby.textutil as textutil
 from trelby.screenplay.constants import (
     CHARACTER,
     DIALOGUE,
@@ -54,7 +54,7 @@ def findError(sp, line):
             msg = _("Empty parenthetical.")
             break
 
-        if ln.text != util.toInputStr(ln.text):
+        if ln.text != textutil.toInputStr(ln.text):
             msg = _("Line contains invalid characters (BUG).")
             break
 

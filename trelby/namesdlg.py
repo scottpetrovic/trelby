@@ -4,6 +4,7 @@ import trelby
 import trelby.keys as keys
 import trelby.misc as misc
 import trelby.namearray as namearray
+import trelby.textutil as textutil
 import trelby.util as util
 
 # NameArray, or None if not loaded
@@ -217,7 +218,7 @@ class NamesDlg(wx.Dialog):
 
         wx.BeginBusyCursor()
 
-        s = str(util.lower(misc.fromGUI(self.searchEntry.GetValue())))
+        s = str(textutil.lower(misc.fromGUI(self.searchEntry.GetValue())))
         sex = self.sexRb.GetSelection()
         nt = self.nameRb.GetSelection()
         selTypes = {}
@@ -249,7 +250,7 @@ class NamesDlg(wx.Dialog):
                 continue
 
             if s:
-                name = util.lower(nameArr.name[i])
+                name = textutil.lower(nameArr.name[i])
 
                 if nt == 0:
                     if not name.startswith(s):

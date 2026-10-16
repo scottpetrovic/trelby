@@ -10,8 +10,8 @@ import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.screenplay as scr
 import trelby.screenplay.render as render
+import trelby.textutil as textutil
 import trelby.translations as translations
-import trelby.util as util
 from tests.test_keyinput import FakeCtrl, KeyEvent, press
 
 _ = translations.trelby_translations_load()
@@ -51,14 +51,14 @@ def actionLines(ed):
 
 def testWideChars():
     for ch in "中文日本語한국어，。！（ＡＢ":
-        assert util.isWideChar(ch), ch
+        assert textutil.isWideChar(ch), ch
 
     for ch in "aZ ä€Ω—“…":
-        assert not util.isWideChar(ch), ch
+        assert not textutil.isWideChar(ch), ch
 
-    assert util.hasWideChars("hello 世界")
-    assert not util.hasWideChars("hello wörld")
-    assert not util.hasWideChars("")
+    assert textutil.hasWideChars("hello 世界")
+    assert not textutil.hasWideChars("hello wörld")
+    assert not textutil.hasWideChars("")
 
 
 def testConfigSaveLoad():

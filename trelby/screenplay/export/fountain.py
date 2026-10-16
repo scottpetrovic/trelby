@@ -3,7 +3,7 @@
 import re
 
 import trelby.textfmt as textfmt
-import trelby.util as util
+import trelby.textutil as textutil
 from trelby.screenplay.constants import (
     ACTBREAK,
     ACTION,
@@ -154,4 +154,4 @@ def generateFountain(sp):
 
         flines.append(txt)
 
-    return util.toUTF8("\n".join(flines))
+    return textutil.toUTF8("\n".join(flines))

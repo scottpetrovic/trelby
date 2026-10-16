@@ -11,6 +11,7 @@ import trelby.screenplay as screenplay
 import trelby.screenplay.export as export
 import trelby.screenplay.render as render
 import trelby.spellcheck as spellcheck
+import trelby.textutil as textutil
 import trelby.titles as titles
 import trelby.translations as translations
 import trelby.util as util
@@ -27,7 +28,7 @@ TEXT = "łŁčČžŽ€ПётрΩμέγα"
 
 def testValidInputChars():
     for ch in TEXT + "äÅ ~\xa0" + "—«»™№ĳǆ":
-        assert util.isValidInputChar(ord(ch)), ch
+        assert textutil.isValidInputChar(ord(ch)), ch
 
     # control characters, DEL, the C1 range, soft hyphen, zero-width and
     # bidi format characters, line/paragraph separators, surrogates,
@@ -37,38 +38,38 @@ def testValidInputChars():
         + [0x200B, 0x200E, 0x202E, 0x2028, 0x2029, 0xFEFF]
         + [0xD800, 0xDFFF, 0xE000, 0xFFFF, 0x110000]
     ):
-        assert not util.isValidInputChar(kc), hex(kc)
+        assert not textutil.isValidInputChar(kc), hex(kc)
 
 
 def testLatin1RangeUnchanged():
     # the old check allowed 32-255 minus 0x7F-0x9F and 0xAD
     for kc in range(256):
         old = (32 <= kc <= 255) and not (0x7F <= kc < 0xA0) and (kc != 0xAD)
-        assert util.isValidInputChar(kc) == old, kc
+        assert textutil.isValidInputChar(kc) == old, kc
 
 
 def testRemoveInvalidChars():
-    assert util.removeInvalidChars("a\x85ł\xadb\n€\u200b\u2028") == "ałb\n€"
-    assert util.removeInvalidChars("a\nb\tc", keep="\t") == "ab\tc"
+    assert textutil.removeInvalidChars("a\x85ł\xadb\n€\u200b\u2028") == "ałb\n€"
+    assert textutil.removeInvalidChars("a\nb\tc", keep="\t") == "ab\tc"
 
 
 def testCleanInputComposes():
     # "c" + combining caron -> "č", so it takes up one column
-    assert util.cleanInput("c\u030capek") == "čapek"
+    assert textutil.cleanInput("c\u030capek") == "čapek"
 
 
 def testUpperLower():
-    assert util.upper("łódź čapek пётр ωμέγα ǆ") == "ŁÓDŹ ČAPEK ПЁТР ΩΜΈΓΑ Ǆ"
-    assert util.lower("ŁÓDŹ ČAPEK ПЁТР ΩΜΈΓΑ") == "łódź čapek пётр ωμέγα"
+    assert textutil.upper("łódź čapek пётр ωμέγα ǆ") == "ŁÓDŹ ČAPEK ПЁТР ΩΜΈΓΑ Ǆ"
+    assert textutil.lower("ŁÓDŹ ČAPEK ПЁТР ΩΜΈΓΑ") == "łódź čapek пётр ωμέγα"
 
 
 def testUpperLowerKeepLength():
     # these have case mappings longer than one character; the script's
     # layout counts characters, so they're left as they are
-    assert util.upper("straße") == "STRAßE"
-    assert util.upper("ŉ ﬁx") == "ŉ ﬁX"
-    assert util.lower("İSTANBUL") == "İstanbul"
-    assert util.capitalize("ßa") == "ßa"
+    assert textutil.upper("straße") == "STRAßE"
+    assert textutil.upper("ŉ ﬁx") == "ŉ ﬁX"
+    assert textutil.lower("İSTANBUL") == "İstanbul"
+    assert textutil.capitalize("ßa") == "ßa"
 
 
 def testKeysAboveLatin1AreSpecialKeys():
@@ -169,11 +170,11 @@ def testPasteTextEdit():
 
 
 def testSpellCheckerPrefix():
-    assert util.getWordPrefix("ab") == "ab"
-    assert util.getWordPrefix("AB") == "ab"
-    assert util.getWordPrefix("äb") == "zb"
-    assert util.getWordPrefix("łó") == "zz"
-    assert util.getWordPrefix("Пё") == "zz"
+    assert textutil.getWordPrefix("ab") == "ab"
+    assert textutil.getWordPrefix("AB") == "ab"
+    assert textutil.getWordPrefix("äb") == "zb"
+    assert textutil.getWordPrefix("łó") == "zz"
+    assert textutil.getWordPrefix("Пё") == "zz"
 
     d = spellcheck.Dict()
     d.add("Łódź")
@@ -285,11 +286,11 @@ def testTitlePageInHelvetica():
 
 
 def testEscapeRTF():
-    assert util.escapeRTF("a{b}\\") == r"a\{b\}\\"
-    assert util.escapeRTF("äł€") == r"\u228?\u322?\u8364?"
+    assert textutil.escapeRTF("a{b}\\") == r"a\{b\}\\"
+    assert textutil.escapeRTF("äł€") == r"\u228?\u322?\u8364?"
 
     # characters above U+FFFF are UTF-16 surrogate pairs, signed
-    assert util.escapeRTF("\U0001f600") == r"\u-10179?\u-8704?"
+    assert textutil.escapeRTF("\U0001f600") == r"\u-10179?\u-8704?"
 
 
 def testExportRTF():

@@ -18,6 +18,7 @@ import trelby.locations as locations
 import trelby.screenplay.fileformat as fileformat
 import trelby.spellcheck as spellcheck
 import trelby.textfmt as textfmt
+import trelby.textutil as textutil
 import trelby.titles as titles
 import trelby.util as util
 import trelby.worldbuilding as worldbuilding
@@ -136,7 +137,7 @@ class Screenplay(
         line = self.lines[i]
 
         if self.cfg.getType(line.lt).export.isCaps:
-            return util.upper(line.text)
+            return textutil.upper(line.text)
 
         return line.text
 
@@ -159,7 +160,7 @@ class Screenplay(
             tcfg = self.cfg.getType(ln.lt)
 
             # lines should not contain invalid characters
-            assert ln.text == util.toInputStr(ln.text)
+            assert ln.text == textutil.toInputStr(ln.text)
 
             # lines shouldn't be longer than the type's maximum width,
             # unless the extra characters are all spaces

@@ -1,16 +1,16 @@
 import tests.u as u
-import trelby.util as util
+import trelby.textutil as textutil
 
-# tests for util.wrapText, measuring text in columns: one per character,
+# tests for textutil.wrapText, measuring text in columns: one per character,
 # two for wide ones
 
 
 def measure(s):
-    return sum(2 if util.isWideChar(ch) else 1 for ch in s)
+    return sum(2 if textutil.isWideChar(ch) else 1 for ch in s)
 
 
 def wrap(text, width):
-    return util.wrapText(text, width, measure)
+    return textutil.wrapText(text, width, measure)
 
 
 def testFits():

@@ -1,5 +1,5 @@
 import trelby.mypickle as mypickle
-import trelby.util as util
+import trelby.textutil as textutil
 
 
 # manages location-information for a single screenplay. a "location" is a
@@ -59,7 +59,7 @@ class Locations:
             scenes = []
 
             for scene in sceneList:
-                name = util.upper(scene)
+                name = textutil.upper(scene)
 
                 if (name in sceneNames) and (name not in added):
                     scenes.append(name)

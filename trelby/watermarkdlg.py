@@ -6,6 +6,7 @@ import trelby.gutil as gutil
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.screenplay.render as render
+import trelby.textutil as textutil
 import trelby.util as util
 
 
@@ -127,7 +128,7 @@ class WatermarkDlg(wx.Dialog):
 
             if common:
                 wm = pml.TextOp(
-                    util.cleanInput(common),
+                    textutil.cleanInput(common),
                     self.sp.cfg.marginLeft + 20,
                     self.sp.cfg.paperHeight * 0.45,
                     fontsize,
@@ -137,7 +138,7 @@ class WatermarkDlg(wx.Dialog):
                 ops.append(wm)
 
             wm = pml.TextOp(
-                util.cleanInput(s),
+                textutil.cleanInput(s),
                 self.sp.cfg.marginLeft + 20,
                 self.sp.cfg.paperHeight * 0.6,
                 fontsize,

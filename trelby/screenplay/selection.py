@@ -5,6 +5,7 @@ import sys
 
 import trelby.config as config
 import trelby.textfmt as textfmt
+import trelby.textutil as textutil
 import trelby.undo as undo
 import trelby.util as util
 from trelby.line import Line
@@ -398,7 +399,7 @@ class SelectionMixin:
         col = util.clamp(col, 0, len(s) - 1)
 
         def charClass(ch):
-            if not util.isWordBoundary(ch):
+            if not textutil.isWordBoundary(ch):
                 return 0
             elif ch.isspace():
                 return 1

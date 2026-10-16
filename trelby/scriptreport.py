@@ -4,6 +4,7 @@ import trelby.pml as pml
 import trelby.scenereport as scenereport
 import trelby.screenplay as screenplay
 import trelby.textreport as textreport
+import trelby.textutil as textutil
 import trelby.util as util
 
 
@@ -33,14 +34,14 @@ class ScriptReport(textreport.TextReport):
             [
                 si.lines
                 for si in self.sr.scenes
-                if util.upper(si.name).startswith("INT.")
+                if textutil.upper(si.name).startswith("INT.")
             ]
         )
         extLines = sum(
             [
                 si.lines
                 for si in self.sr.scenes
-                if util.upper(si.name).startswith("EXT.")
+                if textutil.upper(si.name).startswith("EXT.")
             ]
         )
 

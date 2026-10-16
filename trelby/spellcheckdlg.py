@@ -2,6 +2,7 @@ import wx
 
 import trelby.misc as misc
 import trelby.spellcheck as spellcheck
+import trelby.textutil as textutil
 import trelby.undo as undo
 import trelby.util as util
 
@@ -125,13 +126,13 @@ class SpellCheckDlg(wx.Dialog):
         ed = self.ctrl.ed
         u = undo.SinglePara(ed, undo.CMD_MISC, self.sc.line)
 
-        word = util.toInputStr(misc.fromGUI(self.replaceEntry.GetValue()))
+        word = textutil.toInputStr(misc.fromGUI(self.replaceEntry.GetValue()))
         ls = sp.lines
 
         ed.gotoPos(self.sc.line, self.sc.col)
 
         ls[self.sc.line].replaceText(
-            self.sc.col, len(self.sc.word), util.toInputStr(word)
+            self.sc.col, len(self.sc.word), textutil.toInputStr(word)
         )
 
         ed.rewrapPara(sp.getParaFirstIndexFromLine(self.sc.line))
@@ -177,10 +178,10 @@ class SpellCheckDlg(wx.Dialog):
         if not self.sc.word:
             return
 
-        isAllCaps = self.sc.word == util.upper(self.sc.word)
-        isCapitalized = self.sc.word[:1] == util.upper(self.sc.word[:1])
+        isAllCaps = self.sc.word == textutil.upper(self.sc.word)
+        isCapitalized = self.sc.word[:1] == textutil.upper(self.sc.word[:1])
 
-        word = util.lower(self.sc.word)
+        word = textutil.lower(self.sc.word)
 
         wl = len(word)
         wstart = word[:2]
@@ -188,7 +189,7 @@ class SpellCheckDlg(wx.Dialog):
         fifo = util.FIFO(5)
         wx.BeginBusyCursor()
 
-        for w in spellcheck.prefixDict[util.getWordPrefix(word)]:
+        for w in spellcheck.prefixDict[textutil.getWordPrefix(word)]:
             if w.startswith(wstart):
                 d = self.tryWord(word, wl, w, d, fifo)
 
@@ -219,9 +220,9 @@ class SpellCheckDlg(wx.Dialog):
             newWord = items[sel]
 
             if isAllCaps:
-                newWord = util.upper(newWord)
+                newWord = textutil.upper(newWord)
             elif isCapitalized:
-                newWord = util.capitalize(newWord)
+                newWord = textutil.capitalize(newWord)
 
             self.replaceEntry.SetValue(newWord)
 

@@ -2,7 +2,7 @@ import re
 
 import trelby.mypickle as mypickle
 import trelby.screenplay as screenplay
-import trelby.util as util
+import trelby.textutil as textutil
 from trelby.autocompletiontype import AutoCompletionType as Type
 
 # scene heading prefixes, offered in this order until the script uses
@@ -197,7 +197,7 @@ class AutoCompletion:
             tmp = []
 
             for v in t.items:
-                v = util.upper(util.toInputStr(v)).strip()
+                v = textutil.upper(textutil.toInputStr(v)).strip()
 
                 if len(v) > 0:
                     tmp.append(v)

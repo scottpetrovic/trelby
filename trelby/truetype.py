@@ -1,6 +1,6 @@
 import struct
 
-import trelby.util as util
+import trelby.textutil as textutil
 
 unpack = struct.unpack
 
@@ -43,9 +43,9 @@ class Font:
         # parse functions for tables, and a flag for whether each has been
         # parsed successfully
         self.parseFuncs = {
-            util.toLatin1("head"): [self.parseHead, False],
-            util.toLatin1("name"): [self.parseName, False],
-            util.toLatin1("OS/2"): [self.parseOS2, False],
+            textutil.toLatin1("head"): [self.parseHead, False],
+            textutil.toLatin1("name"): [self.parseName, False],
+            textutil.toLatin1("OS/2"): [self.parseOS2, False],
         }
 
         try:

@@ -2,6 +2,7 @@ import wx
 
 import trelby.gutil as gutil
 import trelby.keys as keys
+import trelby.textutil as textutil
 import trelby.util as util
 
 
@@ -37,7 +38,7 @@ def blockChars(ranges):
         chr(i)
         for first, last in ranges
         for i in range(first, last + 1)
-        if util.isValidInputChar(i)
+        if textutil.isValidInputChar(i)
     )
 
 
@@ -212,9 +213,9 @@ class MyCharMap(wx.Window):
                 dc, _("Selected:"), self.selected, self.offset, y + pad, 75
             )
 
-            c = util.upper(self.selected)
+            c = textutil.upper(self.selected)
             if c == self.selected:
-                c = util.lower(self.selected)
+                c = textutil.lower(self.selected)
                 if c == self.selected:
                     c = None
 

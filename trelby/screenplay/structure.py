@@ -3,7 +3,7 @@
 # simple statistics (word counts, scene and character names).
 
 import trelby.config as config
-import trelby.util as util
+import trelby.textutil as textutil
 from trelby.screenplay.constants import (
     ACTBREAK,
     CHARACTER,
@@ -264,7 +264,7 @@ class StructureMixin:
                 s = ln.text
 
                 if self.cfg.getType(CHARACTER).export.isCaps:
-                    s = util.upper(s)
+                    s = textutil.upper(s)
 
                 return s
 
@@ -313,7 +313,7 @@ class StructureMixin:
 
         for ln in self.lines:
             if (ln.lt == SCENE) and (ln.lb == LB_LAST):
-                names[util.upper(ln.text)] = None
+                names[textutil.upper(ln.text)] = None
 
         return names
 
@@ -322,7 +322,7 @@ class StructureMixin:
     def getCharacterNames(self):
         names = {}
 
-        ul = util.lower
+        ul = textutil.lower
 
         for ln in self.lines:
             if (ln.lt == CHARACTER) and (ln.lb == LB_LAST):
@@ -359,7 +359,7 @@ class StructureMixin:
 
             ch = s[col : col + 1]
 
-            if not util.isWordBoundary(ch):
+            if not textutil.isWordBoundary(ch):
                 word = ch
                 startCol = col
                 col += 1
@@ -367,7 +367,7 @@ class StructureMixin:
                 while col < len(s):
                     ch = s[col : col + 1]
 
-                    if util.isWordBoundary(ch):
+                    if textutil.isWordBoundary(ch):
                         break
 
                     word += ch

@@ -1,7 +1,7 @@
 # helpers shared by the exporters.
 
 import trelby.textfmt as textfmt
-import trelby.util as util
+import trelby.textutil as textutil
 from trelby.screenplay.constants import (
     LB_FORCED,
     LB_LAST,
@@ -29,7 +29,7 @@ def getElementsAsList(sp):
         lineText = line.text
 
         if sp.cfg.getType(line.lt).export.isCaps:
-            lineText = util.upper(lineText)
+            lineText = textutil.upper(lineText)
 
         curLine += lineText
         parts.append((lineText, line.fmt))

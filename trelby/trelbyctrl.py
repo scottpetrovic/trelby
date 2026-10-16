@@ -38,6 +38,7 @@ import trelby.spellcheck as spellcheck
 import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.spellcheckdlg as spellcheckdlg
 import trelby.textfmt as textfmt
+import trelby.textutil as textutil
 import trelby.titlesdlg as titlesdlg
 import trelby.util as util
 import trelby.viewmode as viewmode
@@ -235,7 +236,7 @@ class MyCtrl(wx.Control):
 
     # save script to given filename. returns True on success.
     def saveFile(self, fileName):
-        fileName = str(util.ensureEndsIn(fileName, ".trelby"))
+        fileName = str(textutil.ensureEndsIn(fileName, ".trelby"))
 
         if util.writeToFile(
             fileName, self.ed.save(), self.gd.mainFrame, backup=True
@@ -548,7 +549,7 @@ class MyCtrl(wx.Control):
     def checkWideChars(self, text):
         cfg = self.sp.cfg
 
-        if cfg.doubleWidth or cfg.doubleWidthAsked or not util.hasWideChars(text):
+        if cfg.doubleWidth or cfg.doubleWidthAsked or not textutil.hasWideChars(text):
             return
 
         cfg.doubleWidthAsked = True
@@ -1244,7 +1245,7 @@ class MyCtrl(wx.Control):
                 txt = ln.text
 
                 if tmpSp.cfg.getType(ln.lt).export.isCaps:
-                    txt = util.upper(txt)
+                    txt = textutil.upper(txt)
 
                 s += txt + config.lb2str(ln.lb)
 
@@ -1287,11 +1288,11 @@ class MyCtrl(wx.Control):
             if wx.TheClipboard.IsSupported(df):
                 data = wx.TextDataObject()
                 wx.TheClipboard.GetData(data)
-                s = util.cleanInput(data.GetText())
+                s = textutil.cleanInput(data.GetText())
 
             wx.TheClipboard.Close()
 
-        s = util.removeInvalidChars(util.toInputStr(util.fixNL(s)))
+        s = textutil.removeInvalidChars(textutil.toInputStr(textutil.fixNL(s)))
 
         if len(s) == 0:
             return
@@ -1627,7 +1628,7 @@ class MyCtrl(wx.Control):
             misc.scriptDir = dlg.GetDirectory()
 
             data = generate(sp)
-            fileName = util.ensureEndsIn(dlg.GetPath(), suffix)
+            fileName = textutil.ensureEndsIn(dlg.GetPath(), suffix)
 
             if data:
                 util.writeToFile(fileName, data, self.gd.mainFrame)
@@ -1842,7 +1843,7 @@ class MyCtrl(wx.Control):
             not ev.ControlDown()
             and not ev.AltDown()
             and (uc != wx.WXK_NONE)
-            and util.isValidInputChar(uc)
+            and textutil.isValidInputChar(uc)
         ):
             kc = uc
             addChar = True
@@ -2145,7 +2146,7 @@ class MyCtrl(wx.Control):
     # offsets of wide characters, which are all the same width, by font.
     @staticmethod
     def cellOffset(dc, font, ch, fx, cfx, wideOffsets):
-        if not util.isWideChar(ch):
+        if not textutil.isWideChar(ch):
             return (cfx - fx) // 2
 
         off = wideOffsets.get(id(font))
