@@ -59,3 +59,12 @@ def testLoneByAsLastString():
     lines = titleLines(scriptWithTitles(["by"]).generateFountain())
 
     assert lines == ["Title: MY SCRIPT"]
+
+
+# keys must start with a letter; "[A-za-z]" used to accept "[", "_" etc.
+def testKeyMustStartWithLetter():
+    sp = scriptWithTitles(["Draft: 2"], ["[Revised]: today"])
+    lines = titleLines(sp.generateFountain())
+
+    assert "Draft: 2" in lines
+    assert "Contact: [Revised]: today" in lines

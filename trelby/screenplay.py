@@ -999,7 +999,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # string that starts with something like "Draft date:" is used as
         # its own key, and anything else becomes a contact.
         titleNeeded = True
-        kwPattern = re.compile(r"^([A-za-z][^:]+:)")
+        kwPattern = re.compile(r"^([A-Za-z][^:]+:)")
         for page in self.titles.pages:
             # index of a title string already used as an author
             skipIndex = -1

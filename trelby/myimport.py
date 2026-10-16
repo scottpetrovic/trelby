@@ -466,12 +466,7 @@ def importFountain(fileName, frame, titlePages):
     # pre-process data - fix newlines, remove boneyard.
     data = util.fixNL(data)
     data = boneyard_re.sub("", data)
-    prelines = data.split("\n")
-    for i in range(len(prelines)):
-        try:
-            util.toLatin1(prelines[i])
-        except:
-            prelines[i] = util.cleanInput("" + prelines[i].decode("UTF-8", "ignore"))
+    prelines = [util.cleanInput(l) for l in data.split("\n")]
     lines = []
 
     tabWidth = 4
@@ -494,7 +489,8 @@ def importFountain(fileName, frame, titlePages):
 
     # prelines[0:c] are the first bunch of lines, that could be titles,
     # and prelines[c] is the blank line after them (prelines[c + 1:] is
-    # the script proper).
+    # the script proper). if the title lines run to the end of the file,
+    # c == len(prelines).
     # Our check for title is simple:
     #   - the line does not start with 'fade'
     #   - the first line has a single ':'
@@ -505,26 +501,26 @@ def importFountain(fileName, frame, titlePages):
             # these are title lines. Now do what the user requested.
             if importTitlePage:
                 # Extract usable title page lines
-                kwPattern = re.compile(r"^([A-za-z][^:]+:)")
+                kwPattern = re.compile(r"^([A-Za-z][^:]+:)")
                 continuePattern = re.compile(
                     r"^\s\s\s+"
                 )  # line begins with 3 or more spaces
                 titleIdx = 0
                 gatheredTitles = []
                 rejects = []
-                l = prelines[0]
-                while l != "":
+                while titleIdx < c:
+                    l = prelines[titleIdx]
                     match = kwPattern.split(l)
                     match = [ll.strip() for ll in match]
                     if len(match) == 3:  # keyword line
                         if match[2] == "":
                             follows = []
                             titleIdx += 1  # gather indented prelines
-                            nextline = continuePattern.match(prelines[titleIdx])
-                            while nextline:
+                            while titleIdx < c and continuePattern.match(
+                                prelines[titleIdx]
+                            ):
                                 follows.append(prelines[titleIdx].strip("_* \t"))
                                 titleIdx += 1
-                                nextline = continuePattern.match(prelines[titleIdx])
                             titleIdx -= 1
                             gatheredTitles.append([match[1], follows])
                         else:
@@ -533,7 +529,6 @@ def importFountain(fileName, frame, titlePages):
                         l += TWOSPACE
                         rejects.append(l)
                     titleIdx += 1
-                    l = prelines[titleIdx]
                 # replace default titles with imported ones. Title, Author
                 # and Contact overwrite strings 0 - 2 of titlePages[0]
                 # (changed in place), assuming the order of the default
