@@ -56,10 +56,9 @@ class WatermarkDlg(wx.Dialog):
         vsizer.Add(self.commonMark, 0, wx.EXPAND | wx.BOTTOM, 5)
 
         vsizer.Add(wx.StaticText(self, -1, _("Watermarks (one per line):")))
-        self.itemsEntry = wx.TextCtrl(
-            self, -1, style=wx.TE_MULTILINE | wx.TE_DONTWRAP, size=(300, 200)
-        )
-        vsizer.Add(self.itemsEntry, 1, wx.EXPAND)
+        itemsBox = widgets.ThemedTextCtrl(self, style=wx.TE_DONTWRAP, size=(300, 200))
+        self.itemsEntry = itemsBox.text
+        vsizer.Add(itemsBox, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         closeBtn = wx.Button(self, -1, _("Close"))

@@ -3,8 +3,10 @@ import wx
 from trelby.ui.theming import blendColors
 
 
-# a vertical scrollbar drawn in the theme's colors, for the places where a
-# native one would ignore them. it has the parts of wx.ScrollBar's interface
+# a scrollbar drawn in the theme's colors, for the places where a native
+# one would ignore them. it's vertical unless orient is wx.HORIZONTAL; the
+# comments below speak of the vertical one, whose ups are a horizontal
+# one's lefts. it has the parts of wx.ScrollBar's interface
 # we use, and sends the same events (EVT_COMMAND_SCROLL catches them all):
 # EVT_SCROLL_THUMBTRACK while the thumb is dragged and EVT_SCROLL_THUMBRELEASE
 # when it's let go, and EVT_SCROLL_PAGEUP / EVT_SCROLL_PAGEDOWN when the
@@ -18,10 +20,11 @@ class ScrollBar(wx.Window):
     REPEAT_DELAY = 300
     REPEAT_INTERVAL = 50
 
-    def __init__(self, parent, wheelTarget=None):
+    def __init__(self, parent, wheelTarget=None, orient=wx.VERTICAL):
         wx.Window.__init__(self, parent, -1, style=wx.BORDER_NONE)
 
         self.wheelTarget = wheelTarget
+        self.vertical = orient != wx.HORIZONTAL
 
         # same meanings as in wx.ScrollBar.SetScrollbar
         self.pos = 0
@@ -40,7 +43,7 @@ class ScrollBar(wx.Window):
         self.dragOffset = None
 
         # while the button is held down on the track, -1 when paging up and
-        # 1 when paging down, and the mouse's y position
+        # 1 when paging down, and the mouse's y position (see along)
         self.pageDir = 0
         self.pageY = 0
 
@@ -48,7 +51,10 @@ class ScrollBar(wx.Window):
         self.minThumbHeight = self.FromDIP(24)
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
-        self.SetMinSize(wx.Size(self.FromDIP(12), -1))
+        thickness = self.FromDIP(12)
+        self.SetMinSize(
+            wx.Size(thickness, -1) if self.vertical else wx.Size(-1, thickness)
+        )
 
         self.timer = wx.Timer(self)
 
@@ -116,9 +122,18 @@ class ScrollBar(wx.Window):
     def canScroll(self):
         return (self.thumbSize > 0) and (self.range > self.thumbSize)
 
+    # the coordinate of point p (a wx.Point or wx.Size) along the
+    # scrollbar: y for a vertical one, x for a horizontal one
+    def along(self, p):
+        return p.y if self.vertical else p.x
+
+    # and across it
+    def across(self, p):
+        return p.x if self.vertical else p.y
+
     # return the space the thumb moves in, as (top, height)
     def getTrack(self):
-        height = self.GetClientSize().height
+        height = self.along(self.GetClientSize())
 
         return (self.margin, max(0, height - 2 * self.margin))
 
@@ -135,14 +150,29 @@ class ScrollBar(wx.Window):
             min(self.minThumbHeight, height), height * self.thumbSize // self.range
         )
         y = top + (height - thumbH) * self.pos // self.maxPos()
-        width = self.GetClientSize().width
+        width = self.across(self.GetClientSize()) - 2 * self.margin
 
-        return wx.Rect(self.margin, y, width - 2 * self.margin, thumbH)
+        if self.vertical:
+            return wx.Rect(self.margin, y, width, thumbH)
+        else:
+            return wx.Rect(y, self.margin, thumbH, width)
+
+    # the thumb's top and height, or None if there's no thumb
+    def getThumbSpan(self):
+        rect = self.getThumbRect()
+
+        if rect is None:
+            return None
+
+        if self.vertical:
+            return (rect.y, rect.height)
+        else:
+            return (rect.x, rect.width)
 
     # return the position that puts the thumb's top at y
     def pos4y(self, y):
         top, height = self.getTrack()
-        free = height - self.getThumbRect().height
+        free = height - self.getThumbSpan()[1]
 
         if free <= 0:
             return 0
@@ -150,24 +180,29 @@ class ScrollBar(wx.Window):
         return self.clampPos(round((y - top) * self.maxPos() / free))
 
     def sendEvent(self, eventType):
-        event = wx.ScrollEvent(eventType, self.GetId(), self.pos, wx.VERTICAL)
+        event = wx.ScrollEvent(
+            eventType,
+            self.GetId(),
+            self.pos,
+            wx.VERTICAL if self.vertical else wx.HORIZONTAL,
+        )
         event.SetEventObject(self)
         self.GetEventHandler().ProcessEvent(event)
 
     # page once towards the mouse, unless the thumb has already reached it
     def page(self):
-        rect = self.getThumbRect()
+        span = self.getThumbSpan()
 
-        if rect is None:
+        if span is None:
             return
 
         if self.pageDir < 0:
-            if self.pageY >= rect.y:
+            if self.pageY >= span[0]:
                 return
 
             eventType = wx.wxEVT_SCROLL_PAGEUP
         else:
-            if self.pageY < rect.GetBottom():
+            if self.pageY < span[0] + span[1] - 1:
                 return
 
             eventType = wx.wxEVT_SCROLL_PAGEDOWN
@@ -212,8 +247,17 @@ class ScrollBar(wx.Window):
         gc.SetPen(wx.TRANSPARENT_PEN)
         gc.SetBrush(wx.Brush(color))
         gc.DrawRoundedRectangle(
-            rect.x, rect.y, rect.width, rect.height, rect.width / 2.0
+            rect.x,
+            rect.y,
+            rect.width,
+            rect.height,
+            self.across(rect.GetSize()) / 2.0,
         )
+
+        # the drawing reaches dc's buffer when gc goes, and the buffer the
+        # screen when dc goes, so gc must go first
+        del gc
+        del dc
 
     def OnSize(self, event):
         self.Refresh()
@@ -225,13 +269,14 @@ class ScrollBar(wx.Window):
         if rect is None:
             return
 
-        y = event.GetPosition().y
+        y = self.along(event.GetPosition())
+        top = self.getThumbSpan()[0]
 
         if rect.Contains(event.GetPosition()):
-            self.dragOffset = y - rect.y
+            self.dragOffset = y - top
             self.Refresh()
         else:
-            self.pageDir = -1 if y < rect.y else 1
+            self.pageDir = -1 if y < top else 1
             self.pageY = y
             self.page()
             self.timer.StartOnce(self.REPEAT_DELAY)
@@ -248,14 +293,14 @@ class ScrollBar(wx.Window):
 
     def OnMotion(self, event):
         if self.dragOffset is not None:
-            pos = self.pos4y(event.GetPosition().y - self.dragOffset)
+            pos = self.pos4y(self.along(event.GetPosition()) - self.dragOffset)
 
             if pos != self.pos:
                 self.pos = pos
                 self.Refresh()
                 self.sendEvent(wx.wxEVT_SCROLL_THUMBTRACK)
         elif self.pageDir != 0:
-            self.pageY = event.GetPosition().y
+            self.pageY = self.along(event.GetPosition())
         else:
             self.setHover(self.isOverThumb(event.GetPosition()))
 

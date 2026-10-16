@@ -1,5 +1,6 @@
 import wx
 
+import trelby.misc as misc
 import trelby.textutil as textutil
 import trelby.ui.theming as theming
 import trelby.util as util
@@ -703,3 +704,187 @@ class ThemedListbook(wx.Panel):
 
     def OnList(self, event):
         self.book.SetSelection(event.GetSelection())
+
+
+# a multiline wx.TextCtrl, self.text, in a 1-pixel border, with ScrollBars
+# drawn in the theme's colors. style is the text's style, without a border;
+# with wx.TE_DONTWRAP it scrolls sideways too. the caller uses self.text,
+# and adds this window to its sizer.
+#
+# on Windows, like ThemedListBox's list, the text is sized to put its native
+# scrollbars (which ignore the theme) out of sight, and the ScrollBars stand
+# in for them, each shown only when there's something to scroll. elsewhere
+# the text keeps its native scrollbars.
+class ThemedTextCtrl(wx.Panel):
+    # WM_HSCROLL / WM_VSCROLL, and SB_THUMBPOSITION
+    WM_HSCROLL = 0x114
+    WM_VSCROLL = 0x115
+    SB_THUMBPOSITION = 4
+
+    def __init__(self, parent, id=-1, value="", size=wx.DefaultSize, style=0):
+        wx.Panel.__init__(self, parent, id, style=wx.BORDER_NONE)
+
+        # whether our ScrollBars stand in for the native ones
+        self.custom = misc.isWindows
+
+        # space between the border and the text
+        self.pad = self.FromDIP(3)
+
+        # which native scrollbars the text has
+        self.hasVBar = not (style & wx.TE_NO_VSCROLL)
+        self.hasHBar = bool(style & wx.TE_DONTWRAP)
+
+        # the inside of the border
+        self.box = wx.Panel(self, -1, style=wx.BORDER_NONE)
+
+        self.holder = wx.Panel(self.box, -1, style=wx.BORDER_NONE)
+        self.text = wx.TextCtrl(
+            self.holder,
+            -1,
+            value,
+            style=style | wx.TE_MULTILINE | wx.BORDER_NONE,
+        )
+
+        self.vBar = ScrollBar(self.box)
+        self.hBar = ScrollBar(self.box, orient=wx.HORIZONTAL)
+        self.vBar.Hide()
+        self.hBar.Hide()
+
+        grid = wx.FlexGridSizer(2, 2, 0, 0)
+        grid.AddGrowableCol(0)
+        grid.AddGrowableRow(0)
+        grid.Add(self.holder, 1, wx.EXPAND)
+        grid.Add(self.vBar, 0, wx.EXPAND)
+        grid.Add(self.hBar, 0, wx.EXPAND)
+        grid.Add((0, 0))
+        self.box.SetSizer(grid)
+
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer.Add(self.box, 1, wx.EXPAND | wx.ALL, 1)
+        self.SetSizer(vsizer)
+
+        self.holder.Bind(wx.EVT_SIZE, self.OnHolderSize)
+
+        if self.custom:
+            self.text.Bind(wx.EVT_IDLE, self.OnTextIdle)
+
+            for bar in (self.vBar, self.hBar):
+                bar.Bind(wx.EVT_COMMAND_SCROLL, self.OnScroll)
+                bar.Bind(wx.EVT_MOUSEWHEEL, self.OnBarWheel)
+
+        self.applyTheme(theming.currentCfgGui())
+        self.SetInitialSize(size)
+        self.Layout()
+
+    def SetFocus(self):
+        self.text.SetFocus()
+
+    def applyTheme(self, cfgGui):
+        if cfgGui:
+            border = cfgGui.tabBorderColor
+            bg, fg = cfgGui.textBgColor, cfgGui.textColor
+        else:
+            sc = wx.SystemSettings.GetColour
+            border = sc(wx.SYS_COLOUR_3DSHADOW)
+            bg, fg = sc(wx.SYS_COLOUR_WINDOW), sc(wx.SYS_COLOUR_WINDOWTEXT)
+
+        self.SetBackgroundColour(border)
+
+        for w in (self.box, self.holder, self.text):
+            w.SetBackgroundColour(bg)
+
+        self.text.SetForegroundColour(fg)
+        self.vBar.setColors(bg, fg)
+        self.hBar.setColors(bg, fg)
+
+        self.Refresh()
+
+    def DoGetBestSize(self):
+        return self.FromDIP(wx.Size(200, 100))
+
+    # the native scrollbars' (width, height): the vertical one's width and
+    # the horizontal one's height, 0 for one the text doesn't have. not from
+    # the text's size less its client size, which is wrong while the text is
+    # smaller than its scrollbars.
+    def nativeBars(self):
+        metric = wx.SystemSettings.GetMetric
+
+        return (
+            metric(wx.SYS_VSCROLL_X, self.text) if self.hasVBar else 0,
+            metric(wx.SYS_HSCROLL_Y, self.text) if self.hasHBar else 0,
+        )
+
+    # place the text in holder, past its right and bottom edges by the size
+    # of its native scrollbars if we stand in for them
+    def layoutText(self):
+        size = self.holder.GetClientSize()
+        sbW, sbH = self.nativeBars() if self.custom else (0, 0)
+        rect = wx.Rect(
+            self.pad,
+            self.pad,
+            max(0, size.width - self.pad + sbW),
+            max(0, size.height - self.pad + sbH),
+        )
+
+        if self.text.GetRect() != rect:
+            self.text.SetSize(rect)
+
+        if self.custom:
+            self.updateScrollBars()
+
+    # make the ScrollBars match the native ones, and show each only when
+    # the text can scroll that way. the native ones don't say how much of
+    # the text is visible, so that's worked out here: a vertical position
+    # is a line, and a horizontal one a pixel.
+    def updateScrollBars(self):
+        t = self.text
+        client = t.GetClientSize()
+        changed = False
+
+        for bar, orient, visible, has in (
+            (
+                self.vBar,
+                wx.VERTICAL,
+                client.height // max(1, t.GetCharHeight()),
+                self.hasVBar,
+            ),
+            (self.hBar, wx.HORIZONTAL, client.width, self.hasHBar),
+        ):
+            if has:
+                bar.SetScrollbar(
+                    t.GetScrollPos(orient), visible, t.GetScrollRange(orient), visible
+                )
+
+            show = has and bar.canScroll()
+
+            if show != bar.IsShown():
+                bar.Show(show)
+                changed = True
+
+        if changed:
+            self.box.Layout()
+
+    def OnHolderSize(self, event):
+        self.layoutText()
+
+    def OnTextIdle(self, event):
+        event.Skip()
+        self.updateScrollBars()
+
+    def OnScroll(self, event):
+        bar = event.GetEventObject()
+        msg = self.WM_VSCROLL if bar is self.vBar else self.WM_HSCROLL
+        pos = min(bar.GetThumbPosition(), 0xFFFF)
+
+        theming.sendMessage(
+            self.text.GetHandle(), msg, self.SB_THUMBPOSITION | (pos << 16), 0
+        )
+
+    # the wheel over a scrollbar scrolls the text, like over the text
+    def OnBarWheel(self, event):
+        delta = event.GetWheelDelta() or 120
+        lines = -(event.GetWheelRotation() * event.GetLinesPerAction()) // delta
+
+        if event.GetWheelAxis() == wx.MOUSE_WHEEL_VERTICAL:
+            self.text.ScrollLines(lines)
+            self.updateScrollBars()

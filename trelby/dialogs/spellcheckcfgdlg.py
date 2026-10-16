@@ -2,6 +2,7 @@ import wx
 
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
+import trelby.ui.widgets as widgets
 
 
 class SCDictDlg(wx.Dialog):
@@ -25,10 +26,9 @@ class SCDictDlg(wx.Dialog):
 
         vsizer.Add(wx.StaticText(self, -1, s))
 
-        self.itemsEntry = wx.TextCtrl(
-            self, -1, style=wx.TE_MULTILINE | wx.TE_DONTWRAP, size=(300, 300)
-        )
-        vsizer.Add(self.itemsEntry, 1, wx.EXPAND)
+        itemsBox = widgets.ThemedTextCtrl(self, style=wx.TE_DONTWRAP, size=(300, 300))
+        self.itemsEntry = itemsBox.text
+        vsizer.Add(itemsBox, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 

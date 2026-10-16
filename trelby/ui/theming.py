@@ -7,7 +7,8 @@ import trelby.misc as misc
 # themeWindow gives them the theme's colors where the native controls allow
 # it (including push buttons), and the classes in widgets stand in for the
 # ones that don't: Separator for wx.StaticLine, ThemedListBox for wx.ListBox
-# and wx.CheckListBox, and ThemedListbook for wx.Treebook.
+# and wx.CheckListBox, ThemedListbook for wx.Treebook, and ThemedTextCtrl for
+# a multiline wx.TextCtrl, whose scrollbars ignore the colors.
 
 
 # the current configgui.ConfigGui, or None before the app has started
@@ -162,22 +163,24 @@ def _onButtonStateChange(event):
 
 # user32's SendMessageW, with its argument types (a private copy, so as not
 # to change ctypes.windll's for other code), made on first use
-_sendMessageW = None
+_sendMessageFn = None
 
 
-def _sendMessage(hwnd, msg, wParam, lParam):
-    global _sendMessageW
+# send Windows message msg to window hwnd, and return the result. Windows
+# only.
+def sendMessage(hwnd, msg, wParam, lParam):
+    global _sendMessageFn
 
-    if _sendMessageW is None:
+    if _sendMessageFn is None:
         import ctypes
         from ctypes import wintypes
 
         f = ctypes.WinDLL("user32").SendMessageW
         f.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
         f.restype = wintypes.LPARAM
-        _sendMessageW = f
+        _sendMessageFn = f
 
-    return _sendMessageW(hwnd, msg, wParam, lParam)
+    return _sendMessageFn(hwnd, msg, wParam, lParam)
 
 
 def _onButtonPaint(event):
@@ -188,7 +191,7 @@ def _onButtonPaint(event):
 
     # the native button keeps track of being pushed (by the mouse or the
     # keyboard) and focused
-    state = _sendMessage(w.GetHandle(), _BM_GETSTATE, 0, 0)
+    state = sendMessage(w.GetHandle(), _BM_GETSTATE, 0, 0)
     hover = w.GetScreenRect().Contains(wx.GetMousePosition())
 
     bg = w.GetBackgroundColour()

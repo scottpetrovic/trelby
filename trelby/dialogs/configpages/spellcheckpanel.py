@@ -28,10 +28,9 @@ class SpellCheckPanel(wx.Panel):
 
         vsizer.Add(wx.StaticText(self, -1, _("Global words (one per line):")))
 
-        self.itemsEntry = wx.TextCtrl(
-            self, -1, style=wx.TE_MULTILINE | wx.TE_DONTWRAP, size=(-1, 250)
-        )
-        vsizer.Add(self.itemsEntry, 1, wx.EXPAND | wx.TOP, 5)
+        itemsBox = widgets.ThemedTextCtrl(self, style=wx.TE_DONTWRAP, size=(-1, 250))
+        self.itemsEntry = itemsBox.text
+        vsizer.Add(itemsBox, 1, wx.EXPAND | wx.TOP, 5)
 
         self.itemsEntry.SetValue("\n".join(self.cfgFrame.scDict.get()))
 

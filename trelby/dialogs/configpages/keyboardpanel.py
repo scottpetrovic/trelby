@@ -48,10 +48,9 @@ class KeyboardPanel(wx.Panel):
 
         vsizer2.Add(wx.StaticText(self, -1, _("Description:")))
 
-        self.descEntry = wx.TextCtrl(
-            self, -1, style=wx.TE_MULTILINE | wx.TE_READONLY, size=(150, 75)
-        )
-        vsizer2.Add(self.descEntry, 1, wx.EXPAND)
+        descBox = widgets.ThemedTextCtrl(self, style=wx.TE_READONLY, size=(150, 75))
+        self.descEntry = descBox.text
+        vsizer2.Add(descBox, 1, wx.EXPAND)
 
         hsizer.Add(vsizer2, 0, wx.EXPAND | wx.BOTTOM, 10)
 
@@ -59,10 +58,11 @@ class KeyboardPanel(wx.Panel):
 
         vsizer.Add(wx.StaticText(self, -1, _("Conflicting keys:")), 0, wx.TOP, 10)
 
-        self.conflictsEntry = wx.TextCtrl(
-            self, -1, style=wx.TE_MULTILINE | wx.TE_READONLY, size=(50, 75)
+        conflictsBox = widgets.ThemedTextCtrl(
+            self, style=wx.TE_READONLY, size=(50, 75)
         )
-        vsizer.Add(self.conflictsEntry, 1, wx.EXPAND)
+        self.conflictsEntry = conflictsBox.text
+        vsizer.Add(conflictsBox, 1, wx.EXPAND)
 
         gutil.finishWindow(self, vsizer, center=False)
 

@@ -67,13 +67,13 @@ class ThemePanel(wx.Panel):
         vsizer.Add(hsizer, 0, wx.BOTTOM, 10)
 
         # problems with the theme files
-        self.errorsEntry = wx.TextCtrl(
+        self.errorsBox = widgets.ThemedTextCtrl(
             self,
-            -1,
             size=self.FromDIP(wx.Size(-1, 90)),
-            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP,
+            style=wx.TE_READONLY | wx.TE_DONTWRAP,
         )
-        vsizer.Add(self.errorsEntry, 0, wx.EXPAND)
+        self.errorsEntry = self.errorsBox.text
+        vsizer.Add(self.errorsBox, 0, wx.EXPAND)
 
         # pick up theme files added since the last time
         self.reload()
@@ -115,7 +115,7 @@ class ThemePanel(wx.Panel):
             lines.extend(errors)
 
         self.errorsEntry.SetValue("\n".join(lines))
-        self.errorsEntry.Show(bool(lines))
+        self.errorsBox.Show(bool(lines))
         self.Layout()
 
         self.cfg2gui()

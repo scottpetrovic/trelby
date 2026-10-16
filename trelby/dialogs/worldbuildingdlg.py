@@ -1,6 +1,7 @@
 import wx
 
 import trelby.ui.gutil as gutil
+import trelby.ui.widgets as widgets
 
 # shown above the text to suggest what to write about: list of (topic,
 # description). a function so that the strings are translated when used.
@@ -72,14 +73,11 @@ class WorldBuildingDlg(wx.Dialog):
 
         vsizer.Add(guideSizer, 0, wx.EXPAND | wx.TOP | wx.LEFT, dip(10))
 
-        self.textCtrl = wx.TextCtrl(
-            self,
-            -1,
-            worldBuilding.text,
-            size=dip(wx.Size(640, 360)),
-            style=wx.TE_MULTILINE,
+        textBox = widgets.ThemedTextCtrl(
+            self, value=worldBuilding.text, size=dip(wx.Size(640, 360))
         )
-        vsizer.Add(self.textCtrl, 1, wx.EXPAND | wx.TOP, dip(15))
+        self.textCtrl = textBox.text
+        vsizer.Add(textBox, 1, wx.EXPAND | wx.TOP, dip(15))
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         hsizer.Add((1, 1), 1)

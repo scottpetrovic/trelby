@@ -14,14 +14,13 @@ class TextDlg(wx.Dialog):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        tc = wx.TextCtrl(
+        textBox = widgets.ThemedTextCtrl(
             self,
-            -1,
+            value=text,
             size=wx.Size(400, 200),
-            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_LINEWRAP,
+            style=wx.TE_READONLY | wx.TE_LINEWRAP,
         )
-        tc.SetValue(text)
-        vsizer.Add(tc, 1, wx.EXPAND)
+        vsizer.Add(textBox, 1, wx.EXPAND)
 
         vsizer.Add(widgets.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 

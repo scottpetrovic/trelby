@@ -48,11 +48,10 @@ class AutoCompletionDlg(wx.Dialog):
 
         vsizer.Add(wx.StaticText(self, -1, _("Default items:")))
 
-        self.itemsEntry = wx.TextCtrl(
-            self, -1, style=wx.TE_MULTILINE | wx.TE_DONTWRAP, size=(400, 200)
-        )
+        itemsBox = widgets.ThemedTextCtrl(self, style=wx.TE_DONTWRAP, size=(400, 200))
+        self.itemsEntry = itemsBox.text
         self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.itemsEntry.GetId())
-        vsizer.Add(self.itemsEntry, 1, wx.EXPAND)
+        vsizer.Add(itemsBox, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 

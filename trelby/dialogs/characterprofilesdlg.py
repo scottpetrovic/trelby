@@ -413,13 +413,9 @@ class CharacterProfilesDlg(wx.Dialog):
 
         formSizer.Add(wx.StaticText(self.form, -1, _("Notes:")), 0, wx.TOP, 10)
 
-        self.ctrls["notes"] = wx.TextCtrl(
-            self.form,
-            -1,
-            size=dip(wx.Size(-1, 220)),
-            style=wx.TE_MULTILINE,
-        )
-        formSizer.Add(self.ctrls["notes"], 1, wx.EXPAND | wx.TOP, 3)
+        notes = widgets.ThemedTextCtrl(self.form, size=dip(wx.Size(-1, 220)))
+        self.ctrls["notes"] = notes.text
+        formSizer.Add(notes, 1, wx.EXPAND | wx.TOP, 3)
 
         self.form.SetSizer(formSizer)
 

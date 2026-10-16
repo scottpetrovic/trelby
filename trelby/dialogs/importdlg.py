@@ -46,10 +46,9 @@ class ImportDlg(wx.Dialog):
 
         vsizer.Add(wx.StaticText(self, -1, _("Lines:")))
 
-        self.linesEntry = wx.TextCtrl(
-            self, -1, size=(400, 200), style=wx.TE_MULTILINE | wx.TE_DONTWRAP
-        )
-        vsizer.Add(self.linesEntry, 0, wx.EXPAND)
+        linesBox = widgets.ThemedTextCtrl(self, size=(400, 200), style=wx.TE_DONTWRAP)
+        self.linesEntry = linesBox.text
+        vsizer.Add(linesBox, 0, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
