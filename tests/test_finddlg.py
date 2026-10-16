@@ -6,6 +6,7 @@ import tests.u as u
 import trelby.config as config
 import trelby.finddlg as finddlg
 import trelby.screenplay as scr
+import trelby.screenplay.search as search
 import trelby.translations as translations
 from trelby.line import Line
 
@@ -146,7 +147,11 @@ class Finder:
             line, col, length = m
             assert (self.ed.line, self.ed.column) == (line, col)
             assert self.ed.mark is not None
-            assert (self.ed.mark.line, self.ed.mark.column) == (line, col + length - 1)
+
+            # the match's last character, which can be on a later line
+            assert (self.ed.mark.line, self.ed.mark.column) == search.advance(
+                self.ed.sp, line, col, length - 1
+            )
 
         return m
 
@@ -375,23 +380,152 @@ def testFindEmptyDoesNothing():
     assert f.messages == []
 
 
-def testFindSpanningLinesNotFound():
-    ed = makeEd((scr.ACTION, "word " * 20))
-    assert len(ed.sp.lines) > 1
+# the offset of line, col in its paragraph's text, which starts at line 0
+def paraOffset(ed, line, col):
+    ls = ed.sp.lines
 
-    # "word word" wraps between the first two lines
-    assert ed.sp.lines[0].text.endswith("word")
+    return sum(len(ls[i].text) + len(config.lb2str(ls[i].lb)) for i in range(line)) + col
+
+
+# "a word word ...", which wraps with an odd number of words on the first
+# line, so that every other pair of words spans the lines
+def words():
+    ed = makeEd((scr.ACTION, "a " + "word " * 20))
+    assert len(ed.sp.lines) == 2
+    assert ed.sp.lines[0].lb == scr.LB_SPACE
+    assert ed.sp.lines[0].text.endswith(" word")
+
+    return ed
+
+
+def testFindSpanningLines():
+    ed = words()
     f = Finder(ed, "word word")
 
-    found = []
-    for i in range(30):
-        m = f.find()
-        if m in found:
-            break
-        found.append(m)
+    found = findAll(f, 19)
+    assert [paraOffset(ed, m[0], m[1]) for m in found] == [2 + 5 * i for i in range(19)]
+    assert f.messages == []
 
-    assert all(m[0] < len(ed.sp.lines) for m in found)
-    assert all(m[1] + m[2] <= len(ed.sp.lines[m[0]].text) for m in found)
+    # the pair that wraps is selected over both lines
+    spanning = [m for m in found if m[0] == 0 and m[1] + m[2] > len(texts(ed)[0])]
+    assert len(spanning) == 1
+    line, col, length = spanning[0]
+    f.dlg.match = None
+    ed.gotoPos(line, col)
+    assert f.find() == spanning[0]
+    assert ed.mark.line == 1
+
+    # and then the next ones, and the search wraps around after the last
+    for m in found[found.index(spanning[0]) + 1 :]:
+        assert f.find() == m
+
+    assert f.find() == found[0]
+    assert f.messages == [AT_END]
+
+
+def testFindUpSpanningLines():
+    ed = words()
+    ed.gotoPos(1, len(texts(ed)[1]))
+    f = Finder(ed, "word word", up=True)
+
+    # going up, a match must end at or before the start of the last one,
+    # so they don't overlap
+    found = findAll(f, 10)
+    assert [paraOffset(ed, m[0], m[1]) for m in found] == [
+        2 + 10 * i for i in reversed(range(10))
+    ]
+    assert f.messages == []
+
+    # including the pair that wraps
+    assert (0, len(texts(ed)[0]) - 4, 9) in found
+
+
+def testFindMatchStartingAtLineEnd():
+    ed = words()
+    f = Finder(ed, " word")
+
+    # " word" at the break starts on the space at the end of the first
+    # line. the next search has to step past it onto the next line, rather
+    # than find it again.
+    found = findAll(f, 20)
+    assert [paraOffset(ed, m[0], m[1]) for m in found] == [1 + 5 * i for i in range(20)]
+    assert (0, len(texts(ed)[0]), 5) in found
+
+    assert f.find() == found[0]
+    assert f.messages == [AT_END]
+
+
+def testReplaceSpanningLines():
+    ed = words()
+    before = texts(ed)
+    f = Finder(ed, "word word", replace="cat", continueAtEnd=False)
+
+    f.find()
+    replaced = 0
+    while f.match():
+        f.replace()
+        replaced += 1
+
+    assert replaced == 10
+    assert texts(ed) == ["a " + "cat " * 10]
+    assert f.messages == [AT_END]
+    ed._validate()
+
+    # one undo step each
+    for i in range(10):
+        ed.cmd("undo")
+    assert texts(ed) == before
+    ed._validate()
+
+
+def testReplaceSpanningMatch():
+    ed = words()
+    f = Finder(ed, "word word", replace="cat")
+
+    # the pair that wraps
+    line0 = texts(ed)[0]
+    ed.gotoPos(0, len(line0) - 4)
+    assert f.find() == (0, len(line0) - 4, 9)
+
+    with mock.patch.object(f.dlg, "OnFind"):
+        f.replace()
+
+    assert texts(ed) == texts(
+        makeEd((scr.ACTION, "a " + "word " * 10 + "cat " + "word " * 8))
+    )
+    assert (ed.line, ed.column) == (0, len(line0) - 1)
+    ed._validate()
+
+    ed.cmd("undo")
+    assert texts(ed) == texts(words())
+    assert (ed.line, ed.column) == (0, len(line0) - 4)
+
+
+def testReplaceSpanningMatchGoingUp():
+    ed = words()
+    line0 = texts(ed)[0]
+    ed.gotoPos(1, 4)
+    f = Finder(ed, "word word", replace="cat", up=True)
+
+    assert f.find() == (0, len(line0) - 4, 9)
+
+    with mock.patch.object(f.dlg, "OnFind"):
+        f.replace()
+
+    # going up, the cursor is left at the start of the new text
+    assert (ed.line, ed.column) == (0, len(line0) - 4)
+    ed._validate()
+
+
+def testReplaceAllSpanningLines():
+    ed = words()
+    f = Finder(ed, "WORD WORD", replace="cat")
+
+    assert f.replaceAll() == "Replaced 10 matches"
+    assert texts(ed) == ["a " + "cat " * 10]
+
+    ed.cmd("undo")
+    assert texts(ed) == texts(words())
 
 
 def testReplace():

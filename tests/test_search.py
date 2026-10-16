@@ -82,6 +82,125 @@ def testFindNextOverlapping():
     assert find(sp, 0, 3, "aa", up=True) == Match(0, 1, 2)
 
 
+def width():
+    return u.new().cfg.getType(scr.ACTION).width
+
+
+# a paragraph that wraps after "cat", at an LB_SPACE break: ["xx... cat",
+# "sat on it."], the first line being width() long
+def catSat():
+    w = width()
+    ed = makeEd((scr.ACTION, "x" * (w - 4) + " cat sat on it."))
+    assert texts(ed) == ["x" * (w - 4) + " cat", "sat on it."]
+    assert ed.sp.lines[0].lb == scr.LB_SPACE
+
+    return ed
+
+
+def testFindNextSpanningLines():
+    sp = catSat().sp
+    w = width()
+
+    # the break stands for a space
+    assert find(sp, 0, 0, "cat sat") == Match(0, w - 3, 7)
+    assert find(sp, 0, 0, "CAT SAT on") == Match(0, w - 3, 10)
+    assert find(sp, 0, 0, "catsat") is None
+
+    # starting or ending on the space
+    assert find(sp, 0, 0, " sat") == Match(0, w, 4)
+    assert find(sp, 0, 0, "cat ") == Match(0, w - 3, 4)
+
+    # starting past the space
+    assert find(sp, 0, w, " sat") == Match(0, w, 4)
+    assert find(sp, 0, w, "sat") == Match(1, 0, 3)
+    assert find(sp, 1, 0, " sat") is None
+
+
+def testFindNextUpSpanningLines():
+    sp = catSat().sp
+    w = width()
+
+    # the match must end at or before the position, which can be on the
+    # next line
+    assert find(sp, 1, 3, "cat sat", up=True) == Match(0, w - 3, 7)
+    assert find(sp, 1, 2, "cat sat", up=True) is None
+    assert find(sp, 1, 0, "cat ", up=True) == Match(0, w - 3, 4)
+    assert find(sp, 0, w, "cat ", up=True) is None
+    assert find(sp, *search.startPos(sp, True), "t s", up=True) == Match(0, w - 1, 3)
+
+
+def testFindNextSpanningLinesOptions():
+    sp = catSat().sp
+    w = width()
+
+    assert find(sp, 0, 0, "cat sat", wholeWord=True) == Match(0, w - 3, 7)
+    assert find(sp, 0, 0, "at sa", wholeWord=True) is None
+    assert find(sp, 0, 0, "cat SAT", matchCase=True) is None
+    assert find(sp, 0, 0, "cat sat", elementTypes=frozenset([scr.ACTION])) == Match(
+        0, w - 3, 7
+    )
+    assert find(sp, 0, 0, "cat sat", elementTypes=frozenset([scr.DIALOGUE])) is None
+
+
+def testFindNextAcrossLbNone():
+    w = width()
+    ed = makeEd((scr.ACTION, "y" * (w + 5)))
+    assert ed.sp.lines[0].lb == scr.LB_NONE
+
+    # a word broken without a space is still one word
+    assert find(ed.sp, 0, 0, "y" * 8) == Match(0, 0, 8)
+    assert find(ed.sp, 0, w - 3, "y" * 8) == Match(0, w - 3, 8)
+    assert find(ed.sp, 0, 0, "y" * (w + 5), wholeWord=True) == Match(0, 0, w + 5)
+    assert find(ed.sp, 0, 0, "y" * w, wholeWord=True) is None
+
+    # a match starting at the break starts on the next line
+    assert find(ed.sp, 0, w, "y") == Match(1, 0, 1)
+
+
+def testFindNextNotAcrossParagraphs():
+    ed = makeEd((scr.ACTION, "a cat"), (scr.ACTION, "sat"))
+    assert find(ed.sp, 0, 0, "cat sat") is None
+    assert find(ed.sp, 0, 0, "catsat") is None
+
+    # a forced line break ends a paragraph, too
+    sp = u.new()
+    sp.lines = [
+        Line(scr.LB_FORCED, scr.ACTION, "a cat"),
+        Line(scr.LB_LAST, scr.ACTION, "sat"),
+    ]
+    assert find(sp, 0, 0, "cat sat") is None
+    assert find(sp, 0, 0, "sat") == Match(1, 0, 3)
+
+
+def testFindNextOverManyLines():
+    ed = makeEd((scr.ACTION, "cat " * 40))
+    assert len(ed.sp.lines) == 3
+
+    m = find(ed.sp, 0, 0, ("cat " * 40).strip())
+    assert m == Match(0, 0, len("cat " * 40) - 1)
+    assert search.advance(ed.sp, m.line, m.col, m.length) == (2, len(texts(ed)[2]) - 1)
+
+
+def testAdvance():
+    sp = catSat().sp
+    w = width()
+
+    assert search.advance(sp, 0, 0, 3) == (0, 3)
+    assert search.advance(sp, 0, w - 1, 1) == (0, w)
+
+    # past the space, which stays at the end of the first line
+    assert search.advance(sp, 0, w, 1) == (1, 0)
+    assert search.advance(sp, 0, w - 3, 7) == (1, 3)
+    assert search.advance(sp, 1, 3, -7) == (0, w - 3)
+
+    # it stops at the end of the paragraph
+    assert search.advance(sp, 1, 0, 99) == (1, 10)
+
+    # at an LB_NONE break, the position is on the next line
+    sp = makeEd((scr.ACTION, "y" * (w + 5))).sp
+    assert search.advance(sp, 0, w - 1, 1) == (1, 0)
+
+
 def testStartPos():
     sp = makeEd((scr.ACTION, "one"), (scr.ACTION, "three")).sp
 
@@ -157,6 +276,87 @@ def testReplaceRangeRewraps():
     assert (ed.line, ed.column) == (0, 1)
 
 
+def testReplaceRangeSpanningLines():
+    ed = catSat()
+    w = width()
+    before = texts(ed)
+    ed.gotoPos(1, 5)
+
+    ed.replaceRange(0, w - 3, 7, "dog")
+
+    assert texts(ed) == ["x" * (w - 4) + " dog", "on it."]
+    assert (ed.line, ed.column) == (0, w)
+    assert ed.mark is None
+    ed._validate()
+
+    # one undo step
+    ed.cmd("undo")
+    assert texts(ed) == before
+    assert (ed.line, ed.column) == (1, 5)
+    ed._validate()
+
+    ed.cmd("redo")
+    assert texts(ed) == ["x" * (w - 4) + " dog", "on it."]
+    ed._validate()
+
+
+def testReplaceRangeSpanningLinesCursorAtStart():
+    ed = catSat()
+    w = width()
+
+    ed.replaceRange(0, w - 3, 7, "dog", cursorAtStart=True)
+    assert (ed.line, ed.column) == (0, w - 3)
+
+
+def testReplaceRangeTheSpace():
+    w = width()
+
+    # replacing the space at the break joins the words
+    ed = catSat()
+    ed.replaceRange(0, w, 1, "")
+    assert texts(ed) == ["x" * (w - 4), "catsat on it."]
+    ed._validate()
+
+    # and replacing a range ending on it keeps the next word separate
+    ed = catSat()
+    ed.replaceRange(0, w - 3, 4, "a ")
+    assert texts(ed) == ["x" * (w - 4) + " a", "sat on it."]
+    ed._validate()
+
+    # or starting at it
+    ed = catSat()
+    ed.replaceRange(0, w, 4, "-mat")
+    assert texts(ed) == ["x" * (w - 4), "cat-mat on it."]
+    ed._validate()
+
+
+def testReplaceRangeOverManyLines():
+    ed = makeEd((scr.ACTION, "a " + "cat " * 40 + "b"))
+    before = texts(ed)
+    assert len(before) == 3
+
+    ed.replaceRange(0, 2, len("cat " * 40) - 1, "dog")
+    assert texts(ed) == ["a dog b"]
+    assert (ed.line, ed.column) == (0, 5)
+    ed._validate()
+
+    ed.cmd("undo")
+    assert texts(ed) == before
+    ed._validate()
+
+
+def testReplaceRangeSpanningLinesKeepsStyle():
+    ed = catSat()
+    w = width()
+    for ln in ed.sp.lines:
+        ln.setText(ln.text, textfmt.char(textfmt.BOLD) * len(ln.text))
+
+    ed.replaceRange(0, w - 3, 7, "dog")
+
+    for ln in ed.sp.lines:
+        assert ln.getFmt() == textfmt.char(textfmt.BOLD) * len(ln.text)
+
+
 def testReplaceAt():
     ed = makeEd((scr.ACTION, "The cat sat."))
 
@@ -204,4 +404,20 @@ def testReplaceAllAcrossWrappedLines():
     assert ed.replaceAll(FindOptions(text="cat"), "x") == 40
     assert " ".join(texts(ed)) == "x " * 40
     assert len(ed.sp.lines) == 2
+    ed._validate()
+
+
+def testReplaceAllSpanningLines():
+    ed = makeEd((scr.ACTION, "a " + "word " * 20))
+    before = texts(ed)
+    assert len(before) == 2
+
+    # ten pairs, one of which wraps between the lines
+    assert before[0].count("word") % 2 == 1
+    assert ed.replaceAll(FindOptions(text="word word"), "x") == 10
+    assert texts(ed) == ["a " + "x " * 10]
+    ed._validate()
+
+    ed.cmd("undo")
+    assert texts(ed) == before
     ed._validate()
