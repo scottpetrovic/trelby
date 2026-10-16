@@ -1,3 +1,5 @@
+import types
+
 import wx
 
 import trelby.misc as misc
@@ -79,6 +81,9 @@ def _themeTree(w, cfgGui, grown):
 
     if isinstance(w, (wx.TextCtrl, wx.SpinCtrl, wx.SpinCtrlDouble, wx.ListCtrl)):
         _setColors(w, cfgGui.textBgColor, cfgGui.textColor)
+
+        if not isinstance(w, wx.ListCtrl) and _padTextField(w):
+            grown.add(w.GetParent())
     elif isinstance(w, wx.Button) and not isinstance(w, wx.BitmapButton):
         # not toggle buttons, which are wx.AnyButtons but not wx.Buttons
         _setColors(w, cfgGui.buttonBgColor, cfgGui.tabTextColor)
@@ -131,6 +136,248 @@ def _padButton(w):
     w.SetMinSize(size)
 
     return size != old
+
+
+# give text field w (a wx.TextCtrl or a spin control) more room around its
+# text than the native field: margins at the sides, and for a single-line
+# wx.TextCtrl, more height, half of it above the text. (a spin control's
+# native field draws its border inside its client area, so on Windows its
+# text can't be moved down from the border.) returns whether its minimum
+# size changed.
+def _padTextField(w):
+    pad = w.FromDIP(5)
+    setTextMargins(w, pad, pad)
+
+    if not isinstance(w, wx.TextCtrl) or w.IsMultiLine():
+        return False
+
+    vPad = w.FromDIP(3)
+
+    # the best size includes the minimum size, so clear its height first
+    old = w.GetMinSize()
+    w.SetMinSize(wx.Size(old.width, -1))
+    w.InvalidateBestSize()
+    size = wx.Size(old.width, max(old.height, w.GetBestSize().height + 2 * vPad))
+
+    w.SetMinSize(size)
+
+    # Windows keeps a single-line field's text at the top, so all the extra
+    # height would be below it
+    if misc.isWindows:
+        _centerEditText(w, vPad)
+
+    return size != old
+
+
+# the native text field of text field w (a wx.TextCtrl or a spin control).
+# Windows only.
+def _editHwnd(w):
+    hwnd = w.GetHandle()
+
+    if isinstance(w, (wx.SpinCtrl, wx.SpinCtrlDouble)):
+        hwnd = sendMessage(hwnd, _UDM_GETBUDDY, 0, 0) or hwnd
+
+    return hwnd
+
+
+# window messages, hit test results and SetWindowPos flags
+_WM_NCDESTROY = 0x82
+_WM_NCCALCSIZE = 0x83
+_WM_NCHITTEST = 0x84
+_WM_NCPAINT = 0x85
+_HTNOWHERE = 0
+_HTCLIENT = 1
+_HTBORDER = 18
+_SWP_FRAME = 0x1 | 0x2 | 0x4 | 0x10 | 0x20
+
+# the Win32 functions _centerEditText uses, set up on first use
+_win = None
+
+# the fields _centerEditText has done, by native window: (the wx window,
+# the pixels taken off the client area at the top and at the bottom)
+_centered = {}
+
+
+# move the text of single-line wx.TextCtrl w down by pad pixels, so that
+# with pad pixels more height than the native field, the text is as far
+# from the top as from the bottom: the client area, where the native field
+# draws, gets pad pixels smaller at the top and at the bottom, and those
+# strips are drawn in its background color. clicks in them go to the
+# field. Windows only.
+def _centerEditText(w, pad):
+    _initWin()
+    hwnd = w.GetHandle()
+
+    if hwnd not in _centered:
+        _win.SetWindowSubclass(hwnd, _win.proc, 1, 0)
+
+    _centered[hwnd] = (w, pad)
+
+    # makes Windows ask for the client area again, and redraw the frame
+    _win.user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, _SWP_FRAME)
+
+
+def _initWin():
+    global _win
+
+    if _win:
+        return
+
+    import ctypes
+    from ctypes import wintypes
+
+    LRESULT = ctypes.c_ssize_t
+    SUBCLASSPROC = ctypes.WINFUNCTYPE(
+        LRESULT,
+        wintypes.HWND,
+        wintypes.UINT,
+        wintypes.WPARAM,
+        wintypes.LPARAM,
+        ctypes.c_size_t,
+        ctypes.c_size_t,
+    )
+
+    comctl32 = ctypes.WinDLL("comctl32")
+    user32 = ctypes.WinDLL("user32")
+    gdi32 = ctypes.WinDLL("gdi32")
+
+    for f, res, args in (
+        (
+            comctl32.SetWindowSubclass,
+            wintypes.BOOL,
+            [wintypes.HWND, SUBCLASSPROC, ctypes.c_size_t, ctypes.c_size_t],
+        ),
+        (
+            comctl32.RemoveWindowSubclass,
+            wintypes.BOOL,
+            [wintypes.HWND, SUBCLASSPROC, ctypes.c_size_t],
+        ),
+        (
+            comctl32.DefSubclassProc,
+            LRESULT,
+            [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM],
+        ),
+        (user32.GetWindowDC, wintypes.HDC, [wintypes.HWND]),
+        (user32.ReleaseDC, ctypes.c_int, [wintypes.HWND, wintypes.HDC]),
+        (
+            user32.GetWindowRect,
+            wintypes.BOOL,
+            [wintypes.HWND, ctypes.POINTER(wintypes.RECT)],
+        ),
+        (
+            user32.GetClientRect,
+            wintypes.BOOL,
+            [wintypes.HWND, ctypes.POINTER(wintypes.RECT)],
+        ),
+        (
+            user32.ClientToScreen,
+            wintypes.BOOL,
+            [wintypes.HWND, ctypes.POINTER(wintypes.POINT)],
+        ),
+        (
+            user32.FillRect,
+            ctypes.c_int,
+            [wintypes.HDC, ctypes.POINTER(wintypes.RECT), wintypes.HBRUSH],
+        ),
+        (
+            user32.SetWindowPos,
+            wintypes.BOOL,
+            [wintypes.HWND, wintypes.HWND] + [ctypes.c_int] * 4 + [wintypes.UINT],
+        ),
+        (gdi32.CreateSolidBrush, wintypes.HBRUSH, [wintypes.DWORD]),
+        (gdi32.DeleteObject, wintypes.BOOL, [wintypes.HGDIOBJ]),
+    ):
+        f.restype = res
+        f.argtypes = args
+
+    def proc(hwnd, msg, wParam, lParam, idSubclass, refData):
+        res = comctl32.DefSubclassProc(hwnd, msg, wParam, lParam)
+        w, pad = _centered.get(hwnd, (None, 0))
+
+        if msg == _WM_NCDESTROY:
+            comctl32.RemoveWindowSubclass(hwnd, _win.proc, 1)
+            _centered.pop(hwnd, None)
+        elif not w:
+            pass
+        elif msg == _WM_NCCALCSIZE:
+            # the new client area is the first rectangle lParam points to,
+            # whatever wParam says
+            rc = wintypes.RECT.from_address(lParam)
+
+            if rc.bottom - rc.top > 2 * pad:
+                rc.top += pad
+                rc.bottom -= pad
+        elif msg == _WM_NCPAINT:
+            _paintStrips(hwnd, w, pad)
+        elif msg == _WM_NCHITTEST and res in (_HTNOWHERE, _HTBORDER):
+            res = _HTCLIENT
+
+        return res
+
+    _win = types.SimpleNamespace(
+        proc=SUBCLASSPROC(proc),
+        SetWindowSubclass=comctl32.SetWindowSubclass,
+        user32=user32,
+        gdi32=gdi32,
+        ctypes=ctypes,
+        wintypes=wintypes,
+    )
+
+
+# draw the strips _centerEditText took off native window hwnd's client
+# area, in the background color of w, the wx window it belongs to
+def _paintStrips(hwnd, w, pad):
+    wt = _win.wintypes
+    u = _win.user32
+
+    wr = wt.RECT()
+    cr = wt.RECT()
+    pt = wt.POINT(0, 0)
+    u.GetWindowRect(hwnd, _win.ctypes.byref(wr))
+    u.GetClientRect(hwnd, _win.ctypes.byref(cr))
+    u.ClientToScreen(hwnd, _win.ctypes.byref(pt))
+
+    # the client area in window coordinates
+    x = pt.x - wr.left
+    y = pt.y - wr.top
+
+    c = w.GetBackgroundColour()
+    brush = _win.gdi32.CreateSolidBrush(c.Red() | (c.Green() << 8) | (c.Blue() << 16))
+    hdc = u.GetWindowDC(hwnd)
+
+    for top in (y - pad, y + cr.bottom):
+        r = wt.RECT(x, top, x + cr.right, top + pad)
+        u.FillRect(hdc, _win.ctypes.byref(r), brush)
+
+    u.ReleaseDC(hwnd, hdc)
+    _win.gdi32.DeleteObject(brush)
+
+
+# EM_SETMARGINS, and its flags for the left and right margins
+_EM_SETMARGINS = 0xD3
+_EC_LEFTMARGIN = 0x1
+_EC_RIGHTMARGIN = 0x2
+
+# UDM_GETBUDDY: the text field a spin control's arrows belong to
+_UDM_GETBUDDY = 0x46A
+
+
+# set the space between the edges of text field w (a wx.TextCtrl or a spin
+# control) and its text, in pixels. the right margin is only set on
+# Windows.
+def setTextMargins(w, left, right):
+    if not misc.isWindows:
+        if hasattr(w, "SetMargins"):
+            w.SetMargins(left)
+
+        return
+
+    sendMessage(
+        _editHwnd(w),
+        _EM_SETMARGINS,
+        _EC_LEFTMARGIN | _EC_RIGHTMARGIN,
+        (left & 0xFFFF) | ((right & 0xFFFF) << 16),
+    )
 
 
 # BM_GETSTATE, and the bits of its result we use

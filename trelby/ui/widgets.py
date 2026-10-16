@@ -727,8 +727,9 @@ class ThemedTextCtrl(wx.Panel):
         # whether our ScrollBars stand in for the native ones
         self.custom = misc.isWindows
 
-        # space between the border and the text
-        self.pad = self.FromDIP(3)
+        # space between the border and the text, at the left and the top
+        # (the text's own margin is at the right)
+        self.pad = self.FromDIP(6)
 
         # which native scrollbars the text has
         self.hasVBar = not (style & wx.TE_NO_VSCROLL)
@@ -744,6 +745,7 @@ class ThemedTextCtrl(wx.Panel):
             value,
             style=style | wx.TE_MULTILINE | wx.BORDER_NONE,
         )
+        theming.setTextMargins(self.text, 0, self.pad)
 
         self.vBar = ScrollBar(self.box)
         self.hBar = ScrollBar(self.box, orient=wx.HORIZONTAL)
