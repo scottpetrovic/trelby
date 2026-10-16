@@ -9,6 +9,7 @@ import wx
 
 import trelby.ui.autosave as autosave
 import trelby.commands as commands
+import trelby.config as config
 import trelby.dialogs.finddlg as finddlg
 import trelby.formats as formats
 import trelby.keys as keys
@@ -752,12 +753,19 @@ class MyCtrl(wx.Control):
         if textutil.lower(word).endswith("'s"):
             word = word[:-2]
 
+        # the paragraph's text before the word, which tells "has walked"
+        # from "walked"
+        ls = self.sp.lines
+        first = self.sp.getParaFirstIndexFromLine(line)
+        before = "".join(ls[i].text + config.lb2str(ls[i].lb) for i in range(first, line))
+        before += ls[line].text[:start]
+
         th = loadThesaurus(self.gd.mainFrame)
         posNames = {"n": _("noun"), "v": _("verb"), "a": _("adjective"), "r": _("adverb")}
         res = []
         words = []
 
-        for sense in th.lookup(word):
+        for sense in th.lookup(word, before):
             ws = [w for w in sense.words if w not in words][:SYNONYMS_PER_SENSE]
 
             if not ws:
