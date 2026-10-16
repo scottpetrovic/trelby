@@ -37,6 +37,8 @@ _ = translations.trelby_translations_load()
 class MyApp(wx.App):
 
     def OnInit(self):
+        # replaced below if the config picks a language
+        global _
 
         if (wx.MAJOR_VERSION != 4) or (wx.MINOR_VERSION < 0):
             wx.MessageBox(
@@ -85,16 +87,22 @@ class MyApp(wx.App):
 
         os.chdir(misc.progPath)
 
-        cfgGl = config.ConfigGlobal()
-        gd.cfgGl = cfgGl
-        cfgGl.setDefaults()
-
-        if util.fileExists(gd.confFilename):
+        s = None
+        confExists = util.fileExists(gd.confFilename)
+        if confExists:
             s = util.loadFile(gd.confFilename, None)
 
-            if s:
-                cfgGl.load(s)
-        else:
+        cfgGl = loadGlobalCfg(s)
+
+        # switch to the language chosen in the Language menu. the config is
+        # built again, since it translates the commands' descriptions.
+        if cfgGl.language:
+            _ = translations.trelby_translations_load(cfgGl.language)
+            cfgGl = loadGlobalCfg(s)
+
+        gd.cfgGl = cfgGl
+
+        if not confExists:
             # we want to write out a default config file at startup for
             # various reasons, if no default config file yet exists
             util.writeToFile(gd.confFilename, cfgGl.save(), None)
@@ -152,6 +160,19 @@ class MyApp(wx.App):
         wx.CallAfter(mainFrame.offerRecovery)
 
         return True
+
+
+def loadGlobalCfg(s):
+    """Return a ConfigGlobal with the defaults, plus the saved config s if
+    it's not empty."""
+
+    cfgGl = config.ConfigGlobal()
+    cfgGl.setDefaults()
+
+    if s:
+        cfgGl.load(s)
+
+    return cfgGl
 
 
 def main():

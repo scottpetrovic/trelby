@@ -68,20 +68,53 @@ def findLanguage(code, available):
     return None
 
 
-def trelby_translations_load():
-    """load translations"""
-    localedir = os.path.dirname(trelby.__file__) + "/locales"
+def getLocaleDir():
+    return os.path.dirname(trelby.__file__) + "/locales"
+
+
+# each language's name in that language, for the Language menu. a
+# translation missing from here is listed by its folder name.
+LANGUAGE_NAMES = {
+    "en_US": "English",
+    "it_IT": "Italiano",
+}
+
+
+def languageName(name):
+    return LANGUAGE_NAMES.get(name, name)
+
+
+def pickLanguage(setting, lang, available):
+    """Return the translation to use: the one the Language setting names,
+    or failing that (it's "", meaning the system's language, or that
+    translation is gone) the best match for the LANG environment variable,
+    or DEFAULT_LANGUAGE."""
+
+    return (
+        findLanguage(setting, available)
+        or findLanguage(lang, available)
+        or DEFAULT_LANGUAGE
+    )
+
+
+def getTranslation(setting=""):
+    """Return the gettext translation for the global config's language
+    setting."""
+    localedir = getLocaleDir()
     available = getLanguages(localedir)
 
-    language = findLanguage(os.environ.get("LANG", ""), available)
-    if not language:
-        language = DEFAULT_LANGUAGE
+    language = pickLanguage(setting, os.environ.get("LANG", ""), available)
 
     # fallback: if even the default isn't built, show the untranslated
     # (English) strings instead of failing to start
-    trans = gettext.translation(
+    return gettext.translation(
         "trelby", localedir=localedir, languages=[language], fallback=True
     )
+
+
+def trelby_translations_load(setting=""):
+    """load translations. setting is the global config's language."""
+    trans = getTranslation(setting)
     trans.install()
 
     return trans.gettext

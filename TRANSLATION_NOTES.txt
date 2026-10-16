@@ -26,6 +26,11 @@ Trelby picks the translation from LANG. It ignores any encoding or modifier ("de
 language, preferring the language's home country (LANG=de or de_AT both pick de_DE if that's all there is).
 Otherwise, it uses en_US.
 
+The Language menu overrides LANG: picking a language there saves it in the global config (Language:de_DE), and
+Trelby uses it from the next startup on. "System default" (Language: with no value) goes back to LANG. Add your
+language's name, written in that language, to LANGUAGE_NAMES in trelby/translations.py so the menu shows it
+(e.g. "de_DE": "Deutsch").
+
 When you're finished, run ./t_03_build.sh, git add the new .po file, commit, push, and submit a pull request.
 
 Thank you!

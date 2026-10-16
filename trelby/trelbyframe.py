@@ -26,6 +26,7 @@ import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.splash as splash
 import trelby.statusbar as statusbar
 import trelby.textfmt as textfmt
+import trelby.translations as translations
 import trelby.util as util
 from trelby.ids import *
 from trelby.trelbypanel import MyPanel
@@ -263,6 +264,34 @@ class MyFrame(wx.Frame):
             ID_TOOLS_COMPARE_SCRIPTS, misc.mnemonic("o", _("Compare scripts") + "...")
         )
 
+        # one item per installed translation, each named in its own
+        # language, after one for the system's language
+        languageMenu = wx.Menu()
+        localedir = translations.getLocaleDir()
+        available = translations.getLanguages(localedir)
+        systemLanguage = translations.pickLanguage(
+            "", os.environ.get("LANG", ""), available
+        )
+
+        chosen = translations.findLanguage(gd.cfgGl.language, available) or ""
+
+        for language, label in [
+            (
+                "",
+                _("System default ({})").format(
+                    translations.languageName(systemLanguage)
+                ),
+            )
+        ] + [(name, translations.languageName(name)) for name in available]:
+            menuId = wx.NewIdRef()
+            languageMenu.AppendRadioItem(menuId, label)
+            self.Bind(
+                wx.EVT_MENU, partial(self.OnLanguage, language=language), id=menuId
+            )
+
+            if language == chosen:
+                languageMenu.Check(menuId, True)
+
         helpMenu = wx.Menu()
         helpMenu.Append(ID_HELP_COMMANDS, misc.mnemonic("C", _("Commands") + "..."))
         helpMenu.Append(ID_HELP_MANUAL, misc.mnemonic("M", _("Manual")))
@@ -285,6 +314,7 @@ class MyFrame(wx.Frame):
         self.menuBar.Append(scriptMenu, misc.mnemonic("S", _("Script")))
         self.menuBar.Append(reportsMenu, misc.mnemonic("R", _("Reports")))
         self.menuBar.Append(toolsMenu, misc.mnemonic("T", _("Tools")))
+        self.menuBar.Append(languageMenu, misc.mnemonic("L", _("Language")))
         self.menuBar.Append(helpMenu, misc.mnemonic("H", _("Help")))
 
         if self.ownMenuBar:
@@ -1558,6 +1588,23 @@ class MyFrame(wx.Frame):
 
     def OnHelpManual(self, event=None):
         webbrowser.open("file://" + misc.getFullPath("trelby/manual.html"))
+
+    def OnLanguage(self, event=None, language=""):
+        if language == self.gd.cfgGl.language:
+            return
+
+        self.gd.cfgGl.language = language
+        util.writeToFile(self.gd.confFilename, self.gd.cfgGl.save(), self)
+
+        # in the new language, which whoever picked it can presumably read
+        newGettext = translations.getTranslation(language).gettext
+
+        wx.MessageBox(
+            newGettext("Restart Trelby to use the new language."),
+            newGettext("Language"),
+            wx.OK,
+            self,
+        )
 
     def OnAbout(self, event=None):
         win = splash.SplashWindow(self, -1)

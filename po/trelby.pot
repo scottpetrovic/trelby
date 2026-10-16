@@ -3116,3 +3116,15 @@ msgstr ""
 msgid "There's already a theme named '{}'. Choose another file name."
 msgstr ""
 
+#: trelby/trelbyframe.py
+#, python-brace-format
+msgid "System default ({})"
+msgstr ""
+
+#: trelby/trelbyframe.py
+msgid "Language"
+msgstr ""
+
+#: trelby/trelbyframe.py
+msgid "Restart Trelby to use the new language."
+msgstr ""

@@ -1,6 +1,8 @@
 import os
 
+import tests.u as u
 import trelby
+import trelby.config as config
 import trelby.translations as translations
 
 # test picking a translation from LANG
@@ -57,3 +59,53 @@ def testInstalledLanguages():
 
     assert translations.findLanguage("it_IT.UTF-8", avail) == "it_IT"
     assert translations.findLanguage("en_GB", avail) == "en_US"
+
+
+def testPickLanguage():
+    pk = translations.pickLanguage
+    avail = ["en_US", "it_IT"]
+
+    # the Language menu's choice wins over LANG
+    assert pk("it_IT", "en_US", avail) == "it_IT"
+    assert pk("en_US", "it_IT.UTF-8", avail) == "en_US"
+
+    # "" (system default) or a translation that's gone: LANG decides
+    assert pk("", "it_IT.UTF-8", avail) == "it_IT"
+    assert pk("de_DE", "it", avail) == "it_IT"
+
+    # and failing that, the default
+    assert pk("", "", avail) == translations.DEFAULT_LANGUAGE
+    assert pk("de_DE", "C", avail) == translations.DEFAULT_LANGUAGE
+
+
+def testGetTranslation(monkeypatch):
+    monkeypatch.setenv("LANG", "en_US")
+
+    assert translations.getTranslation("it_IT").gettext("Language") == "Lingua"
+    assert translations.getTranslation("").gettext("Language") == "Language"
+
+    monkeypatch.setenv("LANG", "it_IT")
+    assert translations.getTranslation("").gettext("Language") == "Lingua"
+    assert translations.getTranslation("en_US").gettext("Language") == "Language"
+
+
+def testLanguageNames():
+    localedir = translations.getLocaleDir()
+
+    # every installed translation has a proper name in the menu
+    for name in translations.getLanguages(localedir):
+        assert translations.languageName(name) != name, name
+
+    assert translations.languageName("xx_XX") == "xx_XX"
+
+
+def testLanguageSetting():
+    u.init()
+
+    cfg = config.ConfigGlobal()
+    assert cfg.language == ""
+
+    cfg.language = "it_IT"
+    cfg2 = config.ConfigGlobal()
+    cfg2.load(cfg.save())
+    assert cfg2.language == "it_IT"

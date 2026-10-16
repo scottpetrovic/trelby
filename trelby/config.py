@@ -1323,6 +1323,11 @@ class ConfigGlobal:
         # THEME_SYSTEM
         v.addStrUnicode("theme", THEME_SYSTEM, "Theme")
 
+        # user interface language: a translation's folder name, e.g.
+        # "it_IT", or "" for the system's language (the LANG environment
+        # variable). takes effect on the next startup.
+        v.addStrUnicode("language", "", "Language")
+
         # how many lines to scroll per mouse wheel event
         v.addInt("mouseWheelLines", 4, "MouseWheelLines", 1, 50)
 
