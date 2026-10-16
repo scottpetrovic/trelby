@@ -249,3 +249,44 @@ def testPasteSystemClipboard():
         ctrl.OnPasteSystemCb()
 
     assert [ln.text for ln in sp.lines] == ["Łódź €", "čapek Пётр|Ω"]
+
+
+# in --test mode, typing "\xe5", "\xa4" or "\xbd" runs a debugging hook
+# instead of inserting the character. the literals were once lost to a
+# re-encoding of trelbyctrl.py, which left the hooks unreachable.
+def testTestModeHooks():
+    ctrl = newCtrl()
+    ctrl.loadFile = mock.Mock()
+    ctrl.cmdTest = mock.Mock()
+    ctrl.cmdSpeedTest = mock.Mock()
+
+    with mock.patch.object(opts, "isTest", True, create=True):
+        for c in "\xe5\xa4\xbd":
+            ctrl.OnKeyChar(KeyEvent(ord(c), ord(c)))
+
+    assert ctrl.loadFile.call_count == 1
+    assert ctrl.loadFile.call_args[0][0].endswith("sample.trelby")
+    assert ctrl.cmdTest.call_count == 1
+    assert ctrl.cmdSpeedTest.call_count == 1
+    assert ctrl.sp.lines[0].text == ""
+
+    # outside test mode they're ordinary characters
+    typeChars(ctrl, "\xe5\xa4\xbd")
+    assert ctrl.sp.lines[0].text.lower() == "\xe5\xa4\xbd"
+    assert ctrl.loadFile.call_count == 1
+
+
+def testSpeedTest(capsys):
+    ctrl = newCtrl()
+    ctrl.Update = lambda: None
+
+    # reformatAll refuses to run with undo history, which the
+    # testAddRemoveChar step creates
+    ctrl.sp.reformatAll = lambda: None
+
+    with mock.patch.object(opts, "isTest", False, create=True):
+        ctrl.cmdSpeedTest(screenplay.CommandState())
+
+    out = capsys.readouterr().out
+    assert "seconds per testUndoFullCopy" in out
+    assert not ctrl.sp.isModified()

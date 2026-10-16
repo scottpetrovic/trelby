@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 
 import copy
 import os
@@ -1752,7 +1752,7 @@ class MyCtrl(wx.Control):
         self.sp.toPrevTypeTabCmd(cs)
 
     def cmdSpeedTest(self, cs):
-        import undo
+        import trelby.undo as undo
 
         self.speedTestUndo = []
 
@@ -1798,7 +1798,7 @@ class MyCtrl(wx.Control):
 
             t = time.time() - t
 
-            print(_("{.5f} seconds per {}").format(t / count, name))
+            print("{:.5f} seconds per {}".format(t / count, name))
 
         print("-" * 20)
 
@@ -1843,16 +1843,14 @@ class MyCtrl(wx.Control):
             if addChar:
                 cs.char = chr(kc)
 
-                # test mode hooks, originally typed as the Latin-1
-                # characters 0xE5, 0xA4 and 0xBD. those were lost when this
-                # file was re-encoded: the literals are now the UTF-8 bytes
-                # of U+FFFD, which Python reads per the iso-8859-1 coding
-                # line as three characters, so none of them can match.
-                if opts.isTest and (cs.char == "�"):
-                    self.loadFile("sample.trelby")
-                elif opts.isTest and (cs.char == "�"):
+                # test mode hooks: "\xe5" (a with ring) loads the sample
+                # script, "\xa4" (currency sign) runs cmdTest and "\xbd"
+                # (one half) runs cmdSpeedTest.
+                if opts.isTest and (cs.char == "\xe5"):
+                    self.loadFile(misc.getFullPath("trelby/sample.trelby"))
+                elif opts.isTest and (cs.char == "\xa4"):
                     self.cmdTest(cs)
-                elif opts.isTest and (cs.char == "�"):
+                elif opts.isTest and (cs.char == "\xbd"):
                     self.cmdSpeedTest(cs)
                 else:
                     self.sp.addCharCmd(cs)
