@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<FinalDraft DocumentType="Script" Template="No" Version="1">
+  <Content>
+    <Paragraph Type="Scene Heading"><Text>INT. OFFICE - DAY</Text></Paragraph>
+    <Paragraph Type="Action"><Text>The </Text><Text Style="Bold">door</Text><Text> opens </Text><Text Style="Italic+Underline">slowly</Text><Text>.</Text></Paragraph>
+    <Paragraph Type="Action"><Text>First line second line
+third line
+</Text></Paragraph>
+    <Paragraph Type="Action"><ScriptNote><Paragraph><Text AdornmentStyle="0">Note one</Text></Paragraph><Paragraph><Text>Note two</Text></Paragraph></ScriptNote><Text>Has a note.</Text></Paragraph>
+    <Paragraph Type="Action"><ScriptNote><Paragraph><Text>Only a note</Text></Paragraph></ScriptNote></Paragraph>
+    <Paragraph Type="Action"><Text></Text></Paragraph>
+    <Paragraph Type="Character"><Text>JOE</Text></Paragraph>
+    <Paragraph Type="Parenthetical"><Text>(beat)</Text></Paragraph>
+    <Paragraph Type="Dialogue"><Text>Hello.</Text></Paragraph>
+    <Paragraph Type="General">
+      <DualDialogue>
+        <Paragraph Type="Character"><Text>AMY</Text></Paragraph>
+        <Paragraph Type="Dialogue"><Text>Left.</Text></Paragraph>
+        <Paragraph Type="Character"><Text>BEN</Text></Paragraph>
+        <Paragraph Type="Dialogue"><Text>Right.</Text></Paragraph>
+      </DualDialogue>
+    </Paragraph>
+    <Paragraph Type="Shot"><Text>ANGLE ON JOE</Text></Paragraph>
+    <Paragraph Type="Cast List"><Text>Unknown type.</Text></Paragraph>
+    <Paragraph Type="Transition"><Text>CUT TO:</Text></Paragraph>
+    <Paragraph Type="Action" Alignment="Center"><Text>THE END</Text></Paragraph>
+    <Paragraph Type="Character" Alignment="Center"><Text>NOT CENTERED</Text></Paragraph>
+  </Content>
+</FinalDraft>

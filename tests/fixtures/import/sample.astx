@@ -1,0 +1,23 @@
+<AdobeStory>
+  <document>
+    <stream>
+      <section>
+        <scene>
+          <paragraph element="SceneHeading"><textRun>INT. KITCHEN - DAY</textRun></paragraph>
+          <paragraph element="Action"><textRun>Steam rises </textRun><textRun>from a pot.  </textRun><break/><textRun>A second line.</textRun><break/></paragraph>
+          <paragraph element="Character"><textRun>ANNA</textRun></paragraph>
+          <paragraph element="Parenthetical"><textRun>(quietly)</textRun></paragraph>
+          <paragraph element="Dialog"><textRun>It's ready.</textRun></paragraph>
+          <paragraph element="Shot"><textRun>CLOSE ON THE POT</textRun></paragraph>
+          <paragraph element="Transition"><textRun>CUT TO:</textRun></paragraph>
+        </scene>
+        <scene>
+          <paragraph element="SceneHeading"><textRun>EXT. GARDEN - NIGHT</textRun></paragraph>
+          <paragraph element="Unknown"><textRun>Cafe&#x301; lights.</textRun></paragraph>
+          <paragraph element="Action"></paragraph>
+          <paragraph element="Action"><textRun></textRun><break/><break/><textRun>Two breaks.</textRun></paragraph>
+        </scene>
+      </section>
+    </stream>
+  </document>
+</AdobeStory>
