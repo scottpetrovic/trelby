@@ -8,11 +8,10 @@ gdict = set()
 # key = textutil.getWordPrefix(word), value = set of words beginning with
 # that prefix (only words in gdict)
 #
-# only used by spellcheckdlg to narrow down the words to suggest. words of
-# two letters or less aren't in it, so the main dictionary never suggests
-# them, and
-# getWordPrefix maps non-letters to "z", so a set can hold words that
-# don't start with its key; the caller checks startswith itself.
+# only used by suggest, to narrow down the words to suggest. words of two
+# letters or less aren't in it, so the main dictionary never suggests
+# them, and getWordPrefix maps non-letters to "z", so a set can hold words
+# that don't start with its key; suggest checks startswith itself.
 prefixDict = {}
 
 
@@ -196,6 +195,39 @@ class SpellChecker:
             or self.gScDict.isKnown(word)
             or word.isdigit()
         )
+
+
+# return up to n replacements for a misspelled word, closest first (by
+# Levenshtein distance, then alphabetically), cased like word: all caps
+# or capitalized. they come from the main dictionary and the Dicts in
+# 'dicts' (the user's and the script's), and start with the same two
+# letters as word, and differ in length by 3 or less.
+def suggest(word, dicts, n=5):
+    lower = textutil.lower(word)
+    start = lower[:2]
+
+    words = set(prefixDict.get(textutil.getWordPrefix(lower), ()))
+    for d in dicts:
+        words.update(d.words)
+
+    scored = sorted(
+        (lev(lower, w), w)
+        for w in words
+        if w.startswith(start) and (abs(len(w) - len(lower)) <= 3)
+    )
+
+    return [matchCase(word, w) for d, w in scored[:n]]
+
+
+# return word cased like 'model': all caps, capitalized, or as it is
+def matchCase(model, word):
+    if model == textutil.upper(model):
+        return textutil.upper(word)
+
+    if model[:1] == textutil.upper(model[:1]):
+        return textutil.capitalize(word)
+
+    return word
 
 
 # Calculates the Levenshtein distance between a and b.

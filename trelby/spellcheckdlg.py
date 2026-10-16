@@ -3,8 +3,6 @@ import wx
 import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.spellcheck as spellcheck
-import trelby.textutil as textutil
-import trelby.util as util
 
 
 # load the word dictionary if it isn't loaded already, showing a message
@@ -177,31 +175,8 @@ class SpellCheckDlg(wx.Dialog):
         if not self.sc.word:
             return
 
-        isAllCaps = self.sc.word == textutil.upper(self.sc.word)
-        isCapitalized = self.sc.word[:1] == textutil.upper(self.sc.word[:1])
-
-        word = textutil.lower(self.sc.word)
-
-        wl = len(word)
-        wstart = word[:2]
-        d = 500
-        fifo = util.FIFO(5)
         wx.BeginBusyCursor()
-
-        for w in spellcheck.prefixDict[textutil.getWordPrefix(word)]:
-            if w.startswith(wstart):
-                d = self.tryWord(word, wl, w, d, fifo)
-
-        for w in self.gScDict.words.keys():
-            if w.startswith(wstart):
-                d = self.tryWord(word, wl, w, d, fifo)
-
-        for w in self.ctrl.sp.scDict.words.keys():
-            if w.startswith(wstart):
-                d = self.tryWord(word, wl, w, d, fifo)
-
-        items = fifo.get()
-
+        items = spellcheck.suggest(self.sc.word, [self.gScDict, self.ctrl.sp.scDict])
         wx.EndBusyCursor()
 
         if len(items) == 0:
@@ -214,35 +189,6 @@ class SpellCheckDlg(wx.Dialog):
         )
 
         if dlg.ShowModal() == wx.ID_OK:
-            sel = dlg.GetSelection()
-
-            newWord = items[sel]
-
-            if isAllCaps:
-                newWord = textutil.upper(newWord)
-            elif isCapitalized:
-                newWord = textutil.capitalize(newWord)
-
-            self.replaceEntry.SetValue(newWord)
+            self.replaceEntry.SetValue(items[dlg.GetSelection()])
 
         dlg.Destroy()
-
-    # if w2 is closer to w1 in Levenshtein distance than d, add it to
-    # fifo. return min(d, new_distance).
-    #
-    # since d only shrinks, the fifo ends up with the last (up to) five
-    # words that were at least as close as the best one seen so far when
-    # they were tried: a cheap approximation of the five closest words.
-    # words differing in length by more than 3 are skipped unscored.
-    def tryWord(self, w1, w1len, w2, d, fifo):
-        if abs(w1len - len(w2)) > 3:
-            return d
-
-        d2 = spellcheck.lev(w1, w2)
-
-        if d2 <= d:
-            fifo.add(w2)
-
-            return d2
-
-        return d

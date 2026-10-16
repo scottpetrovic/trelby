@@ -22,6 +22,59 @@ def mainDict(*words):
         yield
 
 
+def userDict(*words):
+    d = spellcheck.Dict()
+    d.set(words)
+
+    return d
+
+
+def testSuggest():
+    with mainDict("house", "horse", "hose", "mouse", "houses", "household", "ho"):
+        # closest first, ties alphabetically. "household" is too much
+        # longer, "mouse" starts differently, and two-letter words aren't
+        # suggested from the main dictionary
+        assert spellcheck.suggest("hous", []) == ["house", "horse", "hose", "houses"]
+        assert spellcheck.suggest("hous", [], n=2) == ["house", "horse"]
+
+
+def testSuggestFromUserDicts():
+    with mainDict("house"):
+        script = userDict("housekeep", "ho")
+        user = userDict("hoose", "house")
+
+        # no duplicates, and the user's two-letter words are suggested
+        assert spellcheck.suggest("hous", [user, script]) == ["house", "ho", "hoose"]
+
+
+def testSuggestKeepsCase():
+    with mainDict("house", "horse"):
+        assert spellcheck.suggest("HOUS", []) == ["HOUSE", "HORSE"]
+        assert spellcheck.suggest("Hous", []) == ["House", "Horse"]
+        assert spellcheck.suggest("hoUS", []) == ["house", "horse"]
+
+
+def testSuggestNothing():
+    with mainDict("house"):
+        assert spellcheck.suggest("xyzzy", []) == []
+
+        # one letter: there's no prefix set for it
+        assert spellcheck.suggest("q", []) == []
+        assert spellcheck.suggest("", []) == []
+
+
+def testSuggestNonAscii():
+    with mainDict("über", "überall"):
+        assert spellcheck.suggest("Ubr", [userDict("ubre")]) == ["Ubre"]
+        assert spellcheck.suggest("übr", []) == ["über"]
+
+
+def testMatchCase():
+    assert spellcheck.matchCase("ÅSA", "åsa") == "ÅSA"
+    assert spellcheck.matchCase("Åsa", "åsa") == "Åsa"
+    assert spellcheck.matchCase("åSA", "åsa") == "åsa"
+
+
 # the spell checker's Replace, on a SpellCheckDlg made without a window
 class Ctrl:
     def __init__(self, ed):
