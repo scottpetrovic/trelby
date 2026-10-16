@@ -1,13 +1,19 @@
-# the screenplay document model. a script is a Screenplay (model.py),
-# whose methods are split by area into mixins:
+# the screenplay model. a script is a Screenplay (model.py), the
+# document, and it's edited through an Editor (editor.py), which holds the
+# cursor, selection, auto-completion list, typing style and undo history,
+# and does every undoable edit. both get their methods from mixins, split
+# by area (* = the module also has an Editor-side mixin, *EditMixin):
 #
+# Screenplay:
 #   structure     paragraphs, elements, speeches and scenes; statistics
 #   wrapping      word wrapping and rewrapping after edits
-#   centering     centered action
-#   dualdialogue  side-by-side speeches
+#   centering*    centered action
+#   dualdialogue* side-by-side speeches
 #   pagination    page breaks and page labels
-#   locks         locked pages and scene numbers
-#   sceneoutline  the outline, scene colors, moving scenes
+#   locks*        locked pages and scene numbers
+#   sceneoutline* the outline, scene colors, moving scenes
+#
+# Editor:
 #   editing       type changes, joining / splitting, whole-script edits
 #   formatting    bold / italic / underline
 #   autocomp      the auto-completion list
@@ -17,7 +23,7 @@
 #
 # and code that works on a Screenplay from the outside:
 #
-#   undohistory   the undo history (sp.undoHistory)
+#   undohistory   the undo history (ed.undoHistory)
 #   fileformat    reading and writing .trelby files (sp.save, load)
 #   render        laying pages out as pml, for PDFs and the page views
 #   export/       the export formats (text, HTML, FDX, Fountain, RTF, PDF)
