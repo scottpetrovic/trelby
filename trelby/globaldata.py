@@ -13,6 +13,22 @@ import trelby.util as util
 import trelby.viewmode as viewmode
 
 
+# older versions saved the recently used files list under the translated
+# word for "Files" ("Files/1", "Files/2", ... in English, "File/1" etc. in
+# Italian), so outside English it was lost whenever the language changed.
+# it's now always saved as "Files"; this renames the old keys in 'vals'
+# (from mypickle.Vars.makeVals) if they're for the current language.
+def renameOldFilesKey(vals):
+    old = _("Files")
+
+    if (old == "Files") or ("Files" in vals) or (old not in vals):
+        return
+
+    for key in list(vals):
+        if (key == old) or key.startswith(old + "/"):
+            vals["Files" + key[len(old) :]] = vals.pop(key)
+
+
 # keeps (hopefully all) global data
 class GlobalData:
 
@@ -75,7 +91,7 @@ class GlobalData:
         v.addBool("showOutline", False, "ShowOutline")
         v.addInt("outlineWidth", 240, "OutlineWidth", 120, 2000)
 
-        v.addList("files", [], _("Files"), mypickle.StrUnicodeVar("", "", ""))
+        v.addList("files", [], "Files", mypickle.StrUnicodeVar("", "", ""))
 
         v.makeDicts()
         v.setDefaults(self)
@@ -98,10 +114,10 @@ class GlobalData:
         if makeDir:
             try:
                 os.mkdir(misc.toPath(misc.confPath), mode=0o755)
-            except OSError(os.errno, os.strerror):
+            except OSError as e:
                 wx.MessageBox(
                     _("Error creating configuration directory\n'{}': {}").format(
-                        misc.confPath, os.strerror
+                        misc.confPath, e.strerror or e
                     ),
                     _("Error"),
                     wx.OK,
@@ -135,7 +151,9 @@ class GlobalData:
     # load from string 's'. does not throw any exceptions and silently
     # ignores any errors.
     def load(self, s):
-        self.cvars.load(self.cvars.makeVals(s), "", self)
+        vals = self.cvars.makeVals(s)
+        renameOldFilesKey(vals)
+        self.cvars.load(vals, "", self)
         self.mru.items = self.files
 
     # save to a string and return that.
