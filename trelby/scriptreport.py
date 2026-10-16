@@ -13,8 +13,8 @@ class ScriptReport(textreport.TextReport):
         super().__init__(sp)
         self.scenes = scenereport.splitScenes(sp)
 
-        # the characters with a speech, as in the character report
-        self.speakers = {s.name for s in speeches.iterSpeeches(sp) if s.name}
+        # the characters with a speech
+        self.speakers = {s.name for s in speeches.iterSpeeches(sp)}
 
     def format(self, tf) -> None:
         ls = self.sp.lines

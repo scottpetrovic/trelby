@@ -1,25 +1,43 @@
-# who speaks where: the speeches in a script, for the reports.
+# who speaks where: the speeches in a script. the reports, the dialogue
+# chart and the MCP tools all count characters and speeches from here, so
+# that they agree:
 #
-# a speech is a run of consecutive dialogue and parenthetical lines. its
-# speaker is the character element right before it, if there is one; a
-# run with anything else (or nothing) before it has no speaker.
+#  - a speech is a character element followed by dialogue and
+#    parenthetical lines, at least one of them dialogue.
+#  - the speaker is the character element's whole text, normalized like
+#    the character profiles' names: upper cased, without an extension
+#    like "(V.O.)", so "Bob (V.O.)" and "BOB" are the same character.
+#  - dialogue with no character element before it, or one whose name is
+#    empty, has no speaker, and isn't counted anywhere. (the script
+#    checker reports both.)
+#  - only dialogue lines are counted as spoken lines; parentheticals
+#    aren't.
+#  - a speech's scene is the part of the script it's in, as in the scene
+#    outline: parts start at scene headings and act breaks.
 
 from dataclasses import dataclass, field
 from typing import Iterator, List, Optional
 
+import trelby.characterprofiles as characterprofiles
+import trelby.config as config
 import trelby.textutil as textutil
-from trelby.screenplay.constants import CHARACTER, DIALOGUE, PAREN, SCENE
+from trelby.screenplay.constants import (
+    ACTBREAK,
+    CHARACTER,
+    DIALOGUE,
+    LB_LAST,
+    PAREN,
+    SCENE,
+)
 
 
 @dataclass
 class Speech:
-    # the speaker, upper cased: the last line of the character element,
-    # or None if the speech has no character element before it. it can be
-    # empty or blank, if the character element is.
-    name: Optional[str]
+    # the speaker's name, never empty
+    name: str
 
-    # the first line of the character element, or None
-    charLine: Optional[int]
+    # the first line of the character element
+    charLine: int
 
     # the first and last line of the dialogue and parentheticals
     start: int
@@ -29,8 +47,8 @@ class Speech:
     dialogue: List[int] = field(default_factory=list)
     parens: List[int] = field(default_factory=list)
 
-    # the first line of the last scene heading before the speech, or None
-    # if there is none. act breaks don't end a scene here.
+    # the first line of the scene heading or act break the speech's scene
+    # starts with, or None if it's before the first of them
     scene: Optional[int] = None
 
 
@@ -44,34 +62,65 @@ def iterSpeeches(sp) -> Iterator[Speech]:
         lt = ls[i].lt
 
         if lt not in (DIALOGUE, PAREN):
-            if (lt == SCENE) and sp.isFirstLineOfElem(i):
+            if (lt in (SCENE, ACTBREAK)) and sp.isFirstLineOfElem(i):
                 scene = i
 
             i += 1
 
             continue
 
-        speech = Speech(None, None, i, i, scene=scene)
-
-        if (i > 0) and (ls[i - 1].lt == CHARACTER):
-            speech.name = textutil.upper(ls[i - 1].text)
-            speech.charLine = sp.getElemFirstIndexFromLine(i - 1)
+        start = i
+        dialogue = []
+        parens = []
 
         while (i < len(ls)) and (ls[i].lt in (DIALOGUE, PAREN)):
             if ls[i].lt == DIALOGUE:
-                speech.dialogue.append(i)
+                dialogue.append(i)
             else:
-                speech.parens.append(i)
+                parens.append(i)
 
             i += 1
 
-        speech.end = i - 1
+        if not dialogue or (start == 0) or (ls[start - 1].lt != CHARACTER):
+            continue
 
-        yield speech
+        charLine = sp.getElemFirstIndexFromLine(start - 1)
+        name = speakerName(sp, charLine)
+
+        if name:
+            yield Speech(name, charLine, start, i - 1, dialogue, parens, scene)
 
 
-# return the text of the scene heading starting at line 'scene' (a
-# Speech's scene), upper cased. like the reports, this is the heading's
-# last line.
-def sceneName(sp, scene: int) -> str:
-    return textutil.upper(sp.lines[sp.getElemLastIndexFromLine(scene)].text)
+# return the normalized name (see above) in the character element starting
+# at line 'line', or "" if there's none
+def speakerName(sp, line: int) -> str:
+    ls = sp.lines
+    s = ""
+
+    while 1:
+        s += ls[line].text
+
+        if (ls[line].lb == LB_LAST) or (line + 1 >= len(ls)):
+            break
+
+        s += config.lb2str(ls[line].lb)
+        line += 1
+
+    return characterprofiles.normalizeName(s)
+
+
+# return the name of the scene starting at line 'scene' (a Speech's
+# scene): its heading's last line upper cased, like sp.getSceneNames()
+# and the locations, "(EMPTY SCENE NAME)" if that's blank, or "(NO SCENE
+# NAME)" for the part before the first heading or one starting at an act
+# break.
+def sceneName(sp, scene: Optional[int]) -> str:
+    if (scene is None) or (sp.lines[scene].lt != SCENE):
+        return "(NO SCENE NAME)"
+
+    s = textutil.upper(sp.lines[sp.getElemLastIndexFromLine(scene)].text)
+
+    if not s.strip():
+        return "(EMPTY SCENE NAME)"
+
+    return s

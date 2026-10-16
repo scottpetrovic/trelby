@@ -1,10 +1,7 @@
-import bisect
-
 import trelby.pml as pml
 import trelby.screenplay as screenplay
 import trelby.screenplay.speeches as speeches
 import trelby.textreport as textreport
-import trelby.textutil as textutil
 import trelby.util as util
 from trelby.pagelist import PageList
 
@@ -21,24 +18,14 @@ class SceneReport(textreport.TextReport):
         for si in self.scenes:
             si.readLines(sp)
 
-        # count each speech's dialogue lines in the scene it's in. a speech
-        # with no character element before it isn't counted, and the
-        # speaker's name is the first line of the character element.
-        starts = [si.startLine for si in self.scenes]
+        # count each speech's dialogue lines in its scene. a speech before
+        # the first scene heading or act break is in the part starting at
+        # line 0.
+        byStart = {si.startLine: si for si in self.scenes}
 
         for speech in speeches.iterSpeeches(sp):
-            if (speech.charLine is None) or not speech.dialogue:
-                continue
-
-            si = self.scenes[bisect.bisect_right(starts, speech.start) - 1]
-
-            s = textutil.upper(sp.lines[speech.charLine].text)
-            if len(s.strip()) == 0:
-                name = "(EMPTY CHARACTER NAME)"
-            else:
-                name = s
-
-            si.chars[name] = si.chars.get(name, 0) + len(speech.dialogue)
+            si = byStart[speech.scene or 0]
+            si.chars[speech.name] = si.chars.get(speech.name, 0) + len(speech.dialogue)
 
     def format(self, tf) -> None:
         for si in self.scenes:
@@ -94,16 +81,7 @@ class SceneInfo:
         self.number = sp.getSceneNumber(startLine) or "0"
 
         # scene name, e.g. "INT. MOTEL ROOM - NIGHT"
-        # TODO: handle multi-line scene names
-        if ls[startLine].lt == screenplay.SCENE:
-            s = textutil.upper(ls[startLine].text)
-
-            if len(s.strip()) == 0:
-                self.name = "(EMPTY SCENE NAME)"
-            else:
-                self.name = s
-        else:
-            self.name = "(NO SCENE NAME)"
+        self.name = speeches.sceneName(sp, startLine)
 
         # the first line after the scene heading
         line = startLine
@@ -121,8 +99,8 @@ class SceneInfo:
         # page numbers
         self.pages = PageList(sp.getPageNumbers())
 
-        # key = character name (upper cased), value = number of dialogue
-        # lines
+        # key = character name (see screenplay/speeches.py), value =
+        # number of dialogue lines
         self.chars = {}
 
     # read the scene's pages and number of action lines
