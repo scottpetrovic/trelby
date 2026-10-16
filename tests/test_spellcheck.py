@@ -256,10 +256,11 @@ def testSpellingMenu():
 
         items = ctrl.spellingMenu(0, 6)
         assert items == [
+            (None, "Spelling"),
             (101, "house"),
             (102, "horse"),
-            (106, "Add to dictionary"),
-            (107, "Add to script dictionary"),
+            (106, 'Add "housw" to dictionary'),
+            (107, 'Add "housw" to script dictionary'),
         ]
 
         ctrl.OnSpellingMenu(MenuEvent(101))

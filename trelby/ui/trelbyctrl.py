@@ -664,13 +664,16 @@ class MyCtrl(wx.Control):
         )
         self.spellingWord = (line, start, word, items)
 
-        res = list(zip(self.suggestionIds, items))
+        res = [(None, _("Spelling"))]
+        res += zip(self.suggestionIds, items)
 
         if not items:
             res.append((None, _("No suggestions")))
 
-        res.append((self.addWordId, _("Add to dictionary")))
-        res.append((self.addScriptWordId, _("Add to script dictionary")))
+        res.append((self.addWordId, _('Add "{}" to dictionary').format(word)))
+        res.append(
+            (self.addScriptWordId, _('Add "{}" to script dictionary').format(word))
+        )
 
         return res
 
