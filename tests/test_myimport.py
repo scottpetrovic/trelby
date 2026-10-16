@@ -1,11 +1,7 @@
 import os
-from typing import Union
-from unittest import mock
-
-import wx
 
 import tests.u as u
-import trelby.myimport as myimport
+import trelby.importers as importers
 import trelby.screenplay as screenplay
 import trelby.screenplay.export as export
 import trelby.translations as translations
@@ -19,9 +15,8 @@ def testImportCeltx() -> None:
     location = os.path.dirname(__file__)
     pathToTestScriptCeltx = os.path.join(location, "fixtures/test.celtx")
 
-    importedLines = myimport.importCeltx(pathToTestScriptCeltx, mock.Mock())
-
-    assert importedLines is not None
+    with open(pathToTestScriptCeltx, "rb") as f:
+        importedLines = importers.celtx.parse(f.read()).lines
 
     # in order to compare the screenplays, we need to reformat it with the same configuration as the loaded one
     importedScreenplay = u.new()
@@ -39,12 +34,9 @@ def testImportTextFile() -> None:
     location = os.path.dirname(__file__)
     pathToTestScriptTxt = os.path.join(location, "fixtures/test.txt")
 
-    # accept the "Adjust styles" dialog as it comes up
-    dlg = mock.Mock()
-    dlg.ShowModal.return_value = wx.ID_OK
-
-    with mock.patch.object(myimport, "ImportDlg", return_value=dlg):
-        lines = myimport.importTextFile(pathToTestScriptTxt, mock.Mock())
+    # with the guessed line types
+    with open(pathToTestScriptTxt, encoding="UTF-8") as f:
+        lines = importers.text.parse(f.read()).lines
 
     expectedScreenplay = u.load()
     for line, expectedLine in zip(lines, expectedScreenplay.lines):
@@ -79,7 +71,7 @@ def testImportFDXDualDialogue(tmp_path) -> None:
     path = tmp_path / "dual.fdx"
     path.write_bytes(export.generateFDX(dualScript().sp))
 
-    lines = myimport.importFDX(str(path), mock.Mock())
+    lines = importers.fdx.parse(path.read_text(encoding="UTF-8")).lines
 
     assert importedDuals(lines) == [["BRICK", "STEEL"]]
 
@@ -88,11 +80,7 @@ def testImportFountainDualDialogue(tmp_path) -> None:
     path = tmp_path / "dual.fountain"
     path.write_text(export.generateFountain(dualScript().sp), encoding="UTF-8")
 
-    dlg = mock.Mock()
-    dlg.ShowModal.return_value = myimport.wx.ID_OK
-
-    with mock.patch.object(myimport.checkboxdlg, "CheckBoxDlg", return_value=dlg):
-        lines, titlePages = myimport.importFountain(str(path), mock.Mock(), [])
+    lines = importers.fountain.parse(path.read_text(encoding="UTF-8")).lines
 
     assert importedDuals(lines) == [["BRICK", "STEEL"]]
     assert "^" not in "".join(ln.text for ln in lines)

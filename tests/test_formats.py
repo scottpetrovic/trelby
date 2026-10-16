@@ -38,10 +38,9 @@ def testExportersWork():
 
 
 def testImportersExist():
-    import trelby.myimport as myimport
-
     for f in formats.IMPORT_FORMATS:
-        assert callable(getattr(myimport, f.importer)), f.key
+        assert callable(f.importer.parse), f.key
+        assert f.importer.BINARY in (True, False), f.key
 
 
 @pytest.mark.parametrize(

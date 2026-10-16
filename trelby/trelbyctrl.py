@@ -296,24 +296,16 @@ class MyCtrl(wx.Control):
     # guessed from the extension.
     def importFile(self, fileName, fmt=None):
         fmt = fmt or formats.guessImportFormat(fileName)
-        importer = getattr(myimport, fmt.importer)
-        titlePages = None
+        result = myimport.importFile(fileName, fmt, self.gd.mainFrame, self.sp)
 
-        if fmt.importsTitles:
-            lines, titlePages = importer(
-                fileName, self.gd.mainFrame, self.sp.titles.pages
-            ) or (None, None)
-        else:
-            lines = importer(fileName, self.gd.mainFrame)
-
-        if not lines:
+        if not result:
             return
 
         self.createEmptySp()
 
-        self.sp.lines = lines
-        if titlePages:
-            self.sp.titles.pages = titlePages
+        self.sp.lines = result.lines
+        if result.titlePages:
+            self.sp.titles.pages = result.titlePages
         self.sp.reformatAll()
         self.sp.paginate()
         self.sp.markChanged(True)

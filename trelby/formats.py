@@ -1,15 +1,16 @@
 # the file formats scripts can be exported to and imported from: the File
 # menu's Export and Import submenus, their file dialogs, and the MCP
 # server's export_script tool all come from EXPORT_FORMATS and
-# IMPORT_FORMATS. this doesn't need wx: importers are named by their
-# function in myimport (which shows message boxes), and looked up there
-# when used.
+# IMPORT_FORMATS. this doesn't need wx: the importers (trelby/importers/)
+# don't use it, and the GUI around them (asking for the options, showing
+# the errors) is in myimport.
 #
 # the texts are functions returning them, as the formats are defined
 # before the translations are loaded.
 
 import os.path
 
+import trelby.importers as importers
 import trelby.screenplay.export as export
 
 
@@ -25,7 +26,6 @@ class Format:
         binary=False,
         options=(),
         importer=None,
-        importsTitles=False,
     ):
         # id, e.g. "fdx", which the MCP server's clients use
         self.key = key
@@ -52,12 +52,9 @@ class Format:
         # to a file
         self.binary = binary
 
-        # import formats: the name of the myimport function that reads
-        # one, taking (fileName, frame) and returning a list of Lines, or
-        # None on errors. if importsTitles, it also takes the script's
-        # title pages, and returns (lines, title pages).
+        # import formats: the module in trelby/importers that reads one
+        # (see its __init__)
         self.importer = importer
-        self.importsTitles = importsTitles
 
     # the file dialog's wildcard for this format
     def getWildcard(self):
@@ -127,7 +124,7 @@ IMPORT_FORMATS = [
         lambda: _("Final Draft (FDX)"),
         "D",
         ["fdx"],
-        importer="importFDX",
+        importer=importers.fdx,
     ),
     Format(
         "fountain",
@@ -135,8 +132,7 @@ IMPORT_FORMATS = [
         lambda: _("Fountain"),
         "F",
         ["fountain", "txt"],
-        importer="importFountain",
-        importsTitles=True,
+        importer=importers.fountain,
     ),
     Format(
         "celtx",
@@ -144,7 +140,7 @@ IMPORT_FORMATS = [
         lambda: _("Celtx"),
         "C",
         ["celtx"],
-        importer="importCeltx",
+        importer=importers.celtx,
     ),
     Format(
         "astx",
@@ -152,7 +148,7 @@ IMPORT_FORMATS = [
         lambda: _("Adobe Story (ASTX)"),
         "A",
         ["astx"],
-        importer="importAstx",
+        importer=importers.astx,
     ),
     Format(
         "fadein",
@@ -160,7 +156,7 @@ IMPORT_FORMATS = [
         lambda: _("Fade In"),
         "I",
         ["fadein"],
-        importer="importFadein",
+        importer=importers.fadein,
     ),
     Format(
         "text",
@@ -168,7 +164,7 @@ IMPORT_FORMATS = [
         lambda: _("Formatted Text"),
         "T",
         ["txt"],
-        importer="importTextFile",
+        importer=importers.text,
     ),
 ]
 

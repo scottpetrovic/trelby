@@ -7,6 +7,7 @@ from unittest import mock
 import wx
 
 import tests.u as u
+import trelby.formats as formats
 import trelby.myimport as myimport
 import trelby.screenplay as screenplay
 import trelby.translations as translations
@@ -81,39 +82,27 @@ def run(key, path, cancel=False, titlePages=None, lineTypes=None, **options):
 
     frame = mock.Mock()
 
+    # the script being replaced
+    sp = u.new()
+
+    if titlePages is not None:
+        sp.titles.pages = titlePages
+
     with mock.patch.object(wx, "MessageBox", messageBox), mock.patch.object(
         myimport.checkboxdlg, "CheckBoxDlg", checkBoxDlg
     ), mock.patch.object(myimport, "ImportDlg", importDlg):
-        if key == "fountain":
-            ret = myimport.importFountain(path, frame, titlePages)
-        else:
-            ret = getattr(myimport, IMPORTERS[key])(path, frame)
+        result = myimport.importFile(
+            path, formats.find(formats.IMPORT_FORMATS, key), frame, sp
+        )
 
     if messages:
         assert len(messages) == 1, messages
         raise Failed(messages[0])
 
-    if ret is None:
+    if result is None:
         return None
 
-    if key == "fountain":
-        lines, pages = ret
-
-        if lines is None:
-            return None
-
-        return lines, pages
-
-    return ret, None
-
-
-IMPORTERS = {
-    "fdx": "importFDX",
-    "celtx": "importCeltx",
-    "astx": "importAstx",
-    "fadein": "importFadein",
-    "text": "importTextFile",
-}
+    return result.lines, result.titlePages
 
 
 # lines as strings: line break, line type, text, and any formatting and

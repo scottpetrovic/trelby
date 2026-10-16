@@ -1,7 +1,5 @@
-from unittest import mock
-
 import tests.u as u
-import trelby.myimport as myimport
+import trelby.importers as importers
 import trelby.mypager as mypager
 import trelby.pml as pml
 import trelby.screenplay as scr
@@ -363,7 +361,7 @@ def testFDXImport(tmp_path):
     path = tmp_path / "bold.fdx"
     path.write_bytes(export.generateFDX(loadBold().sp))
 
-    lines = myimport.importFDX(str(path), mock.Mock())
+    lines = importers.fdx.parse(path.read_text(encoding="UTF-8")).lines
 
     assert lines[1].text == "The door opens slowly."
     assert lines[1].fmt == "0000111100000000000000"
@@ -377,19 +375,9 @@ def testFountain():
 
 
 def importFountain(tmp_path, text, convert=True):
-    path = tmp_path / "script.fountain"
-    path.write_text(text, encoding="UTF-8")
+    options = importers.fountain.Options(markup=convert)
 
-    dlg = mock.Mock()
-    dlg.ShowModal.return_value = myimport.wx.ID_OK
-
-    def checkBoxDlg(parent, title, items, descr, rememberLast):
-        items[2].selected = convert
-
-        return dlg
-
-    with mock.patch.object(myimport.checkboxdlg, "CheckBoxDlg", checkBoxDlg):
-        return myimport.importFountain(str(path), mock.Mock(), [])[0]
+    return importers.fountain.parse(text, options).lines
 
 
 def testFountainImport(tmp_path):
@@ -592,7 +580,7 @@ def testCenteredFDX(tmp_path):
 
     path = tmp_path / "centered.fdx"
     path.write_bytes(s)
-    lines = myimport.importFDX(str(path), mock.Mock())
+    lines = importers.fdx.parse(path.read_text(encoding="UTF-8")).lines
 
     texts = [ln.text for ln in lines]
     i = texts.index("THE END")

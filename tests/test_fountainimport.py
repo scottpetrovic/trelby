@@ -1,8 +1,5 @@
-from unittest import mock
-
 import tests.u as u
-import trelby.myimport as myimport
-import trelby.titles as titles
+import trelby.importers as importers
 import trelby.translations as translations
 
 _ = translations.trelby_translations_load()
@@ -12,17 +9,9 @@ _ = translations.trelby_translations_load()
 # lines go to the title page) and return (lines, title pages)
 def importFountain(tmp_path, text):
     u.init()
-    path = tmp_path / "script.fountain"
-    path.write_bytes(text.encode("UTF-8"))
+    result = importers.fountain.parse(text)
 
-    t = titles.Titles()
-    t.addDefaults()
-
-    dlg = mock.Mock()
-    dlg.ShowModal.return_value = myimport.wx.ID_OK
-
-    with mock.patch.object(myimport.checkboxdlg, "CheckBoxDlg", return_value=dlg):
-        return myimport.importFountain(str(path), mock.Mock(), t.pages)
+    return result.lines, result.titlePages
 
 
 def titleTexts(titlePages):

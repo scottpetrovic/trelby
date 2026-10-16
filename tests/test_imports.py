@@ -48,6 +48,7 @@ import pytest
         "importers",
         "importers.fountain",
         "importers.text",
+        "myimport",
     ],
 )
 def testImportFirst(module):

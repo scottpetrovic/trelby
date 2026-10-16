@@ -8,12 +8,14 @@ import pytest
 
 import tests.importrun as importrun
 import tests.u as u
+import trelby.formats as formats
+import trelby.importers as importers
 import trelby.screenplay as screenplay
 import trelby.titles as titles
 from tests.importrun import Failed, dumpLines, dumpTitles
 
-# the text importer's special line type for lines not to import
-IGNORE = -3
+SCENE_ACTION = importers.text.SCENE_ACTION
+IGNORE = importers.text.IGNORE
 
 
 def sample(ext):
@@ -382,3 +384,160 @@ def testMissingFile(tmp_path):
 
     assert e.value.message.startswith("Error loading file '")
 
+
+# the importers without the GUI: parse with the default options gives the
+# same as importing with the dialogs' defaults
+@pytest.mark.parametrize(
+    "key, ext", [(f.key, f.extensions[0]) for f in formats.IMPORT_FORMATS]
+)
+def testParse(key, ext):
+    importer = formats.find(formats.IMPORT_FORMATS, key).importer
+    lines, titlePages = run(key, sample(ext), titlePages=defaultTitlePages())
+
+    if importer.BINARY:
+        data = readBytes(sample(ext))
+    else:
+        data = readText(sample(ext))
+
+    result = importer.parse(data)
+
+    assert dumpLines(result.lines) == dumpLines(lines)
+    assert dumpTitles(result.titlePages) == dumpTitles(titlePages)
+
+
+def readBytes(path):
+    with open(path, "rb") as f:
+        return f.read()
+
+
+# as gutil.loadFile reads it
+def readText(path):
+    with open(path, encoding="UTF-8") as f:
+        return f.read()
+
+
+@pytest.mark.parametrize("key", [f.key for f in formats.IMPORT_FORMATS])
+def testParseEmpty(key):
+    importer = formats.find(formats.IMPORT_FORMATS, key).importer
+
+    with pytest.raises(importers.ImportFailed) as e:
+        importer.parse(b"" if importer.BINARY else "")
+
+    assert e.value.message
+
+
+def testTextGuessIndents():
+    indents = importers.text.guessIndents(readText(sample("txt")))
+
+    assert {ind.indent: ind.lt for ind in indents} == {
+        0: SCENE_ACTION,
+        10: screenplay.DIALOGUE,
+        15: screenplay.PAREN,
+        16: screenplay.PAREN,
+        20: screenplay.CHARACTER,
+        40: screenplay.TRANSITION,
+        60: screenplay.ACTION,
+    }
+    assert [ind.lines for ind in indents if ind.indent == 40] == [["CUT TO:"]]
+
+
+def testTextOptions():
+    options = importers.text.Options(lineTypes={60: IGNORE, 0: screenplay.ACTION})
+    result = importers.text.parse(readText(sample("txt")), options)
+
+    assert dumpLines(result.lines) == dumpLines(
+        run("text", sample("txt"), lineTypes={60: IGNORE, 0: screenplay.ACTION})[0]
+    )
+    assert result.titlePages is None
+
+
+# an XML declaration used to make lxml refuse the str
+def testAstxXmlDeclaration():
+    data = readText(sample("astx"))
+    result = importers.astx.parse('<?xml version="1.0" encoding="UTF-8"?>\n' + data)
+
+    assert dumpLines(result.lines) == dumpLines(importers.astx.parse(data).lines)
+
+
+# the imported titles go on a copy of the script's title pages: the
+# script's are only replaced once the import has succeeded
+def testFountainKeepsScriptTitlePages():
+    pages = defaultTitlePages()
+
+    run("fountain", sample("fountain"), titlePages=pages)
+    assert dumpTitles(pages) == dumpTitles(defaultTitlePages())
+
+    run("fountain", sample("fountain"), titlePages=pages, cancel=True)
+    assert dumpTitles(pages) == dumpTitles(defaultTitlePages())
+
+
+# Title, Author and Contact go to the strings of their kind, wherever they
+# are on the page
+def testFountainTitlesByKind():
+    page = list(reversed(defaultTitlePages()[0]))
+    note = titles.TitleString(["A note"], 15.0, 50.0, False, kind=titles.TEXT)
+    page.insert(1, note)
+
+    result = importers.fountain.parse(
+        readText(sample("fountain")), importers.fountain.Options(titlePages=[page])
+    )
+
+    assert dumpTitles(result.titlePages)[0][:4] == [
+        (["Anna Smith", "555-1234"], 15.0, 248.46, False, "contact"),
+        (["A note"], 15.0, 50.0, False, "text"),
+        (["by", "", "Anna Smith"], 0.0, 120.46, True, "byline"),
+        (["The Pot"], 0.0, 105.0, True, "title"),
+    ]
+
+
+# strings saved before kinds existed get their kind guessed
+def testFountainTitlesGuessedKinds():
+    pages = defaultTitlePages()
+
+    for ts in pages[0]:
+        ts.kind = None
+
+    result = importers.fountain.parse(
+        readText(sample("fountain")), importers.fountain.Options(titlePages=pages)
+    )
+
+    assert dumpTitles(result.titlePages) == FOUNTAIN_TITLES
+
+
+# a missing kind is added, placed for the paper size
+def testFountainTitlesMissingKind():
+    pages = defaultTitlePages()
+    del pages[0][2]
+
+    result = importers.fountain.parse(
+        "Title: The Pot\nContact: Anna\n\nHello.\n",
+        importers.fountain.Options(titlePages=pages, paperSize=(215.9, 279.4)),
+    )
+
+    contact = titles.makeString(titles.CONTACT, 215.9, 279.4)
+
+    assert dumpTitles(result.titlePages) == [
+        [
+            (["The Pot"], 0.0, 105.0, True, "title"),
+            (["by", "", "My Name Here"], 0.0, 120.46, True, "byline"),
+            (["Anna"], contact.x, round(contact.y, 2), False, "contact"),
+        ]
+    ]
+
+
+# without title pages given, the titles go on the default one; a script
+# with none gets a page for them
+def testFountainTitlePagesDefault():
+    data = readText(sample("fountain"))
+
+    result = importers.fountain.parse(data)
+    assert dumpTitles(result.titlePages) == FOUNTAIN_TITLES
+
+    result = importers.fountain.parse(data, importers.fountain.Options(titlePages=[]))
+    assert dumpTitles(result.titlePages)[0][0] == (
+        ["The Pot"],
+        0.0,
+        105.0,
+        True,
+        "title",
+    )
