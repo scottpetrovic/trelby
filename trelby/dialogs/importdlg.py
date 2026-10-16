@@ -2,6 +2,7 @@ import wx
 
 import trelby.config as config
 import trelby.ui.gutil as gutil
+import trelby.ui.widgets as widgets
 
 
 class ImportDlg(wx.Dialog):
@@ -17,7 +18,7 @@ class ImportDlg(wx.Dialog):
         tmp = wx.StaticText(self, -1, _("Input:"))
         vsizer.Add(tmp)
 
-        self.inputLb = gutil.ThemedListBox(self, -1, size=(400, 200))
+        self.inputLb = widgets.ThemedListBox(self, -1, size=(400, 200))
         for it in indents:
             self.inputLb.Append(
                 _("{} lines (indented {} characters)").format(len(it.lines), it.indent),

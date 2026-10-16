@@ -2,11 +2,12 @@
 
 import wx
 
-import trelby.ui.gutil as gutil
+import trelby.ui.icons as icons
 import trelby.ui.ids as ids
 import trelby.keys as keys
 import trelby.ui.menus as menus
 import trelby.textfmt as textfmt
+import trelby.ui.theming as theming
 
 
 # toolbar control showing the element types as a group of toggle buttons,
@@ -331,13 +332,13 @@ class MainToolBar:
         # disabled tools' icons, faded most of the way into the background.
         # wx's own greyed versions barely differ from the normal ones, and
         # on a dark appearance come out lighter.
-        disabledColor = gutil.blendColors(
-            gutil.svgIconColor(), self.gd.cfgGui.tabBarBgColor, 0.65
+        disabledColor = theming.blendColors(
+            icons.svgIconColor(), self.gd.cfgGui.tabBarBgColor, 0.65
         )
 
         def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
-            bitmap = gutil.svgBitmap(iconFilename, size, pad)
-            disabledBitmap = gutil.svgBitmap(iconFilename, size, pad, disabledColor)
+            bitmap = icons.svgBitmap(iconFilename, size, pad)
+            disabledBitmap = icons.svgBitmap(iconFilename, size, pad, disabledColor)
             tool = tb.AddTool(
                 id, "", bitmap, disabledBitmap, kind=kind, shortHelp=toolTip
             )

@@ -6,8 +6,8 @@ import wx
 
 import trelby.dialogs.checkboxdlg as checkboxdlg
 import trelby.checkboxitem as checkboxitem
-import trelby.ui.gutil as gutil
 import trelby.importers as importers
+import trelby.ui.fileio as fileio
 from trelby.dialogs.importdlg import ImportDlg
 
 
@@ -17,7 +17,7 @@ from trelby.dialogs.importdlg import ImportDlg
 # None if the import was cancelled or failed (after showing the error).
 def importFile(fileName, fmt, frame, sp):
     importer = fmt.importer
-    data = gutil.loadFile(fileName, frame, binary=importer.BINARY)
+    data = fileio.loadFile(fileName, frame, binary=importer.BINARY)
 
     if data is None:
         return None

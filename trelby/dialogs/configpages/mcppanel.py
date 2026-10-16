@@ -5,6 +5,7 @@ import sys
 import trelby
 import trelby.ui.gutil as gutil
 import trelby.mcpserver.app as mcpapp
+import trelby.ui.widgets as widgets
 import wx
 
 
@@ -16,7 +17,7 @@ class MCPPanel(wx.Panel):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         vsizer.Add(
-            gutil.WrappedText(
+            widgets.WrappedText(
                 self,
                 _(
                     "The MCP server lets AI assistants like Claude read and edit "
@@ -62,7 +63,7 @@ class MCPPanel(wx.Panel):
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.BOTTOM, 5)
 
         vsizer.Add(
-            gutil.WrappedText(
+            widgets.WrappedText(
                 self,
                 _(
                     "Only programs on this computer can connect. Clients that "

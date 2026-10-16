@@ -11,6 +11,7 @@ import wx
 import trelby
 import trelby.config as config
 import trelby.ui.configgui as configgui
+import trelby.ui.fileio as fileio
 import trelby.ui.gutil as gutil
 import trelby.mcpserver.app as mcpapp
 import trelby.misc as misc
@@ -73,7 +74,7 @@ class MyApp(wx.App):
 
         gd = GlobalData()
 
-        # for gutil.currentCfgGui
+        # for theming.currentCfgGui
         self.gd = gd
 
         if misc.isWindows:
@@ -103,7 +104,7 @@ class MyApp(wx.App):
         s = None
         confExists = util.fileExists(gd.confFilename)
         if confExists:
-            s = gutil.loadFile(gd.confFilename, None)
+            s = fileio.loadFile(gd.confFilename, None)
 
         cfgGl = loadGlobalCfg(s)
 
@@ -120,7 +121,7 @@ class MyApp(wx.App):
         if not confExists:
             # we want to write out a default config file at startup for
             # various reasons, if no default config file yet exists
-            gutil.writeToFile(gd.confFilename, cfgGl.save(), None)
+            fileio.writeToFile(gd.confFilename, cfgGl.save(), None)
 
         # errors are shown on the Theme settings page
         for err in config.loadCustomThemes():
@@ -135,7 +136,7 @@ class MyApp(wx.App):
         misc.scriptDir = cfgGl.scriptDir
 
         if util.fileExists(gd.stateFilename):
-            s = gutil.loadFile(gd.stateFilename, None)
+            s = fileio.loadFile(gd.stateFilename, None)
 
             if s:
                 gd.load(s)
@@ -148,7 +149,7 @@ class MyApp(wx.App):
         gd.cfgGui = configgui.ConfigGui(gd.cfgGl, gd.zoom)
 
         if util.fileExists(gd.scDictFilename):
-            s = gutil.loadFile(gd.scDictFilename, None)
+            s = fileio.loadFile(gd.scDictFilename, None)
 
             if s:
                 gd.scDict.load(s)

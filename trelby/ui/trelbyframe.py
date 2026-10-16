@@ -15,8 +15,10 @@ import trelby.commands as commands
 import trelby.dialogs.commandsdlg as commandsdlg
 import trelby.config as config
 import trelby.ui.configgui as configgui
+import trelby.ui.fileio as fileio
 import trelby.ui.gutil as gutil
 import trelby.mcpserver.app as mcpapp
+import trelby.ui.icons as icons
 import trelby.ui.menubar as menubar
 import trelby.ui.menus as menus
 import trelby.misc as misc
@@ -25,6 +27,7 @@ import trelby.dialogs.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.ui.splash as splash
 import trelby.ui.statusbar as statusbar
 import trelby.ui.tabctrl as tabctrl
+import trelby.ui.theming as theming
 import trelby.ui.toolbar as toolbar
 import trelby.translations as translations
 import trelby.util as util
@@ -214,7 +217,7 @@ class MyFrame(wx.Frame):
         ib = wx.IconBundle()
 
         for sz in ("16", "32", "64", "128", "256"):
-            ib.AddIcon(wx.Icon(gutil.getBitmap("trelby/resources/icon%s.png" % sz)))
+            ib.AddIcon(wx.Icon(icons.getBitmap("trelby/resources/icon%s.png" % sz)))
 
         self.SetIcons(ib)
 
@@ -498,7 +501,7 @@ class MyFrame(wx.Frame):
 
         # and the open dialogs, like the settings dialog this may have been
         # applied from
-        gutil.themeAllWindows()
+        theming.themeAllWindows()
 
         # the toolbar icons' color depends on the theme
         if appearanceChanged or (
@@ -518,7 +521,7 @@ class MyFrame(wx.Frame):
             mcpapp.configure(self.gd, self)
 
         if writeCfg:
-            gutil.writeToFile(
+            fileio.writeToFile(
                 self.gd.confFilename, self.gd.cfgGl.save(), self
             )
 
@@ -551,7 +554,7 @@ class MyFrame(wx.Frame):
         if not path:
             return
 
-        if gutil.writeToFile(path, self.gd.cfgGl.save(), self):
+        if fileio.writeToFile(path, self.gd.cfgGl.save(), self):
             self.gd.confFilename = path
 
     # from the View menu item, which wx has already (un)checked, or its
@@ -581,7 +584,7 @@ class MyFrame(wx.Frame):
     def applyThemeColors(self):
         cfgGui = self.gd.cfgGui
 
-        gutil.setTitleBarColors(self, cfgGui)
+        theming.setTitleBarColors(self, cfgGui)
 
         self.statusBar.applyTheme(cfgGui)
 
@@ -686,7 +689,7 @@ class MyFrame(wx.Frame):
             return
 
         self.gd.cfgGl.language = language
-        gutil.writeToFile(self.gd.confFilename, self.gd.cfgGl.save(), self)
+        fileio.writeToFile(self.gd.confFilename, self.gd.cfgGl.save(), self)
 
         # in the new language, which whoever picked it can presumably read
         newGettext = translations.getTranslation(language).gettext
@@ -750,7 +753,7 @@ class MyFrame(wx.Frame):
                 else:
                     c.autosave()
 
-            gutil.writeToFile(self.gd.stateFilename, self.gd.save(), self)
+            fileio.writeToFile(self.gd.stateFilename, self.gd.save(), self)
             util.removeTempFiles(misc.tmpPrefix)
             mcpapp.shutdown()
             self.Destroy()

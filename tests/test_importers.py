@@ -410,7 +410,7 @@ def readBytes(path):
         return f.read()
 
 
-# as gutil.loadFile reads it
+# as fileio.loadFile reads it
 def readText(path):
     with open(path, encoding="UTF-8") as f:
         return f.read()

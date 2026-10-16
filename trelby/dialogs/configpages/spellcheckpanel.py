@@ -1,5 +1,6 @@
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
+import trelby.ui.widgets as widgets
 import wx
 
 
@@ -13,7 +14,7 @@ class SpellCheckPanel(wx.Panel):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         vsizer.Add(
-            gutil.WrappedText(
+            widgets.WrappedText(
                 self,
                 _(
                     "Mark these words as correct spelling so the spell checker "

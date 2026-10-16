@@ -2,12 +2,12 @@ import wx
 
 import trelby.reports.characterreport as characterreport
 import trelby.reports.dialoguechart as dialoguechart
-import trelby.ui.gutil as gutil
 import trelby.reports.locationreport as locationreport
 import trelby.pdf.writer as pdf
 import trelby.reports.reportwindow as reportwindow
 import trelby.reports.scenereport as scenereport
 import trelby.reports.scriptreport as scriptreport
+import trelby.ui.widgets as widgets
 
 
 class SceneReportFrame(reportwindow.TextReportFrame):
@@ -58,7 +58,7 @@ class CharacterReportFrame(reportwindow.TextReportFrame):
 
         vsizer.Add(wx.StaticText(panel, -1, _("Characters to include:")))
 
-        self.charList = gutil.ThemedListBox(
+        self.charList = widgets.ThemedListBox(
             panel, -1, size=self.FromDIP(wx.Size(220, -1)), checkable=True
         )
         self.Bind(wx.EVT_CHECKLISTBOX, self.OnCharList, id=self.charList.GetId())

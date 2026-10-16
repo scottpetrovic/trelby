@@ -3,6 +3,7 @@ import wx
 import trelby.ui.gutil as gutil
 import trelby.pdf.pml as pml
 import trelby.screenplay.titles as titles
+import trelby.ui.widgets as widgets
 import trelby.util as util
 from trelby.ui.textedit import TextEdit
 from trelby.dialogs.titlespreview import TitlesPreview
@@ -86,12 +87,12 @@ class TitlesDlg(wx.Dialog):
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.boldBtn, self.italicBtn, self.underlinedBtn = (
-            gutil.addStyleToggles(self, hsizer, self.OnMisc)
+            widgets.addStyleToggles(self, hsizer, self.OnMisc)
         )
 
         hsizer.AddSpacer(12)
 
-        self.alignBtns = gutil.addAlignToggles(self, hsizer, self.OnMisc)
+        self.alignBtns = widgets.addAlignToggles(self, hsizer, self.OnMisc)
 
         gsizer.Add(hsizer)
 
@@ -593,7 +594,7 @@ class TitlesDlg(wx.Dialog):
             self.boldBtn.SetValue(False)
             self.italicBtn.SetValue(False)
             self.underlinedBtn.SetValue(False)
-            gutil.setAlignment(self.alignBtns, None)
+            widgets.setAlignment(self.alignBtns, None)
             self.kindChoice.SetSelection(wx.NOT_FOUND)
 
             return
@@ -611,7 +612,7 @@ class TitlesDlg(wx.Dialog):
         self.xEntry.SetValue("%.2f" % ts.x)
         self.yEntry.SetValue("%.2f" % ts.y)
 
-        gutil.setAlignment(self.alignBtns, ts.getAlignment())
+        widgets.setAlignment(self.alignBtns, ts.getAlignment())
         self.kindChoice.SetSelection(titles.KINDS.index(ts.kind or titles.TEXT))
 
         gutil.reverseComboSelect(self.fontCombo, ts.font)
@@ -634,7 +635,7 @@ class TitlesDlg(wx.Dialog):
         ts.x = util.str2float(self.xEntry.GetValue(), 0.0)
         ts.y = util.str2float(self.yEntry.GetValue(), 0.0)
 
-        ts.setAlignment(gutil.getAlignment(self.alignBtns))
+        ts.setAlignment(widgets.getAlignment(self.alignBtns))
         self.xEntry.Enable(not ts.isCentered)
 
         ts.size = gutil.getSpinValue(self.sizeEntry)

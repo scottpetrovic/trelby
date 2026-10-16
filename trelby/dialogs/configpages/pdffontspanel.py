@@ -1,8 +1,10 @@
 import os.path
 
+import trelby.ui.fileio as fileio
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
 import trelby.pdf.truetype as truetype
+import trelby.ui.widgets as widgets
 import wx
 
 
@@ -20,7 +22,7 @@ class PDFFontsPanel(wx.Panel):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         vsizer.Add(
-            gutil.WrappedText(
+            widgets.WrappedText(
                 self,
                 _(
                     "Leave all the fields empty to use the default PDF Courier "
@@ -53,7 +55,7 @@ class PDFFontsPanel(wx.Panel):
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        vsizer.Add(widgets.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
         gsizer = wx.FlexGridSizer(2, 3, 5, 5)
         gsizer.AddGrowableCol(1)
@@ -153,7 +155,7 @@ class PDFFontsPanel(wx.Panel):
         # passing around scripts containing references to fonts with
         # filenames like "/dev/zero" etc. no real font that I know of is
         # this big so it shouldn't hurt.
-        fontProgram = gutil.loadFile(filename, self.cfgFrame, 10 * 1024 * 1024, True)
+        fontProgram = fileio.loadFile(filename, self.cfgFrame, 10 * 1024 * 1024, True)
 
         if fontProgram is None:
             return ""

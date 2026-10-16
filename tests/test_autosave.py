@@ -5,7 +5,7 @@ import pytest
 
 import tests.u as u
 import trelby.ui.autosave as autosave
-import trelby.ui.gutil as gutil
+import trelby.ui.fileio as fileio
 import trelby.translations as translations
 import trelby.util as util
 
@@ -125,11 +125,11 @@ def testWriteToFileReportsError(tmp_path, monkeypatch):
     u.init()
 
     shown = []
-    monkeypatch.setattr(gutil.wx, "MessageBox", lambda *args: shown.append(args))
+    monkeypatch.setattr(fileio.wx, "MessageBox", lambda *args: shown.append(args))
 
     path = str(tmp_path / "missing-dir" / "s.trelby")
 
-    assert not gutil.writeToFile(path, "data", None)
+    assert not fileio.writeToFile(path, "data", None)
     assert len(shown) == 1
 
 

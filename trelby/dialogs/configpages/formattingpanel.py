@@ -1,5 +1,6 @@
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
+import trelby.ui.widgets as widgets
 import wx
 
 
@@ -11,7 +12,7 @@ class FormattingPanel(wx.Panel):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         vsizer.Add(
-            gutil.WrappedText(
+            widgets.WrappedText(
                 self,
                 _(
                     "Leave at least this many lines at the end of a page when "

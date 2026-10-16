@@ -1,6 +1,6 @@
 import wx
 
-from trelby.ui.gutil import blendColors
+from trelby.ui.theming import blendColors
 
 
 # a vertical scrollbar drawn in the theme's colors, for the places where a

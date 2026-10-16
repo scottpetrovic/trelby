@@ -11,8 +11,8 @@ import trelby.ui.autosave as autosave
 import trelby.commands as commands
 import trelby.dialogs.finddlg as finddlg
 import trelby.formats as formats
-import trelby.ui.gutil as gutil
 import trelby.keys as keys
+import trelby.ui.fileio as fileio
 import trelby.ui.menus as menus
 import trelby.misc as misc
 import trelby.ui.myimport as myimport
@@ -173,7 +173,7 @@ class MyCtrl(wx.Control):
     # load script from path and show it as fileName. returns True on
     # success.
     def loadFile(self, fileName, path=None):
-        s = gutil.loadFile(path or fileName, self.gd.mainFrame)
+        s = fileio.loadFile(path or fileName, self.gd.mainFrame)
         if s is None:
             return False
 
@@ -228,7 +228,7 @@ class MyCtrl(wx.Control):
     def saveFile(self, fileName):
         fileName = str(textutil.ensureEndsIn(fileName, ".trelby"))
 
-        if gutil.writeToFile(
+        if fileio.writeToFile(
             fileName, self.ed.save(), self.gd.mainFrame, backup=True
         ):
             self.sp.markChanged(False)

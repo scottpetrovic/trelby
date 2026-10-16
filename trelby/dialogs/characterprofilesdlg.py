@@ -7,6 +7,8 @@ import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.ui.gutil as gutil
 import trelby.dialogs.namesdlg as namesdlg
 import trelby.textutil as textutil
+import trelby.ui.theming as theming
+import trelby.ui.widgets as widgets
 import trelby.util as util
 
 # photos are scaled down to fit in a square this big, in pixels, before
@@ -107,7 +109,7 @@ class PhotoPanel(wx.Panel):
         w, h = self.GetClientSize()
 
         bg = self.GetBackgroundColour()
-        dim = gutil.blendColors(bg, self.GetForegroundColour(), 0.5)
+        dim = theming.blendColors(bg, self.GetForegroundColour(), 0.5)
 
         dc.SetBackground(wx.Brush(bg))
         dc.Clear()
@@ -197,7 +199,7 @@ class NameGeneratorDlg(wx.Dialog):
 
         vsizer.Add(grid, 0, wx.EXPAND)
 
-        self.namesLb = gutil.ThemedListBox(self, -1, size=self.FromDIP(wx.Size(260, 280)))
+        self.namesLb = widgets.ThemedListBox(self, -1, size=self.FromDIP(wx.Size(260, 280)))
         vsizer.Add(self.namesLb, 1, wx.EXPAND | wx.TOP, 10)
 
         genBtn = wx.Button(self, -1, _("Generate"))
@@ -333,7 +335,7 @@ class CharacterProfilesDlg(wx.Dialog):
         vsizer = wx.BoxSizer(wx.VERTICAL)
         vsizer.Add(wx.StaticText(self, -1, _("Characters:")))
 
-        self.charList = gutil.ThemedListBox(self, -1, size=dip(wx.Size(190, -1)))
+        self.charList = widgets.ThemedListBox(self, -1, size=dip(wx.Size(190, -1)))
         vsizer.Add(self.charList, 1, wx.EXPAND | wx.TOP, 3)
 
         hint = wx.StaticText(self, -1, _("Grayed out: no profile yet"))

@@ -1,6 +1,7 @@
 import wx
 
 import trelby.ui.gutil as gutil
+import trelby.ui.widgets as widgets
 
 
 # edits the grouping of scene names into locations (see locations.py).
@@ -25,7 +26,7 @@ class LocationsDlg(wx.Dialog):
         tmp = wx.StaticText(self, -1, _("Locations:"))
         vsizer.Add(tmp)
 
-        self.locationsLb = gutil.ThemedListBox(self, -1, size=(450, 200))
+        self.locationsLb = widgets.ThemedListBox(self, -1, size=(450, 200))
         vsizer.Add(self.locationsLb, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -43,7 +44,7 @@ class LocationsDlg(wx.Dialog):
         tmp = wx.StaticText(self, -1, _("Scenes:"))
         vsizer.Add(tmp)
 
-        self.scenesLb = gutil.ThemedListBox(self, -1, size=(450, 200), style=wx.LB_EXTENDED)
+        self.scenesLb = widgets.ThemedListBox(self, -1, size=(450, 200), style=wx.LB_EXTENDED)
         vsizer.Add(self.scenesLb, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)

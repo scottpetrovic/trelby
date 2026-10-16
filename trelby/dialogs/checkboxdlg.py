@@ -1,6 +1,7 @@
 import wx
 
 import trelby.ui.gutil as gutil
+import trelby.ui.widgets as widgets
 
 
 # shows one or two (one if cbil2 = None) checklistbox widgets with
@@ -67,7 +68,7 @@ class CheckBoxDlg(wx.Dialog):
 
             sizer.Add(hsizer, 0, wx.TOP | wx.BOTTOM, 5)
 
-        tmp = gutil.ThemedListBox(parent, -1, checkable=True)
+        tmp = widgets.ThemedListBox(parent, -1, checkable=True)
 
         longest = -1
         for i in range(len(items)):

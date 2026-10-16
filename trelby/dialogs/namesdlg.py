@@ -1,6 +1,7 @@
 import wx
 
 import trelby
+import trelby.ui.fileio as fileio
 import trelby.ui.gutil as gutil
 import trelby.keys as keys
 import trelby.misc as misc
@@ -22,7 +23,7 @@ def readNames(frame):
         return True
 
     try:
-        data = gutil.loadMaybeCompressedFile(trelby.__path__[0] + "/names.txt", frame)
+        data = fileio.loadMaybeCompressedFile(trelby.__path__[0] + "/names.txt", frame)
         if not data:
             return False
 

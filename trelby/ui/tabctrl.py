@@ -4,6 +4,7 @@
 import wx
 
 import trelby.ui.gutil as gutil
+import trelby.ui.icons as icons
 import trelby.util as util
 
 TAB_BAR_HEIGHT = 30
@@ -16,7 +17,7 @@ class MyFSButton(wx.Window):
         wx.Window.__init__(self, parent, id, size=(TAB_BAR_HEIGHT, TAB_BAR_HEIGHT))
 
         self.getCfgGui = getCfgGui
-        self.fsImage = gutil.getBitmap("trelby/resources/fullscreen.png")
+        self.fsImage = icons.getBitmap("trelby/resources/fullscreen.png")
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseDown)
