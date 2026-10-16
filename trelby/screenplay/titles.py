@@ -237,7 +237,26 @@ class TitleString:
         else:
             return util.ALIGN_LEFT
 
-    def setAlignment(self, align):
+    # set the alignment. if 'paperWidth' (mm) is given and the alignment
+    # changes, x is moved so the string stays on the page: switching
+    # between left and right mirrors it, so its distance from the left
+    # edge becomes its distance from the right edge, and a string that was
+    # centered goes EDGE_X from the edge it's aligned to.
+    def setAlignment(self, align, paperWidth=None):
+        old = self.getAlignment()
+
+        if (paperWidth is not None) and (align != old):
+            if align == util.ALIGN_RIGHT:
+                if old == util.ALIGN_CENTER:
+                    self.x = paperWidth - EDGE_X
+                else:
+                    self.x = paperWidth - self.x
+            elif align == util.ALIGN_LEFT:
+                if old == util.ALIGN_CENTER:
+                    self.x = EDGE_X
+                else:
+                    self.x = paperWidth - self.x
+
         if align == util.ALIGN_CENTER:
             self.isCentered = True
             self.isRightJustified = False

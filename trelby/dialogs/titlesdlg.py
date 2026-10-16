@@ -635,8 +635,13 @@ class TitlesDlg(wx.Dialog):
         ts.x = util.str2float(self.xEntry.GetValue(), 0.0)
         ts.y = util.str2float(self.yEntry.GetValue(), 0.0)
 
-        ts.setAlignment(widgets.getAlignment(self.alignBtns))
+        x = ts.x
+        ts.setAlignment(widgets.getAlignment(self.alignBtns), self.cfg.paperWidth)
         self.xEntry.Enable(not ts.isCentered)
+
+        if ts.x != x:
+            # ChangeValue, unlike SetValue, sends no EVT_TEXT
+            self.xEntry.ChangeValue("%.2f" % ts.x)
 
         ts.size = gutil.getSpinValue(self.sizeEntry)
         ts.font = self.fontCombo.GetClientData(self.fontCombo.GetSelection())

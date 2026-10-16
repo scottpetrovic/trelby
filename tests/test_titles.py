@@ -49,6 +49,37 @@ def testMakeString():
     assert ts.x == 215.9 - titles.EDGE_X
 
 
+# changing the alignment with the paper width moves x so the string stays
+# on the page; without it, x is left alone
+def testSetAlignmentKeepsOnPage():
+    w = 215.9
+
+    ts = titles.TitleString(["Contact"], 20.0, 200.0, isCentered=False)
+    ts.setAlignment(util.ALIGN_RIGHT, w)
+    assert ts.isRightJustified and (ts.x == w - 20.0)
+
+    ts.setAlignment(util.ALIGN_LEFT, w)
+    assert (ts.getAlignment() == util.ALIGN_LEFT) and (ts.x == 20.0)
+
+    ts.setAlignment(util.ALIGN_CENTER, w)
+    assert ts.isCentered and (ts.x == 20.0)
+
+    ts.setAlignment(util.ALIGN_RIGHT, w)
+    assert ts.x == w - titles.EDGE_X
+
+    ts.setAlignment(util.ALIGN_CENTER, w)
+    ts.setAlignment(util.ALIGN_LEFT, w)
+    assert ts.x == titles.EDGE_X
+
+    # same alignment again: x stays where the user put it
+    ts.x = 50.0
+    ts.setAlignment(util.ALIGN_LEFT, w)
+    assert ts.x == 50.0
+
+    ts.setAlignment(util.ALIGN_RIGHT)
+    assert ts.isRightJustified and (ts.x == 50.0)
+
+
 def testGuessKinds():
     sp = u.load()
     t = sp.titles
