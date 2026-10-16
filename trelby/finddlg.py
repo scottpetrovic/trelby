@@ -84,6 +84,10 @@ class FindDlg(wx.Dialog):
             self.elements.Append(t.name)
             self.elementTypes.append(t.lt)
 
+        # tall enough to show every element type without scrolling
+        self.elements.SetMinSize(
+            wx.Size(-1, len(self.elementTypes) * self.elements.list.rowHeight + 2)
+        )
         vsizer.Add(self.elements, 1, wx.EXPAND)
 
         hsizer.Add(vsizer, 1, wx.EXPAND)
@@ -225,24 +229,14 @@ class FindDlg(wx.Dialog):
 
         if flag:
             self.moreButton.SetLabel(_("<<< Less"))
-            pos = self.elements.GetPosition()
-            h = (
-                pos.y
-                + len(self.elementTypes) * self.elements.list.rowHeight
-                + 2
-                + 15
-            )
         else:
             self.moreButton.SetLabel(_("More >>>"))
-            h = max(
-                self.extraLabel.GetPosition().y,
-                self.moreButton.GetPosition().y
-                + self.moreButton.GetClientSize().height
-                + 5,
-            )
 
-        self.SetSizeHints(self.GetClientSize().width, h)
-        util.setWH(self, h=h)
+        # size the dialog from its sizers, which skip hidden items, so
+        # nothing gets squeezed at other DPI or font sizes
+        self.SetMinSize(wx.DefaultSize)
+        self.SetMinSize(self.GetBestSize())
+        self.Fit()
 
     def getParams(self):
         self.dirUp = self.direction.GetSelection() == 0
