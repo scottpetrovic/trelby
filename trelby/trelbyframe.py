@@ -1271,6 +1271,8 @@ class MyFrame(wx.Frame):
 
         # flat buttons don't look clickable, so they get a hand cursor and
         # are highlighted while hovered
+        self.zoomHoverBtn = None
+
         for btn in self.zoomBtns:
             btn.SetCursor(wx.Cursor(wx.CURSOR_HAND))
             btn.Bind(wx.EVT_ENTER_WINDOW, self.OnZoomButtonHover)
@@ -1333,13 +1335,22 @@ class MyFrame(wx.Frame):
         self.panel.ctrl.SetFocus()
 
     def OnZoomButtonHover(self, event):
-        self.setZoomButtonHover(event.GetEventObject() if event.Entering() else None)
+        btn = event.GetEventObject()
+
+        # moving from one button to the next, the next one's enter event
+        # can come before this one's leave event
+        if event.Entering():
+            self.setZoomButtonHover(btn)
+        elif btn is self.zoomHoverBtn:
+            self.setZoomButtonHover(None)
+
         event.Skip()
 
     # highlight the zoom button hovered (None for none), unless it's
     # disabled
     def setZoomButtonHover(self, hovered):
         sb = self.statusBar
+        self.zoomHoverBtn = hovered
 
         for btn in self.zoomBtns:
             if (btn is hovered) and btn.IsEnabled():
