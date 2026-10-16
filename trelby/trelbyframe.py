@@ -470,6 +470,42 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnHelpManual, id=ID_HELP_MANUAL)
         self.Bind(wx.EVT_MENU, self.OnAbout, id=ID_HELP_ABOUT)
 
+        # grey out the menu items that can't do anything at the moment
+        hasManual = os.path.exists(misc.getFullPath("trelby/manual.html"))
+
+        for menuId, canUse in (
+            (ID_FILE_REVERT, lambda c: bool(c.fileName) and c.sp.hasChanged),
+            (ID_EDIT_CUT, lambda c: bool(c.sp.mark)),
+            (ID_EDIT_COPY, lambda c: bool(c.sp.mark)),
+            (ID_EDIT_COPY_TO_CB, lambda c: bool(c.sp.mark)),
+            (ID_EDIT_COPY_TO_CB_FMT, lambda c: bool(c.sp.mark)),
+            (ID_EDIT_PASTE, lambda c: bool(self.clipboard)),
+            (
+                ID_EDIT_GOTO_SCENE,
+                lambda c: any(ln.lt == screenplay.SCENE for ln in c.sp.lines),
+            ),
+            (ID_EDIT_CENTER, lambda c: c.sp.getCenteredState() is not None),
+            (ID_EDIT_DUAL_DIALOGUE, lambda c: c.sp.getDualToggle() is not None),
+            (ID_VIEW_ZOOM_IN, lambda c: self.gd.getZoomStep(1) != self.gd.zoom),
+            (ID_VIEW_ZOOM_OUT, lambda c: self.gd.getZoomStep(-1) != self.gd.zoom),
+            (ID_VIEW_ZOOM_RESET, lambda c: self.gd.zoom != 100),
+            (ID_SCRIPT_UNLOCK_PAGES, lambda c: c.sp.hasPageLocks()),
+            (
+                ID_SCRIPT_UNLOCK_SCENES,
+                lambda c: any(ln.sceneLock for ln in c.sp.lines),
+            ),
+            (
+                ID_TOOLS_COMPARE_SCRIPTS,
+                lambda c: self.tabCtrl.getPageCount() >= 2,
+            ),
+            (ID_HELP_MANUAL, lambda c: hasManual),
+        ):
+            self.Bind(
+                wx.EVT_UPDATE_UI,
+                partial(self.OnUpdateMenuItem, canUse=canUse),
+                id=menuId,
+            )
+
         self.Bind(
             wx.EVT_MENU_RANGE,
             self.OnMRUFile,
@@ -770,10 +806,15 @@ class MyFrame(wx.Frame):
         self.updateTitle()
         self.updateAutosaveStatus()
 
-        # also called when a script is opened or closed
-        self.menuBar.Enable(
-            ID_TOOLS_COMPARE_SCRIPTS, self.tabCtrl.getPageCount() >= 2
-        )
+    # wx asks for this when a menu is opened, and on some platforms (GTK)
+    # also when idle, which keeps the items' shortcuts working, as those
+    # of a disabled item don't do anything there. so canUse(ctrl) has to
+    # be quick.
+    def OnUpdateMenuItem(self, event, canUse):
+        panel = getattr(self, "panel", None)
+
+        if panel:
+            event.Enable(canUse(panel.ctrl))
 
     def selectScript(self, toNext):
         current = self.tabCtrl.getSelectedPageIndex()

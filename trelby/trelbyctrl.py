@@ -1289,6 +1289,10 @@ class MyCtrl(wx.Control):
 
         scenes = self.sp.getSceneLocations()
 
+        # the menu item is disabled then, but not the shortcut
+        if not scenes:
+            return
+
         def validateFunc(s):
             if pagelock.normalize(s) in [x[0] for x in scenes]:
                 return ""
