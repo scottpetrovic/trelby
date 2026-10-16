@@ -4598,6 +4598,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
     def moveNextWordCmd(self, cs):
         if not self.acItems:
+            self.maybeMark(cs.mark)
+
             l = self.line
             i = self.column
             t = self.lines[l].text
@@ -4648,6 +4650,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             return l
 
         if not self.acItems:
+            self.maybeMark(cs.mark)
+
             l = self.line
             i = self.column
 
