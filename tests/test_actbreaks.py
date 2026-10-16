@@ -1,6 +1,7 @@
 import tests.u as u
 import trelby.mypager as mypager
 import trelby.pml as pml
+import trelby.screenplay.render as render
 import trelby.translations as translations
 
 _ = translations.trelby_translations_load()
@@ -45,7 +46,7 @@ def pdfTexts(sp):
     ret = []
 
     for p in range(1, len(sp.pages)):
-        pg = sp.generatePMLPage(pager, p, True, True)
+        pg = render.generatePMLPage(sp, pager, p, True, True)
         ret.append([op.text for op in pg.ops if isinstance(op, pml.TextOp)])
 
     return ret

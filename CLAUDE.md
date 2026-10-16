@@ -50,6 +50,14 @@ The `mcp` SDK is an optional extra (`pip install trelby[mcp]`, entry point `trel
 
 For a stdio client config, use the venv's python as the command, `["-m", "trelby.mcpserver"]` (plus `"--app"` for the bridge) as args, and `PYTHONPATH` set to the repo root in `env` (Claude Desktop has no `cwd` option, and trelby isn't pip-installed in the venv). For the exe it's just `Trelby.exe` with `["--mcp-bridge", "--port", "N"]`. Claude Desktop rewrites its config file while running, so quit it fully (tray → Quit) before editing `claude_desktop_config.json`.
 
+## The screenplay model
+
+`trelby/screenplay/` is the document model, with a map of its modules in `__init__.py`. `Screenplay` (`model.py`) holds a script's state and gets most of its methods from per-area mixins (`structure`, `wrapping`, `pagination`, `locks`, `selection`, `commands`, `textinput`...), which call each other through `self`. Code that only works on a script from the outside is plain functions of `sp`: `export/` (`export.generateFDX(sp)` etc.), `render` (pml page layout for PDF and the page views), `compare`, `proofing`, and `fileformat` (behind `sp.save()` / `Screenplay.load()`). The undo history is `sp.undoHistory` (`undohistory.py`).
+
+- New editing behavior goes in the mixin for its area, and new read-only consumers (exports, reports) go in plain functions, not on the class.
+- `import trelby.screenplay as screenplay` still gives `Screenplay`, the `LB_*` / element type constants and the `datatypes` classes. The package's `__init__` must import `constants` before anything else, because `config` and `line` import the package while it's still loading.
+- `mcptools.py` has its own `export` function, so it imports the export package as `exporters`.
+
 ## Code conventions worth knowing
 
 - Data files are found relative to the package: `misc.getFullPath("trelby/resources/...")` (uses `misc.progPath`, the parent of the `trelby/` package) or `trelby.__path__[0]`. Use these instead of hard-coded or CWD-relative paths, or the exe build breaks.

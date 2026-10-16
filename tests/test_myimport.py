@@ -7,6 +7,7 @@ import wx
 import tests.u as u
 import trelby.myimport as myimport
 import trelby.screenplay as screenplay
+import trelby.screenplay.export as export
 import trelby.translations as translations
 from trelby.line import Line
 
@@ -76,7 +77,7 @@ def dualScript():
 
 def testImportFDXDualDialogue(tmp_path) -> None:
     path = tmp_path / "dual.fdx"
-    path.write_bytes(dualScript().generateFDX())
+    path.write_bytes(export.generateFDX(dualScript()))
 
     lines = myimport.importFDX(str(path), mock.Mock())
 
@@ -85,7 +86,7 @@ def testImportFDXDualDialogue(tmp_path) -> None:
 
 def testImportFountainDualDialogue(tmp_path) -> None:
     path = tmp_path / "dual.fountain"
-    path.write_text(dualScript().generateFountain(), encoding="UTF-8")
+    path.write_text(export.generateFountain(dualScript()), encoding="UTF-8")
 
     dlg = mock.Mock()
     dlg.ShowModal.return_value = myimport.wx.ID_OK

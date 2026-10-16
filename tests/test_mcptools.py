@@ -588,7 +588,7 @@ def testLiveFailedEditChangesNothing():
         m.replaceScene(d, r, 1, [{"type": "action", "text": "x"}])
 
     assert m.listScenes(d)["revision"] == r
-    assert not d.sp.canUndo()
+    assert not d.sp.undoHistory.canUndo()
 
 
 def testLiveWorldBuilding():
@@ -616,7 +616,7 @@ def testLiveWorldBuilding():
     sp.cmd("undo")
     assert m.getWorldBuilding(d)["text"] == ""
     assert m.listScenes(d)["revision"] == old
-    assert not sp.canUndo()
+    assert not sp.undoHistory.canUndo()
 
     sp.cmd("redo")
     assert m.getWorldBuilding(d)["text"] == "Two moons."
@@ -634,7 +634,7 @@ def testLiveWorldBuildingNotWritable():
         m.setWorldBuilding(Readonly(d.sp), m.listScenes(d)["revision"], "x")
 
     assert d.sp.worldBuilding.text == ""
-    assert not d.sp.canUndo()
+    assert not d.sp.undoHistory.canUndo()
 
 
 def testLiveCharacterProfiles():
@@ -666,7 +666,7 @@ def testLiveCharacterProfiles():
     sp.cmd("undo")
     assert sp.characterProfiles.profiles == []
     assert m.listScenes(d)["revision"] == old
-    assert not sp.canUndo()
+    assert not sp.undoHistory.canUndo()
 
     sp.cmd("redo")
     assert sp.characterProfiles.get("MARY").notes == "A cook."
@@ -687,7 +687,7 @@ def testLiveFailedProfileEditChangesNothing():
         m.deleteCharacterProfile(d, r, "Mary")
 
     assert m.listScenes(d)["revision"] == r
-    assert not d.sp.canUndo()
+    assert not d.sp.undoHistory.canUndo()
 
 
 def testLiveRenameUndoesProfile():

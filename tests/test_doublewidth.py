@@ -9,6 +9,7 @@ import trelby.mypager as mypager
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.screenplay as scr
+import trelby.screenplay.render as render
 import trelby.translations as translations
 import trelby.util as util
 from tests.test_keyinput import FakeCtrl, KeyEvent, press
@@ -153,7 +154,7 @@ def testCenterOffset():
 
 
 def textOps(sp):
-    pg = sp.generatePMLPage(mypager.Pager(sp.cfg), 1, True, True)
+    pg = render.generatePMLPage(sp, mypager.Pager(sp.cfg), 1, True, True)
 
     return [op for op in pg.ops if isinstance(op, pml.TextOp) and (op.line != -1)]
 
@@ -165,7 +166,7 @@ def testPMLCharWidth():
 
 def testPDFUsesChineseFont():
     sp = makeScript(CHINESE + " Hello")
-    doc = sp.generatePML()
+    doc = render.generatePML(sp)
 
     assert pdf.unsupportedChars(doc) == ""
 
@@ -177,14 +178,14 @@ def testPDFUsesChineseFont():
 def testPDFWarnsInSingleWidth():
     sp = makeScript(CHINESE, double=False)
 
-    assert "他" in pdf.unsupportedChars(sp.generatePML())
+    assert "他" in pdf.unsupportedChars(render.generatePML(sp))
 
 
 def testPDFWarnsAboutCharsNotInChineseFont():
     # Korean Hangul isn't in the Chinese font
     sp = makeScript("한국어 中文")
 
-    assert pdf.unsupportedChars(sp.generatePML()) == "국어한"
+    assert pdf.unsupportedChars(render.generatePML(sp)) == "국어한"
 
 
 def newCtrl(sp):

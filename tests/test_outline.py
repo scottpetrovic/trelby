@@ -122,7 +122,7 @@ def testMoveSceneLimits():
     assert not sp.moveScene(0, 1)
 
     assert [str(ln) for ln in sp.lines] == before
-    assert not sp.canUndo()
+    assert not sp.undoHistory.canUndo()
 
 
 def testMoveSceneUndoRedo():
@@ -201,7 +201,7 @@ def testMoveSceneToInvalid():
     assert not sp.moveSceneTo(1, -1)
     assert not sp.moveSceneTo(1, n)
     assert not sp.moveSceneTo(0, 2)
-    assert not sp.canUndo()
+    assert not sp.undoHistory.canUndo()
 
 
 def testMoveSceneToUndo():

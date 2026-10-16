@@ -212,8 +212,9 @@ class Base:
     # the other way around. these are absolute line indexes, so they're
     # only right if sp.lines is exactly as this object left it: undo/redo
     # must go strictly through the history in order, and every change to
-    # sp.lines must be recorded with addUndo. anything that changes lines
-    # without doing so (like reformatAll) must clear the history first.
+    # sp.lines must be recorded with sp.undoHistory.add. anything that
+    # changes lines without doing so (like reformatAll) must clear the
+    # history first.
     def undo(self, sp):
         sp.line, sp.column = self.startPos.line, self.startPos.column
 

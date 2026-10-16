@@ -27,6 +27,10 @@ import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.reports as reports
 import trelby.screenplay as screenplay
+import trelby.screenplay.compare as compare
+import trelby.screenplay.export as export
+import trelby.screenplay.proofing as proofing
+import trelby.screenplay.render as render
 import trelby.spellcheck as spellcheck
 import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.spellcheckdlg as spellcheckdlg
@@ -336,7 +340,7 @@ class MyCtrl(wx.Control):
 
             return None
 
-        return sp.generateText(inf[0].selected)
+        return export.generateText(sp, inf[0].selected)
 
     def getExportHtml(self, sp):
         inf = []
@@ -351,12 +355,12 @@ class MyCtrl(wx.Control):
 
             return None
 
-        return sp.generateHtml(inf[0].selected)
+        return export.generateHtml(sp, inf[0].selected)
 
     # generate a PDF of the given screenplay, or None if the user cancels
     # because the PDF fonts can't show some of its characters.
     def getExportPdf(self, sp):
-        doc = sp.generatePML()
+        doc = render.generatePML(sp)
         chars = pdf.unsupportedChars(doc)
 
         if chars:
@@ -520,8 +524,8 @@ class MyCtrl(wx.Control):
             self.sp.getWordCount(), self.sp.getPageLength()
         )
 
-        canUndo = self.sp.canUndo()
-        canRedo = self.sp.canRedo()
+        canUndo = self.sp.undoHistory.canUndo()
+        canRedo = self.sp.undoHistory.canRedo()
 
         self.gd.mainFrame.menuBar.Enable(ID_EDIT_UNDO, canUndo)
         self.gd.mainFrame.menuBar.Enable(ID_EDIT_REDO, canRedo)
@@ -698,7 +702,7 @@ class MyCtrl(wx.Control):
 
             return ret == wx.ID_OK
 
-        line, msg = self.sp.findError(0)
+        line, msg = proofing.findError(self.sp, 0)
 
         if line == -1:
             return True
@@ -1121,7 +1125,7 @@ class MyCtrl(wx.Control):
             sp2.reformatAll()
             sp2.paginate()
 
-        s = sp1.compareScripts(sp2)
+        s = compare.compareScripts(sp1, sp2)
 
         if s:
             gutil.showTempPDF(s, self.gd.cfgGl, self.gd.mainFrame)
@@ -1226,7 +1230,7 @@ class MyCtrl(wx.Control):
             # have to call paginate, otherwise generateText will not
             # process all the text
             tmpSp.paginate()
-            s = tmpSp.generateText(False)
+            s = export.generateText(tmpSp, False)
         else:
             s = util.String()
 
@@ -1452,7 +1456,7 @@ class MyCtrl(wx.Control):
     def OnFindNextError(self):
         self.clearAutoComp()
 
-        line, msg = self.sp.findError(self.sp.line)
+        line, msg = proofing.findError(self.sp, self.sp.line)
 
         if line != -1:
             self.sp.line = line
@@ -1592,10 +1596,10 @@ class MyCtrl(wx.Control):
     def OnExportScript(self, fmt):
         name, generate = {
             "pdf": ("PDF", self.getExportPdf),
-            "rtf": ("RTF", lambda sp: sp.generateRTF()),
-            "fdx": ("Final Draft XML", lambda sp: sp.generateFDX()),
+            "rtf": ("RTF", lambda sp: export.generateRTF(sp)),
+            "fdx": ("Final Draft XML", lambda sp: export.generateFDX(sp)),
             "html": ("HTML", self.getExportHtml),
-            "fountain": ("Fountain", lambda sp: sp.generateFountain()),
+            "fountain": ("Fountain", lambda sp: export.generateFountain(sp)),
             "txt": (_("Formatted text"), self.getExportText),
         }[fmt]
 
@@ -2162,7 +2166,7 @@ class MyCtrl(wx.Control):
         pageX = int((cfg.paperWidth - cfg.marginRight) * mm2p) + gap
 
         # the left scene number starts 6 characters left of the margin (see
-        # Screenplay.addSceneNumbers)
+        # screenplay.render.addSceneNumbers)
         sceneX = int((cfg.marginLeft - 6 * self.chX) * mm2p) - gap - w
 
         draftX = util.clamp((size.width - self.pageW) // 2, 0)

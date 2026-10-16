@@ -1,4 +1,5 @@
 import tests.u as u
+import trelby.screenplay.export as export
 import trelby.titles as titles
 import trelby.translations as translations
 
@@ -22,7 +23,7 @@ def scriptWithTitles(*strings):
 
 # the fixture has "by" and the author as separate title strings
 def testLoneByTakesAuthorFromNextString():
-    lines = titleLines(u.load().generateFountain())
+    lines = titleLines(export.generateFountain(u.load()))
 
     assert lines[0] == "Title: THE KOALA INCIDENT"
     assert lines[1] == "Author: Anonymous Person"
@@ -35,7 +36,7 @@ def testLoneByTakesAuthorFromNextString():
 def testByAndAuthorInOneString():
     sp = u.new()
     sp.titles.addDefaults()
-    lines = titleLines(sp.generateFountain())
+    lines = titleLines(export.generateFountain(sp))
 
     assert lines[0] == "Title: UNTITLED SCREENPLAY"
     assert lines[1] == "Author: My Name Here"
@@ -43,20 +44,20 @@ def testByAndAuthorInOneString():
 
 
 def testByAndAuthorWithoutBlankLine():
-    lines = titleLines(scriptWithTitles(["by", "Jane Doe"]).generateFountain())
+    lines = titleLines(export.generateFountain(scriptWithTitles(["by", "Jane Doe"])))
 
     assert lines[1] == "Author: Jane Doe"
 
 
 def testMultipleAuthors():
     sp = scriptWithTitles(["by", "", "Jane Doe", "John Doe"])
-    lines = titleLines(sp.generateFountain())
+    lines = titleLines(export.generateFountain(sp))
 
     assert lines[1:4] == ["Author:", "    Jane Doe", "    John Doe"]
 
 
 def testLoneByAsLastString():
-    lines = titleLines(scriptWithTitles(["by"]).generateFountain())
+    lines = titleLines(export.generateFountain(scriptWithTitles(["by"])))
 
     assert lines == ["Title: MY SCRIPT"]
 
@@ -64,7 +65,7 @@ def testLoneByAsLastString():
 # keys must start with a letter; "[A-za-z]" used to accept "[", "_" etc.
 def testKeyMustStartWithLetter():
     sp = scriptWithTitles(["Draft: 2"], ["[Revised]: today"])
-    lines = titleLines(sp.generateFountain())
+    lines = titleLines(export.generateFountain(sp))
 
     assert "Draft: 2" in lines
     assert "Contact: [Revised]: today" in lines

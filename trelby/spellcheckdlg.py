@@ -144,7 +144,7 @@ class SpellCheckDlg(wx.Dialog):
         sp.markChanged()
 
         u.setAfter(sp)
-        sp.addUndo(u)
+        sp.undoHistory.add(u)
         sp.paginate()
 
         self.gotoNext(False)

@@ -2,6 +2,8 @@ import tests.u as u
 import trelby.mypager as mypager
 import trelby.pml as pml
 import trelby.screenplay as scr
+import trelby.screenplay.export as export
+import trelby.screenplay.render as render
 import trelby.translations as translations
 import trelby.undo as undo
 
@@ -426,7 +428,7 @@ def testDeleteForwardMakesPair():
 
 
 def getTextOps(sp, pageNr=1):
-    pg = sp.generatePMLPage(mypager.Pager(sp.cfg), pageNr, True, True)
+    pg = render.generatePMLPage(sp, mypager.Pager(sp.cfg), pageNr, True, True)
 
     return {op.line: op for op in pg.ops if isinstance(op, pml.TextOp) and (op.line != -1)}
 
@@ -514,7 +516,7 @@ def testPaginationUsesTallerColumn():
 
 def testExportFountain():
     sp = makeScript()
-    s = sp.generateFountain()
+    s = export.generateFountain(sp)
 
     assert "\nSTEEL ^\n" in s
     assert "BRICK ^" not in s
@@ -524,7 +526,7 @@ def testExportFDX():
     from lxml import etree
 
     sp = makeScript()
-    root = etree.XML(sp.generateFDX())
+    root = etree.XML(export.generateFDX(sp))
 
     dd = root.xpath("Content/Paragraph[@Type='General']/DualDialogue")
     assert len(dd) == 1
@@ -544,12 +546,12 @@ def testExportFDX():
 
 def testExportText():
     sp = makeScript()
-    rows = sp.generateText(False).split("\n")
+    rows = export.generateText(sp, False).split("\n")
 
     row = [r for r in rows if "BRICK" in r]
     assert len(row) == 1
     assert "STEEL" in row[0]
     assert row[0].index("BRICK") < row[0].index("STEEL")
 
-    html = sp.generateHtml()
+    html = export.generateHtml(sp)
     assert "BRICK" in html and "STEEL" in html

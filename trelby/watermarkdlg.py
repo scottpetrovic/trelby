@@ -5,6 +5,7 @@ import wx
 import trelby.gutil as gutil
 import trelby.pdf as pdf
 import trelby.pml as pml
+import trelby.screenplay.render as render
 import trelby.util as util
 
 
@@ -117,7 +118,7 @@ class WatermarkDlg(wx.Dialog):
 
             basename = s.replace(" ", "-")
             fn = directory + "/" + fnprefix + "-" + basename + ".pdf"
-            pmldoc = self.sp.generatePML()
+            pmldoc = render.generatePML(self.sp)
 
             ops = []
 

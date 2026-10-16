@@ -5,6 +5,8 @@ import trelby.myimport as myimport
 import trelby.mypager as mypager
 import trelby.pml as pml
 import trelby.screenplay as scr
+import trelby.screenplay.export as export
+import trelby.screenplay.render as render
 import trelby.textfmt as textfmt
 import trelby.translations as translations
 from trelby.line import Line
@@ -340,18 +342,18 @@ def testRenameCharacter():
 
 def testPML():
     sp = loadBold()
-    pg = sp.generatePMLPage(mypager.Pager(sp.cfg), 1, True, True)
+    pg = render.generatePMLPage(sp, mypager.Pager(sp.cfg), 1, True, True)
     ops = [op for op in pg.ops if isinstance(op, pml.TextOp) and op.line == 1]
 
     assert ops[0].fmt == sp.lines[1].fmt
 
     # and the PDF draws it
-    assert sp.generatePDF().startswith(b"%PDF")
+    assert export.generatePDF(sp).startswith(b"%PDF")
 
 
 def testFDX():
     sp = loadBold()
-    s = sp.generateFDX().decode("UTF-8")
+    s = export.generateFDX(sp).decode("UTF-8")
 
     assert '<Text Style="Bold">door</Text>' in s
     assert "<Text>The </Text>" in s
@@ -359,7 +361,7 @@ def testFDX():
 
 def testFDXImport(tmp_path):
     path = tmp_path / "bold.fdx"
-    path.write_bytes(loadBold().generateFDX())
+    path.write_bytes(export.generateFDX(loadBold()))
 
     lines = myimport.importFDX(str(path), mock.Mock())
 
@@ -369,7 +371,7 @@ def testFDXImport(tmp_path):
 
 def testFountain():
     sp = loadBold()
-    s = sp.generateFountain()
+    s = export.generateFountain(sp)
 
     assert "The **door** opens slowly." in s
 
@@ -405,13 +407,13 @@ def testFountainImportNoConvert(tmp_path):
 
 
 def testRTF():
-    s = loadBold().generateRTF()
+    s = export.generateRTF(loadBold())
 
     assert r"The {\b door} opens slowly." in s
 
 
 def testHtml():
-    s = loadBold().generateHtml()
+    s = export.generateHtml(loadBold())
 
     assert 'The <span style="font-weight:bold">door</span> opens slowly.' in s
 
@@ -448,7 +450,7 @@ def testCenteredOffset():
     assert sp.getCenterOffset(3) == (width - 7) / 2.0
     assert sp.getCenterOffset(4) == 0
 
-    pg = sp.generatePMLPage(mypager.Pager(sp.cfg), 1, True, True)
+    pg = render.generatePMLPage(sp, mypager.Pager(sp.cfg), 1, True, True)
     x = {op.line: op.x for op in pg.ops if isinstance(op, pml.TextOp)}
 
     assert x[2] > x[1]
@@ -551,21 +553,21 @@ def testCenteredCopyPaste():
 def testCenteredText():
     sp = loadCentered()
     width = sp.cfg.getType(scr.ACTION).width
-    lines = sp.generateText(False).split("\n")
+    lines = export.generateText(sp, False).split("\n")
 
     assert " " * int((width - 7) / 2.0) + "THE END" in lines
     assert "Credits roll." in lines
 
 
 def testCenteredRTF():
-    s = loadCentered().generateRTF()
+    s = export.generateRTF(loadCentered())
 
     assert "\\qc THE END\\line for now}" in s
     assert "\\qc The door" not in s
 
 
 def testCenteredFountain(tmp_path):
-    s = loadCentered().generateFountain()
+    s = export.generateFountain(loadCentered())
 
     assert "\n>THE END<\n>for now<\n\nCredits roll." in s
 
@@ -584,7 +586,7 @@ def testCenteredFountain(tmp_path):
 
 
 def testCenteredFDX(tmp_path):
-    s = loadCentered().generateFDX()
+    s = export.generateFDX(loadCentered())
 
     assert s.count(b'<Paragraph Type="Action" Alignment="Center">') == 1
 

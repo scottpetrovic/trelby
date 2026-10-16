@@ -15,7 +15,18 @@ import pytest
 
 @pytest.mark.parametrize(
     "module",
-    ["util", "fontinfo", "truetype", "textedit", "menubar", "commandsdlg"],
+    [
+        "util",
+        "fontinfo",
+        "truetype",
+        "textedit",
+        "menubar",
+        "commandsdlg",
+        "screenplay",
+        "screenplay.export",
+        "screenplay.render",
+        "mcptools",
+    ],
 )
 def testImportFirst(module):
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

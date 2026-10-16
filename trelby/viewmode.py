@@ -3,6 +3,7 @@
 import trelby.config as config
 import trelby.mypager as mypager
 import trelby.pml as pml
+import trelby.screenplay.render as render
 import trelby.util as util
 
 # Number of lines the smooth scroll will try to search. 15-20 is a good
@@ -71,7 +72,7 @@ class PageCache:
         pg = self.pages.get(pageNr)
 
         if not pg:
-            pg = self.ctrl.sp.generatePMLPage(pager, pageNr, False, False)
+            pg = render.generatePMLPage(self.ctrl.sp, pager, pageNr, False, False)
             self.pages[pageNr] = pg
 
         return pg
@@ -85,8 +86,8 @@ class ViewMode:
     # (texts, dpages), where texts = [TextString, ...], dpages =
     # [DisplayPage, ...]. dpages is empty if draft mode is in use, which
     # callers test with "if not dpages". doExtra has same meaning as for
-    # generatePMLPage. pageCache, if given, is used in layout mode to cache
-    # PML pages. it should only be given when doExtra = False as the cached
+    # render.generatePMLPage. pageCache, if given, is used in layout mode to
+    # cache PML pages. it should only be given when doExtra = False as the cached
     # pages aren't accurate down to that level.
     #
     # partial lines (some of the the text is clipped off-screen) are only
@@ -348,7 +349,7 @@ class ViewModeLayout(ViewMode):
         if doExtra and ctrl.sp.cfg.pdfShowSceneNumbers:
             pager.scene = ctrl.sp.getSceneNumber(ctrl.sp.page2lines(pageNr)[0] - 1)
 
-        # find out starting place (if something bugs, generatePMLPage
+        # find out starting place (if something bugs, render.generatePMLPage
         # below could return None, but it shouldn't happen...)
         #
         # y is the screen position of the top of topLine's page: if topLine
@@ -358,7 +359,7 @@ class ViewModeLayout(ViewMode):
         if pageCache:
             pg = pageCache.getPage(pager, pageNr)
         else:
-            pg = ctrl.sp.generatePMLPage(pager, pageNr, False, doExtra)
+            pg = render.generatePMLPage(ctrl.sp, pager, pageNr, False, doExtra)
 
         topOfPage = True
         for op in pg.ops:
@@ -399,7 +400,7 @@ class ViewModeLayout(ViewMode):
                 if pageCache:
                     pg = pageCache.getPage(pager, pageNr)
                 else:
-                    pg = ctrl.sp.generatePMLPage(pager, pageNr, False, doExtra)
+                    pg = render.generatePMLPage(ctrl.sp, pager, pageNr, False, doExtra)
                 if not pg:
                     break
 
@@ -525,7 +526,7 @@ class ViewModeSideBySide(ViewMode):
             if pageCache:
                 pg = pageCache.getPage(pager, pageNr)
             else:
-                pg = ctrl.sp.generatePMLPage(pager, pageNr, False, doExtra)
+                pg = render.generatePMLPage(ctrl.sp, pager, pageNr, False, doExtra)
             if not pg:
                 break
 

@@ -1,6 +1,7 @@
 import tests.u as u
 import trelby.pagelock as pagelock
 import trelby.screenplay as scr
+import trelby.screenplay.render as render
 import trelby.translations as translations
 from trelby.line import Line
 
@@ -500,7 +501,7 @@ def testHeaderShowsLabel():
     sp.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
     sp.paginate()
 
-    doc = sp.generatePML()
+    doc = render.generatePML(sp)
     texts = [
         " ".join(op.text for op in pg.ops if hasattr(op, "text"))
         for pg in doc.pages

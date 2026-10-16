@@ -449,7 +449,7 @@ class FindDlg(wx.Dialog):
         sp.markChanged()
 
         u.setAfter(sp)
-        sp.addUndo(u)
+        sp.undoHistory.add(u)
 
         # Replace All paginates once at the end instead
         if not autoFind:

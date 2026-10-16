@@ -85,7 +85,7 @@ def testSetSceneColorNoChange():
     assert not sp.setSceneColor(1, "ffb3b3")
     # before the first scene
     assert not sp.setSceneColor(0, "ffb3b3")
-    assert not sp.canUndo()
+    assert not sp.undoHistory.canUndo()
 
 
 def testSetSceneColorUndoRedo():

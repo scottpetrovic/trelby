@@ -7,6 +7,8 @@ import trelby.fontinfo as fontinfo
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.screenplay as screenplay
+import trelby.screenplay.export as export
+import trelby.screenplay.render as render
 import trelby.spellcheck as spellcheck
 import trelby.titles as titles
 import trelby.translations as translations
@@ -123,7 +125,7 @@ def testUppercaseHeadingsAndNames():
     sp = u.load("unicode.trelby")
     sp.paginate()
 
-    text = sp.generateText(False)
+    text = export.generateText(sp, False)
     assert "INT. ŁÓDŹ — MIESZKANIE ČAPKA" in text
     assert "ПЁТР" in text
     assert "EWA ŻAK" in text
@@ -214,7 +216,7 @@ def testCharMapBlocks():
 def testPDFUnsupportedChars():
     sp = u.load("unicode.trelby")
     sp.paginate()
-    doc = sp.generatePML()
+    doc = render.generatePML(sp)
 
     chars = pdf.unsupportedChars(doc)
     # character names and scene headings are uppercased
@@ -238,7 +240,7 @@ def testPDFCustomFont():
         pf.pdfName = "Jost"
         pf.filename = u.fixtureFilePath("custom-font/Jost-400-Book.ttf")
 
-    doc = sp.generatePML()
+    doc = render.generatePML(sp)
 
     assert pdf.unsupportedChars(doc) == ""
     assert pdf.generate(doc)[:8] == b"%PDF-1.5"
@@ -278,7 +280,7 @@ def testTitlePageInHelvetica():
     ]
     sp.paginate()
 
-    assert sp.generatePDF()[:8] == b"%PDF-1.5"
+    assert export.generatePDF(sp)[:8] == b"%PDF-1.5"
 
 
 def testEscapeRTF():
@@ -293,6 +295,6 @@ def testExportRTF():
     sp = u.load("unicode.trelby")
     sp.paginate()
 
-    rtf = sp.generateRTF()
+    rtf = export.generateRTF(sp)
     assert rtf.isascii()
     assert r"\u321?" in rtf  # Ł

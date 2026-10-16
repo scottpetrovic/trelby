@@ -1,5 +1,6 @@
 import tests.u as u
 import trelby.screenplay as scr
+from trelby.line import Line
 
 # tests for the status bar's script length figures: Screenplay.getWordCount
 # and Screenplay.getPageLength
@@ -39,7 +40,7 @@ def testWordCountAcrossLines():
     # split the action line in two. a space break keeps two words, a
     # break without a space joins them into one.
     ln = sp.lines[1]
-    sp.lines.insert(2, scr.Line(scr.LB_LAST, scr.ACTION, "badly."))
+    sp.lines.insert(2, Line(scr.LB_LAST, scr.ACTION, "badly."))
     ln.text = "Mary cooks --"
     ln.lb = scr.LB_SPACE
     assert sp.getWordCount() == 11

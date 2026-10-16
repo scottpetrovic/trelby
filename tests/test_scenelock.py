@@ -4,6 +4,7 @@ import tests.u as u
 import trelby.mcptools as m
 import trelby.pagelock as pagelock
 import trelby.screenplay as scr
+import trelby.screenplay.render as render
 import trelby.translations as translations
 from trelby.line import Line
 
@@ -408,7 +409,7 @@ def testPDFShowsNumbers():
     sp.paginate()
 
     texts = [
-        op.text for pg in sp.generatePML().pages for op in pg.ops if hasattr(op, "text")
+        op.text for pg in render.generatePML(sp).pages for op in pg.ops if hasattr(op, "text")
     ]
 
     # each number is printed on both sides of its heading

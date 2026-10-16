@@ -21,6 +21,7 @@ import trelby.config as config
 import trelby.error as error
 import trelby.misc as misc
 import trelby.screenplay as screenplay
+import trelby.screenplay.export as exporters
 import trelby.translations as translations
 import trelby.undo as undo
 import trelby.util as util
@@ -215,8 +216,7 @@ class FileDoc:
 def save(sp, path, backup=True):
     # some edits (moveSceneTo, renameCharacters) add undo history, which
     # reformatAll refuses to run with. nobody can undo here anyway.
-    sp.firstUndo = sp.lastUndo = sp.currentUndo = None
-    sp.undoMemoryUsed = 0
+    sp.undoHistory.clear()
 
     sp.reformatAll()
     sp.paginate()
@@ -287,7 +287,7 @@ class LiveDoc:
 
         if u:
             u.setAfter(sp)
-            sp.addUndo(u)
+            sp.undoHistory.add(u)
 
         sp.markChanged()
         sp.paginate()
@@ -637,17 +637,17 @@ def export(doc, fmt, outputPath=None):
 
     try:
         if fmt == "pdf":
-            data = sp.generatePDF()
+            data = exporters.generatePDF(sp)
         elif fmt == "fountain":
-            data = sp.generateFountain()
+            data = exporters.generateFountain(sp)
         elif fmt == "text":
-            data = sp.generateText(False)
+            data = exporters.generateText(sp, False)
         elif fmt == "html":
-            data = sp.generateHtml()
+            data = exporters.generateHtml(sp)
         elif fmt == "fdx":
-            data = sp.generateFDX()
+            data = exporters.generateFDX(sp)
         else:
-            data = sp.generateRTF()
+            data = exporters.generateRTF(sp)
     except Exception as e:
         raise ToolError("Exporting to %s failed: %s: %s" % (fmt, type(e).__name__, e))
 
@@ -822,7 +822,7 @@ def setWorldBuilding(doc, revision, text):
         u = undo.WorldBuildingText(sp)
         sp.worldBuilding.text = text
         u.setAfter(sp)
-        sp.addUndo(u)
+        sp.undoHistory.add(u)
 
         return None
 
@@ -877,7 +877,7 @@ def writeProfiles(doc, revision, edit):
         u = undo.CharacterProfiles(sp)
         ret.update(edit(sp))
         u.setAfter(sp)
-        sp.addUndo(u)
+        sp.undoHistory.add(u)
 
         return None
 

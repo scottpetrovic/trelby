@@ -929,14 +929,14 @@ def importTextFile(fileName: str, frame: wx.Frame) -> Optional[List[Line]]:
                     s = ""
 
             if s:
-                line = screenplay.Line(screenplay.LB_SPACE, lt, s)
+                line = Line(screenplay.LB_SPACE, lt, s)
                 ret.append(line)
 
         elif ret:
             ret[-1].lb = screenplay.LB_LAST
 
     if len(ret) == 0:
-        ret.append(screenplay.Line(screenplay.LB_LAST, screenplay.ACTION))
+        ret.append(Line(screenplay.LB_LAST, screenplay.ACTION))
 
     # make sure the last line ends an element
     ret[-1].lb = screenplay.LB_LAST

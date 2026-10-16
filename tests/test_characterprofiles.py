@@ -263,7 +263,7 @@ def test_renameNothing():
 
     assert sp.renameCharacters({"NOBODY": "SOMEBODY"}) == (0, 0)
     assert sp.renameCharacters({"BOB": "BOB"}) == (0, 0)
-    assert not sp.canUndo()
+    assert not sp.undoHistory.canUndo()
 
 
 def test_renameUndo():
