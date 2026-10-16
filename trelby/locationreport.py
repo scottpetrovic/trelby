@@ -1,7 +1,7 @@
 import functools
 import operator
 
-import trelby.misc as misc
+import trelby.checkboxitem as checkboxitem
 import trelby.pml as pml
 import trelby.textreport as textreport
 import trelby.util as util
@@ -60,7 +60,7 @@ class LocationReport(textreport.TextReport):
         (self.INF_SPEAKERS,) = list(range(1))
         self.inf = []
         for s in ["Speakers"]:
-            self.inf.append(misc.CheckBoxItem(s))
+            self.inf.append(checkboxitem.CheckBoxItem(s))
 
     def format(self, tf) -> None:
         scriptLines = sum([li.lines for li in self.locations])

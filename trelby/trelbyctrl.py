@@ -12,6 +12,8 @@ import trelby.autocompletiondlg as autocompletiondlg
 import trelby.autosave as autosave
 import trelby.cfgdlg as cfgdlg
 import trelby.characterprofilesdlg as characterprofilesdlg
+import trelby.checkboxdlg as checkboxdlg
+import trelby.checkboxitem as checkboxitem
 import trelby.commands as commands
 import trelby.config as config
 import trelby.configgui as configgui
@@ -34,9 +36,11 @@ import trelby.screenplay.compare as compare
 import trelby.screenplay.export as export
 import trelby.screenplay.proofing as proofing
 import trelby.screenplay.render as render
+import trelby.scriptchooserdlg as scriptchooserdlg
 import trelby.spellcheck as spellcheck
 import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.spellcheckdlg as spellcheckdlg
+import trelby.textdlg as textdlg
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.titlesdlg as titlesdlg
@@ -200,7 +204,7 @@ class MyCtrl(wx.Control):
             return False
 
         if msg:
-            misc.showText(self.gd.mainFrame, msg, _("Warning"))
+            textdlg.showText(self.gd.mainFrame, msg, _("Warning"))
 
         # whatever was here before has been saved or discarded
         self.removeRecovery()
@@ -336,9 +340,9 @@ class MyCtrl(wx.Control):
     # generate exportable text from given screenplay, or None.
     def getExportText(self, sp):
         inf = []
-        inf.append(misc.CheckBoxItem(_("Include page markers")))
+        inf.append(checkboxitem.CheckBoxItem(_("Include page markers")))
 
-        dlg = misc.CheckBoxDlg(
+        dlg = checkboxdlg.CheckBoxDlg(
             self.gd.mainFrame, _("Output options"), inf, _("Options:"), False
         )
 
@@ -351,9 +355,9 @@ class MyCtrl(wx.Control):
 
     def getExportHtml(self, sp):
         inf = []
-        inf.append(misc.CheckBoxItem(_("Include Notes")))
+        inf.append(checkboxitem.CheckBoxItem(_("Include Notes")))
 
-        dlg = misc.CheckBoxDlg(
+        dlg = checkboxdlg.CheckBoxDlg(
             self.gd.mainFrame, _("Output options"), inf, _("Options:"), False
         )
 
@@ -1093,7 +1097,7 @@ class MyCtrl(wx.Control):
         for c in self.gd.mainFrame.getCtrls():
             items.append(c.fileNameDisplay)
 
-        dlg = misc.ScriptChooserDlg(self.gd.mainFrame, items)
+        dlg = scriptchooserdlg.ScriptChooserDlg(self.gd.mainFrame, items)
 
         sel1 = -1
         sel2 = -1
@@ -1339,7 +1343,7 @@ class MyCtrl(wx.Control):
             else:
                 return _("Invalid scene number.")
 
-        dlg = misc.TextInputDlg(
+        dlg = textdlg.TextInputDlg(
             self.gd.mainFrame,
             _("Enter scene number ({} - {}):").format(scenes[0][0], scenes[-1][0]),
             _("Goto scene"),
@@ -1403,7 +1407,7 @@ class MyCtrl(wx.Control):
             else:
                 return _("Invalid page number.")
 
-        dlg = misc.TextInputDlg(
+        dlg = textdlg.TextInputDlg(
             self.gd.mainFrame,
             _("Enter page number ({} - {}):").format(pages[0], pages[-1]),
             _("Goto page"),
@@ -1545,9 +1549,9 @@ class MyCtrl(wx.Control):
 
         types = []
         for t in config.getTIs():
-            types.append(misc.CheckBoxItem(t.name, False, t.lt))
+            types.append(checkboxitem.CheckBoxItem(t.name, False, t.lt))
 
-        dlg = misc.CheckBoxDlg(
+        dlg = checkboxdlg.CheckBoxDlg(
             self.gd.mainFrame,
             _("Delete elements"),
             types,
@@ -1559,7 +1563,7 @@ class MyCtrl(wx.Control):
         if dlg.ShowModal() == wx.ID_OK:
             ok = True
 
-            tdict = misc.CheckBoxItem.getClientData(types)
+            tdict = checkboxitem.CheckBoxItem.getClientData(types)
 
         dlg.Destroy()
 

@@ -6,9 +6,10 @@ from typing import List, Optional
 import wx
 from lxml import etree
 
+import trelby.checkboxdlg as checkboxdlg
+import trelby.checkboxitem as checkboxitem
 import trelby.config as config
 import trelby.gutil as gutil
-import trelby.misc as misc
 import trelby.screenplay as screenplay
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
@@ -444,14 +445,14 @@ def importFountain(fileName, frame, titlePages):
         return None
 
     inf = []
-    inf.append(misc.CheckBoxItem(_("Import titles to title page.")))
-    inf.append(misc.CheckBoxItem(_("Import titles as action lines."), selected=False))
+    inf.append(checkboxitem.CheckBoxItem(_("Import titles to title page.")))
+    inf.append(checkboxitem.CheckBoxItem(_("Import titles as action lines."), selected=False))
     inf.append(
-        misc.CheckBoxItem(_("Import bold, italic and underline markup as formatting."))
+        checkboxitem.CheckBoxItem(_("Import bold, italic and underline markup as formatting."))
     )
-    inf.append(misc.CheckBoxItem(_("Import section/synopsis as notes.")))
+    inf.append(checkboxitem.CheckBoxItem(_("Import section/synopsis as notes.")))
 
-    dlg = misc.CheckBoxDlg(
+    dlg = checkboxdlg.CheckBoxDlg(
         frame, _("Fountain import options"), inf, _("Import options:"), False
     )
 

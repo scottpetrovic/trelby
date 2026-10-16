@@ -388,7 +388,7 @@ def importFountain(tmp_path, text, convert=True):
 
         return dlg
 
-    with mock.patch.object(myimport.misc, "CheckBoxDlg", checkBoxDlg):
+    with mock.patch.object(myimport.checkboxdlg, "CheckBoxDlg", checkBoxDlg):
         return myimport.importFountain(str(path), mock.Mock(), [])[0]
 
 

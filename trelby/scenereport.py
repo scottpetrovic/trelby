@@ -1,4 +1,4 @@
-import trelby.misc as misc
+import trelby.checkboxitem as checkboxitem
 import trelby.pml as pml
 import trelby.screenplay as screenplay
 import trelby.textreport as textreport
@@ -41,7 +41,7 @@ class SceneReport(textreport.TextReport):
         (self.INF_SPEAKERS,) = list(range(1))
         self.inf = []
         for s in [_("Speakers")]:
-            self.inf.append(misc.CheckBoxItem(s))
+            self.inf.append(checkboxitem.CheckBoxItem(s))
 
     def format(self, tf) -> None:
         for si in self.scenes:

@@ -27,7 +27,9 @@ import trelby.screenplay as screenplay
 import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.splash as splash
 import trelby.statusbar as statusbar
+import trelby.tabctrl as tabctrl
 import trelby.textfmt as textfmt
+import trelby.toolbar as toolbar
 import trelby.translations as translations
 import trelby.util as util
 from trelby.ids import *
@@ -351,19 +353,19 @@ class MyFrame(wx.Frame):
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.noFSBtn = misc.MyFSButton(self, -1, self.getCfgGui)
+        self.noFSBtn = tabctrl.MyFSButton(self, -1, self.getCfgGui)
         self.noFSBtn.SetToolTip(_("Exit fullscreen"))
         self.noFSBtn.Show(False)
         hsizer.Add(self.noFSBtn)
 
         self.Bind(wx.EVT_BUTTON, self.ToggleFullscreen, id=self.noFSBtn.GetId())
 
-        self.tabCtrl = misc.MyTabCtrl(self, -1, self.getCfgGui)
+        self.tabCtrl = tabctrl.MyTabCtrl(self, -1, self.getCfgGui)
         hsizer.Add(self.tabCtrl, 1, wx.EXPAND)
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        tmp = misc.MyTabCtrl2(self, -1, self.tabCtrl)
+        tmp = tabctrl.MyTabCtrl2(self, -1, self.tabCtrl)
         vsizer.Add(tmp, 1, wx.EXPAND)
 
         vsizer.Add(self.statusBar, 0, wx.EXPAND)
@@ -670,7 +672,7 @@ class MyFrame(wx.Frame):
         ib = wx.IconBundle()
 
         for sz in ("16", "32", "64", "128", "256"):
-            ib.AddIcon(wx.Icon(misc.getBitmap("trelby/resources/icon%s.png" % sz)))
+            ib.AddIcon(wx.Icon(gutil.getBitmap("trelby/resources/icon%s.png" % sz)))
 
         self.SetIcons(ib)
 
@@ -1117,7 +1119,7 @@ class MyFrame(wx.Frame):
         # a vertical line between groups of tools. the toolbar's own
         # separators don't show against its background color.
         def addDivider():
-            d = misc.MyToolbarDivider(tb, self.getCfgGui, height)
+            d = toolbar.MyToolbarDivider(tb, self.getCfgGui, height)
             tb.AddControl(d)
             self.tbDividers.append(d)
 
@@ -1161,7 +1163,7 @@ class MyFrame(wx.Frame):
 
         addDivider()
 
-        self.elemTypeBar = misc.MyElemTypeBar(
+        self.elemTypeBar = toolbar.MyElemTypeBar(
             tb,
             -1,
             self.getCfgGui,
@@ -1174,7 +1176,7 @@ class MyFrame(wx.Frame):
 
         # bold / italic / underline, which go on top of any element type
         addDivider()
-        self.formatBar = misc.MyFormatBar(
+        self.formatBar = toolbar.MyFormatBar(
             tb,
             -1,
             self.getCfgGui,
@@ -1187,7 +1189,7 @@ class MyFrame(wx.Frame):
 
         # centering, which applies to whole action elements
         addDivider()
-        self.alignBar = misc.MyFormatBar(
+        self.alignBar = toolbar.MyFormatBar(
             tb,
             -1,
             self.getCfgGui,

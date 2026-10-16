@@ -1,7 +1,7 @@
 import functools
 from functools import reduce
 
-import trelby.misc as misc
+import trelby.checkboxitem as checkboxitem
 import trelby.pml as pml
 import trelby.screenplay as screenplay
 import trelby.textreport as textreport
@@ -87,7 +87,7 @@ class CharacterReport(textreport.TextReport):
         self.INF_BASIC, self.INF_PAGES, self.INF_LOCATIONS = list(range(3))
         self.inf = []
         for s in [_("Basic information"), _("Page list"), _("Location list")]:
-            self.inf.append(misc.CheckBoxItem(s))
+            self.inf.append(checkboxitem.CheckBoxItem(s))
 
     # calculate total sum of self.cinfo.{name} and return it.
     def sum(self, name):

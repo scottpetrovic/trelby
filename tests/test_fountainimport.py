@@ -21,7 +21,7 @@ def importFountain(tmp_path, text):
     dlg = mock.Mock()
     dlg.ShowModal.return_value = myimport.wx.ID_OK
 
-    with mock.patch.object(myimport.misc, "CheckBoxDlg", return_value=dlg):
+    with mock.patch.object(myimport.checkboxdlg, "CheckBoxDlg", return_value=dlg):
         return myimport.importFountain(str(path), mock.Mock(), t.pages)
 
 

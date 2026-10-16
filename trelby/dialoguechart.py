@@ -3,7 +3,7 @@ from typing import List
 
 import wx
 
-import trelby.misc as misc
+import trelby.checkboxitem as checkboxitem
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.reportwindow as reportwindow
@@ -86,7 +86,7 @@ class DialogueChartFrame(reportwindow.ReportFrame):
             self.view.setDoc(None, msg)
         else:
             label, func = self.sorts[self.sortChoice.GetSelection()]
-            self.doc = self.chart.generateDoc([misc.CheckBoxItem(label, cdata=func)])
+            self.doc = self.chart.generateDoc([checkboxitem.CheckBoxItem(label, cdata=func)])
             self.view.setDoc(self.doc)
 
         self.hasContents = self.doc is not None
@@ -217,7 +217,7 @@ class DialogueChart:
 
     # return a pml.Document with a page for each selected sort order in
     # 'cbil'.
-    def generateDoc(self, cbil: List[misc.CheckBoxItem]) -> pml.Document:
+    def generateDoc(self, cbil: List[checkboxitem.CheckBoxItem]) -> pml.Document:
         doc = pml.Document(self.sp.cfg.paperHeight, self.sp.cfg.paperWidth)
 
         for it in cbil:
@@ -227,7 +227,7 @@ class DialogueChart:
 
         return doc
 
-    def generate(self, cbil: List[misc.CheckBoxItem]) -> bytes:
+    def generate(self, cbil: List[checkboxitem.CheckBoxItem]) -> bytes:
         return pdf.generate(self.generateDoc(cbil))
 
     def generatePage(self, title, doc):

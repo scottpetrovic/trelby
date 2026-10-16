@@ -64,6 +64,12 @@ def isDarkAppearance():
     return wx.SystemSettings.GetAppearance().IsDark()
 
 
+# return bitmap created from the given file. argument is as for
+# getFullPath.
+def getBitmap(filename):
+    return wx.Bitmap(misc.getFullPath(filename))
+
+
 # the color svgBitmap draws icons in by default
 def svgIconColor():
     if isDarkAppearance():

@@ -1,7 +1,7 @@
 import trelby.commands as commands
 import trelby.gutil as gutil
+import trelby.keydlg as keydlg
 import trelby.keys as keys
-import trelby.misc as misc
 import trelby.util as util
 import wx
 
@@ -75,7 +75,7 @@ class KeyboardPanel(wx.Panel):
         self.cfg2gui()
 
     def OnAdd(self, event):
-        dlg = misc.KeyDlg(self.cfgFrame, self.cmd.name)
+        dlg = keydlg.KeyDlg(self.cfgFrame, self.cmd.name)
 
         key = None
         if dlg.ShowModal() == wx.ID_OK:

@@ -4,6 +4,7 @@ import random
 
 import wx
 
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.util as util
 
@@ -36,7 +37,7 @@ class SplashWindow(wx.Frame):
 
         self.pickRandomQuote()
 
-        self.pic = misc.getBitmap("trelby/resources/logo.jpg")
+        self.pic = gutil.getBitmap("trelby/resources/logo.jpg")
 
         if self.pic.IsOk():
             w, h = (self.pic.GetWidth(), self.pic.GetHeight())

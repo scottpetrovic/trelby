@@ -91,7 +91,7 @@ def testImportFountainDualDialogue(tmp_path) -> None:
     dlg = mock.Mock()
     dlg.ShowModal.return_value = myimport.wx.ID_OK
 
-    with mock.patch.object(myimport.misc, "CheckBoxDlg", return_value=dlg):
+    with mock.patch.object(myimport.checkboxdlg, "CheckBoxDlg", return_value=dlg):
         lines, titlePages = myimport.importFountain(str(path), mock.Mock(), [])
 
     assert importedDuals(lines) == [["BRICK", "STEEL"]]

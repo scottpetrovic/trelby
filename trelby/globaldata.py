@@ -6,6 +6,7 @@ import os.path
 import wx
 
 import trelby.misc as misc
+import trelby.mrufiles as mrufiles
 import trelby.mypickle as mypickle
 import trelby.opts as opts
 import trelby.spellcheck as spellcheck
@@ -60,7 +61,7 @@ class GlobalData:
         self.scDict = spellcheck.Dict()
 
         # recently used files list
-        self.mru = misc.MRUFiles(5)
+        self.mru = mrufiles.MRUFiles(5)
 
         if opts.conf:
             self.confFilename = opts.conf
