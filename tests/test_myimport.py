@@ -1,19 +1,16 @@
 import os
-import sys
 from typing import Union
 from unittest import mock
 
+import wx
+
 import tests.u as u
+import trelby.myimport as myimport
 import trelby.screenplay as screenplay
+import trelby.translations as translations
 from trelby.line import Line
 
-wxMock = mock.Mock()
-wxMock.ID_OK = 1
-wxMock.Dialog.ShowModal.return_value = wxMock.ID_OK
-
-sys.modules["wx"] = wxMock
-
-import trelby.myimport as myimport
+_ = translations.trelby_translations_load()
 
 
 def testImportCeltx() -> None:
@@ -41,7 +38,12 @@ def testImportTextFile() -> None:
     location = os.path.dirname(__file__)
     pathToTestScriptTxt = os.path.join(location, "fixtures/test.txt")
 
-    lines = myimport.importTextFile(pathToTestScriptTxt, mock.Mock())
+    # accept the "Adjust styles" dialog as it comes up
+    dlg = mock.Mock()
+    dlg.ShowModal.return_value = wx.ID_OK
+
+    with mock.patch.object(myimport, "ImportDlg", return_value=dlg):
+        lines = myimport.importTextFile(pathToTestScriptTxt, mock.Mock())
 
     expectedScreenplay = u.load()
     for line, expectedLine in zip(lines, expectedScreenplay.lines):
