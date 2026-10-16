@@ -394,10 +394,12 @@ def unescapeStrings(s):
 # return s encoded so that all characters outside the range [32,126] (and
 # "\\") are escaped.
 #
-# the escape is "\" plus the code point in hex, which is two digits only up
-# to U+00FF. decodeStr always reads two digits, so anything above that
-# comes back garbled: U+30B4 is written as "\30B4" and read back as "0"
-# followed by "B4".
+# characters up to U+00FF are written as "\" plus two hex digits ("\A4"),
+# the original format, which existing config files contain. anything above
+# that is written as "\u" plus four hex digits, or "\U" plus eight outside
+# the BMP. old versions wrote those as "\" plus however many digits they
+# needed ("\30B4"), which never read back correctly; such strings still
+# decode the way they always did ("0B4").
 def encodeStr(s):
     ret = ""
 
@@ -409,21 +411,36 @@ def encodeStr(s):
             ret += "\\5C"
         elif (c >= 32) and (c <= 126):
             ret += ch
-        else:
+        elif c <= 0xFF:
             ret += "\\%02X" % c
+        elif c <= 0xFFFF:
+            ret += "\\u%04X" % c
+        else:
+            ret += "\\U%08X" % c
 
     return ret
+
+
+_decodeRe = re.compile(r"\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8}|\\..")
 
 
 # reverse of encodeStr. if string contains invalid escapes, they're
 # silently and arbitrarily replaced by something.
 def decodeStr(s):
-    return re.sub(r"\\..", _decodeRepl, s)
+    return _decodeRe.sub(_decodeRepl, s)
 
 
-# converts "\A4" style matches to their character values.
+# converts "\A4", "ゴ" and "\U0001F600" style matches to their
+# character values.
 def _decodeRepl(mo):
-    val = str2int(mo.group(0)[1:], 256, 0, 256, 16)
+    esc = mo.group(0)
+
+    if len(esc) > 3:
+        val = int(esc[2:], 16)
+
+        return chr(val) if val <= 0x10FFFF else ""
+
+    val = str2int(esc[1:], 256, 0, 256, 16)
 
     if val != 256:
         return chr(val)

@@ -210,9 +210,8 @@ class StrUnicodeVar(ConfVar):
 
 
 # binary string, can contain anything. characters outside of printable
-# ASCII (and \ itself) are encoded as \XX, where XX is the hex code of the
-# character. only characters up to U+00FF survive a save and load (see
-# util.encodeStr).
+# ASCII (and \ itself) are escaped with their hex code: \XX up to U+00FF,
+# \uXXXX or \UXXXXXXXX above that (see util.encodeStr).
 class StrBinaryVar(ConfVar):
     def __init__(self, name, defVal, name2):
         ConfVar.__init__(self, name, defVal, name2)
