@@ -23,6 +23,7 @@ import trelby.ui.scriptactions as scriptactions
 import trelby.ui.scriptpainter as scriptpainter
 import trelby.dialogs.textdlg as textdlg
 import trelby.textutil as textutil
+import trelby.thesaurus as thesaurus
 import trelby.util as util
 from trelby.error import TrelbyError
 
@@ -76,6 +77,25 @@ EDITOR_COMMANDS = {
 
 # how many replacements the right-click menu suggests for a misspelled word
 SUGGESTIONS = 5
+
+# the right-click menu's synonyms: at most this many senses of the word,
+# with at most this many words each
+SYNONYM_SENSES = 5
+SYNONYMS_PER_SENSE = 5
+
+# how long a sense's definition can be in the synonyms menu
+SYNONYM_DEFINITION_LENGTH = 50
+
+
+# load the thesaurus if it isn't loaded already, showing a message box
+# with 'frame' as parent on errors. if it can't be loaded, an empty one is
+# used, so the error is only shown once.
+def loadThesaurus(frame):
+    if thesaurus.gThesaurus is None:
+        s = fileio.loadMaybeCompressedFile(thesaurus.FILENAME, frame)
+        thesaurus.gThesaurus = thesaurus.Thesaurus(s or "")
+
+    return thesaurus.gThesaurus
 
 
 # the editor for one open script, one per tab. it owns the Screenplay
@@ -134,6 +154,16 @@ class MyCtrl(wx.Control):
         # (line, col, word, suggestions) of the misspelled word the
         # right-click menu was last opened on, or None
         self.spellingWord = None
+
+        # the right-click menu's synonyms for the word clicked on, and
+        # (line, col, word, synonyms) for them, or None
+        self.synonymIds = [
+            wx.NewIdRef() for i in range(SYNONYM_SENSES * SYNONYMS_PER_SENSE)
+        ]
+        self.synonymWord = None
+
+        for id in self.synonymIds:
+            self.Bind(wx.EVT_MENU, self.OnSynonymMenu, id=id)
 
         self.createEmptySp()
         self.updateScreen(redraw=False)
@@ -635,6 +665,7 @@ class MyCtrl(wx.Control):
             dualState,
             self.ed.getCenteredState(),
             self.spellingMenu(line, col),
+            self.synonymsMenu(line, col),
         )
         self.PopupMenu(m)
         m.Destroy()
@@ -699,6 +730,72 @@ class MyCtrl(wx.Control):
             self.sp.paginate()
             self.makeLineVisible(self.ed.line)
 
+        self.updateScreen()
+
+    # the items of the right-click menu's synonyms submenu for the word at
+    # (line, col): a header for each sense, then its words. None if there
+    # are none. sets self.synonymWord.
+    def synonymsMenu(self, line, col):
+        self.synonymWord = None
+
+        if line is None:
+            return None
+
+        found = spellcheck.wordAt(self.sp.lines[line].text, col)
+
+        if not found:
+            return None
+
+        start, word = found
+
+        # a possessive's "'s" stays
+        if textutil.lower(word).endswith("'s"):
+            word = word[:-2]
+
+        th = loadThesaurus(self.gd.mainFrame)
+        posNames = {"n": _("noun"), "v": _("verb"), "a": _("adjective"), "r": _("adverb")}
+        res = []
+        words = []
+
+        for sense in th.lookup(word):
+            ws = [w for w in sense.words if w not in words][:SYNONYMS_PER_SENSE]
+
+            if not ws:
+                continue
+
+            definition = sense.definition
+
+            if len(definition) > SYNONYM_DEFINITION_LENGTH:
+                definition = definition[: SYNONYM_DEFINITION_LENGTH - 1].rstrip() + "…"
+
+            header = "{} ({}): {}".format(sense.word, posNames[sense.pos], definition)
+
+            res.append((None, header))
+            res += zip(self.synonymIds[len(words) :], ws)
+            words += ws
+
+            if len(res) - len(words) == SYNONYM_SENSES:
+                break
+
+        if not words:
+            return None
+
+        self.synonymWord = (line, start, word, words)
+
+        return res
+
+    def OnSynonymMenu(self, event):
+        if not self.synonymWord:
+            return
+
+        line, col, word, words = self.synonymWord
+        self.synonymWord = None
+
+        i = [int(x) for x in self.synonymIds].index(event.GetId())
+        self.clearAutoComp()
+        self.ed.replaceRange(line, col, len(word), words[i])
+        self.sp.paginate()
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnMouseWheel(self, event):

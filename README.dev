@@ -14,7 +14,7 @@ To build the manual, you will also need xsltproc.
 2. Preparing data files
 =======================
 
-Trelby needs special preparation for 4 of its data files. If you do not do
+Trelby needs special preparation for 5 of its data files. If you do not do
 this, that aspect of the program will not work.
 
  * Name list
@@ -24,6 +24,10 @@ this, that aspect of the program will not work.
  * Dictionary
 
   $ make dict_en.dat.gz
+
+ * Thesaurus
+
+  $ make thesaurus_en.dat.gz
 
  * Manual
 

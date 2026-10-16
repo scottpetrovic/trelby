@@ -986,23 +986,38 @@ def onUpdateUI(frame, event, canUse):
 # misspelled word, is a list of (id, label) items to put first, an id of
 # None making the label a disabled item.
 def makeRightClickMenu(
-    actions, curLt, withCut, dualState=None, centeredState=None, spelling=None
+    actions,
+    curLt,
+    withCut,
+    dualState=None,
+    centeredState=None,
+    spelling=None,
+    synonyms=None,
 ):
     def append(menu, name, kind=wx.ITEM_NORMAL):
         a = actions[name]
 
         return menu.Append(a.id, a.getMenuLabel(), kind=kind)
 
+    # (id, label) items, with None ids for headers
+    def appendItems(menu, items):
+        for id, label in items:
+            if id is None:
+                menu.Append(wx.ID_ANY, label).Enable(False)
+            else:
+                menu.Append(id, label)
+
     types = elemTypes()
     m = wx.Menu()
 
     if spelling:
-        for id, label in spelling:
-            if id is None:
-                m.Append(wx.ID_ANY, label).Enable(False)
-            else:
-                m.Append(id, label)
+        appendItems(m, spelling)
+        m.AppendSeparator()
 
+    if synonyms:
+        synonymsMenu = wx.Menu()
+        appendItems(synonymsMenu, synonyms)
+        m.AppendSubMenu(synonymsMenu, _("Synonyms"))
         m.AppendSeparator()
 
     if curLt is None:

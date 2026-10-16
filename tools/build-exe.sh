@@ -24,6 +24,7 @@ $PY -c "import mcp.server.mcpserver, uvicorn" 2>/dev/null || $PY -m pip install 
 # packaged copies of the data files (see CLAUDE.md; don't commit these)
 gzip -c trelby/names.txt > trelby/names.txt.gz
 gzip -c trelby/dict_en.dat > trelby/dict_en.dat.gz
+gzip -c trelby/thesaurus_en.dat > trelby/thesaurus_en.dat.gz
 
 # wxWidgets' own translations (stock button labels, see
 # gutil.loadWxTranslations), only for the languages Trelby has, e.g.
@@ -45,7 +46,7 @@ $PY -m PyInstaller --noconfirm --windowed --name Trelby $WXDATA \
     --add-data "trelby/resources;trelby/resources" \
     --add-data "trelby/locales;trelby/locales" \
     --add-data "trelby/names.txt.gz;trelby" \
-    --add-data "trelby/dict_en.dat.gz;trelby" \
+    --add-data "trelby/dict_en.dat.gz;trelby"     --add-data "trelby/thesaurus_en.dat.gz;trelby" \
     --add-data "trelby/sample.trelby;trelby" \
     --add-data "trelby/fileformat.txt;trelby" \
     --add-binary ".venv/Lib/site-packages/wx/WebView2Loader.dll;wx" \

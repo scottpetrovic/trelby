@@ -45,6 +45,7 @@ trelby = [
     "manual.html",
     "names.txt.gz",
     "sample.trelby",
+    "thesaurus_en.dat.gz",
     "resources/*",
     "trelby.1.gz",
     "locales/*/*/*",
