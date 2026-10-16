@@ -48,6 +48,10 @@ class GlobalData:
     # Paste (system) commands.
     clipboard = None
 
+    # whether the editor shows the margins and line break types (View /
+    # Show formatting). not saved.
+    showFormatting = False
+
     # constants
     (
         VIEWMODE_DRAFT,

@@ -43,8 +43,6 @@ class MyFrame(wx.Frame):
             # automatically reaps zombies
             signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
-        # read by MyCtrl.OnPaint
-        self.showFormatting = False
         self.gd = gd
         self.myApp = myApp
 
@@ -535,8 +533,8 @@ class MyFrame(wx.Frame):
     # from the View menu item, which wx has already (un)checked, or its
     # keyboard command
     def OnToggleShowFormatting(self):
-        self.showFormatting = not self.showFormatting
-        self.menuBar.Check(ID_VIEW_SHOW_FORMATTING, self.showFormatting)
+        self.gd.showFormatting = not self.gd.showFormatting
+        self.menuBar.Check(ID_VIEW_SHOW_FORMATTING, self.gd.showFormatting)
         self.panel.ctrl.Refresh(False)
 
     # from the View menu item or the toolbar button, which share an id, or

@@ -20,11 +20,10 @@ import trelby.menus as menus
 import trelby.misc as misc
 import trelby.myimport as myimport
 import trelby.opts as opts
-import trelby.pml as pml
 import trelby.screenplay as screenplay
 import trelby.scriptactions as scriptactions
+import trelby.scriptpainter as scriptpainter
 import trelby.textdlg as textdlg
-import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.util as util
 from trelby.error import TrelbyError
@@ -171,24 +170,15 @@ class MyCtrl(wx.Control):
         self.refreshCache()
 
     # update stuff that depends on configuration / view mode etc.
+    # (see scriptpainter.Viewport for what these are)
     def refreshCache(self):
-        # width of one character and height of one line on paper, in mm,
-        # at the script's (PDF) font size
-        self.chX = util.getTextWidth(" ", pml.COURIER, self.sp.cfg.fontSize)
-        self.chY = util.getTextHeight(self.sp.cfg.fontSize)
+        vp = self.getViewport(refresh=True)
 
-        # the scale comes from the screen font, not the paper: the page is
-        # drawn as many screen characters wide as the paper holds, so text
-        # laid out in mm for the PDF lands on whole character cells. zoom
-        # works by scaling the screen fonts.
-        self.pageW = self.gd.vm.getPageWidth(self)
-
-        # conversion factor from mm to pixels
-        self.mm2p = self.pageW / self.sp.cfg.paperWidth
-
-        # page width and height on screen, in pixels
-        self.pageW = int(self.pageW)
-        self.pageH = int(self.mm2p * self.sp.cfg.paperHeight)
+        self.chX = vp.chX
+        self.chY = vp.chY
+        self.mm2p = vp.mm2p
+        self.pageW = vp.pageW
+        self.pageH = vp.pageH
 
     def getCfgGui(self):
         return self.gd.cfgGui
@@ -1057,456 +1047,39 @@ class MyCtrl(wx.Control):
 
         self.updateScreen()
 
+    # what's on screen, for drawing (see scriptpainter.Viewport). if
+    # refresh, its scale is worked out anew.
+    def getViewport(self, refresh=False):
+        if refresh:
+            return scriptpainter.Viewport.make(
+                self.sp,
+                self.ed,
+                self.gd.cfgGui,
+                self.gd.vm,
+                self.GetClientSize(),
+                self.FromDIP,
+            )
+
+        return scriptpainter.Viewport(
+            self.sp,
+            self.ed,
+            self.gd.cfgGui,
+            self.GetClientSize(),
+            self.mm2p,
+            self.pageW,
+            self.pageH,
+            self.chX,
+            self.chY,
+            self.FromDIP,
+        )
+
     def OnPaint(self, event):
-        # ldkjfldsj = util.TimerDev("paint")
-
-        ls = self.sp.lines
-
         if misc.doDblBuf:
             dc = wx.BufferedPaintDC(self, self.screenBuf)
         else:
             dc = wx.PaintDC(self)
 
-        size = self.GetClientSize()
-        marked = self.ed.getMarkedLines()
-        lineh = self.gd.vm.getLineHeight(self)
-        posX = -1
-        cursorY = -1
-
-        # auto-comp FontInfo
-        acFi = None
-
-        # list of (font, ([text, ...], [(x, y), ...], [wx.Colour, ...]))
-        # tuples, drawn after everything else by ViewMode.drawTexts
-        texts = []
-
-        # lists of underline-lines to draw, one for normal text and one
-        # for header texts. list objects are (x, y, width) tuples.
-        ulines = []
-        ulinesHdr = []
-
-        strings, dpages = self.gd.vm.getScreen(self, True, True)
-
-        # key = id() of a wx.Font, which isn't hashable, value = x offset
-        # (pixels) of a wide character in a double-width cell (see
-        # cellOffset)
-        wideOffsets = {}
-
-        dc.SetBrush(self.gd.cfgGui.workspaceBrush)
-        dc.SetPen(self.gd.cfgGui.workspacePen)
-        dc.DrawRectangle(0, 0, size.width, size.height)
-
-        dc.SetPen(self.gd.cfgGui.tabBorderPen)
-        dc.DrawLine(0, 0, 0, size.height)
-
-        if not dpages:
-            # draft mode; draw an infinite page
-            lx = util.clamp((size.width - self.pageW) // 2, 0)
-            rx = lx + self.pageW
-
-            dc.SetBrush(self.gd.cfgGui.textBgBrush)
-            dc.SetPen(self.gd.cfgGui.textBgPen)
-            dc.DrawRectangle(lx, 5, self.pageW, size.height - 5)
-
-            dc.SetPen(self.gd.cfgGui.pageBorderPen)
-            dc.DrawLine(lx, 5, lx, size.height)
-            dc.DrawLine(rx, 5, rx, size.height)
-
-        else:
-            dc.SetBrush(self.gd.cfgGui.textBgBrush)
-            dc.SetPen(self.gd.cfgGui.pageBorderPen)
-            for dp in dpages:
-                dc.DrawRectangle(dp.x1, dp.y1, dp.x2 - dp.x1 + 1, dp.y2 - dp.y1 + 1)
-
-            dc.SetPen(self.gd.cfgGui.pageShadowPen)
-            for dp in dpages:
-                # + 2 because DrawLine doesn't draw to end point but stops
-                # one pixel short...
-                dc.DrawLine(dp.x1 + 1, dp.y2 + 1, dp.x2 + 1, dp.y2 + 1)
-                dc.DrawLine(dp.x2 + 1, dp.y1 + 1, dp.x2 + 1, dp.y2 + 2)
-
-        self.titleButtonRect = None
-
-        if dpages and (dpages[0].pageNr == 1):
-            self.drawTitleButton(dc, dpages[0])
-
-        for t in strings:
-            i = t.line
-            y = t.y
-            fi = t.fi
-            fx = fi.fx
-
-            # width of one character; differs from fx with double-width
-            # characters
-            cfx = t.getCharPixels()
-
-            if i != -1:
-                l = ls[i]
-
-                if l.lt == screenplay.NOTE:
-                    dc.SetPen(self.gd.cfgGui.notePen)
-                    dc.SetBrush(self.gd.cfgGui.noteBrush)
-
-                    # element widths are in columns, fx pixels each,
-                    # while positions in the text are in characters, cfx
-                    # pixels each
-                    nx = t.x - 5
-                    nw = self.sp.cfg.getType(l.lt).width * fx + 10
-
-                    dc.DrawRectangle(nx, y, nw, lineh)
-
-                    dc.SetPen(self.gd.cfgGui.textPen)
-                    gutil.drawLine(dc, nx - 1, y, 0, lineh)
-                    gutil.drawLine(dc, nx + nw, y, 0, lineh)
-
-                    if self.sp.isFirstLineOfElem(i):
-                        gutil.drawLine(dc, nx - 1, y - 1, nw + 2, 0)
-
-                    if self.sp.isLastLineOfElem(i):
-                        gutil.drawLine(dc, nx - 1, y + lineh, nw + 2, 0)
-
-                if marked and self.ed.isLineMarked(i, marked):
-                    c1, c2 = self.ed.getMarkedColumns(i, marked)
-
-                    dc.SetPen(self.gd.cfgGui.selectedPen)
-                    dc.SetBrush(self.gd.cfgGui.selectedBrush)
-
-                    dc.DrawRectangle(t.x + c1 * cfx, y, (c2 - c1 + 1) * cfx, lineh)
-
-                if self.gd.mainFrame.showFormatting:
-                    # a centered line's text doesn't start at its margin
-                    lx = int(t.x - self.sp.getCenterOffset(i) * fx)
-
-                    dc.SetPen(self.gd.cfgGui.bluePen)
-                    gutil.drawLine(dc, lx, y, 0, lineh)
-
-                    extraIndent = 1 if self.sp.needsExtraParenIndent(i) else 0
-
-                    gutil.drawLine(
-                        dc,
-                        lx + (self.sp.cfg.getType(l.lt).width - extraIndent) * fx,
-                        y,
-                        0,
-                        lineh,
-                    )
-
-                    dc.SetTextForeground(self.gd.cfgGui.redColor)
-                    dc.SetFont(self.gd.cfgGui.fonts[pml.NORMAL].font)
-                    dc.DrawText(config.lb2char(l.lb), t.x - 10, y)
-
-                if not dpages:
-                    if self.gd.cfgGl.pbi == config.PBI_REAL_AND_UNADJ:
-                        if self.sp.line2pageNoAdjust(i) != self.sp.line2pageNoAdjust(
-                            i + 1
-                        ):
-                            dc.SetPen(self.gd.cfgGui.pagebreakNoAdjustPen)
-                            gutil.drawLine(dc, 0, y + lineh - 1, size.width, 0)
-
-                    if self.gd.cfgGl.pbi in (
-                        config.PBI_REAL,
-                        config.PBI_REAL_AND_UNADJ,
-                    ):
-                        thisPage = self.sp.line2page(i)
-
-                        if thisPage != self.sp.line2page(i + 1):
-                            dc.SetPen(self.gd.cfgGui.pagebreakPen)
-                            gutil.drawLine(dc, 0, y + lineh - 1, size.width, 0)
-
-                if i == self.ed.line:
-                    posX = t.x
-                    cursorY = y
-                    acFi = fi
-                    dc.SetPen(self.gd.cfgGui.cursorPen)
-                    dc.SetBrush(self.gd.cfgGui.cursorBrush)
-                    dc.DrawRectangle(t.x + self.ed.column * cfx, y, cfx, fi.fy)
-
-            if len(t.text) != 0:
-                if t.line != -1:
-                    color = self.gd.cfgGui.lt2textColor(ls[t.line].lt)
-                    uli = ulines
-                else:
-                    color = self.gd.cfgGui.textHdrColor
-                    uli = ulinesHdr
-
-                if t.isUnderlined:
-                    uli.append((t.x, y + lineh - 1, len(t.text) * cfx - 1))
-
-                # bold / italic / underlined parts of the text are drawn
-                # separately, each in its own font
-                #
-                # cfgGui.fonts is indexed by the bold / italic bits, which
-                # textfmt and pml share, so a run's style bits are added to
-                # the element's own font, e.g. italic text in a bold scene
-                # heading gets the bold italic font
-                if t.fmt:
-                    fonts = self.gd.cfgGui.fonts
-                    base = fonts.index(fi)
-
-                    parts = []
-
-                    for a, b, style in textfmt.runs(t.fmt, len(t.text)):
-                        x = t.x + a * cfx
-                        parts.append((fonts[base | (style & 3)].font, a, b, x))
-
-                        if (style & textfmt.UNDERLINED) and not t.isUnderlined:
-                            uli.append((x, y + lineh - 1, (b - a) * cfx - 1))
-                else:
-                    parts = [(fi.font, 0, len(t.text), t.x)]
-
-                for font, a, b, x in parts:
-                    if t.charWidth == 1:
-                        tl = ([t.text[a:b]], [(x, y)], [color])
-                    else:
-                        # each character centered in its own cell
-                        chars = []
-                        coords = []
-
-                        for k in range(a, b):
-                            ch = t.text[k]
-
-                            if ch != " ":
-                                off = self.cellOffset(
-                                    dc, font, ch, fx, cfx, wideOffsets
-                                )
-                                chars.append(ch)
-                                coords.append((t.x + k * cfx + off, y))
-
-                        tl = (chars, coords, [color] * len(chars))
-
-                    texts.append((font, tl))
-
-        if ulines:
-            dc.SetPen(self.gd.cfgGui.textPen)
-
-            for ul in ulines:
-                gutil.drawLine(dc, ul[0], ul[1], ul[2], 0)
-
-        if ulinesHdr:
-            dc.SetPen(self.gd.cfgGui.textHdrPen)
-
-            for ul in ulinesHdr:
-                gutil.drawLine(dc, ul[0], ul[1], ul[2], 0)
-
-        for tl in texts:
-            self.gd.vm.drawTexts(self, dc, tl)
-
-        self.drawLocks(dc, strings, dpages, size)
-
-        if self.ed.acItems and (cursorY > 0):
-            self.drawAutoComp(dc, posX, cursorY, acFi)
-
-    # return the x offset (pixels) at which to draw character ch in a
-    # double-width cell cfx pixels wide, for it to be centered. fx is the
-    # width of a narrow (Latin) character in font. wideOffsets caches the
-    # offsets of wide characters, which are all the same width, by font.
-    @staticmethod
-    def cellOffset(dc, font, ch, fx, cfx, wideOffsets):
-        if not textutil.isWideChar(ch):
-            return (cfx - fx) // 2
-
-        off = wideOffsets.get(id(font))
-
-        if off is None:
-            w = dc.GetFullTextExtent(chr(0x4E2D), font)[0]
-            off = max(0, (cfx - w) // 2)
-            wideOffsets[id(font)] = off
-
-        return off
-
-    # mark each locked page with a lock icon in its right margin, level
-    # with the page number, and each scene heading whose number is locked
-    # with one in the left margin, left of the scene number. these are
-    # only shown on screen. in draft mode, where there are no pages, a
-    # locked page's icon goes on the line it starts at.
-    def drawLocks(self, dc, strings, dpages, size):
-        cfg = self.sp.cfg
-        ls = self.sp.lines
-        mm2p = self.mm2p
-
-        h = max(6, self.gd.cfgGui.fonts[pml.NORMAL].fy)
-        w = h * 3 // 4
-        gap = h // 3
-
-        # x offsets (pixels) of the icons from the left edge of the page
-        pageX = int((cfg.paperWidth - cfg.marginRight) * mm2p) + gap
-
-        # the left scene number starts 6 characters left of the margin (see
-        # screenplay.render.addSceneNumbers)
-        sceneX = int((cfg.marginLeft - 6 * self.chX) * mm2p) - gap - w
-
-        draftX = util.clamp((size.width - self.pageW) // 2, 0)
-
-        for dp in dpages:
-            if ls[self.sp.page2lines(dp.pageNr)[0]].pageLock:
-                self.drawLock(
-                    dc, dp.x1 + pageX, dp.y1 + int(cfg.marginTop * mm2p), h, w
-                )
-
-        for t in strings:
-            i = t.line
-
-            if i == -1:
-                continue
-
-            pageLocked = not dpages and ls[i].pageLock
-            sceneLocked = self.sp.getSceneLock(i)
-
-            if not (pageLocked or sceneLocked):
-                continue
-
-            x = draftX
-
-            for dp in dpages:
-                if dp.x1 <= t.x <= dp.x2:
-                    x = dp.x1
-
-            if pageLocked:
-                self.drawLock(dc, x + pageX, t.y, h, w)
-
-            if sceneLocked:
-                self.drawLock(dc, x + sceneX, t.y, h, w)
-
-    # draw a padlock w pixels wide and h pixels high, with its top left
-    # corner at (x, y)
-    def drawLock(self, dc, x, y, h, w):
-        color = self.gd.cfgGui.textHdrColor
-
-        bodyH = h // 2 + 1
-        bodyY = y + h - bodyH
-
-        # the shackle, whose lower half the body covers
-        pw = max(1, h // 8)
-        sw = w - 2 * max(1, w // 6)
-        sx = x + (w - sw) // 2
-
-        dc.SetPen(wx.Pen(color, pw))
-        dc.SetBrush(wx.TRANSPARENT_BRUSH)
-        dc.DrawRoundedRectangle(
-            sx, y + pw // 2, sw, (bodyY - y - pw // 2) * 2, sw / 2.0
+        painter = scriptpainter.ScriptPainter(
+            self.getViewport(), self.gd.vm, self.gd.cfgGl, self.gd.showFormatting
         )
-
-        dc.SetPen(wx.Pen(color))
-        dc.SetBrush(wx.Brush(color))
-        dc.DrawRoundedRectangle(x, bodyY, w, bodyH, max(1, h // 10))
-
-        # keyhole, when there's room for one
-        if h >= 12:
-            kw = max(2, w // 6)
-            dc.SetPen(self.gd.cfgGui.textBgPen)
-            dc.SetBrush(self.gd.cfgGui.textBgBrush)
-            dc.DrawRectangle(x + (w - kw) // 2, bodyY + bodyH // 3, kw, bodyH // 3)
-
-    # draw the button that opens the title pages dialog, centered just
-    # above the first page (dp), if there's room for it.
-    def drawTitleButton(self, dc, dp):
-        dc.SetFont(wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT))
-
-        text = _("Manage title page")
-        tw, th = dc.GetTextExtent(text)
-
-        bw = tw + 40
-        bh = th + 16
-        x = (dp.x1 + dp.x2 - bw) // 2
-        y = dp.y1 - bh - 8
-
-        if y < 0:
-            return
-
-        dc.SetPen(self.gd.cfgGui.pageBorderPen)
-        dc.SetBrush(self.gd.cfgGui.textBgBrush)
-        dc.DrawRoundedRectangle(x, y, bw, bh, 4)
-
-        dc.SetTextForeground(self.gd.cfgGui.textColor)
-        dc.DrawText(text, x + (bw - tw) // 2, y + (bh - th) // 2)
-
-        self.titleButtonRect = wx.Rect(x, y, bw, bh)
-
-    # draw the auto-completion list below the cursor line, or above it if
-    # there's no room below. posX is where the line's text starts.
-    def drawAutoComp(self, dc, posX, cursorY, fi):
-        ac = self.ed.acItems
-        asel = self.ed.acSel
-
-        # space inside the border, around the items
-        pad = self.FromDIP(6)
-
-        # space around an item's text, inside its highlight
-        itemPadX = self.FromDIP(6)
-        itemPadY = self.FromDIP(3)
-
-        # scroll bar width
-        sbw = self.FromDIP(6)
-
-        radius = self.FromDIP(4)
-
-        size = self.GetClientSize()
-
-        dc.SetFont(fi.font)
-
-        show = min(self.ed.acMax, len(ac))
-        doSbw = show < len(ac)
-
-        # the items shown scroll a page (show items) at a time: the page
-        # with the selected item, except that the last page is moved back
-        # to be a full one
-        startPos = (asel // show) * show
-        endPos = min(startPos + show, len(ac))
-        if endPos == len(ac):
-            startPos = max(0, endPos - show)
-
-        textW = 0
-        for i in range(len(ac)):
-            textW = max(textW, dc.GetTextExtent(ac[i])[0])
-
-        itemW = textW + itemPadX * 2
-        itemH = fi.fy + itemPadY * 2
-        listH = show * itemH
-
-        w = itemW + pad * 2
-        h = listH + pad * 2
-
-        if doSbw:
-            w += sbw + pad
-
-        # line the items' text up with the line's text, keeping the box
-        # inside the window
-        posX -= pad + itemPadX
-        posX = max(0, min(posX, size.width - w))
-
-        posY = cursorY + fi.fy + self.FromDIP(4)
-
-        # if the box doesn't fit on the screen in the normal position, put
-        # it above the current line. if it doesn't fit there either,
-        # that's just too bad, we don't support window sizes that small.
-        if (posY + h) > size.height:
-            posY = cursorY - h - self.FromDIP(4)
-
-        cfgGui = self.gd.cfgGui
-
-        dc.SetPen(cfgGui.autoCompBorderPen)
-        dc.SetBrush(cfgGui.autoCompBrush)
-        dc.DrawRoundedRectangle(posX, posY, w, h, radius)
-
-        dc.SetTextForeground(cfgGui.autoCompFgColor)
-
-        for i in range(startPos, endPos):
-            x = posX + pad
-            y = posY + pad + (i - startPos) * itemH
-
-            if i == asel:
-                dc.SetPen(cfgGui.autoCompSelPen)
-                dc.SetBrush(cfgGui.autoCompSelBrush)
-                dc.DrawRoundedRectangle(x, y, itemW, itemH, radius - 1)
-
-            dc.DrawText(ac[i], x + itemPadX, y + itemPadY)
-
-        if doSbw:
-            dc.SetPen(cfgGui.autoCompBorderPen)
-            dc.SetBrush(cfgGui.autoCompBorderBrush)
-            dc.DrawRoundedRectangle(
-                posX + w - pad - sbw,
-                posY + pad + int((float(startPos) / len(ac)) * listH),
-                sbw,
-                max(sbw, int((float(show) / len(ac)) * listH)),
-                sbw // 2,
-            )
+        self.titleButtonRect = painter.paint(dc)
