@@ -1,0 +1,30 @@
+#Version 3
+#Start-Script 
+..A man walks in, before any scene heading.
+._NARRATOR
+.:Once upon a time.
+.\INT. ROOM - DAY
+._BOB
+.((quietly)
+.:Hello there.
+.:And again.
+..Bob sits.
+.:Nobody said this.
+._
+.:Said by no name.
+._ANN
+.((sighs)
+..Ann leaves.
+._BOB
+.\INT. HALL - NIGHT
+.:Bob, after a scene heading.
+.@ACT TWO
+.:Right after the act break.
+._BOB
+.:Bob in act two, before any scene.
+.\EXT. GARDEN - DAY
+|_DR. JOHN
+._SMITH
+.:A two-line name.
+._ann
+.:Lower case.

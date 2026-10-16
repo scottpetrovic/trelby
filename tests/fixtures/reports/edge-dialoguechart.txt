@@ -1,0 +1,316 @@
+char  first=0 last=0 lines=1
+char ANN first=1 last=1 lines=1
+char BOB first=0 last=1 lines=3
+char NARRATOR first=0 last=0 lines=1
+char SMITH first=1 last=1 lines=1
+char UNKNOWN first=0 last=1 lines=3
+page 0 types=[(1, 2), (2, 3), (3, 5), (4, 6), (5, 2)] speakers=[('', 1), ('BOB', 2), ('NARRATOR', 1), ('UNKNOWN', 2)]
+page 1 types=[(1, 1), (3, 4), (4, 4), (9, 1)] speakers=[('ANN', 1), ('BOB', 1), ('SMITH', 1), ('UNKNOWN', 1)]
+with 10 or more lines: []
+doc 297.00 x 210.00
+page 0
+  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=First toc=None x=138.975 y=10.000
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=Page: toc=None x=33.167 y=15.000
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=53.528
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=60.583
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=67.639
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.5 G
+  PDFOp cmds=[2 2] 0 d
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=1 toc=None x=33.108 y=20.000
+  RectOp fillType=0 height=21.167 lw=0.250 width=252.833 x=34.167 y=50.000
+  PDFOp cmds=0.0 G
+  PDFOp cmds=[] 0 d
+  RectOp fillType=0 height=23.000 lw=0.250 width=23.000 x=12.000 y=22.000
+  PDFOp cmds=1.000 1.000 1.000 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=24.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Other toc=None x=20.000 y=24.000
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=29.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Character toc=None x=20.000 y=29.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=34.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Dialogue toc=None x=20.000 y=34.000
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=39.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Action toc=None x=20.000 y=39.000
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=1 height=2.500 lw=-1 width=126.417 x=34.167 y=42.500
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=5.000 lw=-1 width=126.417 x=34.167 y=37.500
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=1 height=4.167 lw=-1 width=126.417 x=34.167 y=33.333
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=1 height=0.000 lw=-1 width=126.417 x=160.583 y=45.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=6.000 lw=-1 width=126.417 x=160.583 y=39.000
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=1 height=6.000 lw=-1 width=126.417 x=160.583 y=33.000
+  PDFOp cmds=0.0 g
+  RectOp fillType=0 height=15.000 lw=0.250 width=252.833 x=34.167 y=30.000
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=BOB toc=None x=10.000 y=50.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.116 lw=-1 width=126.417 x=34.167 y=51.706
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=51.735
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=UNKNOWN toc=None x=10.000 y=53.528
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.116 lw=-1 width=126.417 x=34.167 y=55.234
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=55.263
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text= toc=None x=10.000 y=57.056
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=34.167 y=58.791
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=NARRATOR toc=None x=10.000 y=60.583
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=34.167 y=62.318
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=ANN toc=None x=10.000 y=64.111
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=65.846
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=SMITH toc=None x=10.000 y=67.639
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=69.374
+  PDFOp cmds=0.0 g
+
+doc 297.00 x 210.00
+page 0
+  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Last toc=None x=140.880 y=10.000
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=Page: toc=None x=33.167 y=15.000
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=53.528
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=60.583
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=67.639
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.5 G
+  PDFOp cmds=[2 2] 0 d
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=1 toc=None x=33.108 y=20.000
+  RectOp fillType=0 height=21.167 lw=0.250 width=252.833 x=34.167 y=50.000
+  PDFOp cmds=0.0 G
+  PDFOp cmds=[] 0 d
+  RectOp fillType=0 height=23.000 lw=0.250 width=23.000 x=12.000 y=22.000
+  PDFOp cmds=1.000 1.000 1.000 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=24.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Other toc=None x=20.000 y=24.000
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=29.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Character toc=None x=20.000 y=29.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=34.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Dialogue toc=None x=20.000 y=34.000
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=39.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Action toc=None x=20.000 y=39.000
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=1 height=2.500 lw=-1 width=126.417 x=34.167 y=42.500
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=5.000 lw=-1 width=126.417 x=34.167 y=37.500
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=1 height=4.167 lw=-1 width=126.417 x=34.167 y=33.333
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=1 height=0.000 lw=-1 width=126.417 x=160.583 y=45.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=6.000 lw=-1 width=126.417 x=160.583 y=39.000
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=1 height=6.000 lw=-1 width=126.417 x=160.583 y=33.000
+  PDFOp cmds=0.0 g
+  RectOp fillType=0 height=15.000 lw=0.250 width=252.833 x=34.167 y=30.000
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text= toc=None x=10.000 y=50.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=34.167 y=51.735
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=NARRATOR toc=None x=10.000 y=53.528
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=34.167 y=55.263
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=ANN toc=None x=10.000 y=57.056
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=58.791
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=BOB toc=None x=10.000 y=60.583
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.116 lw=-1 width=126.417 x=34.167 y=62.289
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=62.318
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=SMITH toc=None x=10.000 y=64.111
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=65.846
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=UNKNOWN toc=None x=10.000 y=67.639
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.116 lw=-1 width=126.417 x=34.167 y=69.345
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=69.374
+  PDFOp cmds=0.0 g
+
+doc 297.00 x 210.00
+page 0
+  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Count toc=None x=138.975 y=10.000
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=Page: toc=None x=33.167 y=15.000
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=53.528
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=60.583
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=67.639
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.5 G
+  PDFOp cmds=[2 2] 0 d
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=1 toc=None x=33.108 y=20.000
+  RectOp fillType=0 height=21.167 lw=0.250 width=252.833 x=34.167 y=50.000
+  PDFOp cmds=0.0 G
+  PDFOp cmds=[] 0 d
+  RectOp fillType=0 height=23.000 lw=0.250 width=23.000 x=12.000 y=22.000
+  PDFOp cmds=1.000 1.000 1.000 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=24.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Other toc=None x=20.000 y=24.000
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=29.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Character toc=None x=20.000 y=29.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=34.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Dialogue toc=None x=20.000 y=34.000
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=39.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Action toc=None x=20.000 y=39.000
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=1 height=2.500 lw=-1 width=126.417 x=34.167 y=42.500
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=5.000 lw=-1 width=126.417 x=34.167 y=37.500
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=1 height=4.167 lw=-1 width=126.417 x=34.167 y=33.333
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=1 height=0.000 lw=-1 width=126.417 x=160.583 y=45.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=6.000 lw=-1 width=126.417 x=160.583 y=39.000
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=1 height=6.000 lw=-1 width=126.417 x=160.583 y=33.000
+  PDFOp cmds=0.0 g
+  RectOp fillType=0 height=15.000 lw=0.250 width=252.833 x=34.167 y=30.000
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=BOB toc=None x=10.000 y=50.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.116 lw=-1 width=126.417 x=34.167 y=51.706
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=51.735
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=UNKNOWN toc=None x=10.000 y=53.528
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.116 lw=-1 width=126.417 x=34.167 y=55.234
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=55.263
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text= toc=None x=10.000 y=57.056
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=34.167 y=58.791
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=NARRATOR toc=None x=10.000 y=60.583
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=34.167 y=62.318
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=ANN toc=None x=10.000 y=64.111
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=65.846
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=SMITH toc=None x=10.000 y=67.639
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=69.374
+  PDFOp cmds=0.0 g
+
+doc 297.00 x 210.00
+page 0
+  TextOp angle=None charWidth=1 flags=19 fmt=None line=-1 size=18 text=Name toc=None x=140.880 y=10.000
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=Page: toc=None x=33.167 y=15.000
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=53.528
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=60.583
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.933 0.957 0.988 rg
+  RectOp fillType=1 height=3.528 lw=-1 width=252.833 x=34.167 y=67.639
+  PDFOp cmds=0.0 g
+  PDFOp cmds=0.5 G
+  PDFOp cmds=[2 2] 0 d
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=1 toc=None x=33.108 y=20.000
+  RectOp fillType=0 height=21.167 lw=0.250 width=252.833 x=34.167 y=50.000
+  PDFOp cmds=0.0 G
+  PDFOp cmds=[] 0 d
+  RectOp fillType=0 height=23.000 lw=0.250 width=23.000 x=12.000 y=22.000
+  PDFOp cmds=1.000 1.000 1.000 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=24.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Other toc=None x=20.000 y=24.000
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=29.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Character toc=None x=20.000 y=29.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=34.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Dialogue toc=None x=20.000 y=34.000
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=2 height=4.000 lw=0.250 width=4.000 x=14.000 y=39.000
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=6 text=Action toc=None x=20.000 y=39.000
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=1 height=2.500 lw=-1 width=126.417 x=34.167 y=42.500
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=5.000 lw=-1 width=126.417 x=34.167 y=37.500
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=1 height=4.167 lw=-1 width=126.417 x=34.167 y=33.333
+  PDFOp cmds=0.165 0.471 0.839 rg
+  RectOp fillType=1 height=0.000 lw=-1 width=126.417 x=160.583 y=45.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=6.000 lw=-1 width=126.417 x=160.583 y=39.000
+  PDFOp cmds=0.106 0.686 0.478 rg
+  RectOp fillType=1 height=6.000 lw=-1 width=126.417 x=160.583 y=33.000
+  PDFOp cmds=0.0 g
+  RectOp fillType=0 height=15.000 lw=0.250 width=252.833 x=34.167 y=30.000
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text= toc=None x=10.000 y=50.000
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=34.167 y=51.735
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=ANN toc=None x=10.000 y=53.528
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=55.263
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=BOB toc=None x=10.000 y=57.056
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.116 lw=-1 width=126.417 x=34.167 y=58.762
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=58.791
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=NARRATOR toc=None x=10.000 y=60.583
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=34.167 y=62.318
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=SMITH toc=None x=10.000 y=64.111
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=65.846
+  PDFOp cmds=0.0 g
+  TextOp angle=None charWidth=1 flags=0 fmt=None line=-1 size=10 text=UNKNOWN toc=None x=10.000 y=67.639
+  PDFOp cmds=0.922 0.408 0.204 rg
+  RectOp fillType=1 height=0.116 lw=-1 width=126.417 x=34.167 y=69.345
+  RectOp fillType=1 height=0.058 lw=-1 width=126.417 x=160.583 y=69.374
+  PDFOp cmds=0.0 g
