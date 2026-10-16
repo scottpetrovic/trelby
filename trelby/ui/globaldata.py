@@ -111,6 +111,11 @@ class GlobalData:
         v.makeDicts()
         v.setDefaults(self)
 
+        # whether the tabs show their scripts' beat boards instead of the
+        # scripts (see MyPanel.showBeatBoard). not saved: the app always
+        # starts with the scripts.
+        self.showBeatBoard = False
+
         self.height = min(
             self.height, wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y) - 50
         )

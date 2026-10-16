@@ -10,7 +10,6 @@ from functools import partial
 import wx
 
 import trelby.dialogs.autocompletiondlg as autocompletiondlg
-import trelby.dialogs.beatboarddlg as beatboarddlg
 import trelby.dialogs.cfgdlg as cfgdlg
 import trelby.dialogs.characterprofilesdlg as characterprofilesdlg
 import trelby.dialogs.charmapdlg as charmapdlg
@@ -163,15 +162,6 @@ def worldBuildingDlg(frame, ctrl):
         if dlg.worldBuilding.text != ctrl.sp.worldBuilding.text:
             ctrl.sp.worldBuilding = dlg.worldBuilding
             ctrl.sp.markChanged()
-
-    dlg.Destroy()
-
-
-def beatBoardDlg(frame, ctrl):
-    dlg = beatboarddlg.BeatBoardDlg(frame, ctrl.sp.beatBoard)
-
-    if dlg.ShowModal() == wx.ID_OK:
-        ctrl.ed.setBeatBoard(dlg.board)
 
     dlg.Destroy()
 
@@ -352,6 +342,7 @@ def undo(frame, ctrl):
     ctrl.sp.paginate()
     ctrl.makeLineVisible(ctrl.ed.line)
     ctrl.updateScreen()
+    reloadBoard(ctrl)
 
 
 def redo(frame, ctrl):
@@ -359,6 +350,14 @@ def redo(frame, ctrl):
     ctrl.sp.paginate()
     ctrl.makeLineVisible(ctrl.ed.line)
     ctrl.updateScreen()
+    reloadBoard(ctrl)
+
+
+# undo and redo can change the beat board, so a board that's shown takes
+# it again (one that isn't does when it's shown)
+def reloadBoard(ctrl):
+    if ctrl.panel.boardShown:
+        ctrl.panel.board.reload()
 
 
 def cut(frame, ctrl):

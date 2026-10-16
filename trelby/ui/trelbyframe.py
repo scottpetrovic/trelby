@@ -132,6 +132,7 @@ class MyFrame(wx.Frame):
         )
         self.menuBar.Check(ID_SHOW_HIDE_TOOLBAR, True)
         self.menuBar.Check(ID_VIEW_SHOW_OUTLINE, gd.showOutline)
+        self.menuBar.Check(ID_VIEW_BEAT_BOARD, gd.showBeatBoard)
 
         self.Bind(
             wx.EVT_MENU_RANGE,
@@ -583,6 +584,25 @@ class MyFrame(wx.Frame):
         for i in range(self.tabCtrl.getPageCount()):
             self.tabCtrl.getPage(i).showOutline(show)
 
+    # from the View menu item or the toolbar button, which share an id, or
+    # the keyboard command
+    def OnToggleBeatBoard(self):
+        self.setShowBeatBoard(not self.gd.showBeatBoard)
+
+    # show the beat board in every tab instead of the script and the
+    # outline, or the other way around, keeping the View menu item and the
+    # toolbar in sync
+    def setShowBeatBoard(self, show):
+        self.gd.showBeatBoard = show
+        self.menuBar.Check(ID_VIEW_BEAT_BOARD, show)
+        self.tools.setBoardShown(show)
+
+        for i in range(self.tabCtrl.getPageCount()):
+            self.tabCtrl.getPage(i).showBeatBoard(show)
+
+        self.panel.ctrl.SetFocus()
+        self.panel.ctrl.updateCommon()
+
     # use the theme's colors for the status bar and the parts of each
     # script's panel not drawn by MyCtrl
     def applyThemeColors(self):
@@ -674,7 +694,7 @@ class MyFrame(wx.Frame):
 
     # run the menus.Action with the given name
     def runAction(self, name):
-        self.actions[name].run(self)
+        menus.runAction(self, self.actions[name])
 
     # pop up the menu with the given key (see menus.Menu) below the mouse,
     # for the toolbar buttons

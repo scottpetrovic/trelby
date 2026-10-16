@@ -129,11 +129,6 @@ def defaultCommands():
             isMenu=True,
         ),
         Command(
-            "BeatBoardDlg",
-            _("Open the beat board."),
-            isMenu=True,
-        ),
-        Command(
             "ChangeToActBreak",
             _("Change current element's style to act break."),
             [keys.Key(ord("B"), alt=True).toInt()],
@@ -542,6 +537,11 @@ def defaultCommands():
             isFixed=True,
         ),
         Command("TitlesDlg", _("Open the titles dialog."), isMenu=True),
+        Command(
+            "ToggleBeatBoard",
+            _("Switch between the script and its beat board."),
+            isMenu=True,
+        ),
         Command(
             "ToggleBold",
             _("Make the selected text, or the text typed next, bold or not."),

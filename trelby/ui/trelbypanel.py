@@ -1,5 +1,6 @@
 import wx
 
+from trelby.ui.beatboardview import BeatBoardView
 from trelby.ui.outline import OutlinePanel
 from trelby.ui.scrollbar import ScrollBar
 
@@ -20,6 +21,15 @@ class MyPanel(wx.Panel):
         )
 
         self.gd = gd
+
+        # whether the beat board is shown instead of the script and the
+        # outline (see showBeatBoard)
+        self.boardShown = False
+
+        # the beat board, hidden until it's shown. created before MyCtrl,
+        # which reloads it when it gets a new script.
+        self.board = BeatBoardView(self, self)
+        self.board.Hide()
 
         self.splitter = wx.SplitterWindow(
             self, -1, style=wx.SP_LIVE_UPDATE | wx.SP_NOBORDER
@@ -54,11 +64,13 @@ class MyPanel(wx.Panel):
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.splitter, 1, wx.EXPAND)
+        sizer.Add(self.board, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
         self.applyTheme(gd.cfgGui)
 
         self.showOutline(gd.showOutline)
+        self.showBeatBoard(gd.showBeatBoard)
 
     # use the colors of the theme in the given configgui.ConfigGui for the
     # parts not drawn by MyCtrl
@@ -68,7 +80,29 @@ class MyPanel(wx.Panel):
         self.editor.SetBackgroundColour(cfgGui.workspaceColor)
         self.scrollBar.setColors(cfgGui.workspaceColor, cfgGui.textColor)
         self.outline.applyTheme(cfgGui)
+        self.board.applyTheme(cfgGui)
         self.splitter.Refresh()
+
+    # show the script's beat board in place of the script and the outline,
+    # or the other way around. while the board is shown, the script keeps
+    # its cursor and selection, and MyCtrl.SetFocus gives the board the
+    # keyboard focus instead.
+    def showBeatBoard(self, show):
+        if show == self.boardShown:
+            return
+
+        if show:
+            self.board.reload()
+        else:
+            self.board.finishEdit(True)
+
+        self.boardShown = show
+        self.splitter.Show(not show)
+        self.board.Show(show)
+        self.Layout()
+
+        if show:
+            self.board.updateVirtualSize()
 
     # show or hide the outline view
     def showOutline(self, show):

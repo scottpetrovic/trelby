@@ -1,8 +1,12 @@
-# the beat board dialog: the script's index cards on a board, where they
-# can be added, written on, dragged around and colored. see
-# screenplay/beatboard.py for the cards. the dialog works on a copy of the
-# board, which scriptactions.beatBoardDlg puts in the script (with
-# ed.setBeatBoard) when it's closed with OK.
+# the beat board view: a script's index cards on a board, shown in a tab
+# instead of the script and the outline (see MyPanel.showBeatBoard), where
+# they can be added, written on, dragged around and colored. see
+# screenplay/beatboard.py for the cards.
+#
+# the view works on its own copy of the script's board, and every change
+# made on it (a card added, moved, written on, colored or deleted) is put
+# in the script with ed.setBeatBoard, as one undo step. reload takes the
+# script's board again, after an undo or when the script is replaced.
 
 import copy
 
@@ -10,7 +14,6 @@ import wx
 from wx.lib.wordwrap import wordwrap
 
 import trelby.screenplay.beatboard as beatboard
-import trelby.ui.gutil as gutil
 import trelby.ui.theming as theming
 from trelby.ui.outline import getSceneColors, luminance, str2color, swatchBitmap
 
@@ -23,79 +26,27 @@ GRID_MAJOR = 5
 CARD_PAD = 8
 
 
-class BeatBoardDlg(wx.Dialog):
-    # board is the script's beat board, which the dialog doesn't change
-    def __init__(self, parent, board):
-        wx.Dialog.__init__(
-            self,
-            parent,
-            -1,
-            _("Beat board"),
-            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER | wx.MAXIMIZE_BOX,
-        )
-
-        # the board being edited
-        self.board = copy.deepcopy(board)
-
-        vsizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.canvas = BoardCanvas(self)
-        self.canvas.SetMinSize(self.FromDIP(wx.Size(960, 600)))
-        vsizer.Add(self.canvas, 1, wx.EXPAND)
-
-        hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        hsizer.Add((1, 1), 1)
-
-        cancelBtn = gutil.createStockButton(self, _("Cancel"))
-        hsizer.Add(cancelBtn, 0, wx.LEFT, 10)
-
-        okBtn = gutil.createStockButton(self, "OK")
-        hsizer.Add(okBtn, 0, wx.LEFT, 10)
-
-        vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
-
-        gutil.finishWindow(self, vsizer, pad=10, center=True)
-
-        self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
-        self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
-
-        self.canvas.updateVirtualSize()
-        self.canvas.SetFocus()
-
-    # add a new card at (x, y) and let the user write on it, on the board.
-    # the card goes away again if nothing is written on it.
-    def addCard(self, x, y):
-        beat = beatboard.Beat("", x, y)
-        self.board.beats.append(beat)
-        self.canvas.updateVirtualSize()
-        self.canvas.startEdit(beat, True)
-
-        return beat
-
-    def OnOK(self, event):
-        self.canvas.finishEdit(True)
-        self.EndModal(wx.ID_OK)
-
-    def OnCancel(self, event):
-        self.EndModal(wx.ID_CANCEL)
-
-
-# the board itself, a scrollable area with the cards drawn on it. board
-# coordinates are unscaled pixels, which FromDIP turns into the window's.
-class BoardCanvas(wx.ScrolledWindow):
-    def __init__(self, dlg):
+# a scrollable area with the cards drawn on it. board coordinates are
+# unscaled pixels, which FromDIP turns into the window's. panel is the
+# trelbypanel.MyPanel it's in, whose ctrl has the script.
+class BeatBoardView(wx.ScrolledWindow):
+    def __init__(self, parent, panel):
         wx.ScrolledWindow.__init__(
-            self, dlg, -1, style=wx.BORDER_NONE | wx.WANTS_CHARS
+            self, parent, -1, style=wx.BORDER_NONE | wx.WANTS_CHARS
         )
 
-        self.dlg = dlg
-        self.board = dlg.board
+        self.panel = panel
+
+        # the board shown, a copy of the script's (see the top of the
+        # module)
+        self.board = beatboard.BeatBoard()
 
         # the selected card, or None
         self.selected = None
 
-        # while a card is being dragged: (card, x, y), where (x, y) is
-        # where on the card it was grabbed. otherwise None.
+        # while a card is being dragged: (card, x, y, start x, start y),
+        # where (x, y) is where on the card it was grabbed, and the start
+        # is where the card was. otherwise None.
         self.drag = None
 
         # while the board is being panned (dragged with the middle button,
@@ -135,7 +86,46 @@ class BoardCanvas(wx.ScrolledWindow):
         self.Bind(wx.EVT_KEY_UP, self.OnKeyUp)
         self.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
 
-    # called by theming.themeWindow
+    # show sp's board (by default the panel's script's) instead of the
+    # one shown, dropping any text being written on a card
+    def reload(self, sp=None):
+        sp = sp or self.panel.ctrl.sp
+
+        if self.editing:
+            ctrl = self.editing[1]
+            self.editing = None
+            ctrl.Hide()
+            wx.CallAfter(ctrl.Destroy)
+
+        if self.HasCapture():
+            self.ReleaseMouse()
+
+        self.drag = None
+        self.pan = None
+        self.selected = None
+        self.board = copy.deepcopy(sp.beatBoard)
+        self.updateVirtualSize()
+        self.updateCursor()
+        self.Refresh()
+
+    # put the board in the script, if it has changed, as an undo step
+    def commit(self):
+        ctrl = self.panel.ctrl
+
+        if ctrl.ed.setBeatBoard(copy.deepcopy(self.board)):
+            # the modified mark and the undo buttons
+            ctrl.updateScreen(redraw=False)
+
+    # add a new card at (x, y) and let the user write on it. the card goes
+    # away again if nothing is written on it.
+    def addCard(self, x, y):
+        beat = beatboard.Beat("", x, y)
+        self.board.beats.append(beat)
+        self.updateVirtualSize()
+        self.startEdit(beat, True)
+
+        return beat
+
     def applyTheme(self, cfgGui):
         self.cfgGui = cfgGui
         self.Refresh()
@@ -251,14 +241,9 @@ class BoardCanvas(wx.ScrolledWindow):
         if self.HasCapture():
             self.ReleaseMouse()
 
-    # select beat (or nothing, if None), and bring it to the front
+    # select beat, or nothing if None
     def select(self, beat):
         self.selected = beat
-
-        if beat:
-            self.board.beats.remove(beat)
-            self.board.beats.append(beat)
-
         self.Refresh()
 
     # edit beat's text on the board, in a text control on top of the card.
@@ -315,9 +300,11 @@ class BoardCanvas(wx.ScrolledWindow):
             self.SetFocus()
 
         if isNew and not beat.text.strip():
-            self.deleteCard(beat)
+            self.board.beats.remove(beat)
+            self.selected = None
             self.updateVirtualSize()
 
+        self.commit()
         self.Refresh()
 
     def OnEditKey(self, event):
@@ -347,6 +334,7 @@ class BoardCanvas(wx.ScrolledWindow):
         if self.selected is beat:
             self.selected = None
 
+        self.commit()
         self.Refresh()
 
     def OnSize(self, event):
@@ -508,7 +496,7 @@ class BoardCanvas(wx.ScrolledWindow):
 
         if beat:
             x, y = self.toBoard(event.GetPosition())
-            self.drag = (beat, x - beat.x, y - beat.y)
+            self.drag = (beat, x - beat.x, y - beat.y, beat.x, beat.y)
             self.CaptureMouse()
 
     def OnMotion(self, event):
@@ -522,17 +510,27 @@ class BoardCanvas(wx.ScrolledWindow):
         if not (self.drag and event.Dragging() and event.LeftIsDown()):
             return
 
-        beat, dx, dy = self.drag
+        beat, dx, dy, _x, _y = self.drag
         x, y = self.toBoard(event.GetPosition())
         beat.x = min(max(0, x - dx), beatboard.MAX_COORD)
         beat.y = min(max(0, y - dy), beatboard.MAX_COORD)
 
         self.Refresh()
 
+    # a card that was moved comes to the front
     def endDrag(self):
-        if self.drag:
-            self.drag = None
+        if not self.drag:
+            return
+
+        beat, _dx, _dy, x, y = self.drag
+        self.drag = None
+
+        if (beat.x, beat.y) != (x, y):
+            self.board.beats.remove(beat)
+            self.board.beats.append(beat)
             self.updateVirtualSize()
+            self.commit()
+            self.Refresh()
 
     def OnLeftUp(self, event):
         if self.pan:
@@ -590,7 +588,7 @@ class BoardCanvas(wx.ScrolledWindow):
         x = max(0, x - beatboard.CARD_WIDTH // 2)
         y = max(0, y - beatboard.CARD_HEIGHT // 2)
 
-        self.dlg.addCard(x, y)
+        self.addCard(x, y)
 
     def OnKeyDown(self, event):
         kc = event.GetKeyCode()
@@ -647,7 +645,7 @@ class BoardCanvas(wx.ScrolledWindow):
 
         if not beat:
             x, y = self.toBoard(pos)
-            add(menu, _("Add card here"), lambda: self.dlg.addCard(x, y))
+            add(menu, _("Add card here"), lambda: self.addCard(x, y))
             self.PopupMenu(menu, pos)
             menu.Destroy()
             self.updateVirtualSize()
@@ -678,4 +676,5 @@ class BoardCanvas(wx.ScrolledWindow):
 
     def setColor(self, beat, color):
         beat.color = color
+        self.commit()
         self.Refresh()

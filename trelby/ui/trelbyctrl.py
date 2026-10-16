@@ -205,6 +205,7 @@ class MyCtrl(wx.Control):
         self.sp.headers.addDefaults()
         self.setFile(None)
         self.refreshCache()
+        self.panel.board.reload(self.sp)
 
     # update stuff that depends on configuration / view mode etc.
     # (see scriptpainter.Viewport for what these are)
@@ -219,6 +220,17 @@ class MyCtrl(wx.Control):
 
     def getCfgGui(self):
         return self.gd.cfgGui
+
+    # while the beat board is shown in the script's place, the script is
+    # hidden and must not get the keyboard, so the board gets it instead
+    # (see MyPanel.showBeatBoard)
+    def SetFocus(self):
+        panel = getattr(self, "panel", None)
+
+        if panel and panel.boardShown:
+            panel.board.SetFocus()
+        else:
+            wx.Window.SetFocus(self)
 
     # load script from path and show it as fileName. returns True on
     # success.
@@ -250,6 +262,7 @@ class MyCtrl(wx.Control):
         self.ed = screenplay.Editor(sp)
         self.setFile(fileName)
         self.refreshCache()
+        self.panel.board.reload(sp)
 
         # saved cursor position might be anywhere, so we can't just
         # display the first page

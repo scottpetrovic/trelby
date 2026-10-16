@@ -519,6 +519,14 @@ def makeTable():
                 kind=wx.ITEM_CHECK,
             ),
             Action(
+                "ToggleBeatBoard",
+                ID_VIEW_BEAT_BOARD,
+                _("Beat board"),
+                "B",
+                OnFrame("OnToggleBeatBoard"),
+                kind=wx.ITEM_CHECK,
+            ),
+            Action(
                 "ToggleShowFormatting",
                 ID_VIEW_SHOW_FORMATTING,
                 _("Show formatting"),
@@ -620,14 +628,6 @@ def makeTable():
                 _("World building"),
                 "W",
                 OnScript(scriptactions.worldBuildingDlg),
-                dots=True,
-            ),
-            Action(
-                "BeatBoardDlg",
-                ID_SCRIPT_BEAT_BOARD,
-                _("Beat board"),
-                "B",
-                OnScript(scriptactions.beatBoardDlg),
                 dots=True,
             ),
             Action(
@@ -962,28 +962,85 @@ def fillLanguageMenu(menu, gd, onLanguage):
 # bind the actions that have an id to frame: their menu items and toolbar
 # buttons run them, and those with a canUse are enabled only when they can
 # be used
+# the Actions that work on the script at its cursor, or on how it's shown.
+# they do nothing while the beat board is shown in the script's place (see
+# MyPanel.showBeatBoard), and their menu items and buttons are greyed out,
+# so that e.g. CTRL-X on the board doesn't cut text from the hidden script.
+SCRIPT_ONLY = {
+    "Copy",
+    "Cut",
+    "DeleteElements",
+    "DualDialogue",
+    "FindAndReplaceDlg",
+    "FindNextError",
+    "GotoPage",
+    "GotoScene",
+    "InsertNbsp",
+    "NameDatabase",
+    "CharacterMap",
+    "Paste",
+    "PasteSystemCb",
+    "SelectAll",
+    "SelectScene",
+    "SpellCheckerDlg",
+    "ToggleBold",
+    "ToggleCentered",
+    "ToggleItalic",
+    "ToggleOutline",
+    "ToggleShowFormatting",
+    "ToggleUnderline",
+    "ToolbarViews",
+    "ViewModeDraft",
+    "ViewModeLayout",
+    "ViewModeSideBySide",
+    "ZoomIn",
+    "ZoomOut",
+    "ZoomReset",
+}
+
+
+# whether Action a can't be used now because the beat board is shown
+def isBlockedByBoard(frame, a):
+    panel = getattr(frame, "panel", None)
+
+    return bool(panel) and panel.boardShown and (
+        (a.name in SCRIPT_ONLY) or a.name.startswith("ElemTo")
+    )
+
+
+# run Action a, unless the beat board blocks it
+def runAction(frame, a):
+    if not isBlockedByBoard(frame, a):
+        a.run(frame)
+
+
 def bind(frame, actions):
     for a in actions:
         if a.id is None:
             continue
 
-        frame.Bind(wx.EVT_MENU, lambda event, a=a: a.run(frame), id=a.id)
+        frame.Bind(wx.EVT_MENU, lambda event, a=a: runAction(frame, a), id=a.id)
 
-        if a.canUse:
+        if a.canUse or (a.name in SCRIPT_ONLY):
             frame.Bind(
                 wx.EVT_UPDATE_UI,
-                lambda event, a=a: onUpdateUI(frame, event, a.canUse),
+                lambda event, a=a: onUpdateUI(frame, event, a),
                 id=a.id,
             )
 
 
 # this can be called while MyFrame.init creates the first tab, before
 # frame.panel exists, hence getattr
-def onUpdateUI(frame, event, canUse):
+def onUpdateUI(frame, event, a):
     panel = getattr(frame, "panel", None)
 
     if panel:
-        event.Enable(canUse(frame, panel.ctrl))
+        if isBlockedByBoard(frame, a):
+            event.Enable(False)
+        elif a.canUse:
+            event.Enable(a.canUse(frame, panel.ctrl))
+        else:
+            event.Enable(True)
 
 
 # build the editor's right-click menu from the actions ({name: Action}).

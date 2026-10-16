@@ -80,7 +80,7 @@ class MyElemTypeBar(wx.Control):
 
     # whether item i is shown highlighted
     def isSelected(self, i):
-        return i == self.selected
+        return (i == self.selected) and not self.disabled
 
     # font to draw item i's label in
     def itemFont(self, i, selected):
@@ -415,14 +415,23 @@ class MainToolBar:
         )
         tb.AddControl(self.alignBar)
 
-        # at the far right, next to where the outline view appears
+        # at the far right, next to where the outline view appears: the
+        # beat board, which replaces the script and the outline, and the
+        # outline
         tb.AddStretchableSpace()
+        addTB(
+            ids.ID_VIEW_BEAT_BOARD,
+            "beatboard.svg",
+            _("Beat board: switch between the script and its index cards"),
+            wx.ITEM_CHECK,
+        )
         addTB(ids.ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
 
         tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         tb.Realize()
 
         tb.ToggleTool(ids.ID_VIEW_SHOW_OUTLINE, self.gd.showOutline)
+        self.setBoardShown(self.gd.showBeatBoard)
 
     # redraw the toolbar in the current theme's colors
     def refreshColors(self):
@@ -477,8 +486,18 @@ class MainToolBar:
     def setState(self, lt, style, centered):
         self.elemTypeBar.SetValue(lt)
         self.formatBar.SetValue(style)
-        self.alignBar.setDisabled(centered is None)
+        self.alignBar.setDisabled((centered is None) or self.gd.showBeatBoard)
         self.alignBar.SetValue(self.ALIGN_CENTER if centered else 0)
+
+    # while the beat board is shown, the controls for editing the script
+    # are greyed out (the buttons by menus.onUpdateUI)
+    def setBoardShown(self, shown):
+        self.tb.ToggleTool(ids.ID_VIEW_BEAT_BOARD, shown)
+
+        for bar in (self.elemTypeBar, self.formatBar, self.alignBar):
+            if bar.disabled != shown:
+                bar.disabled = shown
+                bar.Refresh(False)
 
     def enableUndo(self, canUndo, canRedo):
         self.tb.EnableTool(ids.ID_EDIT_UNDO, canUndo)
