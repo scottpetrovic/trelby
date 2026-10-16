@@ -419,12 +419,12 @@ class MainToolBar:
         # beat board, which replaces the script and the outline, and the
         # outline
         tb.AddStretchableSpace()
-        addTB(
-            ids.ID_VIEW_BEAT_BOARD,
-            "beatboard.svg",
-            _("Beat board: switch between the script and its index cards"),
-            wx.ITEM_CHECK,
-        )
+
+        # its icon is changed by setBoardShown
+        addTB(ids.ID_VIEW_BEAT_BOARD, "beatboard.svg", "")
+        self.iconSize = size
+        self.iconPad = pad
+        self.boardIconShown = None
         addTB(ids.ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
 
         tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
@@ -491,8 +491,25 @@ class MainToolBar:
 
     # while the beat board is shown, the controls for editing the script
     # are greyed out (the buttons by menus.onUpdateUI)
+    #
+    # the beat board button shows what it switches to: the board's cards
+    # while the script is shown, and a script page while the board is
     def setBoardShown(self, shown):
-        self.tb.ToggleTool(ids.ID_VIEW_BEAT_BOARD, shown)
+        if shown != self.boardIconShown:
+            self.boardIconShown = shown
+
+            if shown:
+                icon, tip = "script.svg", _("Show the script")
+            else:
+                icon, tip = "beatboard.svg", _("Show the beat board")
+
+            tb = self.tb
+            tb.SetToolNormalBitmap(
+                ids.ID_VIEW_BEAT_BOARD,
+                icons.svgBitmap(icon, self.iconSize, self.iconPad),
+            )
+            tb.SetToolShortHelp(ids.ID_VIEW_BEAT_BOARD, tip)
+            tb.SetToolLongHelp(ids.ID_VIEW_BEAT_BOARD, tip)
 
         for bar in (self.elemTypeBar, self.formatBar, self.alignBar):
             if bar.disabled != shown:
