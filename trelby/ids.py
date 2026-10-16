@@ -1,7 +1,5 @@
 import wx
 
-import trelby.screenplay as screenplay
-
 ID_EDIT_UNDO = wx.NewIdRef()
 ID_EDIT_REDO = wx.NewIdRef()
 ID_EDIT_COPY = wx.NewIdRef()
@@ -25,20 +23,8 @@ ID_EDIT_SELECT_SCENE = wx.NewIdRef()
 ID_FILE_CLOSE = wx.NewIdRef()
 ID_FILE_EXIT = wx.NewIdRef()
 ID_FILE_EXPORT = wx.NewIdRef()
-ID_FILE_EXPORT_FDX = wx.NewIdRef()
-ID_FILE_EXPORT_FOUNTAIN = wx.NewIdRef()
-ID_FILE_EXPORT_HTML = wx.NewIdRef()
-ID_FILE_EXPORT_PDF = wx.NewIdRef()
-ID_FILE_EXPORT_RTF = wx.NewIdRef()
-ID_FILE_EXPORT_TEXT = wx.NewIdRef()
 ID_FILE_EXPORT_WATERMARK = wx.NewIdRef()
 ID_FILE_IMPORT = wx.NewIdRef()
-ID_FILE_IMPORT_ASTX = wx.NewIdRef()
-ID_FILE_IMPORT_CELTX = wx.NewIdRef()
-ID_FILE_IMPORT_FADEIN = wx.NewIdRef()
-ID_FILE_IMPORT_FDX = wx.NewIdRef()
-ID_FILE_IMPORT_FOUNTAIN = wx.NewIdRef()
-ID_FILE_IMPORT_TEXT = wx.NewIdRef()
 ID_FILE_NEW = wx.NewIdRef()
 ID_FILE_OPEN = wx.NewIdRef()
 ID_FILE_REVERT = wx.NewIdRef()
@@ -91,14 +77,3 @@ ID_ELEM_TO_SHOT = wx.NewIdRef()
 ID_ELEM_TO_ACTBREAK = wx.NewIdRef()
 ID_ELEM_TO_TRANSITION = wx.NewIdRef()
 
-idToLTMap = {
-    ID_ELEM_TO_SCENE: screenplay.SCENE,
-    ID_ELEM_TO_ACTION: screenplay.ACTION,
-    ID_ELEM_TO_CHARACTER: screenplay.CHARACTER,
-    ID_ELEM_TO_DIALOGUE: screenplay.DIALOGUE,
-    ID_ELEM_TO_PAREN: screenplay.PAREN,
-    ID_ELEM_TO_TRANSITION: screenplay.TRANSITION,
-    ID_ELEM_TO_SHOT: screenplay.SHOT,
-    ID_ELEM_TO_ACTBREAK: screenplay.ACTBREAK,
-    ID_ELEM_TO_NOTE: screenplay.NOTE,
-}

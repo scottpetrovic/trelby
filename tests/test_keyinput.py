@@ -9,6 +9,7 @@ import trelby.config as config
 import trelby.keys as keys
 import trelby.opts as opts
 import trelby.screenplay as screenplay
+import trelby.scriptactions as scriptactions
 import trelby.translations as translations
 import trelby.trelbyctrl as trelbyctrl
 
@@ -234,7 +235,7 @@ def testPasteSystemClipboard():
             data.SetText(text)
 
     with mock.patch.object(wx, "TheClipboard", Clipboard()):
-        ctrl.OnPasteSystemCb()
+        scriptactions.pasteSystem(None, ctrl)
 
     assert [ln.text for ln in sp.lines] == ["Łódź €", "čapek Пётр|Ω"]
 

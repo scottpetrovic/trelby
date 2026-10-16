@@ -43,6 +43,11 @@ class GlobalData:
     # editor looks up the keys pressed in
     keyMap = {}
 
+    # Trelby's own clipboard (a screenplay.ClipData, keeping element types),
+    # shared by all scripts. the system clipboard is only used by the Copy /
+    # Paste (system) commands.
+    clipboard = None
+
     # constants
     (
         VIEWMODE_DRAFT,

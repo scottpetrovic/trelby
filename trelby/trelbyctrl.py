@@ -7,50 +7,28 @@ import time
 
 import wx
 
-import trelby
-import trelby.autocompletiondlg as autocompletiondlg
 import trelby.autosave as autosave
 import trelby.cfgdlg as cfgdlg
-import trelby.characterprofilesdlg as characterprofilesdlg
-import trelby.checkboxdlg as checkboxdlg
-import trelby.checkboxitem as checkboxitem
 import trelby.commands as commands
 import trelby.config as config
 import trelby.configgui as configgui
-import trelby.dialoguechart as dialoguechart
-import trelby.finddlg as finddlg
 import trelby.formats as formats
 import trelby.gutil as gutil
-import trelby.headersdlg as headersdlg
 import trelby.keys as keys
-import trelby.locationsdlg as locationsdlg
 import trelby.mcpapp as mcpapp
+import trelby.menus as menus
 import trelby.misc as misc
 import trelby.myimport as myimport
 import trelby.opts as opts
-import trelby.pagelock as pagelock
-import trelby.pdf as pdf
 import trelby.pml as pml
-import trelby.reports as reports
 import trelby.screenplay as screenplay
-import trelby.screenplay.compare as compare
-import trelby.screenplay.plaintext as plaintext
-import trelby.screenplay.proofing as proofing
-import trelby.screenplay.render as render
-import trelby.scriptchooserdlg as scriptchooserdlg
-import trelby.spellcheck as spellcheck
-import trelby.spellcheckcfgdlg as spellcheckcfgdlg
-import trelby.spellcheckdlg as spellcheckdlg
+import trelby.scriptactions as scriptactions
 import trelby.textdlg as textdlg
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
-import trelby.titlesdlg as titlesdlg
 import trelby.util as util
-import trelby.viewmode as viewmode
-import trelby.watermarkdlg as watermarkdlg
-import trelby.worldbuildingdlg as worldbuildingdlg
 from trelby.error import TrelbyError
-from trelby.ids import ID_EDIT_REDO, ID_EDIT_UNDO, idToLTMap
+from trelby.ids import ID_EDIT_REDO, ID_EDIT_UNDO
 
 # Boolean to determine if toolbar should be shown or not.
 toolbarshown = True
@@ -64,6 +42,40 @@ KC_CTRL_F = 6
 KC_CTRL_N = 14
 KC_CTRL_P = 16
 KC_CTRL_V = 22
+
+
+# the keyboard commands that edit the script (the ones that aren't menu
+# commands), and the Editor method each one runs, given a CommandState.
+# the rest are MyCtrl.cmd<name> methods.
+EDITOR_COMMANDS = {
+    "Abort": "abortCmd",
+    "ChangeToAction": "toActionCmd",
+    "ChangeToCharacter": "toCharacterCmd",
+    "ChangeToDialogue": "toDialogueCmd",
+    "ChangeToNote": "toNoteCmd",
+    "ChangeToParenthetical": "toParenCmd",
+    "ChangeToScene": "toSceneCmd",
+    "ChangeToShot": "toShotCmd",
+    "ChangeToActBreak": "toActBreakCmd",
+    "ChangeToTransition": "toTransitionCmd",
+    "ForcedLineBreak": "insertForcedLineBreakCmd",
+    "MoveDown": "moveDownCmd",
+    "MoveEndOfLine": "moveLineEndCmd",
+    "MoveEndOfScript": "moveEndCmd",
+    "MoveLeft": "moveLeftCmd",
+    "MoveNextWord": "moveNextWordCmd",
+    "MovePrevWord": "movePrevWordCmd",
+    "MoveRight": "moveRightCmd",
+    "MoveSceneDown": "moveSceneDownCmd",
+    "MoveSceneUp": "moveSceneUpCmd",
+    "MoveStartOfLine": "moveLineStartCmd",
+    "MoveStartOfScript": "moveStartCmd",
+    "MoveUp": "moveUpCmd",
+    "NewElement": "splitElementCmd",
+    "SetMark": "setMarkCmd",
+    "Tab": "tabCmd",
+    "TabPrev": "toPrevTypeTabCmd",
+}
 
 
 # the editor for one open script, one per tab. it owns the Screenplay
@@ -114,9 +126,6 @@ class MyCtrl(wx.Control):
 
     def refreshGuiConfig(self):
         self.gd.cfgGui = configgui.ConfigGui(self.gd.cfgGl, self.gd.zoom)
-
-    def OnChangeType(self, event):
-        self.changeType(idToLTMap[event.GetId()])
 
     def changeType(self, lt):
         cs = screenplay.CommandState()
@@ -328,49 +337,6 @@ class MyCtrl(wx.Control):
         self.sp.markChanged(True)
 
         self.checkWideChars("".join(ln.text for ln in self.sp.lines))
-
-    # ask for the formats.Format fmt's export options, if it has any.
-    # returns them as a dict, or None if cancelled.
-    def askExportOptions(self, fmt):
-        if not fmt.options:
-            return {}
-
-        inf = [checkboxitem.CheckBoxItem(label()) for name, label in fmt.options]
-
-        dlg = checkboxdlg.CheckBoxDlg(
-            self.gd.mainFrame, _("Output options"), inf, _("Options:"), False
-        )
-        ok = dlg.ShowModal() == wx.ID_OK
-        dlg.Destroy()
-
-        if not ok:
-            return None
-
-        return {name: it.selected for (name, label), it in zip(fmt.options, inf)}
-
-    # if the PDF fonts can't show some of sp's characters, ask whether to
-    # export it anyway. returns True to go ahead.
-    def confirmPdfChars(self, sp):
-        chars = pdf.unsupportedChars(render.generatePML(sp))
-
-        if chars:
-            if len(chars) > 40:
-                chars = chars[:40] + "..."
-
-            if (
-                wx.MessageBox(
-                    _(
-                        "The built-in PDF fonts can't show these characters, so they will\nbe shown as boxes or in a different font:\n\n{}\n\nTo show them, choose a TrueType font that has them in\nScript/Script settings/PDF/Fonts.\n\nExport anyway?"
-                    ).format(" ".join(chars)),
-                    _("Confirm"),
-                    wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
-                    self.gd.mainFrame,
-                )
-                == wx.NO
-            ):
-                return False
-
-        return True
 
     def setFile(self, fileName):
         self.fileName = fileName
@@ -626,84 +592,6 @@ class MyCtrl(wx.Control):
 
         self.gd.mainFrame.checkFonts()
 
-    def applyHeaders(self, newHeaders):
-        self.sp.headers = newHeaders
-        self.sp.markChanged()
-        self.sp.paginate()
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    # return an exportable, paginated Screenplay object, or None if for
-    # some reason that's not possible / wanted. 'action' is the name of
-    # the action, e.g. "export" or "compare", that'll be done to the script,
-    # and is used in dialogue with the user if needed.
-    def getExportable(self, action):
-        if self.gd.cfgGl.checkOnExport and not self.confirmExportable(action):
-            return None
-
-        sp = self.sp
-        if sp.cfg.pdfRemoveNotes:
-            sp = copy.deepcopy(self.sp)
-            screenplay.Editor(sp).removeElementTypes({screenplay.NOTE: None}, False)
-
-        sp.paginate()
-
-        return sp
-
-    # check the script before 'action' ("export" or "compare") is done to
-    # it. if it's empty or has an error, ask whether to continue anyway,
-    # offering to show the error. returns True if we should continue.
-    def confirmExportable(self, action):
-        anyway = {"export": _("Export Anyway"), "compare": _("Compare Anyway")}[
-            action
-        ]
-
-        if self.sp.isEmpty():
-            dlg = wx.MessageDialog(
-                self.gd.mainFrame,
-                _("\"{}\" is empty.").format(self.fileNameDisplay),
-                _("Empty Script"),
-                wx.OK | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_INFORMATION,
-            )
-            dlg.SetExtendedMessage(_("There is no text in the script yet."))
-            dlg.SetOKCancelLabels(anyway, wx.ID_CANCEL)
-            ret = dlg.ShowModal()
-            dlg.Destroy()
-
-            return ret == wx.ID_OK
-
-        line, msg = proofing.findError(self.sp, 0)
-
-        if line == -1:
-            return True
-
-        dlg = wx.MessageDialog(
-            self.gd.mainFrame,
-            _("\"{}\" has a problem on page {}.").format(
-                self.fileNameDisplay, self.sp.line2pageLabel(line)
-            ),
-            _("Script Problem"),
-            wx.YES_NO | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_WARNING,
-        )
-        dlg.SetExtendedMessage(msg)
-        dlg.SetYesNoCancelLabels(anyway, _("Go to Problem"), wx.ID_CANCEL)
-        ret = dlg.ShowModal()
-        dlg.Destroy()
-
-        if ret == wx.ID_NO:
-            mf = self.gd.mainFrame
-            page = mf.findPage(self.panel)
-            if page != -1:
-                mf.tabCtrl.selectPage(page)
-
-            self.clearAutoComp()
-            self.ed.line = line
-            self.ed.column = 0
-            self.makeLineVisible(line)
-            self.updateScreen()
-
-        return ret == wx.ID_YES
-
     def OnEraseBackground(self, event):
         pass
 
@@ -738,7 +626,7 @@ class MyCtrl(wx.Control):
     # dragging selects text
     def OnLeftDown(self, event, mark=False):
         if not mark and self.isOverTitleButton(event.GetPosition()):
-            self.gd.mainFrame.OnTitlesDlg()
+            scriptactions.titlesDlg(self.gd.mainFrame, self)
 
             return
 
@@ -858,8 +746,12 @@ class MyCtrl(wx.Control):
             if toggle:
                 dualState = not toggle[1]
 
-        m = self.gd.mainFrame.makeRightClickMenu(
-            curLt, bool(self.ed.mark), dualState, self.ed.getCenteredState()
+        m = menus.makeRightClickMenu(
+            self.gd.mainFrame.actions,
+            curLt,
+            bool(self.ed.mark),
+            dualState,
+            self.ed.getCenteredState(),
         )
         self.PopupMenu(m)
         m.Destroy()
@@ -886,209 +778,6 @@ class MyCtrl(wx.Control):
         self.ed.setTopLine(pos)
         self.ed.clearAutoComp()
         self.updateScreen()
-
-    def OnLockPages(self):
-        self.ed.lockPages()
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    def OnUnlockPages(self):
-        self.ed.unlockPages()
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    def OnLockScenes(self):
-        self.ed.lockScenes()
-        self.updateScreen()
-
-    def OnUnlockScenes(self):
-        self.ed.unlockScenes()
-        self.updateScreen()
-
-    def OnAutoCompletionDlg(self):
-        dlg = autocompletiondlg.AutoCompletionDlg(
-            self.gd.mainFrame, copy.deepcopy(self.sp.autoCompletion)
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.sp.autoCompletion = dlg.autoCompletion
-            self.sp.markChanged()
-
-        dlg.Destroy()
-
-    def OnTitlesDlg(self):
-        dlg = titlesdlg.TitlesDlg(
-            self.gd.mainFrame, copy.deepcopy(self.sp.titles), self.sp.cfg, self.gd.cfgGl
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.sp.titles = dlg.titles
-            self.sp.markChanged()
-
-        dlg.Destroy()
-
-    def OnHeadersDlg(self):
-        dlg = headersdlg.HeadersDlg(
-            self.gd.mainFrame,
-            copy.deepcopy(self.sp.headers),
-            self.sp.cfg,
-            self.gd.cfgGl,
-            self.applyHeaders,
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.applyHeaders(dlg.headers)
-
-        dlg.Destroy()
-
-    def OnLocationsDlg(self):
-        dlg = locationsdlg.LocationsDlg(self.gd.mainFrame, copy.deepcopy(self.sp))
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.sp.locations = dlg.sp.locations
-            self.sp.markChanged()
-
-        dlg.Destroy()
-
-    def OnCharacterProfilesDlg(self):
-        # start with the character whose name or speech the cursor is on
-        selectName = self.sp.getCharacterAt(self.ed.line)
-
-        old = self.sp.characterProfiles.save()
-
-        dlg = characterprofilesdlg.CharacterProfilesDlg(
-            self.gd.mainFrame,
-            copy.deepcopy(self.sp.characterProfiles),
-            self.sp.getCharacterNames(),
-            selectName,
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            if dlg.charProfiles.save() != old:
-                self.sp.characterProfiles = dlg.charProfiles
-                self.sp.markChanged()
-
-            # renaming a character's profile renames the character
-            # everywhere in the script too
-            if dlg.renames and any(self.ed.renameCharacters(dlg.renames)):
-                self.sp.paginate()
-                self.makeLineVisible(self.ed.line)
-                self.updateScreen()
-
-        dlg.Destroy()
-
-    def OnWorldBuildingDlg(self):
-        dlg = worldbuildingdlg.WorldBuildingDlg(
-            self.gd.mainFrame, copy.deepcopy(self.sp.worldBuilding)
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            if dlg.worldBuilding.text != self.sp.worldBuilding.text:
-                self.sp.worldBuilding = dlg.worldBuilding
-                self.sp.markChanged()
-
-        dlg.Destroy()
-
-    def OnSpellCheckerScriptDictionaryDlg(self):
-        dlg = spellcheckcfgdlg.SCDictDlg(
-            self.gd.mainFrame, copy.deepcopy(self.sp.scDict), False
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.sp.scDict = dlg.scDict
-            self.sp.markChanged()
-
-        dlg.Destroy()
-
-    def OnWatermark(self):
-        dlg = watermarkdlg.WatermarkDlg(
-            self.gd.mainFrame, self.sp, self.fileNameDisplay.replace(".trelby", "")
-        )
-        dlg.ShowModal()
-        dlg.Destroy()
-
-    def OnReportDialogueChart(self):
-        self.sp.paginate()
-        dialoguechart.genDialogueChart(self.gd.mainFrame, self.sp, self.fileNameDisplay)
-
-    def OnReportCharacter(self):
-        self.sp.paginate()
-        reports.genCharacterReport(self.gd.mainFrame, self.sp, self.fileNameDisplay)
-
-    def OnReportLocation(self):
-        self.sp.paginate()
-        reports.genLocationReport(self.gd.mainFrame, self.sp, self.fileNameDisplay)
-
-    def OnReportScene(self):
-        self.sp.paginate()
-        reports.genSceneReport(self.gd.mainFrame, self.sp, self.fileNameDisplay)
-
-    def OnReportScript(self):
-        self.sp.paginate()
-        reports.genScriptReport(self.gd.mainFrame, self.sp, self.fileNameDisplay)
-
-    def OnCompareScripts(self):
-        if self.gd.mainFrame.tabCtrl.getPageCount() < 2:
-            wx.MessageBox(
-                _("You need at least two scripts open to compare them."),
-                _("Error"),
-                wx.OK,
-                self.gd.mainFrame,
-            )
-
-            return
-
-        items = []
-        for c in self.gd.mainFrame.getCtrls():
-            items.append(c.fileNameDisplay)
-
-        dlg = scriptchooserdlg.ScriptChooserDlg(self.gd.mainFrame, items)
-
-        sel1 = -1
-        sel2 = -1
-        if dlg.ShowModal() == wx.ID_OK:
-            sel1 = dlg.sel1
-            sel2 = dlg.sel2
-            force = dlg.forceSameCfg
-
-        dlg.Destroy()
-
-        if sel1 == -1:
-            return
-
-        if sel1 == sel2:
-            wx.MessageBox(
-                _("You can't compare a script to itself."),
-                _("Error"),
-                wx.OK,
-                self.gd.mainFrame,
-            )
-
-            return
-
-        c1 = self.gd.mainFrame.tabCtrl.getPage(sel1).ctrl
-        c2 = self.gd.mainFrame.tabCtrl.getPage(sel2).ctrl
-
-        sp1 = c1.getExportable("compare")
-        sp2 = c2.getExportable("compare")
-
-        if not sp1 or not sp2:
-            return
-
-        if force:
-            sp2 = copy.deepcopy(sp2)
-            sp2.cfg = copy.deepcopy(sp1.cfg)
-            sp2.reformatAll()
-            sp2.paginate()
-
-        s = compare.compareScripts(sp1, sp2)
-
-        if s:
-            gutil.showTempPDF(s, self.gd.cfgGl, self.gd.mainFrame)
-        else:
-            wx.MessageBox(
-                _("The scripts are identical."), _("Results"), wx.OK, self.gd.mainFrame
-            )
 
     def canBeClosed(self):
         if self.sp.isModified():
@@ -1129,26 +818,6 @@ class MyCtrl(wx.Control):
         self.ed.maybeMark(cs.mark)
         self.gd.vm.pageCmd(self, cs, dir, texts, dpages)
 
-    def OnRevertScript(self):
-        if self.fileName:
-            if not self.canBeClosed():
-                return
-
-            self.loadFile(self.fileName)
-            self.updateScreen()
-
-    def OnUndo(self):
-        self.ed.cmd("undo")
-        self.sp.paginate()
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    def OnRedo(self):
-        self.ed.cmd("redo")
-        self.sp.paginate()
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
     # returns True if something was deleted
     def OnCut(self, doUpdate=True, doDelete=True, copyToClip=True):
         marked = self.ed.getMarkedLines()
@@ -1159,7 +828,7 @@ class MyCtrl(wx.Control):
         cd = self.ed.getSelectedAsCD(doDelete)
 
         if copyToClip:
-            self.gd.mainFrame.clipboard = cd
+            self.gd.clipboard = cd
 
         if doUpdate:
             if doDelete:
@@ -1170,29 +839,9 @@ class MyCtrl(wx.Control):
 
         return doDelete
 
-    def OnCopy(self):
-        self.OnCut(doDelete=False)
-
-    def OnCopySystem(self, formatted=False):
-        cd = self.ed.getSelectedAsCD(False)
-
-        if not cd:
-            return
-
-        s = plaintext.linesToText(cd.lines, self.gd.cfgGl, formatted)
-
-        if wx.TheClipboard.Open():
-            wx.TheClipboard.UsePrimarySelection(False)
-
-            wx.TheClipboard.Clear()
-            wx.TheClipboard.AddData(wx.TextDataObject(s))
-            wx.TheClipboard.Flush()
-
-            wx.TheClipboard.Close()
-
     def OnPaste(self, clines=None):
         if not clines:
-            cd = self.gd.mainFrame.clipboard
+            cd = self.gd.clipboard
 
             if not cd:
                 return
@@ -1206,75 +855,6 @@ class MyCtrl(wx.Control):
         self.updateScreen()
 
         self.checkWideChars("".join(ln.text for ln in clines))
-
-    def OnPasteSystemCb(self):
-        s = ""
-
-        if wx.TheClipboard.Open():
-            wx.TheClipboard.UsePrimarySelection(False)
-
-            df = wx.DataFormat(wx.DF_TEXT)
-
-            if wx.TheClipboard.IsSupported(df):
-                data = wx.TextDataObject()
-                wx.TheClipboard.GetData(data)
-                s = data.GetText()
-
-            wx.TheClipboard.Close()
-
-        lines = plaintext.textToLines(s)
-
-        # given no lines, OnPaste would paste Trelby's own clipboard
-        if lines:
-            self.OnPaste(lines)
-
-    def OnSelectScene(self):
-        self.ed.cmd("selectScene")
-
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    def OnSelectAll(self):
-        self.ed.cmd("selectAll")
-
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    def OnGotoScene(self):
-        self.sp.paginate()
-        self.clearAutoComp()
-
-        scenes = self.sp.getSceneLocations()
-
-        # the menu item is disabled then, but not the shortcut
-        if not scenes:
-            return
-
-        def validateFunc(s):
-            if pagelock.normalize(s) in [x[0] for x in scenes]:
-                return ""
-            else:
-                return _("Invalid scene number.")
-
-        dlg = textdlg.TextInputDlg(
-            self.gd.mainFrame,
-            _("Enter scene number ({} - {}):").format(scenes[0][0], scenes[-1][0]),
-            _("Goto scene"),
-            validateFunc,
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            for it in scenes:
-                if it[0] == pagelock.normalize(dlg.input):
-                    self.ed.line = it[1]
-                    self.ed.column = 0
-
-                    break
-
-        # we need to refresh the screen in all cases because pagination
-        # might have changed
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
 
     # move the cursor to the start of the given line and scroll it to the
     # top of the screen. used by the outline view.
@@ -1308,238 +888,6 @@ class MyCtrl(wx.Control):
         if self.ed.setSceneColor(line, color):
             self.updateScreen()
 
-    def OnGotoPage(self):
-        self.sp.paginate()
-        self.clearAutoComp()
-
-        pages = self.sp.getPageNumbers()
-
-        def validateFunc(s):
-            if self.sp.label2page(s) != -1:
-                return ""
-            else:
-                return _("Invalid page number.")
-
-        dlg = textdlg.TextInputDlg(
-            self.gd.mainFrame,
-            _("Enter page number ({} - {}):").format(pages[0], pages[-1]),
-            _("Goto page"),
-            validateFunc,
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            page = self.sp.label2page(dlg.input)
-            self.ed.line = self.sp.page2lines(page)[0]
-            self.ed.column = 0
-
-        # we need to refresh the screen in all cases because pagination
-        # might have changed
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    def OnInsertNbsp(self):
-        self.OnKeyChar(keys.MyKeyEvent(160))
-
-    def OnDualDialogue(self):
-        self.clearAutoComp()
-
-        if not self.ed.toggleDualDialogue():
-            wx.MessageBox(
-                _(
-                    "Dual dialogue needs two speeches in a row (a character"
-                    " followed by its dialogue), with the cursor in one of"
-                    " them."
-                ),
-                _("Error"),
-                wx.OK,
-                self.gd.mainFrame,
-            )
-
-            return
-
-        self.sp.paginate()
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    # toggle a formatting bit (textfmt.BOLD etc.) on the selected text, or
-    # for the text typed next
-    def OnToggleFormat(self, bit):
-        self.clearAutoComp()
-        self.ed.toggleFormat(bit)
-        self.updateScreen()
-
-    # center the action at the cursor or in the selection, or stop
-    # centering it
-    def OnToggleCentered(self):
-        self.clearAutoComp()
-
-        if self.ed.toggleCentered():
-            self.sp.paginate()
-            self.updateScreen()
-
-    def OnFindNextError(self):
-        self.clearAutoComp()
-
-        line, msg = proofing.findError(self.sp, self.ed.line)
-
-        if line != -1:
-            self.ed.line = line
-            self.ed.column = 0
-
-            self.makeLineVisible(self.ed.line)
-            self.updateScreen()
-
-        else:
-            msg = _("No errors found.")
-
-        wx.MessageBox(msg, _("Results"), wx.OK, self.gd.mainFrame)
-
-    def OnFind(self):
-        self.ed.clearMark()
-        self.clearAutoComp()
-        self.updateScreen()
-
-        dlg = finddlg.FindDlg(self.gd.mainFrame, self)
-        dlg.ShowModal()
-        dlg.saveState()
-        dlg.Destroy()
-
-        self.ed.clearMark()
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    def OnSpellCheckerDlg(self):
-        self.ed.clearMark()
-        self.clearAutoComp()
-
-        wasAtStart = self.ed.line == 0
-
-        wx.BeginBusyCursor()
-
-        if not spellcheckdlg.loadDict(self.gd.mainFrame):
-            wx.EndBusyCursor()
-
-            return
-
-        sc = spellcheck.SpellChecker(self.sp, self.gd.scDict, self.ed.line)
-        found = sc.findNext()
-
-        wx.EndBusyCursor()
-
-        if not found:
-            s = ""
-
-            if not wasAtStart:
-                s = _(
-                    "\n\n(Starting position was not at\nthe beginning of the script.)"
-                )
-            wx.MessageBox(
-                _("Spell checker found no errors.") + s,
-                _("Results"),
-                wx.OK,
-                self.gd.mainFrame,
-            )
-
-            return
-
-        dlg = spellcheckdlg.SpellCheckDlg(self.gd.mainFrame, self, sc, self.gd.scDict)
-        dlg.ShowModal()
-
-        if dlg.changedGlobalDict:
-            self.gd.saveScDict()
-
-        dlg.Destroy()
-
-        self.ed.clearMark()
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    def OnDeleteElements(self):
-        # even though Editor.removeElementTypes does this as well, do
-        # it here so that screen is cleared from the auto-comp box before
-        # we open the dialog
-        self.clearAutoComp()
-
-        types = []
-        for t in config.getTIs():
-            types.append(checkboxitem.CheckBoxItem(t.name, False, t.lt))
-
-        dlg = checkboxdlg.CheckBoxDlg(
-            self.gd.mainFrame,
-            _("Delete elements"),
-            types,
-            _("Element types to delete:"),
-            True,
-        )
-
-        ok = False
-        if dlg.ShowModal() == wx.ID_OK:
-            ok = True
-
-            tdict = checkboxitem.CheckBoxItem.getClientData(types)
-
-        dlg.Destroy()
-
-        if not ok or (len(tdict) == 0):
-            return
-
-        self.ed.removeElementTypes(tdict, True)
-        self.sp.paginate()
-        self.makeLineVisible(self.ed.line)
-        self.updateScreen()
-
-    def OnSave(self):
-        if self.fileName:
-            self.saveFile(self.fileName)
-        else:
-            self.OnSaveScriptAs()
-
-    def OnSaveScriptAs(self):
-        if self.fileName:
-            dDir = os.path.dirname(self.fileName)
-            dFile = os.path.basename(self.fileName)
-        else:
-            dDir = misc.scriptDir
-            dFile = ""
-
-        dlg = wx.FileDialog(
-            self.gd.mainFrame,
-            _("Filename to save as"),
-            defaultDir=dDir,
-            defaultFile=dFile,
-            wildcard="Trelby files (*.trelby)|*.trelby|All files|*",
-            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-        )
-        if dlg.ShowModal() == wx.ID_OK:
-            self.saveFile(dlg.GetPath())
-
-        dlg.Destroy()
-
-    # export the script in the formats.Format fmt
-    def OnExportScript(self, fmt):
-        sp = self.getExportable("export")
-        if not sp:
-            return
-
-        dlg = wx.FileDialog(
-            self.gd.mainFrame,
-            _("Filename to export as"),
-            misc.scriptDir,
-            wildcard=fmt.getWildcard(),
-            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            misc.scriptDir = dlg.GetDirectory()
-            fileName = textutil.ensureEndsIn(dlg.GetPath(), "." + fmt.extensions[0])
-            options = self.askExportOptions(fmt)
-
-            if (options is not None) and ((fmt.key != "pdf") or self.confirmPdfChars(sp)):
-                data = fmt.generate(sp, **options)
-                gutil.writeToFile(fileName, data, self.gd.mainFrame)
-
-        dlg.Destroy()
-
     def OnSettings(self):
         dlg = cfgdlg.CfgDlg(
             self.gd.mainFrame,
@@ -1554,49 +902,13 @@ class MyCtrl(wx.Control):
 
         dlg.Destroy()
 
-    def OnScriptSettings(self):
-        dlg = cfgdlg.CfgDlg(
-            self.gd.mainFrame,
-            copy.deepcopy(self.sp.cfg),
-            self.applyCfg,
-            False,
-            self.gd,
-        )
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.applyCfg(dlg.cfg)
-
-        dlg.Destroy()
-
-    def cmdAbort(self, cs):
-        self.ed.abortCmd(cs)
-
-    def cmdChangeToAction(self, cs):
-        self.ed.toActionCmd(cs)
-
-    def cmdChangeToCharacter(self, cs):
-        self.ed.toCharacterCmd(cs)
-
-    def cmdChangeToDialogue(self, cs):
-        self.ed.toDialogueCmd(cs)
-
-    def cmdChangeToNote(self, cs):
-        self.ed.toNoteCmd(cs)
-
-    def cmdChangeToParenthetical(self, cs):
-        self.ed.toParenCmd(cs)
-
-    def cmdChangeToScene(self, cs):
-        self.ed.toSceneCmd(cs)
-
-    def cmdChangeToShot(self, cs):
-        self.ed.toShotCmd(cs)
-
-    def cmdChangeToActBreak(self, cs):
-        self.ed.toActBreakCmd(cs)
-
-    def cmdChangeToTransition(self, cs):
-        self.ed.toTransitionCmd(cs)
+    # run the keyboard command with the given name, which isn't a menu
+    # command
+    def runCommand(self, name, cs):
+        if name in EDITOR_COMMANDS:
+            getattr(self.ed, EDITOR_COMMANDS[name])(cs)
+        else:
+            getattr(self, "cmd" + name)(cs)
 
     def cmdDelete(self, cs):
         if not self.ed.mark:
@@ -1610,62 +922,11 @@ class MyCtrl(wx.Control):
         else:
             self.OnCut(doUpdate=False, copyToClip=False)
 
-    def cmdForcedLineBreak(self, cs):
-        self.ed.insertForcedLineBreakCmd(cs)
-
-    def cmdMoveDown(self, cs):
-        self.ed.moveDownCmd(cs)
-
-    def cmdMoveEndOfLine(self, cs):
-        self.ed.moveLineEndCmd(cs)
-
-    def cmdMoveEndOfScript(self, cs):
-        self.ed.moveEndCmd(cs)
-
-    def cmdMoveLeft(self, cs):
-        self.ed.moveLeftCmd(cs)
-
-    def cmdMoveNextWord(self, cs):
-        self.ed.moveNextWordCmd(cs)
-
     def cmdMovePageDown(self, cs):
         self.pageCmd(cs, 1)
 
     def cmdMovePageUp(self, cs):
         self.pageCmd(cs, -1)
-
-    def cmdMovePrevWord(self, cs):
-        self.ed.movePrevWordCmd(cs)
-
-    def cmdMoveRight(self, cs):
-        self.ed.moveRightCmd(cs)
-
-    def cmdMoveSceneDown(self, cs):
-        self.ed.moveSceneDownCmd(cs)
-
-    def cmdMoveSceneUp(self, cs):
-        self.ed.moveSceneUpCmd(cs)
-
-    def cmdMoveStartOfLine(self, cs):
-        self.ed.moveLineStartCmd(cs)
-
-    def cmdMoveStartOfScript(self, cs):
-        self.ed.moveStartCmd(cs)
-
-    def cmdMoveUp(self, cs):
-        self.ed.moveUpCmd(cs)
-
-    def cmdNewElement(self, cs):
-        self.ed.splitElementCmd(cs)
-
-    def cmdSetMark(self, cs):
-        self.ed.setMarkCmd(cs)
-
-    def cmdTab(self, cs):
-        self.ed.tabCmd(cs)
-
-    def cmdTabPrev(self, cs):
-        self.ed.toPrevTypeTabCmd(cs)
 
     def cmdSpeedTest(self, cs):
         import trelby.undo as undo
@@ -1768,18 +1029,18 @@ class MyCtrl(wx.Control):
                     self.checkWideChars(cs.char)
 
         elif cmd:
-            # a menu command runs MyFrame.On<name>, which updates the screen
-            # itself, so we're done. other commands are cmd<name> methods
-            # here, which work on self.sp and leave updating the screen to
-            # the code below.
+            # a menu command runs the menus.Action of the same name, which
+            # updates the screen itself, so we're done. other commands are
+            # cmd<name> methods here, which work on self.sp and leave
+            # updating the screen to the code below.
             scrollDirection = cmd.scrollDirection
 
             if cmd.isMenu:
-                getattr(self.gd.mainFrame, "On" + cmd.name)()
+                self.gd.mainFrame.runAction(cmd.name)
 
                 return
 
-            getattr(self, "cmd" + cmd.name)(cs)
+            self.runCommand(cmd.name, cs)
         else:
             ev.Skip()
 
