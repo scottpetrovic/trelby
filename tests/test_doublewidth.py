@@ -26,27 +26,27 @@ CHINESE = "他走进房间，看见桌子上放着一封信。" * 4 + "她哭了
 # return a paginated script with a scene heading and the given action
 # text, using double-width characters if 'double' is True
 def makeScript(text, double=True):
-    sp = u.loadString(
+    ed = u.loadStringEditor(
         "\n".join(["#Version 3", "#Start-Script ", ".\\INT. ROOM - DAY", "..%s" % text])
     )
 
     if double:
-        setDoubleWidth(sp)
+        setDoubleWidth(ed)
 
-    sp.paginate()
+    ed.sp.paginate()
 
-    return sp
+    return ed
 
 
-def setDoubleWidth(sp, double=True):
-    cfg = copy.deepcopy(sp.cfg)
+def setDoubleWidth(ed, double=True):
+    cfg = copy.deepcopy(ed.sp.cfg)
     cfg.doubleWidth = double
-    sp.applyCfg(cfg)
+    ed.applyCfg(cfg)
 
 
 # return the texts of the lines of the action element, the last element
-def actionLines(sp):
-    return [ln.text for ln in sp.lines if ln.lt == scr.ACTION]
+def actionLines(ed):
+    return [ln.text for ln in ed.sp.lines if ln.lt == scr.ACTION]
 
 
 def testWideChars():
@@ -78,83 +78,83 @@ def testConfigSaveLoad():
 
 
 def testSavedInScript():
-    sp = makeScript(CHINESE)
-    sp2 = u.loadString(sp.save().decode("utf-8"))
+    ed = makeScript(CHINESE)
+    ed2 = u.loadStringEditor(ed.save().decode("utf-8"))
 
-    assert sp2.cfg.doubleWidth
-    assert actionLines(sp2) == actionLines(sp)
+    assert ed2.sp.cfg.doubleWidth
+    assert actionLines(ed2) == actionLines(ed)
 
 
 def testChineseWrapsAtHalfWidth():
-    sp = makeScript(CHINESE)
+    ed = makeScript(CHINESE)
 
     # action is 60 columns wide, so 30 characters
-    assert [len(t) for t in actionLines(sp)] == [30, 30, 12]
-    assert "".join(actionLines(sp)) == CHINESE
+    assert [len(t) for t in actionLines(ed)] == [30, 30, 12]
+    assert "".join(actionLines(ed)) == CHINESE
 
     # broken between characters, without spaces
-    lns = [ln for ln in sp.lines if ln.lt == scr.ACTION]
+    lns = [ln for ln in ed.sp.lines if ln.lt == scr.ACTION]
     assert [ln.lb for ln in lns] == [scr.LB_NONE, scr.LB_NONE, scr.LB_LAST]
 
-    sp._validate()
+    ed._validate()
 
 
 def testSingleWidthUnchanged():
-    sp = makeScript(CHINESE, double=False)
+    ed = makeScript(CHINESE, double=False)
 
-    assert [len(t) for t in actionLines(sp)] == [60, 12]
+    assert [len(t) for t in actionLines(ed)] == [60, 12]
 
 
 def testLatinWrapsAtSpacesInDoubleWidth():
     text = "The quick brown fox jumps over the lazy dog and runs away."
-    sp = makeScript(text)
+    ed = makeScript(text)
 
-    assert actionLines(sp) == [
+    assert actionLines(ed) == [
         "The quick brown fox jumps over",
         "the lazy dog and runs away.",
     ]
-    sp._validate()
+    ed._validate()
 
 
 def testMixedTextBreaksAtWideChars():
     # the last space is early in the line, but the text can be broken
     # after any Chinese character
     text = "他说 OK，然后" + "我们走吧" * 10
-    sp = makeScript(text)
-    lines = actionLines(sp)
+    ed = makeScript(text)
+    lines = actionLines(ed)
 
     assert lines[0] == text[:30]
     assert all(len(t) <= 30 for t in lines)
     assert "".join(lines) == text
-    sp._validate()
+    ed._validate()
 
 
 def testSwitchingRewraps():
-    sp = makeScript(CHINESE, double=False)
-    assert len(actionLines(sp)) == 2
+    ed = makeScript(CHINESE, double=False)
+    assert len(actionLines(ed)) == 2
 
-    setDoubleWidth(sp)
-    assert len(actionLines(sp)) == 3
+    setDoubleWidth(ed)
+    assert len(actionLines(ed)) == 3
 
-    setDoubleWidth(sp, False)
-    assert len(actionLines(sp)) == 2
-    sp._validate()
+    setDoubleWidth(ed, False)
+    assert len(actionLines(ed)) == 2
+    ed._validate()
 
 
 def testCenterOffset():
-    sp = makeScript("中文")
-    i = sp.getElemFirstIndexFromLine(len(sp.lines) - 1)
+    ed = makeScript("中文")
+    i = ed.sp.getElemFirstIndexFromLine(len(ed.sp.lines) - 1)
 
-    with mock.patch.object(sp, "isCentered", return_value=True):
+    with mock.patch.object(ed.sp, "isCentered", return_value=True):
         # 2 characters take 4 of the 60 columns
-        assert sp.getCenterOffset(i) == 28.0
+        assert ed.sp.getCenterOffset(i) == 28.0
 
-        setDoubleWidth(sp, False)
-        assert sp.getCenterOffset(i) == 29.0
+        setDoubleWidth(ed, False)
+        assert ed.sp.getCenterOffset(i) == 29.0
 
 
-def textOps(sp):
-    pg = render.generatePMLPage(sp, mypager.Pager(sp.cfg), 1, True, True)
+def textOps(ed):
+    pg = render.generatePMLPage(ed.sp, mypager.Pager(ed.sp.cfg), 1, True, True)
 
     return [op for op in pg.ops if isinstance(op, pml.TextOp) and (op.line != -1)]
 
@@ -165,8 +165,8 @@ def testPMLCharWidth():
 
 
 def testPDFUsesChineseFont():
-    sp = makeScript(CHINESE + " Hello")
-    doc = render.generatePML(sp)
+    ed = makeScript(CHINESE + " Hello")
+    doc = render.generatePML(ed.sp)
 
     assert pdf.unsupportedChars(doc) == ""
 
@@ -176,20 +176,20 @@ def testPDFUsesChineseFont():
 
 
 def testPDFWarnsInSingleWidth():
-    sp = makeScript(CHINESE, double=False)
+    ed = makeScript(CHINESE, double=False)
 
-    assert "他" in pdf.unsupportedChars(render.generatePML(sp))
+    assert "他" in pdf.unsupportedChars(render.generatePML(ed.sp))
 
 
 def testPDFWarnsAboutCharsNotInChineseFont():
     # Korean Hangul isn't in the Chinese font
-    sp = makeScript("한국어 中文")
+    ed = makeScript("한국어 中文")
 
-    assert pdf.unsupportedChars(render.generatePML(sp)) == "국어한"
+    assert pdf.unsupportedChars(render.generatePML(ed.sp)) == "국어한"
 
 
-def newCtrl(sp):
-    ctrl = FakeCtrl(sp)
+def newCtrl(ed):
+    ctrl = FakeCtrl(ed.sp)
     ctrl.offers = []
     ctrl.offerDoubleWidth = ctrl.offers.append
 
@@ -207,26 +207,26 @@ def callAfter(fn, *args):
 
 @mock.patch.object(wx, "CallAfter", callAfter)
 def testTypingChineseOffersOnce():
-    sp = u.new()
-    sp.lines[0].lt = scr.ACTION
-    ctrl = newCtrl(sp)
+    ed = u.newEditor()
+    ed.sp.lines[0].lt = scr.ACTION
+    ctrl = newCtrl(ed)
 
     typeChars(ctrl, "abc ä")
     assert ctrl.offers == []
 
     typeChars(ctrl, "你好")
-    assert ctrl.offers == [sp]
-    assert sp.cfg.doubleWidthAsked
+    assert ctrl.offers == [ed.sp]
+    assert ed.sp.cfg.doubleWidthAsked
 
     # asked only once
     typeChars(ctrl, "世界")
-    assert ctrl.offers == [sp]
+    assert ctrl.offers == [ed.sp]
 
 
 @mock.patch.object(wx, "CallAfter", callAfter)
 def testNoOfferInDoubleWidth():
-    sp = makeScript("x")
-    ctrl = newCtrl(sp)
+    ed = makeScript("x")
+    ctrl = newCtrl(ed)
 
     ctrl.checkWideChars("你好")
     assert ctrl.offers == []

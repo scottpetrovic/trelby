@@ -4,15 +4,15 @@ import trelby.screenplay as scr
 
 # test changing type of one element
 def testChangeOneElem():
-    sp = u.load()
-    ls = sp.lines
+    ed = u.loadEditor()
+    ls = ed.sp.lines
 
-    sp.cmd("moveDown")
+    ed.cmd("moveDown")
 
-    sp.cmd("tab")
+    ed.cmd("tab")
     assert ls[1].lt == scr.CHARACTER
 
-    sp.cmd("toPrevTypeTab")
+    ed.cmd("toPrevTypeTab")
     assert ls[1].lt == scr.ACTION
 
     functionMap = {
@@ -27,7 +27,7 @@ def testChangeOneElem():
     }
 
     for func, ele in list(functionMap.items()):
-        sp.cmd(func)
+        ed.cmd(func)
 
         assert ls[0].lt == scr.SCENE
 
@@ -46,15 +46,15 @@ def testChangeOneElem():
 # test that when text belonging to multiple elements is selected, changing
 # type changes all of those elements
 def testChangeManyElemes():
-    sp = u.load()
-    ls = sp.lines
+    ed = u.loadEditor()
+    ls = ed.sp.lines
 
     # select second and third elements
-    sp.cmd("moveDown")
-    sp.cmd("setMark")
-    sp.cmd("moveDown", count=4)
+    ed.cmd("moveDown")
+    ed.cmd("setMark")
+    ed.cmd("moveDown", count=4)
 
-    sp.cmd("toTransition")
+    ed.cmd("toTransition")
 
     assert ls[0].lt == scr.SCENE
 

@@ -9,64 +9,64 @@ translations.trelby_translations_load()
 
 
 def testMoveNextWordFromLineEnd():
-    sp = u.load()
-    sp.cmd("moveLineEnd")
-    assert (sp.line == 0) and (sp.column == len(sp.lines[0].text))
-    sp.cmd("moveNextWord")
-    assert (sp.line == 1) and (sp.column == 0)
+    ed = u.loadEditor()
+    ed.cmd("moveLineEnd")
+    assert (ed.line == 0) and (ed.column == len(ed.sp.lines[0].text))
+    ed.cmd("moveNextWord")
+    assert (ed.line == 1) and (ed.column == 0)
 
 
 def testMoveNextWordFromScriptEnd():
-    sp = u.load()
-    sp.cmd("moveEnd")
-    line, column = sp.line, sp.column
-    assert column == len(sp.lines[line].text)
-    sp.cmd("moveNextWord")
-    assert (sp.line == line) and (sp.column == column)
+    ed = u.loadEditor()
+    ed.cmd("moveEnd")
+    line, column = ed.line, ed.column
+    assert column == len(ed.sp.lines[line].text)
+    ed.cmd("moveNextWord")
+    assert (ed.line == line) and (ed.column == column)
 
 
 def testMoveNextWordOnEmptyLastLine():
-    sp = u.load()
-    sp.cmd("moveEnd")
-    sp.lines[-1].text = ""
-    sp.column = 0
-    sp.cmd("moveNextWord")
-    assert sp.line == len(sp.lines) - 1
+    ed = u.loadEditor()
+    ed.cmd("moveEnd")
+    ed.sp.lines[-1].text = ""
+    ed.column = 0
+    ed.cmd("moveNextWord")
+    assert ed.line == len(ed.sp.lines) - 1
 
 
 # run a movement command the way Shift+key does
-def _shiftCmd(sp, name):
+def _shiftCmd(ed, name):
     cs = screenplay.CommandState()
     cs.mark = True
-    getattr(sp, name + "Cmd")(cs)
-    sp.cmdPost(cs)
+    getattr(ed, name + "Cmd")(cs)
+    ed.cmdPost(cs)
 
 
 # Shift+Ctrl+Right / Left used to move without starting a selection
 def testShiftMoveNextWordSelects():
-    sp = u.load()
-    assert sp.mark is None
-    _shiftCmd(sp, "moveNextWord")
-    assert sp.mark == screenplay.Mark(0, 0)
-    assert (sp.line, sp.column) != (0, 0)
+    ed = u.loadEditor()
+    assert ed.mark is None
+    _shiftCmd(ed, "moveNextWord")
+    assert ed.mark == screenplay.Mark(0, 0)
+    assert (ed.line, ed.column) != (0, 0)
 
     # extending the selection keeps the mark where it was
-    _shiftCmd(sp, "moveNextWord")
-    assert sp.mark == screenplay.Mark(0, 0)
+    _shiftCmd(ed, "moveNextWord")
+    assert ed.mark == screenplay.Mark(0, 0)
 
 
 def testShiftMovePrevWordSelects():
-    sp = u.load()
-    sp.gotoPos(1, 0)
-    sp.cmd("moveLineEnd")
-    end = len(sp.lines[1].text)
-    _shiftCmd(sp, "movePrevWord")
-    assert sp.mark == screenplay.Mark(1, end)
-    assert (sp.line == 1) and (sp.column < end)
+    ed = u.loadEditor()
+    ed.gotoPos(1, 0)
+    ed.cmd("moveLineEnd")
+    end = len(ed.sp.lines[1].text)
+    _shiftCmd(ed, "movePrevWord")
+    assert ed.mark == screenplay.Mark(1, end)
+    assert (ed.line == 1) and (ed.column < end)
 
 
 def testMoveWordWithoutShiftDoesntSelect():
-    sp = u.load()
-    sp.cmd("moveNextWord")
-    sp.cmd("movePrevWord")
-    assert sp.mark is None
+    ed = u.loadEditor()
+    ed.cmd("moveNextWord")
+    ed.cmd("movePrevWord")
+    assert ed.mark is None

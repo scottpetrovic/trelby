@@ -138,9 +138,9 @@ class Dict:
         return word[0]
 
 
-# spell check a script
+# spell check a script, starting from the given line
 class SpellChecker:
-    def __init__(self, sp, gScDict):
+    def __init__(self, sp, gScDict, line=0):
         self.sp = sp
 
         # user's global dictionary (Dict)
@@ -155,7 +155,7 @@ class SpellChecker:
                 self.cnames[w] = None
 
         self.word = None
-        self.line = self.sp.line
+        self.line = line
 
         # we can't use the current column, because if the cursor is in the
         # middle of a word, we flag the partial word as misspelled.

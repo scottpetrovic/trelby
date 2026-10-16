@@ -77,7 +77,7 @@ def dualScript():
 
 def testImportFDXDualDialogue(tmp_path) -> None:
     path = tmp_path / "dual.fdx"
-    path.write_bytes(export.generateFDX(dualScript()))
+    path.write_bytes(export.generateFDX(dualScript().sp))
 
     lines = myimport.importFDX(str(path), mock.Mock())
 
@@ -86,7 +86,7 @@ def testImportFDXDualDialogue(tmp_path) -> None:
 
 def testImportFountainDualDialogue(tmp_path) -> None:
     path = tmp_path / "dual.fountain"
-    path.write_text(export.generateFountain(dualScript()), encoding="UTF-8")
+    path.write_text(export.generateFountain(dualScript().sp), encoding="UTF-8")
 
     dlg = mock.Mock()
     dlg.ShowModal.return_value = myimport.wx.ID_OK

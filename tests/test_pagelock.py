@@ -24,31 +24,31 @@ def makeScript(scenes=8, actions=12):
 
         lines.append(".%%Note for scene %d." % (s + 1))
 
-    sp = u.loadString("\n".join(lines))
-    sp.paginate()
+    ed = u.loadStringEditor("\n".join(lines))
+    ed.sp.paginate()
 
-    return sp
+    return ed
 
 
 # return a locked script
 def makeLocked(**kwargs):
-    sp = makeScript(**kwargs)
-    sp.lockPages()
+    ed = makeScript(**kwargs)
+    ed.lockPages()
 
-    return sp
+    return ed
 
 
 # return text of the first line of the page with the given label
-def firstText(sp, label):
-    p = sp.label2page(label)
+def firstText(ed, label):
+    p = ed.sp.label2page(label)
     assert p != -1
 
-    return sp.lines[sp.page2lines(p)[0]].text
+    return ed.sp.lines[ed.sp.page2lines(p)[0]].text
 
 
 # return {label: text of first line of that page} for all pages
-def pageStarts(sp):
-    return {label: firstText(sp, label) for label in sp.getPageNumbers()}
+def pageStarts(ed):
+    return {label: firstText(ed, label) for label in ed.sp.getPageNumbers()}
 
 
 def testSegmentLabels():
@@ -117,57 +117,57 @@ def testOrderedLocks():
 
 
 def testUnlockedLabels():
-    sp = makeScript()
-    pageCnt = len(sp.pages) - 1
+    ed = makeScript()
+    pageCnt = len(ed.sp.pages) - 1
 
     assert pageCnt > 3
-    assert sp.getPageNumbers() == [str(p) for p in range(1, pageCnt + 1)]
-    assert not sp.hasPageLocks()
+    assert ed.sp.getPageNumbers() == [str(p) for p in range(1, pageCnt + 1)]
+    assert not ed.sp.hasPageLocks()
 
 
 def testLockKeepsPagination():
-    sp = makeScript()
-    pages = list(sp.pages)
-    labels = list(sp.pageLabels)
+    ed = makeScript()
+    pages = list(ed.sp.pages)
+    labels = list(ed.sp.pageLabels)
 
-    sp.lockPages()
+    ed.lockPages()
 
-    assert sp.hasPageLocks()
-    assert sp.pages == pages
-    assert sp.pageLabels == labels
-    assert [ln.pageLock for ln in sp.lines if ln.pageLock] == labels[1:]
+    assert ed.sp.hasPageLocks()
+    assert ed.sp.pages == pages
+    assert ed.sp.pageLabels == labels
+    assert [ln.pageLock for ln in ed.sp.lines if ln.pageLock] == labels[1:]
 
 
 def testAddTextCreatesAPages():
-    sp = makeLocked()
-    starts = pageStarts(sp)
-    pageCnt = len(sp.pages) - 1
+    ed = makeLocked()
+    starts = pageStarts(ed)
+    pageCnt = len(ed.sp.pages) - 1
 
     # add a lot of text in the middle of page 2
-    start, end = sp.page2lines(2)
-    sp.gotoPos((start + end) // 2, 0)
-    sp.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
-    sp.paginate()
-    sp._validate()
+    start, end = ed.sp.page2lines(2)
+    ed.gotoPos((start + end) // 2, 0)
+    ed.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
+    ed.sp.paginate()
+    ed._validate()
 
-    labels = sp.getPageNumbers()
+    labels = ed.sp.getPageNumbers()
     assert labels[:4] == ["1", "2", "2A", "2B"]
     assert labels[4:] == [str(p) for p in range(3, pageCnt + 1)]
 
     # all the original pages still start with the same text
     for label, text in starts.items():
-        assert firstText(sp, label) == text
+        assert firstText(ed, label) == text
 
 
 def testAddTextAtEnd():
-    sp = makeLocked()
-    labels = sp.getPageNumbers()
+    ed = makeLocked()
+    labels = ed.sp.getPageNumbers()
 
-    sp.gotoPos(len(sp.lines) - 1, len(sp.lines[-1].text))
-    sp.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(80)])
-    sp.paginate()
+    ed.gotoPos(len(ed.sp.lines) - 1, len(ed.sp.lines[-1].text))
+    ed.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(80)])
+    ed.sp.paginate()
 
-    newLabels = sp.getPageNumbers()
+    newLabels = ed.sp.getPageNumbers()
     added = len(newLabels) - len(labels)
 
     assert added >= 2
@@ -176,205 +176,205 @@ def testAddTextAtEnd():
 
 
 def testDeleteTextLeavesGap():
-    sp = makeLocked()
-    starts = pageStarts(sp)
-    labels = sp.getPageNumbers()
-    start, end = sp.page2lines(2)
+    ed = makeLocked()
+    starts = pageStarts(ed)
+    labels = ed.sp.getPageNumbers()
+    start, end = ed.sp.page2lines(2)
 
     # delete the middle of page 2
-    sp.setMark(start + 4, 0)
-    sp.gotoPos(end - 4, 0)
-    sp.getSelectedAsCD(True)
-    sp.paginate()
-    sp._validate()
+    ed.setMark(start + 4, 0)
+    ed.gotoPos(end - 4, 0)
+    ed.getSelectedAsCD(True)
+    ed.sp.paginate()
+    ed._validate()
 
-    assert sp.getPageNumbers() == labels
-    assert pageStarts(sp) == starts
+    assert ed.sp.getPageNumbers() == labels
+    assert pageStarts(ed) == starts
 
-    newStart, newEnd = sp.page2lines(2)
+    newStart, newEnd = ed.sp.page2lines(2)
     assert newStart == start
     assert newEnd < end
 
 
 def testDeleteFirstLineOfPage():
-    sp = makeLocked()
-    labels = sp.getPageNumbers()
-    start, end = sp.page2lines(3)
-    second = sp.lines[start + 1].text
+    ed = makeLocked()
+    labels = ed.sp.getPageNumbers()
+    start, end = ed.sp.page2lines(3)
+    second = ed.sp.lines[start + 1].text
 
     # delete the first element on page 3; page 3 now starts with what was
     # its second line
-    assert sp.lines[start].lb == scr.LB_LAST
+    assert ed.sp.lines[start].lb == scr.LB_LAST
 
-    sp.setMark(start, 0)
-    sp.gotoPos(start, len(sp.lines[start].text) - 1)
-    sp.getSelectedAsCD(True)
-    sp.paginate()
-    sp._validate()
+    ed.setMark(start, 0)
+    ed.gotoPos(start, len(ed.sp.lines[start].text) - 1)
+    ed.getSelectedAsCD(True)
+    ed.sp.paginate()
+    ed._validate()
 
-    assert sp.getPageNumbers() == labels
-    assert firstText(sp, "3") == second
+    assert ed.sp.getPageNumbers() == labels
+    assert firstText(ed, "3") == second
 
 
 def testDeleteWholePageCombines():
-    sp = makeLocked()
-    start, end = sp.page2lines(2)
-    page3 = firstText(sp, "3")
+    ed = makeLocked()
+    start, end = ed.sp.page2lines(2)
+    page3 = firstText(ed, "3")
 
-    sp.setMark(start, 0)
-    sp.gotoPos(end, len(sp.lines[end].text))
-    sp.getSelectedAsCD(True)
-    sp.paginate()
-    sp._validate()
+    ed.setMark(start, 0)
+    ed.gotoPos(end, len(ed.sp.lines[end].text))
+    ed.getSelectedAsCD(True)
+    ed.sp.paginate()
+    ed._validate()
 
-    labels = sp.getPageNumbers()
+    labels = ed.sp.getPageNumbers()
     assert labels[:3] == ["1", "2-3", "4"]
-    assert firstText(sp, "2-3") == page3
+    assert firstText(ed, "2-3") == page3
 
 
 def testTypingKeepsLock():
-    sp = makeLocked()
-    start = sp.page2lines(3)[0]
+    ed = makeLocked()
+    start = ed.sp.page2lines(3)[0]
 
-    sp.gotoPos(start, 0)
+    ed.gotoPos(start, 0)
 
     for ch in "Inserted text that is long enough to wrap to more lines. " * 3:
-        sp.cmd("addChar", char=ch)
+        ed.cmd("addChar", char=ch)
 
-    sp.paginate()
-    sp._validate()
+    ed.sp.paginate()
+    ed._validate()
 
-    assert sp.lines[start].pageLock == "3"
-    assert firstText(sp, "3").startswith("Inserted")
+    assert ed.sp.lines[start].pageLock == "3"
+    assert firstText(ed, "3").startswith("Inserted")
 
 
 def testRewrapMovesLock():
-    sp = makeScript()
+    ed = makeScript()
 
     # lock a page to start in the middle of a multi-line element
-    sp.gotoPos(1, len(sp.lines[1].text))
+    ed.gotoPos(1, len(ed.sp.lines[1].text))
     for ch in " more words" * 20:
-        sp.cmd("addChar", char=ch)
+        ed.cmd("addChar", char=ch)
 
-    assert sp.lines[2].lb != scr.LB_LAST
-    text = sp.lines[2].text
-    sp.lines[2].pageLock = "2"
+    assert ed.sp.lines[2].lb != scr.LB_LAST
+    text = ed.sp.lines[2].text
+    ed.sp.lines[2].pageLock = "2"
 
     # make the element's first line shorter, which moves text from the
     # line with the lock up
-    sp.gotoPos(1, 0)
+    ed.gotoPos(1, 0)
     for i in range(10):
-        sp.cmd("deleteForward")
+        ed.cmd("deleteForward")
 
-    lockLines = [i for i, ln in enumerate(sp.lines) if ln.pageLock]
+    lockLines = [i for i, ln in enumerate(ed.sp.lines) if ln.pageLock]
     assert len(lockLines) == 1
 
     # the lock is on the line now containing the start of the old text
-    ln = sp.lines[lockLines[0]]
-    nextLn = sp.lines[lockLines[0] + 1]
+    ln = ed.sp.lines[lockLines[0]]
+    nextLn = ed.sp.lines[lockLines[0] + 1]
     assert text.split()[0] in ln.text + " " + nextLn.text
 
 
 def testJoinWithPrevElement():
-    sp = makeLocked()
-    start = sp.page2lines(3)[0]
-    text = sp.lines[start].text
+    ed = makeLocked()
+    start = ed.sp.page2lines(3)[0]
+    text = ed.sp.lines[start].text
 
     # page 3 starts with an action; joining it with the previous element
     # keeps page 3 starting at the line containing its text
-    assert sp.lines[start].lt == scr.ACTION
-    assert sp.lines[start - 1].lt == scr.ACTION
+    assert ed.sp.lines[start].lt == scr.ACTION
+    assert ed.sp.lines[start - 1].lt == scr.ACTION
 
-    sp.gotoPos(start, 0)
-    sp.cmd("deleteBackward")
-    sp.paginate()
-    sp._validate()
+    ed.gotoPos(start, 0)
+    ed.cmd("deleteBackward")
+    ed.sp.paginate()
+    ed._validate()
 
-    assert text.split()[0] in firstText(sp, "3")
-    assert sp.getPageNumbers()[:3] == ["1", "2", "3"]
+    assert text.split()[0] in firstText(ed, "3")
+    assert ed.sp.getPageNumbers()[:3] == ["1", "2", "3"]
 
 
 def testUndoRedo():
-    sp = makeLocked()
-    pages = list(sp.pages)
-    labels = list(sp.pageLabels)
+    ed = makeLocked()
+    pages = list(ed.sp.pages)
+    labels = list(ed.sp.pageLabels)
 
-    start, end = sp.page2lines(2)
-    sp.setMark(start, 0)
-    sp.gotoPos(end, len(sp.lines[end].text))
-    sp.getSelectedAsCD(True)
-    sp.paginate()
-    assert sp.pageLabels != labels
+    start, end = ed.sp.page2lines(2)
+    ed.setMark(start, 0)
+    ed.gotoPos(end, len(ed.sp.lines[end].text))
+    ed.getSelectedAsCD(True)
+    ed.sp.paginate()
+    assert ed.sp.pageLabels != labels
 
-    sp.cmd("undo")
-    sp.paginate()
-    assert sp.pages == pages
-    assert sp.pageLabels == labels
+    ed.cmd("undo")
+    ed.sp.paginate()
+    assert ed.sp.pages == pages
+    assert ed.sp.pageLabels == labels
 
-    sp.cmd("redo")
-    sp.paginate()
-    assert sp.getPageNumbers()[1] == "2-3"
+    ed.cmd("redo")
+    ed.sp.paginate()
+    assert ed.sp.getPageNumbers()[1] == "2-3"
 
 
 def testUndoLock():
-    sp = makeScript()
-    sp.lockPages()
-    sp.cmd("undo")
+    ed = makeScript()
+    ed.lockPages()
+    ed.cmd("undo")
 
-    assert not sp.hasPageLocks()
+    assert not ed.sp.hasPageLocks()
 
-    sp.cmd("redo")
+    ed.cmd("redo")
 
-    assert sp.hasPageLocks()
+    assert ed.sp.hasPageLocks()
 
 
 def testUnlock():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    start, end = sp.page2lines(2)
-    sp.gotoPos((start + end) // 2, 0)
-    sp.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
-    sp.paginate()
-    assert "2A" in sp.getPageNumbers()
+    start, end = ed.sp.page2lines(2)
+    ed.gotoPos((start + end) // 2, 0)
+    ed.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
+    ed.sp.paginate()
+    assert "2A" in ed.sp.getPageNumbers()
 
-    sp.unlockPages()
+    ed.unlockPages()
 
-    assert not sp.hasPageLocks()
-    pageCnt = len(sp.pages) - 1
-    assert sp.getPageNumbers() == [str(p) for p in range(1, pageCnt + 1)]
+    assert not ed.sp.hasPageLocks()
+    pageCnt = len(ed.sp.pages) - 1
+    assert ed.sp.getPageNumbers() == [str(p) for p in range(1, pageCnt + 1)]
 
 
 def testRelockLocksAPages():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    start, end = sp.page2lines(2)
-    sp.gotoPos((start + end) // 2, 0)
-    sp.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
-    sp.paginate()
+    start, end = ed.sp.page2lines(2)
+    ed.gotoPos((start + end) // 2, 0)
+    ed.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
+    ed.sp.paginate()
 
-    labels = sp.getPageNumbers()
-    sp.lockPages()
+    labels = ed.sp.getPageNumbers()
+    ed.lockPages()
 
-    assert sp.getPageNumbers() == labels
-    assert sum(1 for ln in sp.lines if ln.pageLock) == len(labels)
+    assert ed.sp.getPageNumbers() == labels
+    assert sum(1 for ln in ed.sp.lines if ln.pageLock) == len(labels)
 
 
 def testSaveLoad():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    start, end = sp.page2lines(2)
-    sp.gotoPos((start + end) // 2, 0)
-    sp.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
-    sp.paginate()
+    start, end = ed.sp.page2lines(2)
+    ed.gotoPos((start + end) // 2, 0)
+    ed.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
+    ed.sp.paginate()
 
-    data = sp.save().decode("UTF-8")
+    data = ed.save().decode("UTF-8")
     assert "#Page-Lock 2\n" in data
 
-    sp2 = u.loadString(data)
+    ed2 = u.loadStringEditor(data)
 
-    assert sp2.pages == sp.pages
-    assert sp2.getPageNumbers() == sp.getPageNumbers()
-    assert [ln.pageLock for ln in sp2.lines] == [ln.pageLock for ln in sp.lines]
+    assert ed2.sp.pages == ed.sp.pages
+    assert ed2.sp.getPageNumbers() == ed.sp.getPageNumbers()
+    assert [ln.pageLock for ln in ed2.sp.lines] == [ln.pageLock for ln in ed.sp.lines]
 
 
 def testLoadIgnoresInvalidLock():
@@ -395,12 +395,12 @@ def testLoadIgnoresInvalidLock():
 
 
 def testCopyDoesNotCopyLocks():
-    sp = makeLocked()
-    start, end = sp.page2lines(2)
+    ed = makeLocked()
+    start, end = ed.sp.page2lines(2)
 
-    sp.setMark(start, 0)
-    sp.gotoPos(end, 0)
-    cd = sp.getSelectedAsCD(False)
+    ed.setMark(start, 0)
+    ed.gotoPos(end, 0)
+    cd = ed.getSelectedAsCD(False)
 
     assert not any(ln.pageLock for ln in cd.lines)
 
@@ -408,43 +408,43 @@ def testCopyDoesNotCopyLocks():
 def testDeepcopyKeepsLocks():
     import copy
 
-    sp = makeLocked()
-    sp2 = copy.deepcopy(sp)
+    ed = makeLocked()
+    ed2 = copy.deepcopy(ed)
 
-    assert [ln.pageLock for ln in sp2.lines] == [ln.pageLock for ln in sp.lines]
+    assert [ln.pageLock for ln in ed2.sp.lines] == [ln.pageLock for ln in ed.sp.lines]
 
 
 def testRemoveNotesKeepsLocks():
-    sp = makeScript()
+    ed = makeScript()
 
     # a page starting with a note starts with the line after it once
     # notes are removed (as is done when printing without notes)
-    note = [i for i, ln in enumerate(sp.lines) if ln.lt == scr.NOTE][2]
-    nextText = sp.lines[note + 1].text
+    note = [i for i, ln in enumerate(ed.sp.lines) if ln.lt == scr.NOTE][2]
+    nextText = ed.sp.lines[note + 1].text
 
-    sp.lines[0].pageLock = "1"
-    sp.lines[note].pageLock = "2"
+    ed.sp.lines[0].pageLock = "1"
+    ed.sp.lines[note].pageLock = "2"
 
-    sp.removeElementTypes({scr.NOTE: None}, False)
-    sp.paginate()
+    ed.removeElementTypes({scr.NOTE: None}, False)
+    ed.sp.paginate()
 
-    assert "2" in sp.getPageNumbers()
-    assert firstText(sp, "2") == nextText
+    assert "2" in ed.sp.getPageNumbers()
+    assert firstText(ed, "2") == nextText
 
 
 def testMoveSceneLeavesLocks():
-    sp = makeLocked()
-    starts = sp.getOutlineStarts()
+    ed = makeLocked()
+    starts = ed.sp.getOutlineStarts()
 
     # find a scene (not the last one) containing a page start
     for idx in range(1, len(starts) - 1):
-        moved = sp.lines[starts[idx] : starts[idx + 1]]
+        moved = ed.sp.lines[starts[idx] : starts[idx + 1]]
         movedLocks = [ln.pageLock for ln in moved if ln.pageLock]
 
         if movedLocks:
             break
 
-    following = sp.lines[starts[idx + 1]]
+    following = ed.sp.lines[starts[idx + 1]]
     expected = movedLocks[0]
 
     for label in movedLocks[1:] + [following.pageLock]:
@@ -453,73 +453,73 @@ def testMoveSceneLeavesLocks():
 
     # move it to the end. its pages stay where they were, now starting
     # with the scene that followed it.
-    sp.moveSceneTo(starts[idx], len(starts) - 1)
-    sp.paginate()
-    sp._validate()
+    ed.moveSceneTo(starts[idx], len(starts) - 1)
+    ed.sp.paginate()
+    ed._validate()
 
     assert following.pageLock == expected
     assert not any(ln.pageLock for ln in moved)
 
-    allLocks = [(i, ln.pageLock) for i, ln in enumerate(sp.lines) if ln.pageLock]
-    assert sp.getPageLocks() == allLocks
+    allLocks = [(i, ln.pageLock) for i, ln in enumerate(ed.sp.lines) if ln.pageLock]
+    assert ed.sp.getPageLocks() == allLocks
 
 
 def testOutOfOrderLocksIgnored():
-    sp = makeLocked(scenes=20)
-    labels = sp.getPageNumbers()
-    start = sp.page2lines(2)[0]
+    ed = makeLocked(scenes=20)
+    labels = ed.sp.getPageNumbers()
+    start = ed.sp.page2lines(2)[0]
 
     assert len(labels) > 6
 
     # a stray lock for a later page in the middle of page 2
-    sp.lines[start + 3].pageLock = "5"
-    sp.paginate()
+    ed.sp.lines[start + 3].pageLock = "5"
+    ed.sp.paginate()
 
-    assert sp.getPageNumbers() == labels
+    assert ed.sp.getPageNumbers() == labels
 
 
 def testLinesBeforeFirstLock():
-    sp = makeLocked()
+    ed = makeLocked()
 
     # put text before page 1
-    sp.lines[0].pageLock = None
-    sp.lines[2].pageLock = "1"
-    sp.paginate()
+    ed.sp.lines[0].pageLock = None
+    ed.sp.lines[2].pageLock = "1"
+    ed.sp.paginate()
 
-    assert sp.getPageNumbers()[:3] == ["A1", "1", "2"]
-    assert firstText(sp, "1") == sp.lines[2].text
+    assert ed.sp.getPageNumbers()[:3] == ["A1", "1", "2"]
+    assert firstText(ed, "1") == ed.sp.lines[2].text
 
 
 def testHeaderShowsLabel():
-    sp = makeScript()
-    sp.headers.addDefaults()
-    sp.paginate()
-    sp.lockPages()
+    ed = makeScript()
+    ed.sp.headers.addDefaults()
+    ed.sp.paginate()
+    ed.lockPages()
 
-    start, end = sp.page2lines(2)
-    sp.gotoPos((start + end) // 2, 0)
-    sp.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
-    sp.paginate()
+    start, end = ed.sp.page2lines(2)
+    ed.gotoPos((start + end) // 2, 0)
+    ed.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
+    ed.sp.paginate()
 
-    doc = render.generatePML(sp)
+    doc = render.generatePML(ed.sp)
     texts = [
         " ".join(op.text for op in pg.ops if hasattr(op, "text"))
         for pg in doc.pages
     ]
 
-    p = sp.label2page("2A")
+    p = ed.sp.label2page("2A")
     assert "2A." in texts[p - 1]
 
 
 def testLabel2Page():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    start, end = sp.page2lines(2)
-    sp.gotoPos((start + end) // 2, 0)
-    sp.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
-    sp.paginate()
+    start, end = ed.sp.page2lines(2)
+    ed.gotoPos((start + end) // 2, 0)
+    ed.paste([Line(scr.LB_LAST, scr.ACTION, "New action %d." % i) for i in range(40)])
+    ed.sp.paginate()
 
-    assert sp.label2page("2a") == 3
-    assert sp.label2page(" 2A ") == 3
-    assert sp.label2page("nope") == -1
-    assert sp.line2pageLabel(sp.page2lines(3)[0]) == "2A"
+    assert ed.sp.label2page("2a") == 3
+    assert ed.sp.label2page(" 2A ") == 3
+    assert ed.sp.label2page("nope") == -1
+    assert ed.sp.line2pageLabel(ed.sp.page2lines(3)[0]) == "2A"

@@ -7,7 +7,7 @@ _ = translations.trelby_translations_load()
 
 
 def loadLines(lines):
-    return u.loadString("\n".join(["#Version 3", "#Start-Script "] + lines))
+    return u.loadStringEditor("\n".join(["#Version 3", "#Start-Script "] + lines))
 
 
 def loadSmall():
@@ -26,34 +26,34 @@ def loadSmall():
     )
 
 
-def colors(sp):
-    return [it.color for it in sp.getOutline()]
+def colors(ed):
+    return [it.color for it in ed.sp.getOutline()]
 
 
-def saved(sp):
-    return sp.save().decode("UTF-8")
+def saved(ed):
+    return ed.save().decode("UTF-8")
 
 
 def testLoad():
-    sp = loadSmall()
+    ed = loadSmall()
 
     # stored lower-case
-    assert colors(sp) == ["ffb3b3", None, "c5f0b8", None]
+    assert colors(ed) == ["ffb3b3", None, "c5f0b8", None]
 
 
 def testSaveRoundTrip():
-    sp = loadSmall()
-    s = saved(sp)
+    ed = loadSmall()
+    s = saved(ed)
 
     assert "#Scene-Color ffb3b3\n.\\int. kitchen - day\n" in s
     assert "#Scene-Color c5f0b8\n.@Act two\n" in s
     assert s.count("#Scene-Color") == 2
 
-    assert colors(u.loadString(s)) == colors(sp)
+    assert colors(u.loadStringEditor(s)) == colors(ed)
 
 
 def testInvalidIgnored():
-    sp = loadLines(
+    ed = loadLines(
         [
             "#Scene-Color nothex",
             ".\\int. kitchen - day",
@@ -63,86 +63,86 @@ def testInvalidIgnored():
         ]
     )
 
-    assert colors(sp) == [None]
-    assert "#Scene-Color" not in saved(sp)
+    assert colors(ed) == [None]
+    assert "#Scene-Color" not in saved(ed)
 
 
 def testSetSceneColor():
-    sp = loadSmall()
+    ed = loadSmall()
 
     # any line inside the scene works
-    assert sp.setSceneColor(4, "B8D4FF")
-    assert colors(sp) == ["ffb3b3", "b8d4ff", "c5f0b8", None]
-    assert sp.isModified()
+    assert ed.setSceneColor(4, "B8D4FF")
+    assert colors(ed) == ["ffb3b3", "b8d4ff", "c5f0b8", None]
+    assert ed.sp.isModified()
 
-    assert sp.setSceneColor(1, None)
-    assert colors(sp) == [None, "b8d4ff", "c5f0b8", None]
+    assert ed.setSceneColor(1, None)
+    assert colors(ed) == [None, "b8d4ff", "c5f0b8", None]
 
 
 def testSetSceneColorNoChange():
-    sp = loadSmall()
+    ed = loadSmall()
 
-    assert not sp.setSceneColor(1, "ffb3b3")
+    assert not ed.setSceneColor(1, "ffb3b3")
     # before the first scene
-    assert not sp.setSceneColor(0, "ffb3b3")
-    assert not sp.undoHistory.canUndo()
+    assert not ed.setSceneColor(0, "ffb3b3")
+    assert not ed.undoHistory.canUndo()
 
 
 def testSetSceneColorUndoRedo():
-    sp = loadSmall()
+    ed = loadSmall()
 
-    sp.setSceneColor(3, "b8d4ff")
-    sp.cmd("undo")
-    assert colors(sp) == ["ffb3b3", None, "c5f0b8", None]
+    ed.setSceneColor(3, "b8d4ff")
+    ed.cmd("undo")
+    assert colors(ed) == ["ffb3b3", None, "c5f0b8", None]
 
-    sp.cmd("redo")
-    assert colors(sp) == ["ffb3b3", "b8d4ff", "c5f0b8", None]
+    ed.cmd("redo")
+    assert colors(ed) == ["ffb3b3", "b8d4ff", "c5f0b8", None]
 
 
 def testColorMovesWithScene():
-    sp = loadSmall()
+    ed = loadSmall()
 
-    assert sp.moveSceneTo(1, 3)
-    assert colors(sp) == [None, "c5f0b8", None, "ffb3b3"]
+    assert ed.moveSceneTo(1, 3)
+    assert colors(ed) == [None, "c5f0b8", None, "ffb3b3"]
 
-    sp.cmd("undo")
-    assert colors(sp) == ["ffb3b3", None, "c5f0b8", None]
+    ed.cmd("undo")
+    assert colors(ed) == ["ffb3b3", None, "c5f0b8", None]
 
 
 def testColorSurvivesEditingHeading():
-    sp = loadSmall()
+    ed = loadSmall()
 
-    sp.gotoPos(1, len(sp.lines[1].text))
-    sp.cmdChars(" and a very long description of the place" * 3)
+    ed.gotoPos(1, len(ed.sp.lines[1].text))
+    ed.cmdChars(" and a very long description of the place" * 3)
 
-    assert len(sp.getOutline()[0].heading) > 60
-    assert colors(sp)[0] == "ffb3b3"
-    sp._validate()
+    assert len(ed.sp.getOutline()[0].heading) > 60
+    assert colors(ed)[0] == "ffb3b3"
+    ed._validate()
 
 
 def testColorIgnoredWhenNotSceneHeading():
-    sp = loadSmall()
+    ed = loadSmall()
 
     # turn the colored scene heading into an action
-    sp.gotoPos(1, 0)
-    sp.convertTypeTo(sp.lines[2].lt, True)
+    ed.gotoPos(1, 0)
+    ed.convertTypeTo(ed.sp.lines[2].lt, True)
 
-    assert "#Scene-Color ffb3b3" not in saved(sp)
+    assert "#Scene-Color ffb3b3" not in saved(ed)
 
 
 def testCopyPasteKeepsColor():
-    sp = loadSmall()
+    ed = loadSmall()
 
     # copy the colored scene heading and paste it as a new element at the
     # end of the script
-    sp.gotoPos(1, 0)
-    sp.cmd("setMark")
-    sp.gotoPos(1, len(sp.lines[1].text))
-    cd = sp.getSelectedAsCD(False)
+    ed.gotoPos(1, 0)
+    ed.cmd("setMark")
+    ed.gotoPos(1, len(ed.sp.lines[1].text))
+    cd = ed.getSelectedAsCD(False)
 
-    sp.clearMark()
-    sp.gotoPos(len(sp.lines) - 1, len(sp.lines[-1].text))
-    sp.splitElement(sp.lines[1].lt)
-    sp.paste(cd.lines)
+    ed.clearMark()
+    ed.gotoPos(len(ed.sp.lines) - 1, len(ed.sp.lines[-1].text))
+    ed.splitElement(ed.sp.lines[1].lt)
+    ed.paste(cd.lines)
 
-    assert colors(sp) == ["ffb3b3", None, "c5f0b8", None, "ffb3b3"]
+    assert colors(ed) == ["ffb3b3", None, "c5f0b8", None, "ffb3b3"]

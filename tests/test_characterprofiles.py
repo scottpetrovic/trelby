@@ -128,10 +128,10 @@ def test_badData():
 def test_scriptRoundTrip():
     u.init()
 
-    sp = u.load()
-    sp.characterProfiles = makeProfiles()
+    ed = u.loadEditor()
+    ed.sp.characterProfiles = makeProfiles()
 
-    data = sp.save().decode("UTF-8")
+    data = ed.save().decode("UTF-8")
     lines = data.splitlines()
 
     # the section must come before the script and its lines must look like
@@ -144,30 +144,30 @@ def test_scriptRoundTrip():
         assert len(line) >= 2
         assert not line.startswith("#")
 
-    sp2 = u.loadString(data)
-    checkSame(sp.characterProfiles, sp2.characterProfiles)
+    ed2 = u.loadStringEditor(data)
+    checkSame(ed.sp.characterProfiles, ed2.sp.characterProfiles)
 
     # saving again gives the same file
-    assert sp2.save().decode("UTF-8") == data
+    assert ed2.save().decode("UTF-8") == data
 
 
 def test_noProfilesNoSection():
-    sp = u.load()
+    ed = u.loadEditor()
 
-    assert "Character-Profiles" not in sp.save().decode("UTF-8")
-    assert sp.characterProfiles.profiles == []
+    assert "Character-Profiles" not in ed.save().decode("UTF-8")
+    assert ed.sp.characterProfiles.profiles == []
 
 
 def test_deepcopy():
     import copy
 
-    sp = u.load()
-    sp.characterProfiles = makeProfiles()
+    ed = u.loadEditor()
+    ed.sp.characterProfiles = makeProfiles()
 
-    sp2 = copy.deepcopy(sp)
-    sp2.characterProfiles.profiles[0].notes = "changed"
+    ed2 = copy.deepcopy(ed)
+    ed2.sp.characterProfiles.profiles[0].notes = "changed"
 
-    assert sp.characterProfiles.profiles[0].notes.startswith("Age: 42")
+    assert ed.sp.characterProfiles.profiles[0].notes.startswith("Age: 42")
 
 
 def test_randomNames():
@@ -192,7 +192,7 @@ def test_randomNames():
 
 
 def loadRenameScript():
-    return u.loadString(
+    return u.loadStringEditor(
         "\n".join(
             [
                 "#Version 3",
@@ -210,37 +210,37 @@ def loadRenameScript():
     )
 
 
-def texts(sp):
-    return [ln.text for ln in sp.lines]
+def texts(ed):
+    return [ln.text for ln in ed.sp.lines]
 
 
 def test_rename():
-    sp = loadRenameScript()
+    ed = loadRenameScript()
 
-    assert sp.renameCharacters(
+    assert ed.renameCharacters(
         {"BOB": "ROBERT", "MARY JANE": "MARY-ANNE O'NEIL"}
     ) == (2, 4)
 
-    t = " ".join(texts(sp))
+    t = " ".join(texts(ed))
 
     assert "INT. ROBERT'S HOUSE - DAY" in t
     assert "Robert and Mary-Anne O'Neil enter. MARY sits. Bobby waves." in t
     assert "MARY-ANNE O'NEIL (V.O.)" in t
     assert "Robert's here." in t
     assert "Hi, Mary." in t
-    assert sp.isModified()
+    assert ed.sp.isModified()
 
-    names = sorted(sp.getCharacterNames())
+    names = sorted(ed.sp.getCharacterNames())
     assert names == ["mary", "mary-anne o'neil (v.o.)", "robert"]
 
 
 def test_renameKeepsOtherNames():
-    sp = loadRenameScript()
+    ed = loadRenameScript()
 
     # "Mary" in "Mary Jane" is part of another character's name
-    assert sp.renameCharacters({"MARY": "SUE"}) == (1, 2)
+    assert ed.renameCharacters({"MARY": "SUE"}) == (1, 2)
 
-    t = " ".join(texts(sp))
+    t = " ".join(texts(ed))
 
     assert "Bob and Mary Jane enter. SUE sits." in t
     assert "Hi, Sue." in t
@@ -248,43 +248,43 @@ def test_renameKeepsOtherNames():
 
 
 def test_renameSwap():
-    sp = loadRenameScript()
+    ed = loadRenameScript()
 
-    assert sp.renameCharacters({"BOB": "MARY", "MARY": "BOB"}) == (2, 5)
-    assert sorted(sp.getCharacterNames()) == ["bob", "mary", "mary jane (v.o.)"]
-    assert texts(sp)[1] == "Mary and Mary Jane enter. BOB sits. Bobby waves."
-    assert texts(sp)[2] == "MARY"
-    assert texts(sp)[3] == "Hi, Bob."
-    assert texts(sp)[6] == "BOB"
+    assert ed.renameCharacters({"BOB": "MARY", "MARY": "BOB"}) == (2, 5)
+    assert sorted(ed.sp.getCharacterNames()) == ["bob", "mary", "mary jane (v.o.)"]
+    assert texts(ed)[1] == "Mary and Mary Jane enter. BOB sits. Bobby waves."
+    assert texts(ed)[2] == "MARY"
+    assert texts(ed)[3] == "Hi, Bob."
+    assert texts(ed)[6] == "BOB"
 
 
 def test_renameNothing():
-    sp = loadRenameScript()
+    ed = loadRenameScript()
 
-    assert sp.renameCharacters({"NOBODY": "SOMEBODY"}) == (0, 0)
-    assert sp.renameCharacters({"BOB": "BOB"}) == (0, 0)
-    assert not sp.undoHistory.canUndo()
+    assert ed.renameCharacters({"NOBODY": "SOMEBODY"}) == (0, 0)
+    assert ed.renameCharacters({"BOB": "BOB"}) == (0, 0)
+    assert not ed.undoHistory.canUndo()
 
 
 def test_renameUndo():
-    sp = loadRenameScript()
-    before = texts(sp)
+    ed = loadRenameScript()
+    before = texts(ed)
 
-    sp.renameCharacters({"BOB": "ROBERT"})
-    assert texts(sp) != before
+    ed.renameCharacters({"BOB": "ROBERT"})
+    assert texts(ed) != before
 
-    sp.undoCmd(None)
-    assert texts(sp) == before
+    ed.undoCmd(None)
+    assert texts(ed) == before
 
-    sp.redoCmd(None)
-    assert "ROBERT" in texts(sp)
+    ed.redoCmd(None)
+    assert "ROBERT" in texts(ed)
 
 
 def test_renameRewraps():
-    sp = loadRenameScript()
+    ed = loadRenameScript()
 
-    sp.renameCharacters({"BOB": "BARTHOLOMEW-MAXIMILIAN " * 3})
+    ed.renameCharacters({"BOB": "BARTHOLOMEW-MAXIMILIAN " * 3})
 
     # the action line got too long and was wrapped
-    width = sp.cfg.getType(screenplay.ACTION).width
-    assert all(len(ln.text) <= width for ln in sp.lines)
+    width = ed.sp.cfg.getType(screenplay.ACTION).width
+    assert all(len(ln.text) <= width for ln in ed.sp.lines)

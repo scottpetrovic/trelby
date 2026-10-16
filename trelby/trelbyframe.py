@@ -480,17 +480,17 @@ class MyFrame(wx.Frame):
 
         for menuId, canUse in (
             (ID_FILE_REVERT, lambda c: bool(c.fileName) and c.sp.hasChanged),
-            (ID_EDIT_CUT, lambda c: bool(c.sp.mark)),
-            (ID_EDIT_COPY, lambda c: bool(c.sp.mark)),
-            (ID_EDIT_COPY_TO_CB, lambda c: bool(c.sp.mark)),
-            (ID_EDIT_COPY_TO_CB_FMT, lambda c: bool(c.sp.mark)),
+            (ID_EDIT_CUT, lambda c: bool(c.ed.mark)),
+            (ID_EDIT_COPY, lambda c: bool(c.ed.mark)),
+            (ID_EDIT_COPY_TO_CB, lambda c: bool(c.ed.mark)),
+            (ID_EDIT_COPY_TO_CB_FMT, lambda c: bool(c.ed.mark)),
             (ID_EDIT_PASTE, lambda c: bool(self.clipboard)),
             (
                 ID_EDIT_GOTO_SCENE,
                 lambda c: any(ln.lt == screenplay.SCENE for ln in c.sp.lines),
             ),
-            (ID_EDIT_CENTER, lambda c: c.sp.getCenteredState() is not None),
-            (ID_EDIT_DUAL_DIALOGUE, lambda c: c.sp.getDualToggle() is not None),
+            (ID_EDIT_CENTER, lambda c: c.ed.getCenteredState() is not None),
+            (ID_EDIT_DUAL_DIALOGUE, lambda c: c.ed.getDualToggle() is not None),
             (ID_VIEW_ZOOM_IN, lambda c: self.gd.getZoomStep(1) != self.gd.zoom),
             (ID_VIEW_ZOOM_OUT, lambda c: self.gd.getZoomStep(-1) != self.gd.zoom),
             (ID_VIEW_ZOOM_RESET, lambda c: self.gd.zoom != 100),
@@ -1487,7 +1487,7 @@ class MyFrame(wx.Frame):
             c.refreshCache()
 
         c = self.panel.ctrl
-        c.makeLineVisible(c.sp.line)
+        c.makeLineVisible(c.ed.line)
         c.updateScreen()
 
     def OnZoomIn(self, event=None):
@@ -1516,7 +1516,7 @@ class MyFrame(wx.Frame):
             c.refreshCache()
 
         c = self.panel.ctrl
-        c.makeLineVisible(c.sp.line)
+        c.makeLineVisible(c.ed.line)
         c.updateScreen()
 
     def ToggleFullscreen(self, event=None):

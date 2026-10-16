@@ -102,30 +102,30 @@ def testKeyBindingsSurviveLoad():
 
 
 def testSaveLoadRoundTrip():
-    sp = u.load("unicode.trelby")
-    texts = [ln.text for ln in sp.lines]
+    ed = u.loadEditor("unicode.trelby")
+    texts = [ln.text for ln in ed.sp.lines]
 
     assert texts[0] == "Int. Łódź — mieszkanie Čapka"
     assert texts[2] == "Пётр"
     assert "Ωμέγα" in texts[3]
     assert "€" in texts[1]
 
-    sp2 = u.loadString(sp.save().decode("UTF-8"))
-    assert [ln.text for ln in sp2.lines] == texts
-    assert [ln.lt for ln in sp2.lines] == [ln.lt for ln in sp.lines]
+    ed2 = u.loadStringEditor(ed.save().decode("UTF-8"))
+    assert [ln.text for ln in ed2.sp.lines] == texts
+    assert [ln.lt for ln in ed2.sp.lines] == [ln.lt for ln in ed.sp.lines]
 
-    sp2.line = 0
-    sp2.column = len(sp2.lines[0].text)
-    sp2.cmd("addChar", char="ł")
-    sp3 = u.loadString(sp2.save().decode("UTF-8"))
-    assert sp3.lines[0].text.endswith("Čapkał")
+    ed2.line = 0
+    ed2.column = len(ed2.sp.lines[0].text)
+    ed2.cmd("addChar", char="ł")
+    ed3 = u.loadStringEditor(ed2.save().decode("UTF-8"))
+    assert ed3.sp.lines[0].text.endswith("Čapkał")
 
 
 def testUppercaseHeadingsAndNames():
-    sp = u.load("unicode.trelby")
-    sp.paginate()
+    ed = u.loadEditor("unicode.trelby")
+    ed.sp.paginate()
 
-    text = export.generateText(sp, False)
+    text = export.generateText(ed.sp, False)
     assert "INT. ŁÓDŹ — MIESZKANIE ČAPKA" in text
     assert "ПЁТР" in text
     assert "EWA ŻAK" in text
@@ -134,37 +134,37 @@ def testUppercaseHeadingsAndNames():
     assert "Ωμέγα" in text
     assert "Straße" in text
 
-    assert sp.getExportText(0) == "INT. ŁÓDŹ — MIESZKANIE ČAPKA"
-    assert "INT. ŁÓDŹ — MIESZKANIE ČAPKA" in sp.getSceneNames()
-    assert "пётр" in sp.getCharacterNames()
+    assert ed.sp.getExportText(0) == "INT. ŁÓDŹ — MIESZKANIE ČAPKA"
+    assert "INT. ŁÓDŹ — MIESZKANIE ČAPKA" in ed.sp.getSceneNames()
+    assert "пётр" in ed.sp.getCharacterNames()
 
 
 def testTypeIntoSceneHeading():
-    sp = u.new()
-    sp.lines[0].lt = screenplay.SCENE
+    ed = u.newEditor()
+    ed.sp.lines[0].lt = screenplay.SCENE
 
     # the first letter of a sentence is capitalized as you type
     for ch in "ext. łąka żółta":
-        sp.cmd("addChar", char=ch)
+        ed.cmd("addChar", char=ch)
 
-    assert sp.lines[0].text == "Ext. Łąka żółta"
-    assert sp.getExportText(0) == "EXT. ŁĄKA ŻÓŁTA"
+    assert ed.sp.lines[0].text == "Ext. Łąka żółta"
+    assert ed.sp.getExportText(0) == "EXT. ŁĄKA ŻÓŁTA"
 
 
 def testAddCharRejectsInvalid():
-    sp = u.new()
+    ed = u.newEditor()
 
     for ch in "a\x85\xad\u200b\u2028b":
-        sp.cmd("addChar", char=ch)
+        ed.cmd("addChar", char=ch)
 
-    assert sp.lines[0].text == "Ab"
+    assert ed.sp.lines[0].text == "Ab"
 
 
 def testPasteTextEdit():
-    ed = TextEdit([""])
-    ed.insert("łódź\x85\xad €\r\nc\u030capek Пётр")
+    te = TextEdit([""])
+    te.insert("łódź\x85\xad €\r\nc\u030capek Пётр")
 
-    assert ed.lines == ["łódź €", "čapek Пётр"]
+    assert te.lines == ["łódź €", "čapek Пётр"]
 
 
 def testSpellCheckerPrefix():
@@ -182,8 +182,8 @@ def testSpellCheckerPrefix():
 
 
 def testSpellCheckerFindsWords():
-    sp = u.load("unicode.trelby")
-    sc = spellcheck.SpellChecker(sp, spellcheck.Dict())
+    ed = u.loadEditor("unicode.trelby")
+    sc = spellcheck.SpellChecker(ed.sp, spellcheck.Dict())
 
     # character names are known words
     assert sc.isKnown("Пётр")
@@ -214,9 +214,9 @@ def testCharMapBlocks():
 
 
 def testPDFUnsupportedChars():
-    sp = u.load("unicode.trelby")
-    sp.paginate()
-    doc = render.generatePML(sp)
+    ed = u.loadEditor("unicode.trelby")
+    ed.sp.paginate()
+    doc = render.generatePML(ed.sp)
 
     chars = pdf.unsupportedChars(doc)
     # character names and scene headings are uppercased
@@ -232,15 +232,15 @@ def testPDFUnsupportedChars():
 
 
 def testPDFCustomFont():
-    sp = u.load("unicode.trelby")
-    sp.paginate()
+    ed = u.loadEditor("unicode.trelby")
+    ed.sp.paginate()
 
-    for pfi in sp.cfg.getPDFFontIds():
-        pf = sp.cfg.getPDFFont(pfi)
+    for pfi in ed.sp.cfg.getPDFFontIds():
+        pf = ed.sp.cfg.getPDFFont(pfi)
         pf.pdfName = "Jost"
         pf.filename = u.fixtureFilePath("custom-font/Jost-400-Book.ttf")
 
-    doc = render.generatePML(sp)
+    doc = render.generatePML(ed.sp)
 
     assert pdf.unsupportedChars(doc) == ""
     assert pdf.generate(doc)[:8] == b"%PDF-1.5"
@@ -274,13 +274,13 @@ def testTextWidth():
 
 
 def testTitlePageInHelvetica():
-    sp = u.load("unicode.trelby")
-    sp.titles.pages = [
+    ed = u.loadEditor("unicode.trelby")
+    ed.sp.titles.pages = [
         [titles.TitleString(["Łódź — Пётр"], y=100.0, font=pml.HELVETICA)]
     ]
-    sp.paginate()
+    ed.sp.paginate()
 
-    assert export.generatePDF(sp)[:8] == b"%PDF-1.5"
+    assert export.generatePDF(ed.sp)[:8] == b"%PDF-1.5"
 
 
 def testEscapeRTF():
@@ -292,9 +292,9 @@ def testEscapeRTF():
 
 
 def testExportRTF():
-    sp = u.load("unicode.trelby")
-    sp.paginate()
+    ed = u.loadEditor("unicode.trelby")
+    ed.sp.paginate()
 
-    rtf = export.generateRTF(sp)
+    rtf = export.generateRTF(ed.sp)
     assert rtf.isascii()
     assert r"\u321?" in rtf  # Ł

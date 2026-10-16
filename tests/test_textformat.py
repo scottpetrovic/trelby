@@ -21,10 +21,10 @@ U = textfmt.UNDERLINED
 
 
 def loadLines(lines):
-    sp = u.loadString("\n".join(["#Version 3", "#Start-Script "] + lines))
-    sp.paginate()
+    ed = u.loadStringEditor("\n".join(["#Version 3", "#Start-Script "] + lines))
+    ed.sp.paginate()
 
-    return sp
+    return ed
 
 
 # a scene heading and an action with "door" in bold
@@ -39,18 +39,18 @@ def loadBold():
 
 
 # select columns c1 - c2 (inclusive) of line 'line'
-def select(sp, line, c1, c2):
-    sp.setMark(line, c1)
-    sp.line = line
-    sp.column = c2
+def select(ed, line, c1, c2):
+    ed.setMark(line, c1)
+    ed.line = line
+    ed.column = c2
 
 
-# return the text of the characters of 'sp's lines with the given style
+# return the text of the characters of 'ed's lines with the given style
 # bits, joined by "|" between runs
-def styled(sp, bits):
+def styled(ed, bits):
     ret = []
 
-    for ln in sp.lines:
+    for ln in ed.sp.lines:
         for a, b, style in textfmt.runs(ln.fmt, len(ln.text)):
             if (style & bits) == bits:
                 ret.append(ln.text[a:b])
@@ -128,24 +128,24 @@ def testMarkupLiterals():
 
 
 def testLoadSave():
-    sp = loadBold()
+    ed = loadBold()
 
-    assert sp.lines[1].fmt == "0000111100000000000000"
-    assert styled(sp, B) == "door"
+    assert ed.sp.lines[1].fmt == "0000111100000000000000"
+    assert styled(ed, B) == "door"
 
-    s = sp.save().decode("UTF-8")
+    s = ed.save().decode("UTF-8")
     assert "#Format 4-8:b\n..The door opens slowly.\n" in s
     assert s.count("#Format") == 1
 
-    assert styled(u.loadString(s), B) == "door"
-    sp._validate()
+    assert styled(u.loadStringEditor(s), B) == "door"
+    ed._validate()
 
 
 def testUnknownInOldVersions():
     # a format line is a config line older versions skip
-    sp = loadLines(["#Format 0-3:b", "..THE END"])
+    ed = loadLines(["#Format 0-3:b", "..THE END"])
 
-    assert sp.lines[0].fmt == "111" + "0" * 4
+    assert ed.sp.lines[0].fmt == "111" + "0" * 4
 
 
 def testLineEquality():
@@ -157,170 +157,170 @@ def testLineEquality():
 
 
 def testToggleSelection():
-    sp = loadBold()
-    select(sp, 1, 9, 13)
+    ed = loadBold()
+    select(ed, 1, 9, 13)
 
-    sp.toggleFormat(I)
-    assert styled(sp, I) == "opens"
-    assert styled(sp, B) == "door"
+    ed.toggleFormat(I)
+    assert styled(ed, I) == "opens"
+    assert styled(ed, B) == "door"
 
     # all of it already italic: turns it off
-    sp.toggleFormat(I)
-    assert styled(sp, I) == ""
+    ed.toggleFormat(I)
+    assert styled(ed, I) == ""
 
     # partly bold: makes all of it bold
-    select(sp, 1, 6, 13)
-    sp.toggleFormat(B)
-    assert styled(sp, B) == "door opens"
+    select(ed, 1, 6, 13)
+    ed.toggleFormat(B)
+    assert styled(ed, B) == "door opens"
 
-    sp._validate()
+    ed._validate()
 
 
 def testToggleUndo():
-    sp = loadBold()
-    select(sp, 1, 9, 13)
-    sp.toggleFormat(U)
-    assert styled(sp, U) == "opens"
+    ed = loadBold()
+    select(ed, 1, 9, 13)
+    ed.toggleFormat(U)
+    assert styled(ed, U) == "opens"
 
-    sp.cmd("undo")
-    assert styled(sp, U) == ""
-    assert styled(sp, B) == "door"
+    ed.cmd("undo")
+    assert styled(ed, U) == ""
+    assert styled(ed, B) == "door"
 
-    sp.cmd("redo")
-    assert styled(sp, U) == "opens"
+    ed.cmd("redo")
+    assert styled(ed, U) == "opens"
 
 
 def testTypingStyle():
-    sp = loadBold()
-    sp.line = 1
-    sp.column = 22
+    ed = loadBold()
+    ed.line = 1
+    ed.column = 22
 
     # typing goes on in the style of the text before the cursor, which is
     # plain here
-    sp.cmdChars(" Then")
-    assert styled(sp, B) == "door"
+    ed.cmdChars(" Then")
+    assert styled(ed, B) == "door"
 
     # toggled with nothing selected, for the text typed next
-    sp.toggleFormat(B)
-    sp.cmdChars(" BANG")
-    assert styled(sp, B) == "door| BANG"
+    ed.toggleFormat(B)
+    ed.cmdChars(" BANG")
+    assert styled(ed, B) == "door| BANG"
 
-    sp.toggleFormat(B)
-    sp.cmdChars("!")
-    assert styled(sp, B) == "door| BANG"
+    ed.toggleFormat(B)
+    ed.cmdChars("!")
+    assert styled(ed, B) == "door| BANG"
 
     # in the middle of a bold word
-    sp.column = 6
-    sp.cmdChars("x")
-    assert styled(sp, B) == "doxor| BANG"
+    ed.column = 6
+    ed.cmdChars("x")
+    assert styled(ed, B) == "doxor| BANG"
 
-    sp._validate()
+    ed._validate()
 
 
 def testTypingStyleResetsOnMove():
-    sp = loadBold()
-    sp.line = 1
-    sp.column = 22
+    ed = loadBold()
+    ed.line = 1
+    ed.column = 22
 
-    sp.toggleFormat(B)
-    sp.cmd("moveLeft")
-    sp.cmd("moveRight")
-    sp.cmdChars("z")
+    ed.toggleFormat(B)
+    ed.cmd("moveLeft")
+    ed.cmd("moveRight")
+    ed.cmdChars("z")
 
-    assert styled(sp, B) == "door"
+    assert styled(ed, B) == "door"
 
 
 def testWrap():
     # formatting moves along with the text when it wraps onto other lines
-    sp = loadBold()
-    sp.line = 1
-    sp.column = 0
-    sp.cmdChars("Without a sound, after a long and anxious wait, ")
+    ed = loadBold()
+    ed.line = 1
+    ed.column = 0
+    ed.cmdChars("Without a sound, after a long and anxious wait, ")
 
-    assert len(sp.lines) > 2
-    assert styled(sp, B) == "door"
-    sp._validate()
+    assert len(ed.sp.lines) > 2
+    assert styled(ed, B) == "door"
+    ed._validate()
 
     # and when it's joined back
     for i in range(48):
-        sp.cmd("deleteBackward")
+        ed.cmd("deleteBackward")
 
-    assert sp.lines[1].text == "The door opens slowly."
-    assert styled(sp, B) == "door"
-    sp._validate()
+    assert ed.sp.lines[1].text == "The door opens slowly."
+    assert styled(ed, B) == "door"
+    ed._validate()
 
 
 def testUnderlinedWrapSpace():
     # a space between underlined words stays underlined across a wrap
     words = "word " * 15
-    sp = loadLines(["..x"])
-    sp.line = 0
-    sp.column = 1
-    sp.toggleFormat(U)
-    sp.cmdChars(words.strip())
+    ed = loadLines(["..x"])
+    ed.line = 0
+    ed.column = 1
+    ed.toggleFormat(U)
+    ed.cmdChars(words.strip())
 
-    assert len(sp.lines) == 2
-    assert styled(sp, U) == sp.lines[0].text[1:] + "|" + sp.lines[1].text
-    sp._validate()
+    assert len(ed.sp.lines) == 2
+    assert styled(ed, U) == ed.sp.lines[0].text[1:] + "|" + ed.sp.lines[1].text
+    ed._validate()
 
 
 def testSplitAndJoin():
-    sp = loadBold()
-    sp.line = 1
-    sp.column = 6
-    sp.cmd("insertForcedLineBreak")
+    ed = loadBold()
+    ed.line = 1
+    ed.column = 6
+    ed.cmd("insertForcedLineBreak")
 
-    assert sp.lines[1].text == "The do"
-    assert sp.lines[2].text == "or opens slowly."
-    assert styled(sp, B) == "do|or"
-    sp._validate()
+    assert ed.sp.lines[1].text == "The do"
+    assert ed.sp.lines[2].text == "or opens slowly."
+    assert styled(ed, B) == "do|or"
+    ed._validate()
 
-    sp.cmd("deleteBackward")
-    assert styled(sp, B) == "door"
-    sp._validate()
+    ed.cmd("deleteBackward")
+    assert styled(ed, B) == "door"
+    ed._validate()
 
 
 def testDelete():
-    sp = loadBold()
-    sp.line = 1
-    sp.column = 4
-    sp.cmd("deleteForward")
+    ed = loadBold()
+    ed.line = 1
+    ed.column = 4
+    ed.cmd("deleteForward")
 
-    assert styled(sp, B) == "oor"
-    sp._validate()
+    assert styled(ed, B) == "oor"
+    ed._validate()
 
 
 def testCutPaste():
-    sp = loadBold()
-    select(sp, 1, 0, 8)
-    cd = sp.getSelectedAsCD(True)
+    ed = loadBold()
+    select(ed, 1, 0, 8)
+    cd = ed.getSelectedAsCD(True)
 
     assert cd.lines[0].text == "The door "
-    assert sp.lines[1].text == "opens slowly."
-    assert styled(sp, B) == ""
-    sp._validate()
+    assert ed.sp.lines[1].text == "opens slowly."
+    assert styled(ed, B) == ""
+    ed._validate()
 
-    sp.line = 1
-    sp.column = 6
-    sp.paste(cd.lines)
+    ed.line = 1
+    ed.column = 6
+    ed.paste(cd.lines)
 
-    assert sp.lines[1].text == "opens The door slowly."
-    assert styled(sp, B) == "door"
-    sp._validate()
+    assert ed.sp.lines[1].text == "opens The door slowly."
+    assert styled(ed, B) == "door"
+    ed._validate()
 
 
 def testFindReplace():
-    sp = loadBold()
-    sp.lines[1].replaceText(4, 4, "gate")
-    assert styled(sp, B) == "gate"
+    ed = loadBold()
+    ed.sp.lines[1].replaceText(4, 4, "gate")
+    assert styled(ed, B) == "gate"
 
-    sp.lines[1].replaceText(4, 4, "portcullis")
-    assert styled(sp, B) == "portcullis"
-    assert sp.lines[1].text == "The portcullis opens slowly."
+    ed.sp.lines[1].replaceText(4, 4, "portcullis")
+    assert styled(ed, B) == "portcullis"
+    assert ed.sp.lines[1].text == "The portcullis opens slowly."
 
 
 def testRenameCharacter():
-    sp = loadLines(
+    ed = loadLines(
         [
             ".\\INT. HALL - NIGHT",
             "#Format 0-4:b",
@@ -330,30 +330,30 @@ def testRenameCharacter():
         ]
     )
 
-    sp.renameCharacters({"MARY": "JOSEPHINE"})
+    ed.renameCharacters({"MARY": "JOSEPHINE"})
 
-    assert sp.lines[1].text == "Josephine waits for Josephine."
-    assert styled(sp, B) == "Josephine"
-    sp._validate()
+    assert ed.sp.lines[1].text == "Josephine waits for Josephine."
+    assert styled(ed, B) == "Josephine"
+    ed._validate()
 
 
 # --- output
 
 
 def testPML():
-    sp = loadBold()
-    pg = render.generatePMLPage(sp, mypager.Pager(sp.cfg), 1, True, True)
+    ed = loadBold()
+    pg = render.generatePMLPage(ed.sp, mypager.Pager(ed.sp.cfg), 1, True, True)
     ops = [op for op in pg.ops if isinstance(op, pml.TextOp) and op.line == 1]
 
-    assert ops[0].fmt == sp.lines[1].fmt
+    assert ops[0].fmt == ed.sp.lines[1].fmt
 
     # and the PDF draws it
-    assert export.generatePDF(sp).startswith(b"%PDF")
+    assert export.generatePDF(ed.sp).startswith(b"%PDF")
 
 
 def testFDX():
-    sp = loadBold()
-    s = export.generateFDX(sp).decode("UTF-8")
+    ed = loadBold()
+    s = export.generateFDX(ed.sp).decode("UTF-8")
 
     assert '<Text Style="Bold">door</Text>' in s
     assert "<Text>The </Text>" in s
@@ -361,7 +361,7 @@ def testFDX():
 
 def testFDXImport(tmp_path):
     path = tmp_path / "bold.fdx"
-    path.write_bytes(export.generateFDX(loadBold()))
+    path.write_bytes(export.generateFDX(loadBold().sp))
 
     lines = myimport.importFDX(str(path), mock.Mock())
 
@@ -370,8 +370,8 @@ def testFDXImport(tmp_path):
 
 
 def testFountain():
-    sp = loadBold()
-    s = export.generateFountain(sp)
+    ed = loadBold()
+    s = export.generateFountain(ed.sp)
 
     assert "The **door** opens slowly." in s
 
@@ -407,13 +407,13 @@ def testFountainImportNoConvert(tmp_path):
 
 
 def testRTF():
-    s = export.generateRTF(loadBold())
+    s = export.generateRTF(loadBold().sp)
 
     assert r"The {\b door} opens slowly." in s
 
 
 def testHtml():
-    s = export.generateHtml(loadBold())
+    s = export.generateHtml(loadBold().sp)
 
     assert 'The <span style="font-weight:bold">door</span> opens slowly.' in s
 
@@ -435,139 +435,139 @@ def loadCentered():
 
 
 # return the texts of the lines of centered actions
-def centeredTexts(sp):
-    return [ln.text for i, ln in enumerate(sp.lines) if sp.isCentered(i)]
+def centeredTexts(ed):
+    return [ln.text for i, ln in enumerate(ed.sp.lines) if ed.sp.isCentered(i)]
 
 
 def testCenteredOffset():
-    sp = loadCentered()
-    width = sp.cfg.getType(scr.ACTION).width
+    ed = loadCentered()
+    width = ed.sp.cfg.getType(scr.ACTION).width
 
-    assert sp.lines[2].lt == scr.ACTION
-    assert centeredTexts(sp) == ["THE END", "for now"]
-    assert sp.getCenterOffset(1) == 0
-    assert sp.getCenterOffset(2) == (width - 7) / 2.0
-    assert sp.getCenterOffset(3) == (width - 7) / 2.0
-    assert sp.getCenterOffset(4) == 0
+    assert ed.sp.lines[2].lt == scr.ACTION
+    assert centeredTexts(ed) == ["THE END", "for now"]
+    assert ed.sp.getCenterOffset(1) == 0
+    assert ed.sp.getCenterOffset(2) == (width - 7) / 2.0
+    assert ed.sp.getCenterOffset(3) == (width - 7) / 2.0
+    assert ed.sp.getCenterOffset(4) == 0
 
-    pg = render.generatePMLPage(sp, mypager.Pager(sp.cfg), 1, True, True)
+    pg = render.generatePMLPage(ed.sp, mypager.Pager(ed.sp.cfg), 1, True, True)
     x = {op.line: op.x for op in pg.ops if isinstance(op, pml.TextOp)}
 
     assert x[2] > x[1]
     assert x[4] == x[1]
-    sp._validate()
+    ed._validate()
 
 
 def testCenteredSaveLoad():
-    sp = loadCentered()
-    s = sp.save().decode("UTF-8")
+    ed = loadCentered()
+    s = ed.save().decode("UTF-8")
 
     assert "#Centered \n|.THE END\n..for now\n..Credits" in s
     assert s.count("#Centered") == 1
-    assert centeredTexts(u.loadString(s)) == ["THE END", "for now"]
+    assert centeredTexts(u.loadStringEditor(s)) == ["THE END", "for now"]
 
 
 def testOldCenteredType():
     # an early development version had a separate centered element type
-    sp = loadLines(["..x", "|^THE END", ".^for now"])
+    ed = loadLines(["..x", "|^THE END", ".^for now"])
 
-    assert [ln.lt for ln in sp.lines] == [scr.ACTION] * 3
-    assert centeredTexts(sp) == ["THE END", "for now"]
-    assert sp.hasCenteredFlag(1)
-    assert not sp.lines[2].centered
+    assert [ln.lt for ln in ed.sp.lines] == [scr.ACTION] * 3
+    assert centeredTexts(ed) == ["THE END", "for now"]
+    assert ed.sp.hasCenteredFlag(1)
+    assert not ed.sp.lines[2].centered
 
 
 def testToggleCentered():
-    sp = loadCentered()
+    ed = loadCentered()
 
     # on an action
-    sp.line = 1
-    assert sp.getCenteredState() is False
-    assert sp.toggleCentered()
-    assert centeredTexts(sp) == ["The door opens.", "THE END", "for now"]
+    ed.line = 1
+    assert ed.getCenteredState() is False
+    assert ed.toggleCentered()
+    assert centeredTexts(ed) == ["The door opens.", "THE END", "for now"]
 
     # not on a scene heading
-    sp.line = 0
-    assert sp.getCenteredState() is None
-    assert not sp.toggleCentered()
+    ed.line = 0
+    assert ed.getCenteredState() is None
+    assert not ed.toggleCentered()
 
     # a selection over centered and uncentered actions centers them all,
     # and then stops centering them all
-    select(sp, 2, 0, 0)
-    sp.line = 4
-    assert sp.getCenteredState() is False
-    sp.toggleCentered()
-    assert len(centeredTexts(sp)) == 4
+    select(ed, 2, 0, 0)
+    ed.line = 4
+    assert ed.getCenteredState() is False
+    ed.toggleCentered()
+    assert len(centeredTexts(ed)) == 4
 
-    assert sp.getCenteredState() is True
-    sp.toggleCentered()
-    assert centeredTexts(sp) == ["The door opens."]
+    assert ed.getCenteredState() is True
+    ed.toggleCentered()
+    assert centeredTexts(ed) == ["The door opens."]
 
-    sp.cmd("undo")
-    assert len(centeredTexts(sp)) == 4
+    ed.cmd("undo")
+    assert len(centeredTexts(ed)) == 4
 
-    sp.clearMark()
-    sp._validate()
+    ed.clearMark()
+    ed._validate()
 
 
 def testCenteredStaysWithElement():
-    sp = loadCentered()
+    ed = loadCentered()
 
     # turning it into something else and back keeps it centered
-    sp.line = 2
-    sp.convertTypeTo(scr.TRANSITION, True)
-    assert centeredTexts(sp) == []
+    ed.line = 2
+    ed.convertTypeTo(scr.TRANSITION, True)
+    assert centeredTexts(ed) == []
 
-    sp.convertTypeTo(scr.ACTION, True)
-    assert centeredTexts(sp) == ["THE END", "for now"]
+    ed.convertTypeTo(scr.ACTION, True)
+    assert centeredTexts(ed) == ["THE END", "for now"]
 
     # a new element after it isn't centered
-    sp.line = 3
-    sp.column = len(sp.lines[3].text)
-    sp.cmd("splitElement")
-    sp.cmdChars("Fade")
-    assert centeredTexts(sp) == ["THE END", "for now"]
+    ed.line = 3
+    ed.column = len(ed.sp.lines[3].text)
+    ed.cmd("splitElement")
+    ed.cmdChars("Fade")
+    assert centeredTexts(ed) == ["THE END", "for now"]
 
-    sp._validate()
+    ed._validate()
 
 
 def testCenteredCopyPaste():
-    sp = loadCentered()
-    select(sp, 2, 0, 6)
-    sp.line = 3
-    sp.column = 6
-    cd = sp.getSelectedAsCD(False)
-    sp.clearMark()
+    ed = loadCentered()
+    select(ed, 2, 0, 6)
+    ed.line = 3
+    ed.column = 6
+    cd = ed.getSelectedAsCD(False)
+    ed.clearMark()
 
     assert cd.lines[0].centered
 
-    sp.line = len(sp.lines) - 1
-    sp.column = len(sp.lines[sp.line].text)
-    sp.cmd("splitElement")
-    sp.paste(cd.lines)
+    ed.line = len(ed.sp.lines) - 1
+    ed.column = len(ed.sp.lines[ed.line].text)
+    ed.cmd("splitElement")
+    ed.paste(cd.lines)
 
-    assert centeredTexts(sp) == ["THE END", "for now"] * 2
-    sp._validate()
+    assert centeredTexts(ed) == ["THE END", "for now"] * 2
+    ed._validate()
 
 
 def testCenteredText():
-    sp = loadCentered()
-    width = sp.cfg.getType(scr.ACTION).width
-    lines = export.generateText(sp, False).split("\n")
+    ed = loadCentered()
+    width = ed.sp.cfg.getType(scr.ACTION).width
+    lines = export.generateText(ed.sp, False).split("\n")
 
     assert " " * int((width - 7) / 2.0) + "THE END" in lines
     assert "Credits roll." in lines
 
 
 def testCenteredRTF():
-    s = export.generateRTF(loadCentered())
+    s = export.generateRTF(loadCentered().sp)
 
     assert "\\qc THE END\\line for now}" in s
     assert "\\qc The door" not in s
 
 
 def testCenteredFountain(tmp_path):
-    s = export.generateFountain(loadCentered())
+    s = export.generateFountain(loadCentered().sp)
 
     assert "\n>THE END<\n>for now<\n\nCredits roll." in s
 
@@ -586,7 +586,7 @@ def testCenteredFountain(tmp_path):
 
 
 def testCenteredFDX(tmp_path):
-    s = export.generateFDX(loadCentered())
+    s = export.generateFDX(loadCentered().sp)
 
     assert s.count(b'<Paragraph Type="Action" Alignment="Center">') == 1
 
@@ -603,7 +603,7 @@ def testCenteredFDX(tmp_path):
 
 def testFormatState():
     # bold and underline together on part of a speech
-    sp = loadLines(
+    ed = loadLines(
         [
             ".\\INT. HALL - NIGHT",
             "._MARY",
@@ -612,26 +612,26 @@ def testFormatState():
         ]
     )
 
-    sp.line = 2
-    sp.column = 4
-    assert sp.getFormatState() == B | U
+    ed.line = 2
+    ed.column = 4
+    assert ed.getFormatState() == B | U
 
-    sp.column = 0
-    assert sp.getFormatState() == 0
+    ed.column = 0
+    assert ed.getFormatState() == 0
 
     # what all of the selection has
-    select(sp, 2, 2, 5)
-    assert sp.getFormatState() == B | U
+    select(ed, 2, 2, 5)
+    assert ed.getFormatState() == B | U
 
-    select(sp, 2, 2, 11)
-    assert sp.getFormatState() == 0
+    select(ed, 2, 2, 11)
+    assert ed.getFormatState() == 0
 
-    select(sp, 2, 7, 11)
-    assert sp.getFormatState() == B
+    select(ed, 2, 7, 11)
+    assert ed.getFormatState() == B
 
     # toggling with nothing selected shows up at once
-    sp.clearMark()
-    sp.line = 2
-    sp.column = 0
-    sp.toggleFormat(I)
-    assert sp.getFormatState() == I
+    ed.clearMark()
+    ed.line = 2
+    ed.column = 0
+    ed.toggleFormat(I)
+    assert ed.getFormatState() == I

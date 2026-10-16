@@ -61,6 +61,7 @@ class FakeCtrl:
                     kbdCommands[key] = cmd
 
         self.sp = sp
+        self.ed = screenplay.Editor(sp)
         self.gd = SimpleNamespace(
             cfgGl=cfgGl, mainFrame=SimpleNamespace(kbdCommands=kbdCommands)
         )
@@ -98,6 +99,7 @@ def typeChars(ctrl, s):
 def testNordicLetters():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
     typeChars(ctrl, "ÅÄÖåäöØæ")
 
     assert sp.lines[0].text == "ÅÄÖåäöØæ"
@@ -106,14 +108,15 @@ def testNordicLetters():
 def testArrowKeys():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
     typeChars(ctrl, "abc")
 
     press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_LEFT))
     press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_LEFT))
-    assert sp.column == 1
+    assert ed.column == 1
 
     press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_HOME))
-    assert sp.column == 0
+    assert ed.column == 0
 
     press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_RIGHT))
     typeChars(ctrl, "ä")
@@ -123,15 +126,17 @@ def testArrowKeys():
 def testShiftArrowSelects():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
     typeChars(ctrl, "abc")
 
     press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_LEFT, shift=True))
-    assert sp.mark is not None
+    assert ed.mark is not None
 
 
 def testAltShortcut():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
     typeChars(ctrl, "abc")
 
     press(ctrl, KeyEvent(ord("s"), ord("S"), alt=True))
@@ -142,6 +147,7 @@ def testAltShortcut():
 def testUnboundKeyIsSkipped():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
 
     ev = press(ctrl, KeyEvent(ord("q"), ord("Q"), ctrl=True, alt=True))
     assert ev.skipped
@@ -153,6 +159,7 @@ def testUnboundKeyIsSkipped():
 def testCharsAboveLatin1():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
     typeChars(ctrl, "zażółć gęślą jaźń, čeština 5 €. привет. ωμέγα")
 
     assert sp.lines[0].text == "Zażółć gęślą jaźń, čeština 5 €. Привет. Ωμέγα"
@@ -161,6 +168,7 @@ def testCharsAboveLatin1():
 def testCharsAboveLatin1InSceneHeading():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
     sp.lines[0].lt = screenplay.SCENE
     typeChars(ctrl, "int. łódź")
     press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_RETURN))
@@ -173,6 +181,7 @@ def testCharsAboveLatin1InSceneHeading():
 def testInvalidCharsNotTyped():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
 
     # C1 control, soft hyphen, zero-width space, line separator, BOM
     for kc in (0x85, 0xAD, 0x200B, 0x2028, 0xFEFF):
@@ -186,6 +195,7 @@ def testInvalidCharsNotTyped():
 def testSpecialKeysNotTypedAsChars():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
     typeChars(ctrl, "abc")
 
     for kc in (wx.WXK_HOME, wx.WXK_INSERT, wx.WXK_F2, wx.WXK_END):
@@ -197,16 +207,17 @@ def testSpecialKeysNotTypedAsChars():
 def testCtrlWithCharAboveLatin1():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
     typeChars(ctrl, "abc")
 
     # must not be taken for CTRL+Home (MoveStartOfScript)
     ev = press(ctrl, KeyEvent(wx.WXK_HOME, wx.WXK_NONE, ctrl=True))
     assert ev.skipped
-    assert sp.column == 3
+    assert ed.column == 3
 
     # CTRL+Home itself still works
     press(ctrl, KeyEvent(wx.WXK_NONE, wx.WXK_HOME, ctrl=True))
-    assert sp.column == 0
+    assert ed.column == 0
 
 
 # the character map and the names database insert characters with
@@ -214,6 +225,7 @@ def testCtrlWithCharAboveLatin1():
 def testFakeKeyEvent():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
 
     for ch in "łódź €":
         press(ctrl, util.MyKeyEvent(ord(ch)))
@@ -227,6 +239,7 @@ def testFakeKeyEvent():
 def testPasteSystemClipboard():
     ctrl = newCtrl()
     sp = ctrl.sp
+    ed = ctrl.ed
     text = "Łódź\x85\xad €\r\nc\u030capek\u200b Пётр\tΩ"
 
     class Clipboard:

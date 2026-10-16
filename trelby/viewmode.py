@@ -172,10 +172,10 @@ class ViewMode:
                 return
 
         # smooth scrolling not in operation (or failed), recenter screen
-        ctrl.sp.setTopLine(max(0, int(line - (len(texts) * 0.5))))
+        ctrl.ed.setTopLine(max(0, int(line - (len(texts) * 0.5))))
 
         if not ctrl.isLineVisible(line):
-            ctrl.sp.setTopLine(line)
+            ctrl.ed.setTopLine(line)
 
     # helper function for makeLineVisibleGeneric. moves the top line in
     # 'direction' until line is visible, by 1 line at first and then by
@@ -184,12 +184,12 @@ class ViewMode:
     # False, leaving the top line moved, if it isn't visible within
     # MAX_JUMP_DISTANCE lines.
     def _makeLineVisibleHelper(self, ctrl, line, direction, jumpAhead):
-        startLine = ctrl.sp.getTopLine()
+        startLine = ctrl.ed.getTopLine()
         sign = 1 if (direction == config.SCROLL_DOWN) else -1
         i = 1
 
         while not ctrl.isLineVisible(line):
-            ctrl.sp.setTopLine(startLine + i * sign)
+            ctrl.ed.setTopLine(startLine + i * sign)
             i += jumpAhead
 
             if i > MAX_JUMP_DISTANCE:
@@ -207,31 +207,31 @@ class ViewMode:
     def pageCmdGeneric(self, ctrl, cs, dir, texts, dpages):
         if dir > 0:
             line = texts[-1].line
-            ctrl.sp.line = line
-            ctrl.sp.setTopLine(line)
+            ctrl.ed.line = line
+            ctrl.ed.setTopLine(line)
         else:
-            tl = ctrl.sp.getTopLine()
+            tl = ctrl.ed.getTopLine()
             if tl == texts[-1].line:
-                ctrl.sp.setTopLine(tl - 5)
+                ctrl.ed.setTopLine(tl - 5)
             else:
-                ctrl.sp.line = tl
+                ctrl.ed.line = tl
 
                 pc = PageCache(ctrl)
 
                 while 1:
-                    tl = ctrl.sp.getTopLine()
+                    tl = ctrl.ed.getTopLine()
                     if tl == 0:
                         break
 
                     texts = self.getScreen(ctrl, False, False, pc)[0]
                     lastLine = texts[-1].line
 
-                    if ctrl.sp.line > lastLine:
+                    if ctrl.ed.line > lastLine:
                         # line scrolled off screen, back up one line
-                        ctrl.sp.setTopLine(tl + 1)
+                        ctrl.ed.setTopLine(tl + 1)
                         break
 
-                    ctrl.sp.setTopLine(tl - 1)
+                    ctrl.ed.setTopLine(tl - 1)
 
             cs.needsVisifying = False
 
@@ -247,7 +247,7 @@ class ViewModeDraft(ViewMode):
         width, height = ctrl.GetClientSize()
         ls = ctrl.sp.lines
         y = 15
-        i = ctrl.sp.getTopLine()
+        i = ctrl.ed.getTopLine()
 
         marginLeft = int(ctrl.mm2p * cfg.marginLeft)
         cox = util.clamp((width - ctrl.pageW) // 2, 0)
@@ -341,7 +341,7 @@ class ViewModeLayout(ViewMode):
         cox = util.clamp((width - ctrl.pageW) // 2, 0)
 
         y = 0
-        topLine = ctrl.sp.getTopLine()
+        topLine = ctrl.ed.getTopLine()
         pageNr = ctrl.sp.line2page(topLine)
 
         # the pager tracks the current scene's number as it lays out a page,
@@ -501,7 +501,7 @@ class ViewModeSideBySide(ViewMode):
 
         pager = mypager.Pager(ctrl.sp.cfg)
 
-        topLine = ctrl.sp.getTopLine()
+        topLine = ctrl.ed.getTopLine()
         pageNr = ctrl.sp.line2page(topLine)
 
         if doExtra and ctrl.sp.cfg.pdfShowSceneNumbers:
@@ -606,7 +606,7 @@ class ViewModeSideBySide(ViewMode):
     # the screen always starts at the top of the top line's page, so this
     # shows line's page first
     def makeLineVisible(self, ctrl, line, texts, direction=config.SCROLL_CENTER):
-        ctrl.sp.setTopLine(line)
+        ctrl.ed.setTopLine(line)
 
     # move a screenful of pages back or forward
     def pageCmd(self, ctrl, cs, dir, texts, dpages):
@@ -617,6 +617,6 @@ class ViewModeSideBySide(ViewMode):
 
         line = ctrl.sp.page2lines(pageNr)[0]
 
-        ctrl.sp.line = line
-        ctrl.sp.setTopLine(line)
+        ctrl.ed.line = line
+        ctrl.ed.setTopLine(line)
         cs.needsVisifying = False

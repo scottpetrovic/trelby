@@ -46,3 +46,16 @@ def loadString(s: str):
     init()
 
     return screenplay.Screenplay.load(s, config.ConfigGlobal())[0]
+
+
+# the same, as Editors on the script (see trelby/screenplay/editor.py)
+def newEditor():
+    return screenplay.Editor(new())
+
+
+def loadEditor(filename="test.trelby"):
+    return screenplay.Editor(load(filename))
+
+
+def loadStringEditor(s: str):
+    return screenplay.Editor(loadString(s))

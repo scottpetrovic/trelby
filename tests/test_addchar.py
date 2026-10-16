@@ -5,31 +5,31 @@ import trelby.screenplay as scr
 
 
 def testSpaceAtEOL():
-    sp = u.load()
-    sp.cmd("moveDown", count=3)
-    sp.cmd("moveLineEnd")
-    sp.cmd("addChar", char="z")
-    sp.cmd("addChar", char=" ")
-    assert sp.lines[3].text.endswith("z ")
-    sp.cmd("addChar", char="x")
-    assert (sp.line == 4) and (sp.column == 1)
-    assert sp.lines[3].lb == scr.LB_SPACE
-    assert sp.lines[4].lb == scr.LB_LAST
-    assert sp.lines[3].text.endswith("wouldz")
-    assert sp.lines[4].text.startswith("x be")
+    ed = u.loadEditor()
+    ed.cmd("moveDown", count=3)
+    ed.cmd("moveLineEnd")
+    ed.cmd("addChar", char="z")
+    ed.cmd("addChar", char=" ")
+    assert ed.sp.lines[3].text.endswith("z ")
+    ed.cmd("addChar", char="x")
+    assert (ed.line == 4) and (ed.column == 1)
+    assert ed.sp.lines[3].lb == scr.LB_SPACE
+    assert ed.sp.lines[4].lb == scr.LB_LAST
+    assert ed.sp.lines[3].text.endswith("wouldz")
+    assert ed.sp.lines[4].text.startswith("x be")
 
 
 def testNbspAtEOL():
-    sp = u.load()
-    sp.cmd("moveDown", count=3)
-    sp.cmd("moveLineEnd")
-    sp.cmd("addChar", char=chr(160))
-    sp.cmd("addChar", char="a")
-    assert sp.lines[3].text.endswith("mind")
-    assert sp.lines[4].text.startswith("would%sa" % chr(160))
-    assert (sp.line == 4) and (sp.column == 7)
-    assert sp.lines[3].lb == scr.LB_SPACE
-    assert sp.lines[4].lb == scr.LB_LAST
+    ed = u.loadEditor()
+    ed.cmd("moveDown", count=3)
+    ed.cmd("moveLineEnd")
+    ed.cmd("addChar", char=chr(160))
+    ed.cmd("addChar", char="a")
+    assert ed.sp.lines[3].text.endswith("mind")
+    assert ed.sp.lines[4].text.startswith("would%sa" % chr(160))
+    assert (ed.line == 4) and (ed.column == 7)
+    assert ed.sp.lines[3].lb == scr.LB_SPACE
+    assert ed.sp.lines[4].lb == scr.LB_LAST
 
 
 # FIXME: lot more tests

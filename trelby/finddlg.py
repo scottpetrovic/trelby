@@ -184,8 +184,8 @@ class FindDlg(wx.Dialog):
         self.showExtra(not self.useExtra)
 
     def OnText(self, event):
-        if self.ctrl.sp.mark:
-            self.ctrl.sp.clearMark()
+        if self.ctrl.ed.mark:
+            self.ctrl.ed.clearMark()
             self.ctrl.updateScreen()
 
     def OnCharEntry(self, event):
@@ -278,8 +278,8 @@ class FindDlg(wx.Dialog):
 
         # each line is searched on its own, so text that wraps from one
         # line to the next isn't found
-        line = self.ctrl.sp.line
-        col = self.ctrl.sp.column
+        line = self.ctrl.ed.line
+        col = self.ctrl.ed.column
         ls = self.ctrl.sp.lines
 
         # the cursor is still at the start of the last match, so start one
@@ -354,8 +354,8 @@ class FindDlg(wx.Dialog):
             if found:
                 self.searchLine = line
                 self.searchColumn = res
-                self.ctrl.sp.gotoPos(line, res)
-                self.ctrl.sp.setMark(line, res + self.searchWidth - 1)
+                self.ctrl.ed.gotoPos(line, res)
+                self.ctrl.ed.setMark(line, res + self.searchWidth - 1)
 
                 if not autoFind:
                     self.ctrl.makeLineVisible(line)
@@ -412,13 +412,14 @@ class FindDlg(wx.Dialog):
         ls = self.ctrl.sp.lines
 
         sp = self.ctrl.sp
+        ed = self.ctrl.ed
         u = undo.SinglePara(sp, undo.CMD_MISC, self.searchLine)
 
         ls[self.searchLine].replaceText(
             self.searchColumn, self.searchWidth, util.toInputStr(value)
         )
 
-        sp.rewrapPara(sp.getParaFirstIndexFromLine(self.searchLine))
+        ed.rewrapPara(sp.getParaFirstIndexFromLine(self.searchLine))
 
         self.searchLine = -1
 
@@ -428,28 +429,28 @@ class FindDlg(wx.Dialog):
         # replacement going down, just before it going up, so that it
         # isn't searched again
         if not self.dirUp:
-            sp.column += self.searchWidth + diff
+            ed.column += self.searchWidth + diff
         else:
-            sp.column -= 1
+            ed.column -= 1
 
-            if sp.column < 0:
-                sp.line -= 1
+            if ed.column < 0:
+                ed.line -= 1
 
-                if sp.line < 0:
-                    sp.line = 0
-                    sp.column = 0
+                if ed.line < 0:
+                    ed.line = 0
+                    ed.column = 0
 
                     self.searchLine = 0
                     self.searchColumn = 0
                     self.searchWidth = 0
                 else:
-                    sp.column = len(ls[sp.line].text)
+                    ed.column = len(ls[ed.line].text)
 
-        sp.clearMark()
+        ed.clearMark()
         sp.markChanged()
 
         u.setAfter(sp)
-        sp.undoHistory.add(u)
+        ed.undoHistory.add(u)
 
         # Replace All paginates once at the end instead
         if not autoFind:
@@ -474,7 +475,7 @@ class FindDlg(wx.Dialog):
 
         if count != 0:
             self.ctrl.sp.paginate()
-            self.ctrl.makeLineVisible(self.ctrl.sp.line)
+            self.ctrl.makeLineVisible(self.ctrl.ed.line)
             self.ctrl.updateScreen()
 
         wx.MessageBox(_("Replaced {} matches").format(count), _("Results"), wx.OK, self)

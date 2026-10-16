@@ -35,12 +35,12 @@ def speechLines(dual=True):
 # return a paginated script from the given script lines, with a header
 # and a scene heading added
 def loadLines(lines):
-    sp = u.loadString(
+    ed = u.loadStringEditor(
         "\n".join(["#Version 3", "#Start-Script ", ".\\INT. GARAGE - DAY"] + lines)
     )
-    sp.paginate()
+    ed.sp.paginate()
 
-    return sp
+    return ed
 
 
 # return a script with an action, then speechLines(dual), then 'extra'
@@ -49,38 +49,38 @@ def makeScript(dual=True, extra=[]):
 
 
 # return index of the first line of the element whose text starts with s
-def find(sp, s):
-    for i, ln in enumerate(sp.lines):
-        if ln.text.startswith(s) and sp.isFirstLineOfElem(i):
+def find(ed, s):
+    for i, ln in enumerate(ed.sp.lines):
+        if ln.text.startswith(s) and ed.sp.isFirstLineOfElem(i):
             return i
 
     assert False, s
 
 
 # return the text of the element starting at line i
-def elemText(sp, i):
+def elemText(ed, i):
     return " ".join(
-        ln.text for ln in sp.lines[i : sp.getElemLastIndexFromLine(i) + 1]
+        ln.text for ln in ed.sp.lines[i : ed.sp.getElemLastIndexFromLine(i) + 1]
     )
 
 
 # assert the lines of the speech starting at line i fit in the given
 # dual dialogue column, or in the normal widths if col is 0
-def assertWidths(sp, i, col):
-    first, last = sp.getSpeechIndexes(i)
+def assertWidths(ed, i, col):
+    first, last = ed.sp.getSpeechIndexes(i)
 
-    for ln in sp.lines[first : last + 1]:
+    for ln in ed.sp.lines[first : last + 1]:
         if col:
-            width = sp.cfg.getDualIndentWidth(ln.lt, col)[1]
+            width = ed.sp.cfg.getDualIndentWidth(ln.lt, col)[1]
         else:
-            width = sp.cfg.getType(ln.lt).width
+            width = ed.sp.cfg.getType(ln.lt).width
 
         assert len(ln.text.rstrip()) <= width
 
 
 def testDualIndentWidth():
-    sp = u.new()
-    cfg = sp.cfg
+    ed = u.newEditor()
+    cfg = ed.sp.cfg
 
     # columns don't overlap and stay within the action width
     for lt in (scr.CHARACTER, scr.PAREN, scr.DIALOGUE):
@@ -101,50 +101,50 @@ def testDualIndentWidth():
 
 
 def testLoad():
-    sp = makeScript()
+    ed = makeScript()
 
-    brick = find(sp, "BRICK")
-    steel = find(sp, "STEEL")
+    brick = find(ed, "BRICK")
+    steel = find(ed, "STEEL")
 
-    assert sp.lines[steel].dual
-    assert sp.getDualBlock(brick) == sp.getDualBlock(steel)
+    assert ed.sp.lines[steel].dual
+    assert ed.sp.getDualBlock(brick) == ed.sp.getDualBlock(steel)
 
-    first, right, last = sp.getDualBlock(steel)
+    first, right, last = ed.sp.getDualBlock(steel)
     assert (first, right) == (brick, steel)
-    assert sp.lines[last].lt == scr.DIALOGUE
-    assert sp.lines[last + 1].lt == scr.ACTION
+    assert ed.sp.lines[last].lt == scr.DIALOGUE
+    assert ed.sp.lines[last + 1].lt == scr.ACTION
 
-    assert sp.getDualColumn(brick + 1) == 1
-    assert sp.getDualColumn(steel + 1) == 2
-    assert sp.getDualColumn(0) == 0
-    assert sp.getDualColumn(last + 1) == 0
+    assert ed.sp.getDualColumn(brick + 1) == 1
+    assert ed.sp.getDualColumn(steel + 1) == 2
+    assert ed.sp.getDualColumn(0) == 0
+    assert ed.sp.getDualColumn(last + 1) == 0
 
     # speeches are wrapped to their columns
-    assertWidths(sp, brick, 1)
-    assertWidths(sp, steel, 2)
-    assert elemText(sp, find(sp, "It's")) == STEEL
+    assertWidths(ed, brick, 1)
+    assertWidths(ed, steel, 2)
+    assert elemText(ed, find(ed, "It's")) == STEEL
 
     # and that makes them longer than normal speeches
     normal = makeScript(dual=False)
-    assert len(sp.lines) > len(normal.lines)
+    assert len(ed.sp.lines) > len(normal.sp.lines)
 
-    sp._validate()
+    ed._validate()
 
 
 def testSaveLoad():
-    sp = makeScript()
-    s = sp.save().decode("UTF-8")
+    ed = makeScript()
+    s = ed.save().decode("UTF-8")
 
     assert s.count("#Dual-Dialogue \n") == 1
     assert "#Dual-Dialogue \n._STEEL\n" in s
 
-    sp2 = u.loadString(s)
-    assert sp2.lines == sp.lines
+    ed2 = u.loadStringEditor(s)
+    assert ed2.sp.lines == ed.sp.lines
 
 
 def testIgnoredFlags():
     # flag on a character with no speech before it
-    sp = u.loadString(
+    ed = u.loadStringEditor(
         "\n".join(
             [
                 "#Version 3",
@@ -157,11 +157,11 @@ def testIgnoredFlags():
         )
     )
 
-    assert sp.getDualBlock(find(sp, "BRICK")) is None
-    assertWidths(sp, find(sp, "BRICK"), 0)
+    assert ed.sp.getDualBlock(find(ed, "BRICK")) is None
+    assertWidths(ed, find(ed, "BRICK"), 0)
 
     # flag on something that isn't a character is dropped on save
-    sp = u.loadString(
+    ed = u.loadStringEditor(
         "\n".join(
             [
                 "#Version 3",
@@ -172,41 +172,41 @@ def testIgnoredFlags():
         )
     )
 
-    assert "#Dual-Dialogue" not in sp.save().decode("UTF-8")
+    assert "#Dual-Dialogue" not in ed.save().decode("UTF-8")
 
 
 def testNoChains():
     # a third speech can't be a dual dialogue with the second one when
     # that's already the right-hand column of one
-    sp = makeScript(extra=["#Dual-Dialogue ", "._ROCK", ".:Boys!"])
+    ed = makeScript(extra=["#Dual-Dialogue ", "._ROCK", ".:Boys!"])
 
-    rock = find(sp, "ROCK")
-    assert sp.getDualBlock(rock) is None
-    assert sp.getDualBlock(find(sp, "STEEL"))[0] == find(sp, "BRICK")
+    rock = find(ed, "ROCK")
+    assert ed.sp.getDualBlock(rock) is None
+    assert ed.sp.getDualBlock(find(ed, "STEEL"))[0] == find(ed, "BRICK")
 
-    sp.line = rock
-    assert not sp.toggleDualDialogue()
+    ed.line = rock
+    assert not ed.toggleDualDialogue()
 
 
 def testToggleOff():
-    sp = makeScript()
-    before = [ln.copy() for ln in sp.lines]
+    ed = makeScript()
+    before = [ln.copy() for ln in ed.sp.lines]
 
-    sp.line = find(sp, "BRICK") + 1
-    assert sp.toggleDualDialogue()
+    ed.line = find(ed, "BRICK") + 1
+    assert ed.toggleDualDialogue()
 
-    steel = find(sp, "STEEL")
-    assert not sp.lines[steel].dual
-    assert sp.getDualBlock(steel) is None
-    assert sp.lines == makeScript(dual=False).lines
+    steel = find(ed, "STEEL")
+    assert not ed.sp.lines[steel].dual
+    assert ed.sp.getDualBlock(steel) is None
+    assert ed.sp.lines == makeScript(dual=False).sp.lines
 
-    sp._validate()
+    ed._validate()
 
-    sp.cmd("undo")
-    assert sp.lines == before
+    ed.cmd("undo")
+    assert ed.sp.lines == before
 
-    sp.cmd("redo")
-    assert sp.lines == makeScript(dual=False).lines
+    ed.cmd("redo")
+    assert ed.sp.lines == makeScript(dual=False).sp.lines
 
 
 def testToggleOn():
@@ -214,232 +214,232 @@ def testToggleOn():
 
     # from either speech
     for name in ("STEEL", "BRICK"):
-        sp = makeScript(dual=False)
-        sp.line = find(sp, name)
+        ed = makeScript(dual=False)
+        ed.line = find(ed, name)
 
-        assert sp.toggleDualDialogue()
-        assert sp.lines == dual.lines
+        assert ed.toggleDualDialogue()
+        assert ed.sp.lines == dual.sp.lines
 
-        sp._validate()
+        ed._validate()
 
     # not from outside a speech
-    sp = makeScript(dual=False)
-    sp.line = 1
+    ed = makeScript(dual=False)
+    ed.line = 1
 
-    assert not sp.toggleDualDialogue()
-    assert sp.lines == makeScript(dual=False).lines
+    assert not ed.toggleDualDialogue()
+    assert ed.sp.lines == makeScript(dual=False).sp.lines
 
 
 def testGetDualToggle():
     # in a dual dialogue: would turn it off
-    sp = makeScript()
-    block = sp.getDualBlock(find(sp, "STEEL"))
+    ed = makeScript()
+    block = ed.sp.getDualBlock(find(ed, "STEEL"))
 
     for name in ("BRICK", "STEEL"):
-        sp.line = find(sp, name)
-        assert sp.getDualToggle() == (block, False)
+        ed.line = find(ed, name)
+        assert ed.getDualToggle() == (block, False)
 
     # not in one: would turn it on, without changing anything
-    sp = makeScript(dual=False)
-    sp.line = find(sp, "BRICK")
-    block = (find(sp, "BRICK"), find(sp, "STEEL"), find(sp, "They glare") - 1)
-    assert sp.getDualToggle() == (block, True)
-    assert sp.lines == makeScript(dual=False).lines
+    ed = makeScript(dual=False)
+    ed.line = find(ed, "BRICK")
+    block = (find(ed, "BRICK"), find(ed, "STEEL"), find(ed, "They glare") - 1)
+    assert ed.getDualToggle() == (block, True)
+    assert ed.sp.lines == makeScript(dual=False).sp.lines
 
     # outside a speech, or with no speech to pair with
-    sp.line = 1
-    assert sp.getDualToggle() is None
+    ed.line = 1
+    assert ed.getDualToggle() is None
 
-    sp = makeScript(extra=["#Dual-Dialogue ", "._ROCK", ".:Boys!"])
-    sp.line = find(sp, "ROCK")
-    assert sp.getDualToggle() is None
+    ed = makeScript(extra=["#Dual-Dialogue ", "._ROCK", ".:Boys!"])
+    ed.line = find(ed, "ROCK")
+    assert ed.getDualToggle() is None
 
 
 def testToggleKeepsCursor():
-    sp = makeScript(dual=False)
+    ed = makeScript(dual=False)
 
-    sp.line = find(sp, "It's")
-    sp.column = 5
+    ed.line = find(ed, "It's")
+    ed.column = 5
 
-    assert sp.toggleDualDialogue()
-    assert (sp.line, sp.column) == (find(sp, "It's"), 5)
+    assert ed.toggleDualDialogue()
+    assert (ed.line, ed.column) == (find(ed, "It's"), 5)
 
 
 def testUndoStorage():
-    sp = makeScript()
-    steel = find(sp, "STEEL")
+    ed = makeScript()
+    steel = find(ed, "STEEL")
 
-    lines = undo.storage2lines(undo.lines2storage(sp.lines))
+    lines = undo.storage2lines(undo.lines2storage(ed.sp.lines))
 
-    assert lines == sp.lines
+    assert lines == ed.sp.lines
     assert lines[steel].dual
 
 
 def testConvertType():
     # changing BRICK's dialogue into action ends the dual dialogue, so
     # STEEL's speech gets its normal widths again
-    sp = makeScript()
+    ed = makeScript()
 
-    sp.line = find(sp, "I said")
-    sp.convertTypeTo(scr.ACTION, True)
+    ed.line = find(ed, "I said")
+    ed.convertTypeTo(scr.ACTION, True)
 
-    steel = find(sp, "STEEL")
-    assert sp.getDualBlock(steel) is None
-    assertWidths(sp, steel, 0)
-    assert len(sp.lines[find(sp, "It's")].text) > sp.cfg.getDualIndentWidth(
+    steel = find(ed, "STEEL")
+    assert ed.sp.getDualBlock(steel) is None
+    assertWidths(ed, steel, 0)
+    assert len(ed.sp.lines[find(ed, "It's")].text) > ed.sp.cfg.getDualIndentWidth(
         scr.DIALOGUE, 2
     )[1]
 
-    sp._validate()
+    ed._validate()
 
-    sp.cmd("undo")
-    assert sp.lines == makeScript().lines
+    ed.cmd("undo")
+    assert ed.sp.lines == makeScript().sp.lines
 
 
 def testCopyPaste():
-    sp = makeScript()
+    ed = makeScript()
 
     # copy both speeches and paste them at the end of the script
-    sp.setMark(find(sp, "BRICK"), 0)
-    sp.line = find(sp, "They glare") - 1
-    sp.column = len(sp.lines[sp.line].text)
-    cd = sp.getSelectedAsCD(False)
+    ed.setMark(find(ed, "BRICK"), 0)
+    ed.line = find(ed, "They glare") - 1
+    ed.column = len(ed.sp.lines[ed.line].text)
+    cd = ed.getSelectedAsCD(False)
 
-    sp.clearMark()
-    sp.line = len(sp.lines) - 1
-    sp.column = len(sp.lines[sp.line].text)
-    sp.cmd("splitElement")
-    sp.paste(cd.lines)
+    ed.clearMark()
+    ed.line = len(ed.sp.lines) - 1
+    ed.column = len(ed.sp.lines[ed.line].text)
+    ed.cmd("splitElement")
+    ed.paste(cd.lines)
 
-    steels = [i for i, ln in enumerate(sp.lines) if ln.text == "STEEL"]
+    steels = [i for i, ln in enumerate(ed.sp.lines) if ln.text == "STEEL"]
     assert len(steels) == 2
 
     for steel in steels:
-        assert sp.getDualBlock(steel)
-        assertWidths(sp, steel, 2)
+        assert ed.sp.getDualBlock(steel)
+        assertWidths(ed, steel, 2)
 
-    sp._validate()
+    ed._validate()
 
 
 def testCutLeftSpeech():
     # cutting BRICK's speech leaves STEEL's on its own, with normal widths
-    sp = makeScript()
+    ed = makeScript()
 
-    sp.setMark(find(sp, "BRICK"), 0)
-    sp.line = find(sp, "STEEL") - 1
-    sp.column = len(sp.lines[sp.line].text)
-    sp.getSelectedAsCD(True)
+    ed.setMark(find(ed, "BRICK"), 0)
+    ed.line = find(ed, "STEEL") - 1
+    ed.column = len(ed.sp.lines[ed.line].text)
+    ed.getSelectedAsCD(True)
 
-    steel = find(sp, "STEEL")
-    assert sp.getDualBlock(steel) is None
-    assertWidths(sp, steel, 0)
+    steel = find(ed, "STEEL")
+    assert ed.sp.getDualBlock(steel) is None
+    assertWidths(ed, steel, 0)
 
-    sp._validate()
+    ed._validate()
 
 
-# assert that every element in sp is wrapped the way loading the script
+# assert that every element in ed is wrapped the way loading the script
 # would wrap it, i.e. speeches fit their dual dialogue columns if they're
 # in one, and have normal widths otherwise
-def assertWrapped(sp):
-    assert sp.lines == u.loadString(sp.save().decode("UTF-8")).lines
+def assertWrapped(ed):
+    assert ed.sp.lines == u.loadString(ed.save().decode("UTF-8")).lines
 
 
-# run 'undo' and 'redo' on sp, checking that they restore the lines from
+# run 'undo' and 'redo' on ed, checking that they restore the lines from
 # before and after the last command
-def assertUndoRedo(sp, before):
-    after = [ln.copy() for ln in sp.lines]
+def assertUndoRedo(ed, before):
+    after = [ln.copy() for ln in ed.sp.lines]
 
-    sp.cmd("undo")
-    assert sp.lines == before
-    sp._validate()
+    ed.cmd("undo")
+    assert ed.sp.lines == before
+    ed._validate()
 
-    sp.cmd("redo")
-    assert sp.lines == after
-    sp._validate()
+    ed.cmd("redo")
+    assert ed.sp.lines == after
+    ed._validate()
 
 
 def testBackspaceLeftCharacter():
     # backspace at the start of BRICK's character joins it to the action
     # before it, which ends the dual dialogue
-    sp = makeScript()
-    before = [ln.copy() for ln in sp.lines]
+    ed = makeScript()
+    before = [ln.copy() for ln in ed.sp.lines]
 
-    sp.line = find(sp, "BRICK")
-    sp.column = 0
-    sp.cmd("deleteBackward")
+    ed.line = find(ed, "BRICK")
+    ed.column = 0
+    ed.cmd("deleteBackward")
 
-    assert sp.lines[sp.line].text == "They get out of the car.BRICK"
-    assert sp.column == len("They get out of the car.")
+    assert ed.sp.lines[ed.line].text == "They get out of the car.BRICK"
+    assert ed.column == len("They get out of the car.")
 
-    steel = find(sp, "STEEL")
-    assert sp.getDualBlock(steel) is None
-    assertWidths(sp, steel, 0)
-    assertWrapped(sp)
-    sp._validate()
+    steel = find(ed, "STEEL")
+    assert ed.sp.getDualBlock(steel) is None
+    assertWidths(ed, steel, 0)
+    assertWrapped(ed)
+    ed._validate()
 
-    assertUndoRedo(sp, before)
+    assertUndoRedo(ed, before)
 
 
 def testEnterLeftDialogue():
     # Enter in the middle of BRICK's dialogue puts a new element between
     # the speeches, which ends the dual dialogue
-    sp = makeScript()
-    before = [ln.copy() for ln in sp.lines]
+    ed = makeScript()
+    before = [ln.copy() for ln in ed.sp.lines]
 
-    sp.line = find(sp, "I said")
-    sp.column = len("I said ")
-    sp.cmd("splitElement")
+    ed.line = find(ed, "I said")
+    ed.column = len("I said ")
+    ed.cmd("splitElement")
 
-    assert sp.lines[sp.line].text.startswith("we'd")
+    assert ed.sp.lines[ed.line].text.startswith("we'd")
 
-    assert sp.getDualBlock(find(sp, "BRICK")) is None
-    assert sp.getDualBlock(find(sp, "STEEL")) is None
-    assertWidths(sp, find(sp, "BRICK"), 0)
-    assertWidths(sp, find(sp, "STEEL"), 0)
-    assertWrapped(sp)
-    sp._validate()
+    assert ed.sp.getDualBlock(find(ed, "BRICK")) is None
+    assert ed.sp.getDualBlock(find(ed, "STEEL")) is None
+    assertWidths(ed, find(ed, "BRICK"), 0)
+    assertWidths(ed, find(ed, "STEEL"), 0)
+    assertWrapped(ed)
+    ed._validate()
 
-    assertUndoRedo(sp, before)
+    assertUndoRedo(ed, before)
 
 
 def testDeleteForwardMakesPair():
     # deleting an empty action between the speeches makes them the dual
     # dialogue STEEL's flag asks for
     lines = speechLines()
-    sp = loadLines(lines[:2] + [".."] + lines[2:])
-    before = [ln.copy() for ln in sp.lines]
+    ed = loadLines(lines[:2] + [".."] + lines[2:])
+    before = [ln.copy() for ln in ed.sp.lines]
 
-    steel = find(sp, "STEEL")
-    assert sp.getDualBlock(steel) is None
+    steel = find(ed, "STEEL")
+    assert ed.sp.getDualBlock(steel) is None
 
-    sp.line = find(sp, "I said")
-    sp.line = sp.getElemLastIndexFromLine(sp.line)
-    sp.column = len(sp.lines[sp.line].text)
-    sp.cmd("deleteForward")
+    ed.line = find(ed, "I said")
+    ed.line = ed.sp.getElemLastIndexFromLine(ed.line)
+    ed.column = len(ed.sp.lines[ed.line].text)
+    ed.cmd("deleteForward")
 
-    assert sp.getDualBlock(find(sp, "STEEL"))
-    assertWidths(sp, find(sp, "BRICK"), 1)
-    assertWidths(sp, find(sp, "STEEL"), 2)
-    assertWrapped(sp)
-    assert sp.lines == loadLines(lines).lines
-    sp._validate()
+    assert ed.sp.getDualBlock(find(ed, "STEEL"))
+    assertWidths(ed, find(ed, "BRICK"), 1)
+    assertWidths(ed, find(ed, "STEEL"), 2)
+    assertWrapped(ed)
+    assert ed.sp.lines == loadLines(lines).sp.lines
+    ed._validate()
 
-    assertUndoRedo(sp, before)
+    assertUndoRedo(ed, before)
 
 
-def getTextOps(sp, pageNr=1):
-    pg = render.generatePMLPage(sp, mypager.Pager(sp.cfg), pageNr, True, True)
+def getTextOps(ed, pageNr=1):
+    pg = render.generatePMLPage(ed.sp, mypager.Pager(ed.sp.cfg), pageNr, True, True)
 
     return {op.line: op for op in pg.ops if isinstance(op, pml.TextOp) and (op.line != -1)}
 
 
 def testRender():
-    sp = makeScript()
-    ops = getTextOps(sp)
+    ed = makeScript()
+    ops = getTextOps(ed)
 
-    brick = find(sp, "BRICK")
-    steel = find(sp, "STEEL")
-    first, right, last = sp.getDualBlock(steel)
+    brick = find(ed, "BRICK")
+    steel = find(ed, "STEEL")
+    first, right, last = ed.sp.getDualBlock(steel)
 
     # the columns start on the same row, side by side
     assert ops[steel].y == ops[brick].y
@@ -457,39 +457,39 @@ def testRender():
     assert len(rows) == len(set(rows))
 
     # without the flag, everything is in one column
-    sp = makeScript(dual=False)
-    ops = getTextOps(sp)
-    assert ops[find(sp, "STEEL")].y > ops[find(sp, "BRICK")].y
+    ed = makeScript(dual=False)
+    ops = getTextOps(ed)
+    assert ops[find(ed, "STEEL")].y > ops[find(ed, "BRICK")].y
 
 
 def testRenderTooLong():
     # if the speeches haven't been wrapped for a dual dialogue, they're
     # printed one after another
-    sp = makeScript(dual=False)
-    sp.lines[find(sp, "STEEL")].dual = True
+    ed = makeScript(dual=False)
+    ed.sp.lines[find(ed, "STEEL")].dual = True
 
-    assert sp.getDualBlock(find(sp, "STEEL"))
-    assert sp.getDualLines(0, len(sp.lines) - 1) == {}
+    assert ed.sp.getDualBlock(find(ed, "STEEL"))
+    assert ed.sp.getDualLines(0, len(ed.sp.lines) - 1) == {}
 
-    ops = getTextOps(sp)
-    assert ops[find(sp, "STEEL")].y > ops[find(sp, "BRICK")].y
+    ops = getTextOps(ed)
+    assert ops[find(ed, "STEEL")].y > ops[find(ed, "BRICK")].y
 
 
 def testPagination():
     # push the dual dialogue to straddle the first page break, with and
     # without the dual flag
     for n in range(30, 60):
-        sp = loadLines(["..Action %d." % i for i in range(n)] + speechLines())
+        ed = loadLines(["..Action %d." % i for i in range(n)] + speechLines())
 
-        brick = find(sp, "BRICK")
-        first, right, last = sp.getDualBlock(find(sp, "STEEL"))
+        brick = find(ed, "BRICK")
+        first, right, last = ed.sp.getDualBlock(find(ed, "STEEL"))
 
         # never split
-        assert sp.line2page(first) == sp.line2page(last)
+        assert ed.sp.line2page(first) == ed.sp.line2page(last)
 
         # rendered as dual on whatever page it's on
-        page = sp.line2page(first)
-        ops = getTextOps(sp, page)
+        page = ed.sp.line2page(first)
+        ops = getTextOps(ed, page)
         assert ops[right].y == ops[brick].y
 
 
@@ -504,19 +504,19 @@ def testPaginationUsesTallerColumn():
     dual = loadLines(lines)
     normal = loadLines([s for s in lines if s != "#Dual-Dialogue "])
 
-    assert len(dual.pages) < len(normal.pages)
+    assert len(dual.sp.pages) < len(normal.sp.pages)
 
     # and doesn't overflow: the last text on each page is above the
     # bottom margin
-    cfg = dual.cfg
-    for p in range(1, len(dual.pages) - 1):
+    cfg = dual.sp.cfg
+    for p in range(1, len(dual.sp.pages) - 1):
         ops = getTextOps(dual, p)
         assert max(op.y for op in ops.values()) < cfg.paperHeight - cfg.marginBottom
 
 
 def testExportFountain():
-    sp = makeScript()
-    s = export.generateFountain(sp)
+    ed = makeScript()
+    s = export.generateFountain(ed.sp)
 
     assert "\nSTEEL ^\n" in s
     assert "BRICK ^" not in s
@@ -525,8 +525,8 @@ def testExportFountain():
 def testExportFDX():
     from lxml import etree
 
-    sp = makeScript()
-    root = etree.XML(export.generateFDX(sp))
+    ed = makeScript()
+    root = etree.XML(export.generateFDX(ed.sp))
 
     dd = root.xpath("Content/Paragraph[@Type='General']/DualDialogue")
     assert len(dd) == 1
@@ -545,13 +545,13 @@ def testExportFDX():
 
 
 def testExportText():
-    sp = makeScript()
-    rows = export.generateText(sp, False).split("\n")
+    ed = makeScript()
+    rows = export.generateText(ed.sp, False).split("\n")
 
     row = [r for r in rows if "BRICK" in r]
     assert len(row) == 1
     assert "STEEL" in row[0]
     assert row[0].index("BRICK") < row[0].index("STEEL")
 
-    html = export.generateHtml(sp)
+    html = export.generateHtml(ed.sp)
     assert "BRICK" in html and "STEEL" in html

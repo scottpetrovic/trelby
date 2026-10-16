@@ -24,27 +24,27 @@ def makeScript(scenes=5):
         lines.append("..Scene %d, first action." % (s + 1))
         lines.append("..Scene %d, second action." % (s + 1))
 
-    sp = u.loadString("\n".join(lines))
-    sp.paginate()
+    ed = u.loadStringEditor("\n".join(lines))
+    ed.sp.paginate()
 
-    return sp
+    return ed
 
 
 def makeLocked(**kwargs):
-    sp = makeScript(**kwargs)
-    sp.lockScenes()
+    ed = makeScript(**kwargs)
+    ed.lockScenes()
 
-    return sp
+    return ed
 
 
 # return {heading: scene number} for all scenes
-def numbers(sp):
-    return {sp.lines[i].text: label for i, label in sp.getSceneLabels()}
+def numbers(ed):
+    return {ed.sp.lines[i].text: label for i, label in ed.sp.getSceneLabels()}
 
 
 # return scene numbers in script order
-def labels(sp):
-    return [label for i, label in sp.getSceneLabels()]
+def labels(ed):
+    return [label for i, label in ed.sp.getSceneLabels()]
 
 
 # return lines making up a new scene with the given heading
@@ -56,12 +56,12 @@ def newScene(heading):
 
 
 # select the whole scene with the given (0-based) index
-def selectScene(sp, idx):
-    starts = sp.getSceneStarts()
-    end = (starts[idx + 1] if idx + 1 < len(starts) else len(sp.lines)) - 1
+def selectScene(ed, idx):
+    starts = ed.sp.getSceneStarts()
+    end = (starts[idx + 1] if idx + 1 < len(starts) else len(ed.sp.lines)) - 1
 
-    sp.setMark(starts[idx], 0)
-    sp.gotoPos(end, len(sp.lines[end].text))
+    ed.setMark(starts[idx], 0)
+    ed.gotoPos(end, len(ed.sp.lines[end].text))
 
 
 def testSceneLabelsUnlocked():
@@ -121,30 +121,30 @@ def testSceneLabelValidity():
 
 
 def testUnlockedNumbering():
-    sp = makeScript()
+    ed = makeScript()
 
-    assert labels(sp) == ["1", "2", "3", "4", "5"]
-    assert not sp.hasSceneLocks()
-    assert sp.getSceneNumber(-1) == ""
-    assert sp.getSceneNumber(sp.getSceneStarts()[2] + 1) == "3"
+    assert labels(ed) == ["1", "2", "3", "4", "5"]
+    assert not ed.sp.hasSceneLocks()
+    assert ed.sp.getSceneNumber(-1) == ""
+    assert ed.sp.getSceneNumber(ed.sp.getSceneStarts()[2] + 1) == "3"
 
 
 def testLock():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    assert sp.hasSceneLocks()
-    assert labels(sp) == ["1", "2", "3", "4", "5"]
-    assert [sp.lines[i].sceneLock for i in sp.getSceneStarts()] == labels(sp)
+    assert ed.sp.hasSceneLocks()
+    assert labels(ed) == ["1", "2", "3", "4", "5"]
+    assert [ed.sp.lines[i].sceneLock for i in ed.sp.getSceneStarts()] == labels(ed)
 
 
 def testAddedSceneGetsAScene():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    sp.gotoPos(sp.getSceneStarts()[2], 0)
-    sp.paste(newScene("INT. NEW ROOM - DAY") + newScene("INT. NEWER ROOM - DAY"))
-    sp._validate()
+    ed.gotoPos(ed.sp.getSceneStarts()[2], 0)
+    ed.paste(newScene("INT. NEW ROOM - DAY") + newScene("INT. NEWER ROOM - DAY"))
+    ed._validate()
 
-    assert numbers(sp) == {
+    assert numbers(ed) == {
         "INT. ROOM 1 - DAY": "1",
         "INT. ROOM 2 - DAY": "2",
         "INT. NEW ROOM - DAY": "2A",
@@ -156,206 +156,206 @@ def testAddedSceneGetsAScene():
 
 
 def testAddedSceneAtStart():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    sp.gotoPos(0, 0)
-    sp.paste(newScene("INT. PROLOGUE - DAY"))
-    sp._validate()
+    ed.gotoPos(0, 0)
+    ed.paste(newScene("INT. PROLOGUE - DAY"))
+    ed._validate()
 
-    assert labels(sp) == ["A1", "1", "2", "3", "4", "5"]
+    assert labels(ed) == ["A1", "1", "2", "3", "4", "5"]
 
 
 def testAddedSceneAtEnd():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    sp.gotoPos(len(sp.lines) - 1, len(sp.lines[-1].text))
-    sp.cmd("splitElement")
-    sp.convertTypeTo(scr.SCENE, True)
+    ed.gotoPos(len(ed.sp.lines) - 1, len(ed.sp.lines[-1].text))
+    ed.cmd("splitElement")
+    ed.convertTypeTo(scr.SCENE, True)
     for ch in "INT. EPILOGUE":
-        sp.cmd("addChar", char=ch)
-    sp._validate()
+        ed.cmd("addChar", char=ch)
+    ed._validate()
 
-    assert labels(sp) == ["1", "2", "3", "4", "5", "5A"]
+    assert labels(ed) == ["1", "2", "3", "4", "5", "5A"]
 
 
 def testDeleteSceneLeavesGap():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    selectScene(sp, 2)
-    sp.getSelectedAsCD(True)
-    sp._validate()
+    selectScene(ed, 2)
+    ed.getSelectedAsCD(True)
+    ed._validate()
 
-    assert labels(sp) == ["1", "2", "4", "5"]
+    assert labels(ed) == ["1", "2", "4", "5"]
 
 
 def testCutPasteKeepsNumber():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    selectScene(sp, 1)
-    cd = sp.getSelectedAsCD(True)
-    assert labels(sp) == ["1", "3", "4", "5"]
+    selectScene(ed, 1)
+    cd = ed.getSelectedAsCD(True)
+    assert labels(ed) == ["1", "3", "4", "5"]
 
-    sp.gotoPos(sp.getSceneStarts()[3], 0)
-    sp.paste(cd.lines)
-    sp._validate()
+    ed.gotoPos(ed.sp.getSceneStarts()[3], 0)
+    ed.paste(cd.lines)
+    ed._validate()
 
-    assert numbers(sp)["INT. ROOM 2 - DAY"] == "2"
-    assert labels(sp) == ["1", "3", "4", "2", "5"]
+    assert numbers(ed)["INT. ROOM 2 - DAY"] == "2"
+    assert labels(ed) == ["1", "3", "4", "2", "5"]
 
     # pasting it again makes a new scene
-    sp.gotoPos(sp.getSceneStarts()[1], 0)
-    sp.paste(cd.lines)
-    sp._validate()
+    ed.gotoPos(ed.sp.getSceneStarts()[1], 0)
+    ed.paste(cd.lines)
+    ed._validate()
 
-    assert labels(sp) == ["1", "1A", "3", "4", "2", "5"]
+    assert labels(ed) == ["1", "1A", "3", "4", "2", "5"]
 
 
 def testCopyPasteMakesNewScene():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    selectScene(sp, 1)
-    cd = sp.getSelectedAsCD(False)
+    selectScene(ed, 1)
+    cd = ed.getSelectedAsCD(False)
     assert cd.lines[0].sceneLock == "2"
 
-    sp.gotoPos(sp.getSceneStarts()[3], 0)
-    sp.paste(cd.lines)
-    sp._validate()
+    ed.gotoPos(ed.sp.getSceneStarts()[3], 0)
+    ed.paste(cd.lines)
+    ed._validate()
 
-    assert labels(sp) == ["1", "2", "3", "3A", "4", "5"]
-    assert numbers(sp)["INT. ROOM 4 - DAY"] == "4"
+    assert labels(ed) == ["1", "2", "3", "3A", "4", "5"]
+    assert numbers(ed)["INT. ROOM 4 - DAY"] == "4"
 
 
 def testMoveSceneKeepsNumber():
-    sp = makeLocked()
-    starts = sp.getOutlineStarts()
+    ed = makeLocked()
+    starts = ed.sp.getOutlineStarts()
 
-    sp.moveSceneTo(starts[4], 1)
-    sp._validate()
+    ed.moveSceneTo(starts[4], 1)
+    ed._validate()
 
-    assert labels(sp) == ["1", "5", "2", "3", "4"]
+    assert labels(ed) == ["1", "5", "2", "3", "4"]
 
     # a scene added after the moved one is numbered after scene 1
-    sp.gotoPos(sp.getSceneStarts()[2], 0)
-    sp.paste(newScene("INT. NEW ROOM - DAY"))
+    ed.gotoPos(ed.sp.getSceneStarts()[2], 0)
+    ed.paste(newScene("INT. NEW ROOM - DAY"))
 
-    assert labels(sp) == ["1", "5", "1A", "2", "3", "4"]
+    assert labels(ed) == ["1", "5", "1A", "2", "3", "4"]
 
 
 def testTypingKeepsNumber():
-    sp = makeLocked()
-    start = sp.getSceneStarts()[2]
+    ed = makeLocked()
+    start = ed.sp.getSceneStarts()[2]
 
     # make the heading long enough to wrap onto more lines
-    sp.gotoPos(start, len(sp.lines[start].text))
+    ed.gotoPos(start, len(ed.sp.lines[start].text))
     for ch in " AND A VERY LONG HEADING THAT GOES ON AND ON AND ON AND ON":
-        sp.cmd("addChar", char=ch)
-    sp.gotoPos(start, 0)
-    sp.cmd("addChar", char="X")
-    sp._validate()
+        ed.cmd("addChar", char=ch)
+    ed.gotoPos(start, 0)
+    ed.cmd("addChar", char="X")
+    ed._validate()
 
-    assert sp.getElemLastIndexFromLine(start) > start
-    assert labels(sp) == ["1", "2", "3", "4", "5"]
+    assert ed.sp.getElemLastIndexFromLine(start) > start
+    assert labels(ed) == ["1", "2", "3", "4", "5"]
 
 
 def testConvertToActionAndBack():
-    sp = makeLocked()
-    start = sp.getSceneStarts()[2]
+    ed = makeLocked()
+    start = ed.sp.getSceneStarts()[2]
 
-    sp.gotoPos(start, 0)
-    sp.convertTypeTo(scr.ACTION, True)
-    assert labels(sp) == ["1", "2", "4", "5"]
+    ed.gotoPos(start, 0)
+    ed.convertTypeTo(scr.ACTION, True)
+    assert labels(ed) == ["1", "2", "4", "5"]
 
-    sp.convertTypeTo(scr.SCENE, True)
-    assert labels(sp) == ["1", "2", "3", "4", "5"]
+    ed.convertTypeTo(scr.SCENE, True)
+    assert labels(ed) == ["1", "2", "3", "4", "5"]
 
 
 def testJoinWithPrevElementLosesNumber():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    sp.gotoPos(sp.getSceneStarts()[2], 0)
-    sp.cmd("deleteBackward")
-    sp._validate()
+    ed.gotoPos(ed.sp.getSceneStarts()[2], 0)
+    ed.cmd("deleteBackward")
+    ed._validate()
 
-    assert labels(sp) == ["1", "2", "4", "5"]
+    assert labels(ed) == ["1", "2", "4", "5"]
 
 
 def testUndoRedo():
-    sp = makeScript()
-    sp.lockScenes()
+    ed = makeScript()
+    ed.lockScenes()
 
-    sp.cmd("undo")
-    assert not sp.hasSceneLocks()
+    ed.cmd("undo")
+    assert not ed.sp.hasSceneLocks()
 
-    sp.cmd("redo")
-    assert sp.hasSceneLocks()
+    ed.cmd("redo")
+    assert ed.sp.hasSceneLocks()
 
-    selectScene(sp, 2)
-    sp.getSelectedAsCD(True)
-    assert labels(sp) == ["1", "2", "4", "5"]
+    selectScene(ed, 2)
+    ed.getSelectedAsCD(True)
+    assert labels(ed) == ["1", "2", "4", "5"]
 
-    sp.cmd("undo")
-    assert labels(sp) == ["1", "2", "3", "4", "5"]
-    assert all(sp.getSceneLock(i) for i in sp.getSceneStarts())
+    ed.cmd("undo")
+    assert labels(ed) == ["1", "2", "3", "4", "5"]
+    assert all(ed.sp.getSceneLock(i) for i in ed.sp.getSceneStarts())
 
 
 def testUnlock():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    selectScene(sp, 2)
-    sp.getSelectedAsCD(True)
-    sp.unlockScenes()
+    selectScene(ed, 2)
+    ed.getSelectedAsCD(True)
+    ed.unlockScenes()
 
-    assert not sp.hasSceneLocks()
-    assert labels(sp) == ["1", "2", "3", "4"]
+    assert not ed.sp.hasSceneLocks()
+    assert labels(ed) == ["1", "2", "3", "4"]
 
-    sp.cmd("undo")
-    assert labels(sp) == ["1", "2", "4", "5"]
+    ed.cmd("undo")
+    assert labels(ed) == ["1", "2", "4", "5"]
 
 
 def testRelockLocksAScenes():
-    sp = makeLocked()
+    ed = makeLocked()
 
-    sp.gotoPos(sp.getSceneStarts()[2], 0)
-    sp.paste(newScene("INT. NEW ROOM - DAY"))
-    sp.lockScenes()
+    ed.gotoPos(ed.sp.getSceneStarts()[2], 0)
+    ed.paste(newScene("INT. NEW ROOM - DAY"))
+    ed.lockScenes()
 
-    assert sp.getSceneLock(sp.getSceneStarts()[2]) == "2A"
+    assert ed.sp.getSceneLock(ed.sp.getSceneStarts()[2]) == "2A"
 
     # now that 2A is locked, a scene added before it has no letter left,
     # like with page locks
-    sp.gotoPos(sp.getSceneStarts()[2], 0)
-    sp.paste(newScene("INT. NEWER ROOM - DAY"))
+    ed.gotoPos(ed.sp.getSceneStarts()[2], 0)
+    ed.paste(newScene("INT. NEWER ROOM - DAY"))
 
-    assert labels(sp) == ["1", "2", "2.1", "2A", "3", "4", "5"]
+    assert labels(ed) == ["1", "2", "2.1", "2A", "3", "4", "5"]
 
 
 def testLockWhenLockedDoesNothing():
-    sp = makeLocked()
-    sp.cmd("undo")
-    sp.cmd("redo")
+    ed = makeLocked()
+    ed.cmd("undo")
+    ed.cmd("redo")
 
-    sp.lockScenes()
-    sp.cmd("undo")
+    ed.lockScenes()
+    ed.cmd("undo")
 
     # the second lock added no undo step, so this undid the first one
-    assert not sp.hasSceneLocks()
+    assert not ed.sp.hasSceneLocks()
 
 
 def testSaveLoad():
-    sp = makeLocked()
-    sp.gotoPos(sp.getSceneStarts()[2], 0)
-    sp.paste(newScene("INT. NEW ROOM - DAY"))
+    ed = makeLocked()
+    ed.gotoPos(ed.sp.getSceneStarts()[2], 0)
+    ed.paste(newScene("INT. NEW ROOM - DAY"))
 
-    data = sp.save().decode("UTF-8")
+    data = ed.save().decode("UTF-8")
     assert data.count("#Scene-Lock ") == 5
     assert "#Scene-Lock 3\n.\\INT. ROOM 3 - DAY" in data
 
-    sp2 = u.loadString(data)
-    assert labels(sp2) == labels(sp) == ["1", "2", "2A", "3", "4", "5"]
+    ed2 = u.loadStringEditor(data)
+    assert labels(ed2) == labels(ed) == ["1", "2", "2A", "3", "4", "5"]
 
 
 def testLoadIgnoresInvalidLocks():
-    sp = u.loadString(
+    ed = u.loadStringEditor(
         "\n".join(
             [
                 "#Version 3",
@@ -374,42 +374,42 @@ def testLoadIgnoresInvalidLocks():
 
     # the first lock isn't valid, the second isn't on a scene heading,
     # and the last one is a duplicate
-    assert labels(sp) == ["A7", "7", "7A"]
+    assert labels(ed) == ["A7", "7", "7A"]
 
-    data = sp.save().decode("UTF-8")
+    data = ed.save().decode("UTF-8")
     assert "2-3" not in data
     assert "#Scene-Lock 4" not in data
 
 
 def testDeepcopyKeepsLocks():
-    sp = makeLocked()
-    sp2 = copy.deepcopy(sp)
+    ed = makeLocked()
+    ed2 = copy.deepcopy(ed)
 
-    assert labels(sp2) == labels(sp)
-    assert sp2.hasSceneLocks()
+    assert labels(ed2) == labels(ed)
+    assert ed2.sp.hasSceneLocks()
 
 
 def testOutlineAndLocations():
-    sp = makeLocked()
-    sp.gotoPos(sp.getSceneStarts()[1], 0)
-    sp.paste(newScene("INT. NEW ROOM - DAY"))
+    ed = makeLocked()
+    ed.gotoPos(ed.sp.getSceneStarts()[1], 0)
+    ed.paste(newScene("INT. NEW ROOM - DAY"))
 
     expected = ["1", "1A", "2", "3", "4", "5"]
 
-    assert [it.sceneNr for it in sp.getOutline()] == expected
-    assert [nr for nr, line in sp.getSceneLocations()] == expected
-    assert sp.getSceneNumber(sp.getSceneStarts()[1] + 1) == "1A"
+    assert [it.sceneNr for it in ed.sp.getOutline()] == expected
+    assert [nr for nr, line in ed.sp.getSceneLocations()] == expected
+    assert ed.sp.getSceneNumber(ed.sp.getSceneStarts()[1] + 1) == "1A"
 
 
 def testPDFShowsNumbers():
-    sp = makeLocked()
-    sp.gotoPos(sp.getSceneStarts()[1], 0)
-    sp.paste(newScene("INT. NEW ROOM - DAY"))
-    sp.cfg.pdfShowSceneNumbers = True
-    sp.paginate()
+    ed = makeLocked()
+    ed.gotoPos(ed.sp.getSceneStarts()[1], 0)
+    ed.paste(newScene("INT. NEW ROOM - DAY"))
+    ed.sp.cfg.pdfShowSceneNumbers = True
+    ed.sp.paginate()
 
     texts = [
-        op.text for pg in render.generatePML(sp).pages for op in pg.ops if hasattr(op, "text")
+        op.text for pg in render.generatePML(ed.sp).pages for op in pg.ops if hasattr(op, "text")
     ]
 
     # each number is printed on both sides of its heading
@@ -419,12 +419,12 @@ def testPDFShowsNumbers():
 
 def testMCPListAndReplace(tmp_path):
     path = str(tmp_path / "locked.trelby")
-    sp = makeLocked()
-    sp.gotoPos(sp.getSceneStarts()[1], 0)
-    sp.paste(newScene("INT. NEW ROOM - DAY"))
+    ed = makeLocked()
+    ed.gotoPos(ed.sp.getSceneStarts()[1], 0)
+    ed.paste(newScene("INT. NEW ROOM - DAY"))
 
     with open(path, "wb") as f:
-        f.write(sp.save())
+        f.write(ed.save())
 
     res = m.listScenes(m.FileDoc(path))
     assert [s["scene_number"] for s in res["scenes"]] == [

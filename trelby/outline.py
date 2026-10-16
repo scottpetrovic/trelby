@@ -561,7 +561,7 @@ class OutlinePanel(wx.Panel):
     # select the item containing the cursor
     def selectCurrent(self):
         lc = self.list
-        idx = self.findItem(self.getCtrl().sp.line)
+        idx = self.findItem(self.getCtrl().ed.line)
 
         if idx != lc.GetSelection():
             self.updating = True
@@ -751,7 +751,7 @@ class OutlinePanel(wx.Panel):
         ctrl = self.getCtrl()
 
         # selection was caused by the cursor moving into this item
-        if it.startLine <= ctrl.sp.line <= it.endLine:
+        if it.startLine <= ctrl.ed.line <= it.endLine:
             self.updateButtons()
 
             return

@@ -9,47 +9,47 @@ import trelby.screenplay as scr
 # forced linebreak is on the first line of the element, the second one
 # where it is on the third line.
 def testForcedLb():
-    sp = u.new()
+    ed = u.newEditor()
 
-    sp.cmd("addChar", char="a")
-    sp.cmd("splitElement")
-    sp.cmd("toDialogue")
-    sp.cmd("addChar", char="b")
-    sp.cmd("insertForcedLineBreak")
-    sp.cmd("addChar", char="c")
-    sp.cmd("moveLeft")
-    sp.cmd("moveUp")
-    sp.cmd("deleteBackward")
+    ed.cmd("addChar", char="a")
+    ed.cmd("splitElement")
+    ed.cmd("toDialogue")
+    ed.cmd("addChar", char="b")
+    ed.cmd("insertForcedLineBreak")
+    ed.cmd("addChar", char="c")
+    ed.cmd("moveLeft")
+    ed.cmd("moveUp")
+    ed.cmd("deleteBackward")
 
-    assert len(sp.lines) == 2
-    assert (sp.line == 0) and (sp.column == 1)
-    assert sp.lines[0].text == "AB"
-    assert sp.lines[0].lt == scr.SCENE
-    assert sp.lines[0].lb == scr.LB_FORCED
-    assert sp.lines[1].text == "c"
-    assert sp.lines[1].lt == scr.SCENE
-    assert sp.lines[1].lb == scr.LB_LAST
+    assert len(ed.sp.lines) == 2
+    assert (ed.line == 0) and (ed.column == 1)
+    assert ed.sp.lines[0].text == "AB"
+    assert ed.sp.lines[0].lt == scr.SCENE
+    assert ed.sp.lines[0].lb == scr.LB_FORCED
+    assert ed.sp.lines[1].text == "c"
+    assert ed.sp.lines[1].lt == scr.SCENE
+    assert ed.sp.lines[1].lb == scr.LB_LAST
 
 
 def testForcedLb2():
-    sp = u.new()
+    ed = u.newEditor()
 
-    sp.cmd("addChar", char="a")
-    sp.cmd("splitElement")
-    sp.cmd("toTransition")
-    sp.cmdChars("line 1///////////// ")
-    sp.cmdChars("line 2///////////// ")
-    sp.cmdChars("line 3")
-    sp.cmd("insertForcedLineBreak")
-    sp.cmdChars("line 4")
-    sp.gotoPos(1, 0)
-    sp.cmd("deleteBackward")
+    ed.cmd("addChar", char="a")
+    ed.cmd("splitElement")
+    ed.cmd("toTransition")
+    ed.cmdChars("line 1///////////// ")
+    ed.cmdChars("line 2///////////// ")
+    ed.cmdChars("line 3")
+    ed.cmd("insertForcedLineBreak")
+    ed.cmdChars("line 4")
+    ed.gotoPos(1, 0)
+    ed.cmd("deleteBackward")
 
-    assert len(sp.lines) == 2
-    assert (sp.line == 0) and (sp.column == 1)
-    assert sp.lines[0].text == "ALine 1///////////// line 2///////////// line 3"
-    assert sp.lines[0].lt == scr.SCENE
-    assert sp.lines[0].lb == scr.LB_FORCED
-    assert sp.lines[1].text == "line 4"
-    assert sp.lines[1].lt == scr.SCENE
-    assert sp.lines[1].lb == scr.LB_LAST
+    assert len(ed.sp.lines) == 2
+    assert (ed.line == 0) and (ed.column == 1)
+    assert ed.sp.lines[0].text == "ALine 1///////////// line 2///////////// line 3"
+    assert ed.sp.lines[0].lt == scr.SCENE
+    assert ed.sp.lines[0].lb == scr.LB_FORCED
+    assert ed.sp.lines[1].text == "line 4"
+    assert ed.sp.lines[1].lt == scr.SCENE
+    assert ed.sp.lines[1].lb == scr.LB_LAST

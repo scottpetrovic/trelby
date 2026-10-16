@@ -54,3 +54,4 @@ from trelby.screenplay.datatypes import (  # noqa: F401
     isValidColor,
 )
 from trelby.screenplay.model import Screenplay  # noqa: F401
+from trelby.screenplay.editor import Editor  # noqa: F401

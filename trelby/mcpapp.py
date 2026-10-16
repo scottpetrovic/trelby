@@ -65,11 +65,11 @@ class AppDoc(mcptools.LiveDoc):
         self.gd = gd
         self.ctrl = ctrl
 
-    # LiveDoc's sp, taken from the tab each time rather than stored, as
-    # the tab may replace its Screenplay
+    # LiveDoc's Editor, taken from the tab each time rather than stored,
+    # as the tab may replace its script
     @property
-    def sp(self):
-        return self.ctrl.sp
+    def ed(self):
+        return self.ctrl.ed
 
     def describe(self, sp):
         ret = {
@@ -88,7 +88,7 @@ class AppDoc(mcptools.LiveDoc):
             )
 
     def changed(self):
-        self.ctrl.makeLineVisible(self.sp.line)
+        self.ctrl.makeLineVisible(self.ed.line)
         self.ctrl.updateScreen()
 
 

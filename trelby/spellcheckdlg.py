@@ -83,9 +83,9 @@ class SpellCheckDlg(wx.Dialog):
         self.showWord()
 
     def showWord(self):
-        self.ctrl.sp.line = self.sc.line
-        self.ctrl.sp.column = self.sc.col
-        self.ctrl.sp.setMark(self.sc.line, self.sc.col + len(self.sc.word) - 1)
+        self.ctrl.ed.line = self.sc.line
+        self.ctrl.ed.column = self.sc.col
+        self.ctrl.ed.setMark(self.sc.line, self.sc.col + len(self.sc.word) - 1)
 
         self.replaceEntry.SetValue(self.sc.word)
 
@@ -122,29 +122,30 @@ class SpellCheckDlg(wx.Dialog):
             return
 
         sp = self.ctrl.sp
+        ed = self.ctrl.ed
         u = undo.SinglePara(sp, undo.CMD_MISC, self.sc.line)
 
         word = util.toInputStr(misc.fromGUI(self.replaceEntry.GetValue()))
         ls = sp.lines
 
-        sp.gotoPos(self.sc.line, self.sc.col)
+        ed.gotoPos(self.sc.line, self.sc.col)
 
         ls[self.sc.line].replaceText(
             self.sc.col, len(self.sc.word), util.toInputStr(word)
         )
 
-        sp.rewrapPara(sp.getParaFirstIndexFromLine(self.sc.line))
+        ed.rewrapPara(sp.getParaFirstIndexFromLine(self.sc.line))
 
         # rewrapping a paragraph can have moved the cursor, so get the new
         # location of it, and then advance past the just-changed word
-        self.sc.line = sp.line
-        self.sc.col = sp.column + len(word)
+        self.sc.line = ed.line
+        self.sc.col = ed.column + len(word)
 
-        sp.clearMark()
+        ed.clearMark()
         sp.markChanged()
 
         u.setAfter(sp)
-        sp.undoHistory.add(u)
+        ed.undoHistory.add(u)
         sp.paginate()
 
         self.gotoNext(False)

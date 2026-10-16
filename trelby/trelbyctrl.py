@@ -112,12 +112,12 @@ class MyCtrl(wx.Control):
     def changeType(self, lt):
         cs = screenplay.CommandState()
 
-        self.sp.convertTypeTo(lt, True)
-        self.sp.cmdPost(cs)
+        self.ed.convertTypeTo(lt, True)
+        self.ed.cmdPost(cs)
         self.sp.paginate()
 
         if cs.needsVisifying:
-            self.makeLineVisible(self.sp.line)
+            self.makeLineVisible(self.ed.line)
 
         self.updateScreen()
 
@@ -145,6 +145,7 @@ class MyCtrl(wx.Control):
         self.removeRecovery()
         self.clearVars()
         self.sp = screenplay.Screenplay(self.gd.cfgGl)
+        self.ed = screenplay.Editor(self.sp)
         self.sp.cfg.setPaper(self.gd.cfgGl.defaultPaper)
         self.sp.titles.addDefaults()
         self.sp.headers.addDefaults()
@@ -201,12 +202,13 @@ class MyCtrl(wx.Control):
 
         self.clearVars()
         self.sp = sp
+        self.ed = screenplay.Editor(sp)
         self.setFile(fileName)
         self.refreshCache()
 
         # saved cursor position might be anywhere, so we can't just
         # display the first page
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
 
         self.checkWideChars("".join(ln.text for ln in self.sp.lines))
 
@@ -232,7 +234,7 @@ class MyCtrl(wx.Control):
         fileName = str(util.ensureEndsIn(fileName, ".trelby"))
 
         if util.writeToFile(
-            fileName, self.sp.save(), self.gd.mainFrame, backup=True
+            fileName, self.ed.save(), self.gd.mainFrame, backup=True
         ):
             self.sp.markChanged(False)
             self.setFile(fileName)
@@ -252,7 +254,7 @@ class MyCtrl(wx.Control):
 
             return
 
-        data = self.sp.save()
+        data = self.ed.save()
 
         if data == self.autosavedData:
             return
@@ -472,11 +474,11 @@ class MyCtrl(wx.Control):
         # the range has a screenful of padding beyond the last line, so the
         # thumb can go far enough to put the last line at the top.
         self.panel.scrollBar.SetScrollbar(
-            self.sp.getTopLine(), approx, len(self.sp.lines) + approx - 1, approx
+            self.ed.getTopLine(), approx, len(self.sp.lines) + approx - 1, approx
         )
 
     def clearAutoComp(self):
-        if self.sp.clearAutoComp():
+        if self.ed.clearAutoComp():
             self.Refresh(False)
 
     # returns true if there are no contents at all and we're not
@@ -503,29 +505,29 @@ class MyCtrl(wx.Control):
 
     # update GUI elements shared by all scripts, like statusbar etc
     def updateCommon(self):
-        cur = self.gd.cfgGl.getType(self.sp.lines[self.sp.line].lt)
+        cur = self.gd.cfgGl.getType(self.sp.lines[self.ed.line].lt)
 
-        if self.sp.tabMakesNew():
+        if self.ed.tabMakesNew():
             tabNext = "%s" % self.gd.cfgGl.getType(cur.newTypeTab).ti.name
         else:
             tabNext = "%s" % self.gd.cfgGl.getType(cur.nextTypeTab).ti.name
 
         enterNext = self.gd.cfgGl.getType(cur.newTypeEnter).ti.name
 
-        page = self.sp.line2pageLabel(self.sp.line)
+        page = self.sp.line2pageLabel(self.ed.line)
         pageCnt = self.sp.line2page(len(self.sp.lines) - 1)
 
         self.gd.mainFrame.setElemTypeStatus(cur.lt, tabNext, enterNext)
         self.gd.mainFrame.setFormatStatus(
-            self.sp.getFormatState(), self.sp.getCenteredState()
+            self.ed.getFormatState(), self.ed.getCenteredState()
         )
         self.gd.mainFrame.setPageStatus(page, pageCnt, self.sp.hasPageLocks())
         self.gd.mainFrame.setLengthStatus(
             self.sp.getWordCount(), self.sp.getPageLength()
         )
 
-        canUndo = self.sp.undoHistory.canUndo()
-        canRedo = self.sp.undoHistory.canRedo()
+        canUndo = self.ed.undoHistory.canUndo()
+        canRedo = self.ed.undoHistory.canRedo()
 
         self.gd.mainFrame.menuBar.Enable(ID_EDIT_UNDO, canUndo)
         self.gd.mainFrame.menuBar.Enable(ID_EDIT_REDO, canRedo)
@@ -573,10 +575,10 @@ class MyCtrl(wx.Control):
 
     # apply per-script config
     def applyCfg(self, newCfg):
-        self.sp.applyCfg(newCfg)
+        self.ed.applyCfg(newCfg)
 
         self.refreshCache()
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     # apply global config
@@ -610,7 +612,7 @@ class MyCtrl(wx.Control):
         for c in self.gd.mainFrame.getCtrls():
             c.sp.cfgGl = self.gd.cfgGl
             c.refreshCache()
-            c.makeLineVisible(c.sp.line)
+            c.makeLineVisible(c.ed.line)
             c.adjustScrollBar()
 
         self.updateScreen()
@@ -660,7 +662,7 @@ class MyCtrl(wx.Control):
         self.sp.headers = newHeaders
         self.sp.markChanged()
         self.sp.paginate()
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     # return an exportable, paginated Screenplay object, or None if for
@@ -674,7 +676,7 @@ class MyCtrl(wx.Control):
         sp = self.sp
         if sp.cfg.pdfRemoveNotes:
             sp = copy.deepcopy(self.sp)
-            sp.removeElementTypes({screenplay.NOTE: None}, False)
+            screenplay.Editor(sp).removeElementTypes({screenplay.NOTE: None}, False)
 
         sp.paginate()
 
@@ -727,8 +729,8 @@ class MyCtrl(wx.Control):
                 mf.tabCtrl.selectPage(page)
 
             self.clearAutoComp()
-            self.sp.line = line
-            self.sp.column = 0
+            self.ed.line = line
+            self.ed.column = 0
             self.makeLineVisible(line)
             self.updateScreen()
 
@@ -760,7 +762,7 @@ class MyCtrl(wx.Control):
                 self.__class__.screenBuf = sb
 
         # a different number of lines fits now
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
 
     # also called by OnMotion while the button is held down, with mark
     # True: the first such call sets the selection's other end, at about
@@ -782,7 +784,7 @@ class MyCtrl(wx.Control):
             self.clickSelectActive = False
 
         if not self.mouseSelectActive:
-            self.sp.clearMark()
+            self.ed.clearMark()
             self.updateScreen()
 
         pos = event.GetPosition()
@@ -791,7 +793,7 @@ class MyCtrl(wx.Control):
         self.mouseSelectActive = True
 
         if line is not None:
-            self.sp.gotoPos(line, col, mark)
+            self.ed.gotoPos(line, col, mark)
             self.updateScreen()
 
     def OnLeftDClick(self, event):
@@ -830,9 +832,9 @@ class MyCtrl(wx.Control):
             return
 
         if isWord:
-            self.sp.selectWordAt(line, col)
+            self.ed.selectWordAt(line, col)
         else:
-            self.sp.selectElementAt(line)
+            self.ed.selectElementAt(line)
 
         self.mouseSelectActive = True
         self.clickSelectActive = True
@@ -850,10 +852,10 @@ class MyCtrl(wx.Control):
 
         # to avoid phantom selections (Windows sends some strange events
         # sometimes), check if anything worthwhile is actually selected.
-        cd = self.sp.getSelectedAsCD(False)
+        cd = self.ed.getSelectedAsCD(False)
 
         if not cd or ((len(cd.lines) == 1) and (len(cd.lines[0].text) < 2)):
-            self.sp.clearMark()
+            self.ed.clearMark()
 
     def OnMotion(self, event):
         if event.LeftIsDown() and not self.clickSelectActive:
@@ -871,17 +873,17 @@ class MyCtrl(wx.Control):
         pos = event.GetPosition()
         line, col = self.gd.vm.pos2linecol(self, pos.x, pos.y)
 
-        if not self.sp.mark and line is not None and (line != self.sp.line):
-            self.sp.gotoPos(line, col, False)
+        if not self.ed.mark and line is not None and (line != self.ed.line):
+            self.ed.gotoPos(line, col, False)
             self.updateScreen()
 
         # type changes apply to every element in the selection, if any
-        marked = self.sp.getMarkedLines()
+        marked = self.ed.getMarkedLines()
 
         if marked:
             first, last = marked
         else:
-            first = last = self.sp.line
+            first = last = self.ed.line
 
         types = {self.sp.lines[i].lt for i in range(first, last + 1)}
         curLt = types.pop() if len(types) == 1 else None
@@ -891,13 +893,13 @@ class MyCtrl(wx.Control):
         dualState = None
 
         if not marked:
-            toggle = self.sp.getDualToggle()
+            toggle = self.ed.getDualToggle()
 
             if toggle:
                 dualState = not toggle[1]
 
         m = self.gd.mainFrame.makeRightClickMenu(
-            curLt, bool(self.sp.mark), dualState, self.sp.getCenteredState()
+            curLt, bool(self.ed.mark), dualState, self.ed.getCenteredState()
         )
         self.PopupMenu(m)
         m.Destroy()
@@ -916,31 +918,31 @@ class MyCtrl(wx.Control):
         else:
             delta = self.gd.cfgGl.mouseWheelLines
 
-        self.sp.setTopLine(self.sp.getTopLine() + delta)
+        self.ed.setTopLine(self.ed.getTopLine() + delta)
         self.updateScreen()
 
     def OnScroll(self, event):
         pos = self.panel.scrollBar.GetThumbPosition()
-        self.sp.setTopLine(pos)
-        self.sp.clearAutoComp()
+        self.ed.setTopLine(pos)
+        self.ed.clearAutoComp()
         self.updateScreen()
 
     def OnLockPages(self):
-        self.sp.lockPages()
-        self.makeLineVisible(self.sp.line)
+        self.ed.lockPages()
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnUnlockPages(self):
-        self.sp.unlockPages()
-        self.makeLineVisible(self.sp.line)
+        self.ed.unlockPages()
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnLockScenes(self):
-        self.sp.lockScenes()
+        self.ed.lockScenes()
         self.updateScreen()
 
     def OnUnlockScenes(self):
-        self.sp.unlockScenes()
+        self.ed.unlockScenes()
         self.updateScreen()
 
     def OnAutoCompletionDlg(self):
@@ -992,7 +994,7 @@ class MyCtrl(wx.Control):
         ls = self.sp.lines
 
         # start with the character whose name or speech the cursor is on
-        i = self.sp.line
+        i = self.ed.line
         while (i > 0) and (ls[i].lt in (screenplay.DIALOGUE, screenplay.PAREN)):
             i -= 1
 
@@ -1014,9 +1016,9 @@ class MyCtrl(wx.Control):
 
             # renaming a character's profile renames the character
             # everywhere in the script too
-            if dlg.renames and any(self.sp.renameCharacters(dlg.renames)):
+            if dlg.renames and any(self.ed.renameCharacters(dlg.renames)):
                 self.sp.paginate()
-                self.makeLineVisible(self.sp.line)
+                self.makeLineVisible(self.ed.line)
                 self.updateScreen()
 
         dlg.Destroy()
@@ -1154,9 +1156,9 @@ class MyCtrl(wx.Control):
     # page up (dir == -1) or page down (dir == 1) was pressed, handle it.
     # cs = CommandState.
     def pageCmd(self, cs, dir):
-        if self.sp.acItems:
+        if self.ed.acItems:
             cs.doAutoComp = cs.AC_KEEP
-            self.sp.pageScrollAutoComp(dir)
+            self.ed.pageScrollAutoComp(dir)
 
             return
 
@@ -1164,13 +1166,13 @@ class MyCtrl(wx.Control):
 
         # if user has scrolled with scrollbar so that cursor isn't seen,
         # just make cursor visible and don't move
-        if not self.isLineVisible(self.sp.line, texts):
-            self.gd.vm.makeLineVisible(self, self.sp.line, texts)
+        if not self.isLineVisible(self.ed.line, texts):
+            self.gd.vm.makeLineVisible(self, self.ed.line, texts)
             cs.needsVisifying = False
 
             return
 
-        self.sp.maybeMark(cs.mark)
+        self.ed.maybeMark(cs.mark)
         self.gd.vm.pageCmd(self, cs, dir, texts, dpages)
 
     def OnRevertScript(self):
@@ -1182,25 +1184,25 @@ class MyCtrl(wx.Control):
             self.updateScreen()
 
     def OnUndo(self):
-        self.sp.cmd("undo")
+        self.ed.cmd("undo")
         self.sp.paginate()
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnRedo(self):
-        self.sp.cmd("redo")
+        self.ed.cmd("redo")
         self.sp.paginate()
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     # returns True if something was deleted
     def OnCut(self, doUpdate=True, doDelete=True, copyToClip=True):
-        marked = self.sp.getMarkedLines()
+        marked = self.ed.getMarkedLines()
 
         if not marked:
             return False
 
-        cd = self.sp.getSelectedAsCD(doDelete)
+        cd = self.ed.getSelectedAsCD(doDelete)
 
         if copyToClip:
             self.gd.mainFrame.clipboard = cd
@@ -1209,7 +1211,7 @@ class MyCtrl(wx.Control):
             if doDelete:
                 self.sp.paginate()
 
-            self.makeLineVisible(self.sp.line)
+            self.makeLineVisible(self.ed.line)
             self.updateScreen()
 
         return doDelete
@@ -1218,7 +1220,7 @@ class MyCtrl(wx.Control):
         self.OnCut(doDelete=False)
 
     def OnCopySystem(self, formatted=False):
-        cd = self.sp.getSelectedAsCD(False)
+        cd = self.ed.getSelectedAsCD(False)
 
         if not cd:
             return
@@ -1262,10 +1264,10 @@ class MyCtrl(wx.Control):
 
             clines = cd.lines
 
-        self.sp.paste(clines)
+        self.ed.paste(clines)
         self.sp.paginate()
 
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
         self.checkWideChars("".join(ln.text for ln in clines))
@@ -1305,15 +1307,15 @@ class MyCtrl(wx.Control):
         self.OnPaste(lines)
 
     def OnSelectScene(self):
-        self.sp.cmd("selectScene")
+        self.ed.cmd("selectScene")
 
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnSelectAll(self):
-        self.sp.cmd("selectAll")
+        self.ed.cmd("selectAll")
 
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnGotoScene(self):
@@ -1342,24 +1344,24 @@ class MyCtrl(wx.Control):
         if dlg.ShowModal() == wx.ID_OK:
             for it in scenes:
                 if it[0] == pagelock.normalize(dlg.input):
-                    self.sp.line = it[1]
-                    self.sp.column = 0
+                    self.ed.line = it[1]
+                    self.ed.column = 0
 
                     break
 
         # we need to refresh the screen in all cases because pagination
         # might have changed
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     # move the cursor to the start of the given line and scroll it to the
     # top of the screen. used by the outline view.
     def gotoLine(self, line):
         self.clearAutoComp()
-        self.sp.clearMark()
-        self.sp.gotoPos(line, 0)
+        self.ed.clearMark()
+        self.ed.gotoPos(line, 0)
 
-        self.sp.setTopLine(line)
+        self.ed.setTopLine(line)
         self.makeLineVisible(line)
         self.updateScreen()
 
@@ -1368,12 +1370,12 @@ class MyCtrl(wx.Control):
     def moveSceneTo(self, line, newIndex):
         self.clearAutoComp()
 
-        if not self.sp.moveSceneTo(line, newIndex):
+        if not self.ed.moveSceneTo(line, newIndex):
             return
 
         self.sp.paginate()
-        self.sp.setTopLine(self.sp.line)
-        self.makeLineVisible(self.sp.line)
+        self.ed.setTopLine(self.ed.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     # set the outline color of the scene containing the given line, or
@@ -1381,7 +1383,7 @@ class MyCtrl(wx.Control):
     def setSceneColor(self, line, color):
         self.clearAutoComp()
 
-        if self.sp.setSceneColor(line, color):
+        if self.ed.setSceneColor(line, color):
             self.updateScreen()
 
     def OnGotoPage(self):
@@ -1405,12 +1407,12 @@ class MyCtrl(wx.Control):
 
         if dlg.ShowModal() == wx.ID_OK:
             page = self.sp.label2page(dlg.input)
-            self.sp.line = self.sp.page2lines(page)[0]
-            self.sp.column = 0
+            self.ed.line = self.sp.page2lines(page)[0]
+            self.ed.column = 0
 
         # we need to refresh the screen in all cases because pagination
         # might have changed
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnInsertNbsp(self):
@@ -1419,7 +1421,7 @@ class MyCtrl(wx.Control):
     def OnDualDialogue(self):
         self.clearAutoComp()
 
-        if not self.sp.toggleDualDialogue():
+        if not self.ed.toggleDualDialogue():
             wx.MessageBox(
                 _(
                     "Dual dialogue needs two speeches in a row (a character"
@@ -1434,14 +1436,14 @@ class MyCtrl(wx.Control):
             return
 
         self.sp.paginate()
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     # toggle a formatting bit (textfmt.BOLD etc.) on the selected text, or
     # for the text typed next
     def OnToggleFormat(self, bit):
         self.clearAutoComp()
-        self.sp.toggleFormat(bit)
+        self.ed.toggleFormat(bit)
         self.updateScreen()
 
     # center the action at the cursor or in the selection, or stop
@@ -1449,20 +1451,20 @@ class MyCtrl(wx.Control):
     def OnToggleCentered(self):
         self.clearAutoComp()
 
-        if self.sp.toggleCentered():
+        if self.ed.toggleCentered():
             self.sp.paginate()
             self.updateScreen()
 
     def OnFindNextError(self):
         self.clearAutoComp()
 
-        line, msg = proofing.findError(self.sp, self.sp.line)
+        line, msg = proofing.findError(self.sp, self.ed.line)
 
         if line != -1:
-            self.sp.line = line
-            self.sp.column = 0
+            self.ed.line = line
+            self.ed.column = 0
 
-            self.makeLineVisible(self.sp.line)
+            self.makeLineVisible(self.ed.line)
             self.updateScreen()
 
         else:
@@ -1471,7 +1473,7 @@ class MyCtrl(wx.Control):
         wx.MessageBox(msg, _("Results"), wx.OK, self.gd.mainFrame)
 
     def OnFind(self):
-        self.sp.clearMark()
+        self.ed.clearMark()
         self.clearAutoComp()
         self.updateScreen()
 
@@ -1480,15 +1482,15 @@ class MyCtrl(wx.Control):
         dlg.saveState()
         dlg.Destroy()
 
-        self.sp.clearMark()
-        self.makeLineVisible(self.sp.line)
+        self.ed.clearMark()
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnSpellCheckerDlg(self):
-        self.sp.clearMark()
+        self.ed.clearMark()
         self.clearAutoComp()
 
-        wasAtStart = self.sp.line == 0
+        wasAtStart = self.ed.line == 0
 
         wx.BeginBusyCursor()
 
@@ -1497,7 +1499,7 @@ class MyCtrl(wx.Control):
 
             return
 
-        sc = spellcheck.SpellChecker(self.sp, self.gd.scDict)
+        sc = spellcheck.SpellChecker(self.sp, self.gd.scDict, self.ed.line)
         found = sc.findNext()
 
         wx.EndBusyCursor()
@@ -1526,8 +1528,8 @@ class MyCtrl(wx.Control):
 
         dlg.Destroy()
 
-        self.sp.clearMark()
-        self.makeLineVisible(self.sp.line)
+        self.ed.clearMark()
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnDeleteElements(self):
@@ -1559,9 +1561,9 @@ class MyCtrl(wx.Control):
         if not ok or (len(tdict) == 0):
             return
 
-        self.sp.removeElementTypes(tdict, True)
+        self.ed.removeElementTypes(tdict, True)
         self.sp.paginate()
-        self.makeLineVisible(self.sp.line)
+        self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
     def OnSave(self):
@@ -1657,64 +1659,64 @@ class MyCtrl(wx.Control):
         dlg.Destroy()
 
     def cmdAbort(self, cs):
-        self.sp.abortCmd(cs)
+        self.ed.abortCmd(cs)
 
     def cmdChangeToAction(self, cs):
-        self.sp.toActionCmd(cs)
+        self.ed.toActionCmd(cs)
 
     def cmdChangeToCharacter(self, cs):
-        self.sp.toCharacterCmd(cs)
+        self.ed.toCharacterCmd(cs)
 
     def cmdChangeToDialogue(self, cs):
-        self.sp.toDialogueCmd(cs)
+        self.ed.toDialogueCmd(cs)
 
     def cmdChangeToNote(self, cs):
-        self.sp.toNoteCmd(cs)
+        self.ed.toNoteCmd(cs)
 
     def cmdChangeToParenthetical(self, cs):
-        self.sp.toParenCmd(cs)
+        self.ed.toParenCmd(cs)
 
     def cmdChangeToScene(self, cs):
-        self.sp.toSceneCmd(cs)
+        self.ed.toSceneCmd(cs)
 
     def cmdChangeToShot(self, cs):
-        self.sp.toShotCmd(cs)
+        self.ed.toShotCmd(cs)
 
     def cmdChangeToActBreak(self, cs):
-        self.sp.toActBreakCmd(cs)
+        self.ed.toActBreakCmd(cs)
 
     def cmdChangeToTransition(self, cs):
-        self.sp.toTransitionCmd(cs)
+        self.ed.toTransitionCmd(cs)
 
     def cmdDelete(self, cs):
-        if not self.sp.mark:
-            self.sp.deleteForwardCmd(cs)
+        if not self.ed.mark:
+            self.ed.deleteForwardCmd(cs)
         else:
             self.OnCut(doUpdate=False, copyToClip=False)
 
     def cmdDeleteBackward(self, cs):
-        if not self.sp.mark:
-            self.sp.deleteBackwardCmd(cs)
+        if not self.ed.mark:
+            self.ed.deleteBackwardCmd(cs)
         else:
             self.OnCut(doUpdate=False, copyToClip=False)
 
     def cmdForcedLineBreak(self, cs):
-        self.sp.insertForcedLineBreakCmd(cs)
+        self.ed.insertForcedLineBreakCmd(cs)
 
     def cmdMoveDown(self, cs):
-        self.sp.moveDownCmd(cs)
+        self.ed.moveDownCmd(cs)
 
     def cmdMoveEndOfLine(self, cs):
-        self.sp.moveLineEndCmd(cs)
+        self.ed.moveLineEndCmd(cs)
 
     def cmdMoveEndOfScript(self, cs):
-        self.sp.moveEndCmd(cs)
+        self.ed.moveEndCmd(cs)
 
     def cmdMoveLeft(self, cs):
-        self.sp.moveLeftCmd(cs)
+        self.ed.moveLeftCmd(cs)
 
     def cmdMoveNextWord(self, cs):
-        self.sp.moveNextWordCmd(cs)
+        self.ed.moveNextWordCmd(cs)
 
     def cmdMovePageDown(self, cs):
         self.pageCmd(cs, 1)
@@ -1723,37 +1725,37 @@ class MyCtrl(wx.Control):
         self.pageCmd(cs, -1)
 
     def cmdMovePrevWord(self, cs):
-        self.sp.movePrevWordCmd(cs)
+        self.ed.movePrevWordCmd(cs)
 
     def cmdMoveRight(self, cs):
-        self.sp.moveRightCmd(cs)
+        self.ed.moveRightCmd(cs)
 
     def cmdMoveSceneDown(self, cs):
-        self.sp.moveSceneDownCmd(cs)
+        self.ed.moveSceneDownCmd(cs)
 
     def cmdMoveSceneUp(self, cs):
-        self.sp.moveSceneUpCmd(cs)
+        self.ed.moveSceneUpCmd(cs)
 
     def cmdMoveStartOfLine(self, cs):
-        self.sp.moveLineStartCmd(cs)
+        self.ed.moveLineStartCmd(cs)
 
     def cmdMoveStartOfScript(self, cs):
-        self.sp.moveStartCmd(cs)
+        self.ed.moveStartCmd(cs)
 
     def cmdMoveUp(self, cs):
-        self.sp.moveUpCmd(cs)
+        self.ed.moveUpCmd(cs)
 
     def cmdNewElement(self, cs):
-        self.sp.splitElementCmd(cs)
+        self.ed.splitElementCmd(cs)
 
     def cmdSetMark(self, cs):
-        self.sp.setMarkCmd(cs)
+        self.ed.setMarkCmd(cs)
 
     def cmdTab(self, cs):
-        self.sp.tabCmd(cs)
+        self.ed.tabCmd(cs)
 
     def cmdTabPrev(self, cs):
-        self.sp.toPrevTypeTabCmd(cs)
+        self.ed.toPrevTypeTabCmd(cs)
 
     def cmdSpeedTest(self, cs):
         import trelby.undo as undo
@@ -1839,9 +1841,9 @@ class MyCtrl(wx.Control):
             addChar = True
 
             # If there's something selected, either remove it, or clear selection.
-            if self.sp.mark and self.gd.cfgGl.overwriteSelectionOnInsert:
+            if self.ed.mark and self.gd.cfgGl.overwriteSelectionOnInsert:
                 if not self.OnCut(doUpdate=False, copyToClip=False):
-                    self.sp.clearMark()
+                    self.ed.clearMark()
                     addChar = False
 
             if addChar:
@@ -1857,7 +1859,7 @@ class MyCtrl(wx.Control):
                 elif opts.isTest and (cs.char == "\xbd"):
                     self.cmdSpeedTest(cs)
                 else:
-                    self.sp.addCharCmd(cs)
+                    self.ed.addCharCmd(cs)
                     self.checkWideChars(cs.char)
 
         else:
@@ -1881,14 +1883,14 @@ class MyCtrl(wx.Control):
                 ev.Skip()
                 return
 
-        self.sp.cmdPost(cs)
+        self.ed.cmdPost(cs)
 
         # pagination is cheap (a couple of milliseconds even for a long
         # script), so redo it after every key to keep page breaks current.
         # it can move the cursor's line on screen, so always make sure it's
         # still visible.
         self.sp.paginate()
-        self.makeLineVisible(self.sp.line, scrollDirection)
+        self.makeLineVisible(self.ed.line, scrollDirection)
 
         self.updateScreen()
 
@@ -1903,7 +1905,7 @@ class MyCtrl(wx.Control):
             dc = wx.PaintDC(self)
 
         size = self.GetClientSize()
-        marked = self.sp.getMarkedLines()
+        marked = self.ed.getMarkedLines()
         lineh = self.gd.vm.getLineHeight(self)
         posX = -1
         cursorY = -1
@@ -2000,8 +2002,8 @@ class MyCtrl(wx.Control):
                     if self.sp.isLastLineOfElem(i):
                         util.drawLine(dc, nx - 1, y + lineh, nw + 2, 0)
 
-                if marked and self.sp.isLineMarked(i, marked):
-                    c1, c2 = self.sp.getMarkedColumns(i, marked)
+                if marked and self.ed.isLineMarked(i, marked):
+                    c1, c2 = self.ed.getMarkedColumns(i, marked)
 
                     dc.SetPen(self.gd.cfgGui.selectedPen)
                     dc.SetBrush(self.gd.cfgGui.selectedBrush)
@@ -2047,13 +2049,13 @@ class MyCtrl(wx.Control):
                             dc.SetPen(self.gd.cfgGui.pagebreakPen)
                             util.drawLine(dc, 0, y + lineh - 1, size.width, 0)
 
-                if i == self.sp.line:
+                if i == self.ed.line:
                     posX = t.x
                     cursorY = y
                     acFi = fi
                     dc.SetPen(self.gd.cfgGui.cursorPen)
                     dc.SetBrush(self.gd.cfgGui.cursorBrush)
-                    dc.DrawRectangle(t.x + self.sp.column * cfx, y, cfx, fi.fy)
+                    dc.DrawRectangle(t.x + self.ed.column * cfx, y, cfx, fi.fy)
 
             if len(t.text) != 0:
                 if t.line != -1:
@@ -2127,7 +2129,7 @@ class MyCtrl(wx.Control):
 
         self.drawLocks(dc, strings, dpages, size)
 
-        if self.sp.acItems and (cursorY > 0):
+        if self.ed.acItems and (cursorY > 0):
             self.drawAutoComp(dc, posX, cursorY, acFi)
 
     # return the x offset (pixels) at which to draw character ch in a
@@ -2259,8 +2261,8 @@ class MyCtrl(wx.Control):
     # draw the auto-completion list below the cursor line, or above it if
     # there's no room below. posX is where the line's text starts.
     def drawAutoComp(self, dc, posX, cursorY, fi):
-        ac = self.sp.acItems
-        asel = self.sp.acSel
+        ac = self.ed.acItems
+        asel = self.ed.acSel
 
         # space inside the border, around the items
         pad = self.FromDIP(6)
@@ -2278,7 +2280,7 @@ class MyCtrl(wx.Control):
 
         dc.SetFont(fi.font)
 
-        show = min(self.sp.acMax, len(ac))
+        show = min(self.ed.acMax, len(ac))
         doSbw = show < len(ac)
 
         # the items shown scroll a page (show items) at a time: the page

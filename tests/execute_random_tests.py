@@ -17,20 +17,20 @@ location = os.path.dirname(__file__)
 sys.path.append(os.path.join(location, "../trelby"))
 
 import u
-from screenplay import Screenplay
+from screenplay import Editor
 
 
 # generates, stores, saves, loads, and runs operations against a
 # Screenplay object.
 class Ops:
-    sp: Optional[Screenplay]
+    ed: Optional[Editor]
 
     def __init__(self):
         # a list of Op objects
         self.ops = []
 
-        # a Screenplay object
-        self.sp = None
+        # an Editor object
+        self.ed = None
 
         # index of next operation to run
         self.nextPos = 0
@@ -38,7 +38,7 @@ class Ops:
     # run next operation. returns True when more operations are waiting to
     # be run, False otherwise.
     def run(self):
-        self.sp = self.ops[self.nextPos].run(self.sp)
+        self.ed = self.ops[self.nextPos].run(self.ed)
         self.nextPos += 1
 
         return self.nextPos < len(self.ops)
@@ -119,20 +119,20 @@ class Op:
         # arbitrary argument.
         self.args = []
 
-    # run this operation against the given screenplay. returns either sp
-    # or a new Screenplay object (if the operation is NEW/LOAD).
-    def run(self, sp):
+    # run this operation against the given screenplay. returns either ed
+    # or a new Editor (if the operation is NEW/LOAD).
+    def run(self, ed):
         if self.name == "NEW":
-            return u.new()
+            return u.newEditor()
         elif self.name == "LOAD":
-            return u.load()
+            return u.loadEditor()
 
         if self.args:
-            sp.cmd(self.name, chr(self.args[0]))
+            ed.cmd(self.name, chr(self.args[0]))
         else:
-            sp.cmd(self.name)
+            ed.cmd(self.name)
 
-        return sp
+        return ed
 
     # get a random operation.
     # FIXME: this should have different probabilities for different
@@ -194,7 +194,7 @@ def runRandomOps():
             try:
                 ops.run()
                 # FIXME: add a --validate option
-                ops.sp._validate()
+                ops.ed._validate()
             except KeyboardInterrupt:
                 raise
             except:
@@ -206,8 +206,8 @@ def runRandomOps():
 
         if not failed:
             try:
-                ops.sp._validate()
-                s = ops.sp.save()
+                ops.ed._validate()
+                s = ops.ed.save()
                 u.loadString(s.decode())
             except KeyboardInterrupt:
                 raise
@@ -230,7 +230,7 @@ def runOpsFromFile(filename):
         more = ops.run()
 
         # FIXME: add a --validate option
-        ops.sp._validate()
+        ops.ed._validate()
 
         if not more:
             break
@@ -252,7 +252,7 @@ def save(ops: Ops, cnt: int):
     f.close()
 
     f = open("%d.trelby" % cnt, "wb")
-    f.write(ops.sp.save())
+    f.write(ops.ed.save())
     f.close()
 
 

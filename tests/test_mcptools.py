@@ -470,15 +470,15 @@ LONG = "A sentence long enough to need wrapping over several lines. " * 4
 
 
 def live():
-    sp = u.loadString("\n".join(SMALL))
-    sp.markChanged(False)
+    ed = u.loadStringEditor("\n".join(SMALL))
+    ed.sp.markChanged(False)
 
-    return m.LiveDoc(sp)
+    return m.LiveDoc(ed)
 
 
 def testLiveReplace():
     d = live()
-    sp = d.sp
+    ed = d.ed
 
     res = m.replaceScene(
         d,
@@ -491,7 +491,7 @@ def testLiveReplace():
             {"type": "dialogue", "text": LONG},
         ],
     )
-    sp._validate()
+    ed._validate()
 
     assert headings(res)[2] == "EXT. GARDEN - DAWN"
     assert res["revision"] == m.listScenes(d)["revision"]
@@ -503,42 +503,42 @@ def testLiveReplace():
     assert m.getInfo(d)["cursor_scene"] == 2
     assert m.getInfo(d)["modified"]
 
-    sp.cmd("undo")
-    sp._validate()
+    ed.cmd("undo")
+    ed._validate()
     assert headings(m.listScenes(d))[2] == "EXT. GARDEN - NIGHT"
 
-    sp.cmd("redo")
-    sp._validate()
+    ed.cmd("redo")
+    ed._validate()
     assert headings(m.listScenes(d))[2] == "EXT. GARDEN - DAWN"
 
 
 def testLiveOwnUndo():
     d = live()
-    sp = d.sp
+    ed = d.ed
 
     m.moveScene(d, m.listScenes(d)["revision"], 1, 4)
     m.renameCharacter(d, m.listScenes(d)["revision"], "John", "Jack")
-    sp._validate()
+    ed._validate()
 
     assert headings(m.listScenes(d))[4] == "INT. KITCHEN - DAY"
     assert m.search(d, "john")["matches"] == []
 
     # each edit is one undo step
-    sp.cmd("undo")
+    ed.cmd("undo")
     assert len(m.search(d, "john")["matches"]) == 3
     assert headings(m.listScenes(d))[4] == "INT. KITCHEN - DAY"
 
-    sp.cmd("undo")
-    sp._validate()
+    ed.cmd("undo")
+    ed._validate()
     assert headings(m.listScenes(d))[1] == "INT. KITCHEN - DAY"
 
 
 def testLiveDeleteAndInsert():
     d = live()
-    sp = d.sp
+    ed = d.ed
 
     m.deleteScene(d, m.listScenes(d)["revision"], 1)
-    sp._validate()
+    ed._validate()
 
     res = m.insertScenes(
         d,
@@ -546,7 +546,7 @@ def testLiveDeleteAndInsert():
         len(m.listScenes(d)["scenes"]),
         [{"type": "scene", "text": "INT. END"}, {"type": "action", "text": LONG}],
     )
-    sp._validate()
+    ed._validate()
     assert headings(res)[-1] == "INT. END"
 
     # everything can be deleted, leaving an empty script
@@ -554,8 +554,8 @@ def testLiveDeleteAndInsert():
         m.deleteScene(d, m.listScenes(d)["revision"], 1)
 
     m.deleteScene(d, m.listScenes(d)["revision"], 0)
-    sp._validate()
-    assert len(sp.lines) == 1
+    ed._validate()
+    assert len(ed.sp.lines) == 1
 
 
 def testLiveStale():
@@ -563,10 +563,10 @@ def testLiveStale():
     old = m.listScenes(d)["revision"]
 
     # typing changes the revision, but moving the cursor doesn't
-    d.sp.line = 3
+    d.ed.line = 3
     assert m.listScenes(d)["revision"] == old
 
-    d.sp.cmd("addChar", char="x")
+    d.ed.cmd("addChar", char="x")
     assert m.listScenes(d)["revision"] != old
 
     with pytest.raises(m.ToolError, match="changed"):
@@ -582,23 +582,23 @@ def testLiveFailedEditChangesNothing():
             raise m.ToolError("busy")
 
     with pytest.raises(m.ToolError, match="busy"):
-        m.deleteScene(Readonly(d.sp), r, 1)
+        m.deleteScene(Readonly(d.ed), r, 1)
 
     with pytest.raises(m.ToolError):
         m.replaceScene(d, r, 1, [{"type": "action", "text": "x"}])
 
     assert m.listScenes(d)["revision"] == r
-    assert not d.sp.undoHistory.canUndo()
+    assert not d.ed.undoHistory.canUndo()
 
 
 def testLiveWorldBuilding():
     d = live()
-    sp = d.sp
+    ed = d.ed
     old = m.listScenes(d)["revision"]
 
     res = m.setWorldBuilding(d, old, "Two moons.")
-    assert sp.worldBuilding.text == "Two moons."
-    assert sp.isModified()
+    assert ed.sp.worldBuilding.text == "Two moons."
+    assert ed.sp.isModified()
 
     # the revision covers the notes, so scene edits based on the old one
     # are refused
@@ -610,17 +610,17 @@ def testLiveWorldBuilding():
     m.setWorldBuilding(d, res["revision"], "Three moons.")
 
     # each change is one undo step
-    sp.cmd("undo")
+    ed.cmd("undo")
     assert m.getWorldBuilding(d)["text"] == "Two moons."
 
-    sp.cmd("undo")
+    ed.cmd("undo")
     assert m.getWorldBuilding(d)["text"] == ""
     assert m.listScenes(d)["revision"] == old
-    assert not sp.undoHistory.canUndo()
+    assert not ed.undoHistory.canUndo()
 
-    sp.cmd("redo")
+    ed.cmd("redo")
     assert m.getWorldBuilding(d)["text"] == "Two moons."
-    sp._validate()
+    ed._validate()
 
 
 def testLiveWorldBuildingNotWritable():
@@ -631,20 +631,20 @@ def testLiveWorldBuildingNotWritable():
             raise m.ToolError("busy")
 
     with pytest.raises(m.ToolError, match="busy"):
-        m.setWorldBuilding(Readonly(d.sp), m.listScenes(d)["revision"], "x")
+        m.setWorldBuilding(Readonly(d.ed), m.listScenes(d)["revision"], "x")
 
-    assert d.sp.worldBuilding.text == ""
-    assert not d.sp.undoHistory.canUndo()
+    assert d.ed.sp.worldBuilding.text == ""
+    assert not d.ed.undoHistory.canUndo()
 
 
 def testLiveCharacterProfiles():
     d = live()
-    sp = d.sp
+    ed = d.ed
     old = m.listScenes(d)["revision"]
 
     res = m.setCharacterProfile(d, old, "Mary", "A cook.")
-    assert sp.characterProfiles.get("MARY").notes == "A cook."
-    assert sp.isModified()
+    assert ed.sp.characterProfiles.get("MARY").notes == "A cook."
+    assert ed.sp.isModified()
 
     # the revision covers the profiles
     assert res["revision"] == m.listScenes(d)["revision"] != old
@@ -654,29 +654,29 @@ def testLiveCharacterProfiles():
 
     res = m.setCharacterProfile(d, res["revision"], "Mary", "A chef.")
     m.deleteCharacterProfile(d, res["revision"], "Mary")
-    assert sp.characterProfiles.profiles == []
+    assert ed.sp.characterProfiles.profiles == []
 
     # each change is one undo step
-    sp.cmd("undo")
-    assert sp.characterProfiles.get("MARY").notes == "A chef."
+    ed.cmd("undo")
+    assert ed.sp.characterProfiles.get("MARY").notes == "A chef."
 
-    sp.cmd("undo")
-    assert sp.characterProfiles.get("MARY").notes == "A cook."
+    ed.cmd("undo")
+    assert ed.sp.characterProfiles.get("MARY").notes == "A cook."
 
-    sp.cmd("undo")
-    assert sp.characterProfiles.profiles == []
+    ed.cmd("undo")
+    assert ed.sp.characterProfiles.profiles == []
     assert m.listScenes(d)["revision"] == old
-    assert not sp.undoHistory.canUndo()
+    assert not ed.undoHistory.canUndo()
 
-    sp.cmd("redo")
-    assert sp.characterProfiles.get("MARY").notes == "A cook."
+    ed.cmd("redo")
+    assert ed.sp.characterProfiles.get("MARY").notes == "A cook."
 
     # undo history isn't shared with the live profiles
-    sp.characterProfiles.get("MARY").notes = "changed"
-    sp.cmd("undo")
-    sp.cmd("redo")
-    assert sp.characterProfiles.get("MARY").notes == "A cook."
-    sp._validate()
+    ed.sp.characterProfiles.get("MARY").notes = "changed"
+    ed.cmd("undo")
+    ed.cmd("redo")
+    assert ed.sp.characterProfiles.get("MARY").notes == "A cook."
+    ed._validate()
 
 
 def testLiveFailedProfileEditChangesNothing():
@@ -687,35 +687,35 @@ def testLiveFailedProfileEditChangesNothing():
         m.deleteCharacterProfile(d, r, "Mary")
 
     assert m.listScenes(d)["revision"] == r
-    assert not d.sp.undoHistory.canUndo()
+    assert not d.ed.undoHistory.canUndo()
 
 
 def testLiveRenameUndoesProfile():
     d = live()
-    sp = d.sp
+    ed = d.ed
 
     m.setCharacterProfile(d, m.listScenes(d)["revision"], "John", "Waits.")
     m.setCharacterProfile(d, m.listScenes(d)["revision"], "Alice", "Unseen.")
 
     m.renameCharacter(d, m.listScenes(d)["revision"], "John", "Jack")
-    assert sp.characterProfiles.get("JACK").notes == "Waits."
+    assert ed.sp.characterProfiles.get("JACK").notes == "Waits."
 
     # a profile of a character that isn't in the script can be renamed too
     m.renameCharacter(d, m.listScenes(d)["revision"], "Alice", "Ann")
-    assert sp.characterProfiles.get("ANN").notes == "Unseen."
+    assert ed.sp.characterProfiles.get("ANN").notes == "Unseen."
 
     # undoing a rename renames the profile back, in the same step as the
     # script
-    sp.cmd("undo")
-    assert sp.characterProfiles.get("ALICE").notes == "Unseen."
-    assert not sp.characterProfiles.get("ANN")
+    ed.cmd("undo")
+    assert ed.sp.characterProfiles.get("ALICE").notes == "Unseen."
+    assert not ed.sp.characterProfiles.get("ANN")
 
-    sp.cmd("undo")
-    assert sp.characterProfiles.get("JOHN").notes == "Waits."
-    assert not sp.characterProfiles.get("JACK")
+    ed.cmd("undo")
+    assert ed.sp.characterProfiles.get("JOHN").notes == "Waits."
+    assert not ed.sp.characterProfiles.get("JACK")
     assert len(m.search(d, "john")["matches"]) == 3
 
-    sp.cmd("redo")
-    assert sp.characterProfiles.get("JACK").notes == "Waits."
+    ed.cmd("redo")
+    assert ed.sp.characterProfiles.get("JACK").notes == "Waits."
     assert m.search(d, "john")["matches"] == []
-    sp._validate()
+    ed._validate()

@@ -7,100 +7,100 @@ from trelby.line import Line
 
 
 def testInitial():
-    sp = u.load()
-    assert not sp.isModified()
+    ed = u.loadEditor()
+    assert not ed.sp.isModified()
 
 
 def testAddChar():
-    sp = u.load()
-    sp.cmd("addChar", char="a")
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("addChar", char="a")
+    assert ed.sp.isModified()
 
 
 def testDeleteBackwardsStart():
-    sp = u.load()
-    sp.cmd("deleteBackward")
-    assert not sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("deleteBackward")
+    assert not ed.sp.isModified()
 
 
 def testDeleteBackwards():
-    sp = u.load()
-    sp.cmd("moveRight")
-    sp.cmd("deleteBackward")
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("moveRight")
+    ed.cmd("deleteBackward")
+    assert ed.sp.isModified()
 
 
 def testDelete():
-    sp = u.load()
-    sp.cmd("deleteForward")
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("deleteForward")
+    assert ed.sp.isModified()
 
 
 def testDeleteEnd():
-    sp = u.load()
-    sp.cmd("moveEnd")
-    sp.cmd("deleteForward")
-    assert not sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("moveEnd")
+    ed.cmd("deleteForward")
+    assert not ed.sp.isModified()
 
 
 # waste of time to test all move commands, test just one
 def testMoveRight():
-    sp = u.load()
-    sp.cmd("moveRight")
-    assert not sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("moveRight")
+    assert not ed.sp.isModified()
 
 
 def testForcedLineBreak():
-    sp = u.load()
-    sp.cmd("insertForcedLineBreak")
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("insertForcedLineBreak")
+    assert ed.sp.isModified()
 
 
 def testSplitElement():
-    sp = u.load()
-    sp.cmd("splitElement")
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("splitElement")
+    assert ed.sp.isModified()
 
 
 def testTab():
-    sp = u.load()
-    sp.cmd("tab")
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("tab")
+    assert ed.sp.isModified()
 
 
 def testToPrevTypeTab():
-    sp = u.load()
-    sp.cmd("toPrevTypeTab")
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("toPrevTypeTab")
+    assert ed.sp.isModified()
 
 
 def testConvert():
-    sp = u.load()
-    sp.cmd("toNote")
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("toNote")
+    assert ed.sp.isModified()
 
 
 def testPaste():
-    sp = u.load()
-    sp.paste([Line(text="yo")])
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.paste([Line(text="yo")])
+    assert ed.sp.isModified()
 
 
 def testRemoveElementTypes():
-    sp = u.load()
-    sp.removeElementTypes({scr.ACTION: 0}, False)
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.removeElementTypes({scr.ACTION: 0}, False)
+    assert ed.sp.isModified()
 
 
 def testApplyCfg():
-    sp = u.load()
-    sp.applyCfg(config.Config())
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.applyCfg(config.Config())
+    assert ed.sp.isModified()
 
 
 def testCut():
-    sp = u.load()
-    sp.cmd("setMark")
-    sp.cmd("moveRight")
-    sp.getSelectedAsCD(True)
-    assert sp.isModified()
+    ed = u.loadEditor()
+    ed.cmd("setMark")
+    ed.cmd("moveRight")
+    ed.getSelectedAsCD(True)
+    assert ed.sp.isModified()

@@ -7,10 +7,10 @@ _ = translations.trelby_translations_load()
 # tests that Screenplay._validate() finds all errors it's supposed to
 
 
-# helper function that asserts if sp._validate() does not assert
-def v(sp):
+# helper function that asserts if ed._validate() does not assert
+def v(ed):
     try:
-        sp._validate()
+        ed._validate()
     except AssertionError:
         return
 
@@ -18,52 +18,52 @@ def v(sp):
 
 
 def testEmpty():
-    sp = u.new()
-    sp._validate()
-    sp.lines = []
-    v(sp)
+    ed = u.newEditor()
+    ed._validate()
+    ed.sp.lines = []
+    v(ed)
 
 
 def testCursorPos():
-    sp = u.new()
+    ed = u.newEditor()
 
-    sp._validate()
+    ed._validate()
 
-    sp.line = -1
-    v(sp)
+    ed.line = -1
+    v(ed)
 
-    sp.line = 5
-    v(sp)
+    ed.line = 5
+    v(ed)
 
-    sp.line = 0
+    ed.line = 0
 
-    sp.column = -1
-    v(sp)
+    ed.column = -1
+    v(ed)
 
-    sp.column = 5
-    v(sp)
+    ed.column = 5
+    v(ed)
 
-    sp.column = 0
+    ed.column = 0
 
-    sp._validate()
+    ed._validate()
 
 
 def testInvalidChars():
-    sp = u.new()
-    sp._validate()
-    sp.lines[0].text = chr(9)
-    v(sp)
+    ed = u.newEditor()
+    ed._validate()
+    ed.sp.lines[0].text = chr(9)
+    v(ed)
 
 
 def testTooLongLine():
-    sp = u.new()
-    sp._validate()
-    sp.lines[0].text = "a" * 100
-    v(sp)
+    ed = u.newEditor()
+    ed._validate()
+    ed.sp.lines[0].text = "a" * 100
+    v(ed)
 
 
 def testElemChangesType():
-    sp = u.load()
-    sp._validate()
-    sp.lines[1].lt = scr.SCENE
-    v(sp)
+    ed = u.loadEditor()
+    ed._validate()
+    ed.sp.lines[1].lt = scr.SCENE
+    v(ed)

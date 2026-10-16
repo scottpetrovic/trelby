@@ -9,7 +9,7 @@ import trelby.util as util
 
 
 def loadSmall():
-    return u.loadString(
+    return u.loadStringEditor(
         "\n".join(
             [
                 "#Version 3",
@@ -30,17 +30,17 @@ def loadSmall():
     )
 
 
-def headings(sp):
-    return [it.heading for it in sp.getOutline()]
+def headings(ed):
+    return [it.heading for it in ed.sp.getOutline()]
 
 
 def testGetOutline():
-    sp = loadSmall()
-    items = sp.getOutline()
+    ed = loadSmall()
+    items = ed.sp.getOutline()
 
     assert [it.lt for it in items] == [scr.SCENE, scr.SCENE, scr.ACTBREAK, scr.SCENE]
     assert [it.sceneNr for it in items] == ["1", "2", "", "3"]
-    assert headings(sp) == [
+    assert headings(ed) == [
         "INT. KITCHEN - DAY",
         "EXT. GARDEN - NIGHT",
         "ACT TWO",
@@ -56,162 +56,162 @@ def testGetOutline():
     assert items[0].startLine == 1
     for prev, cur in zip(items, items[1:]):
         assert cur.startLine == prev.endLine + 1
-    assert items[-1].endLine == len(sp.lines) - 1
+    assert items[-1].endLine == len(ed.sp.lines) - 1
 
 
 def testGetOutlineMatchesSceneLocations():
-    sp = u.load()
+    ed = u.loadEditor()
 
-    scenes = [(it.sceneNr, it.startLine) for it in sp.getOutline() if it.sceneNr]
+    scenes = [(it.sceneNr, it.startLine) for it in ed.sp.getOutline() if it.sceneNr]
 
-    assert scenes == sp.getSceneLocations()
+    assert scenes == ed.sp.getSceneLocations()
 
 
 def testGetOutlineMultiLineHeading():
-    sp = u.new()
-    sp.cmdChars("int. " + "very long place name " * 6 + "- day")
+    ed = u.newEditor()
+    ed.cmdChars("int. " + "very long place name " * 6 + "- day")
 
-    assert len(sp.lines) > 1
-    assert sp.getOutline()[0].heading == util.upper(
+    assert len(ed.sp.lines) > 1
+    assert ed.sp.getOutline()[0].heading == util.upper(
         "int. " + "very long place name " * 6 + "- day"
     )
 
 
 def testMoveSceneDown():
-    sp = loadSmall()
-    lineCnt = len(sp.lines)
+    ed = loadSmall()
+    lineCnt = len(ed.sp.lines)
 
-    assert sp.moveScene(1, 1)
+    assert ed.moveScene(1, 1)
 
-    assert headings(sp) == [
+    assert headings(ed) == [
         "EXT. GARDEN - NIGHT",
         "INT. KITCHEN - DAY",
         "ACT TWO",
         "INT. CAR - DAY",
     ]
-    assert len(sp.lines) == lineCnt
-    assert sp.lines[0].text == "Fade in:"
-    assert sp.line == sp.getOutline()[1].startLine
-    assert sp.column == 0
-    assert sp.isModified()
+    assert len(ed.sp.lines) == lineCnt
+    assert ed.sp.lines[0].text == "Fade in:"
+    assert ed.line == ed.sp.getOutline()[1].startLine
+    assert ed.column == 0
+    assert ed.sp.isModified()
 
 
 def testMoveSceneUpFromMiddleOfScene():
-    sp = loadSmall()
+    ed = loadSmall()
 
     # a line inside the last scene
-    assert sp.moveScene(len(sp.lines) - 1, -1)
+    assert ed.moveScene(len(ed.sp.lines) - 1, -1)
 
-    assert headings(sp) == [
+    assert headings(ed) == [
         "INT. KITCHEN - DAY",
         "EXT. GARDEN - NIGHT",
         "INT. CAR - DAY",
         "ACT TWO",
     ]
-    assert sp.line == sp.getOutline()[2].startLine
+    assert ed.line == ed.sp.getOutline()[2].startLine
 
 
 def testMoveSceneLimits():
-    sp = loadSmall()
-    before = [str(ln) for ln in sp.lines]
+    ed = loadSmall()
+    before = [str(ln) for ln in ed.sp.lines]
 
     # first scene can't go above the preamble, last scene can't go down,
     # and the preamble itself can't be moved
-    assert not sp.moveScene(1, -1)
-    assert not sp.moveScene(len(sp.lines) - 1, 1)
-    assert not sp.moveScene(0, 1)
+    assert not ed.moveScene(1, -1)
+    assert not ed.moveScene(len(ed.sp.lines) - 1, 1)
+    assert not ed.moveScene(0, 1)
 
-    assert [str(ln) for ln in sp.lines] == before
-    assert not sp.undoHistory.canUndo()
+    assert [str(ln) for ln in ed.sp.lines] == before
+    assert not ed.undoHistory.canUndo()
 
 
 def testMoveSceneUndoRedo():
-    sp = loadSmall()
-    before = [str(ln) for ln in sp.lines]
+    ed = loadSmall()
+    before = [str(ln) for ln in ed.sp.lines]
 
-    sp.line = 1
-    sp.moveScene(sp.line, 1)
-    after = [str(ln) for ln in sp.lines]
+    ed.line = 1
+    ed.moveScene(ed.line, 1)
+    after = [str(ln) for ln in ed.sp.lines]
 
-    sp.cmd("undo")
-    assert [str(ln) for ln in sp.lines] == before
-    assert sp.line == 1
+    ed.cmd("undo")
+    assert [str(ln) for ln in ed.sp.lines] == before
+    assert ed.line == 1
 
-    sp.cmd("redo")
-    assert [str(ln) for ln in sp.lines] == after
+    ed.cmd("redo")
+    assert [str(ln) for ln in ed.sp.lines] == after
 
 
 def testMoveSceneKeepsScriptValid():
-    sp = u.load()
+    ed = u.loadEditor()
 
-    for i in range(len(sp.getOutline())):
-        sp.moveScene(sp.getOutline()[0].startLine, 1)
-        sp._validate()
+    for i in range(len(ed.sp.getOutline())):
+        ed.moveScene(ed.sp.getOutline()[0].startLine, 1)
+        ed._validate()
 
 
 def testMoveSceneToLaterPosition():
-    sp = loadSmall()
+    ed = loadSmall()
 
-    assert sp.moveSceneTo(1, 2)
+    assert ed.moveSceneTo(1, 2)
 
-    assert headings(sp) == [
+    assert headings(ed) == [
         "EXT. GARDEN - NIGHT",
         "ACT TWO",
         "INT. KITCHEN - DAY",
         "INT. CAR - DAY",
     ]
-    assert sp.lines[0].text == "Fade in:"
-    assert sp.line == sp.getOutline()[2].startLine
+    assert ed.sp.lines[0].text == "Fade in:"
+    assert ed.line == ed.sp.getOutline()[2].startLine
 
 
 def testMoveSceneToFirstPosition():
-    sp = loadSmall()
-    last = sp.getOutline()[-1]
+    ed = loadSmall()
+    last = ed.sp.getOutline()[-1]
 
-    assert sp.moveSceneTo(last.startLine, 0)
+    assert ed.moveSceneTo(last.startLine, 0)
 
-    assert headings(sp) == [
+    assert headings(ed) == [
         "INT. CAR - DAY",
         "INT. KITCHEN - DAY",
         "EXT. GARDEN - NIGHT",
         "ACT TWO",
     ]
     # the moved scene goes after the preamble, not before it
-    assert sp.lines[0].text == "Fade in:"
-    assert sp.line == 1
+    assert ed.sp.lines[0].text == "Fade in:"
+    assert ed.line == 1
 
 
 def testMoveSceneToKeepsContents():
-    sp = u.load()
-    before = sorted(str(ln) for ln in sp.lines)
-    items = sp.getOutline()
+    ed = u.loadEditor()
+    before = sorted(str(ln) for ln in ed.sp.lines)
+    items = ed.sp.getOutline()
 
-    assert sp.moveSceneTo(items[3].startLine, len(items) - 1)
+    assert ed.moveSceneTo(items[3].startLine, len(items) - 1)
 
-    assert sorted(str(ln) for ln in sp.lines) == before
-    assert sp.getOutline()[-1].heading == items[3].heading
-    sp._validate()
+    assert sorted(str(ln) for ln in ed.sp.lines) == before
+    assert ed.sp.getOutline()[-1].heading == items[3].heading
+    ed._validate()
 
 
 def testMoveSceneToInvalid():
-    sp = loadSmall()
-    n = len(sp.getOutline())
+    ed = loadSmall()
+    n = len(ed.sp.getOutline())
 
-    assert not sp.moveSceneTo(1, 0)
-    assert not sp.moveSceneTo(1, -1)
-    assert not sp.moveSceneTo(1, n)
-    assert not sp.moveSceneTo(0, 2)
-    assert not sp.undoHistory.canUndo()
+    assert not ed.moveSceneTo(1, 0)
+    assert not ed.moveSceneTo(1, -1)
+    assert not ed.moveSceneTo(1, n)
+    assert not ed.moveSceneTo(0, 2)
+    assert not ed.undoHistory.canUndo()
 
 
 def testMoveSceneToUndo():
-    sp = loadSmall()
-    before = [str(ln) for ln in sp.lines]
+    ed = loadSmall()
+    before = [str(ln) for ln in ed.sp.lines]
 
-    sp.moveSceneTo(1, 3)
-    sp.cmd("undo")
+    ed.moveSceneTo(1, 3)
+    ed.cmd("undo")
 
-    assert [str(ln) for ln in sp.lines] == before
+    assert [str(ln) for ln in ed.sp.lines] == before
 
 
 # outline-sample.trelby (in the repo root) is a hand-testing script for the
@@ -221,11 +221,11 @@ def testOutlineSample():
     path = os.path.join(os.path.dirname(__file__), "..", "outline-sample.trelby")
 
     with open(path, "r", encoding="utf-8") as f:
-        sp = u.loadString(f.read())
+        ed = u.loadStringEditor(f.read())
 
-    sp._validate()
+    ed._validate()
 
-    assert {ln.lt for ln in sp.lines} == {
+    assert {ln.lt for ln in ed.sp.lines} == {
         scr.SCENE,
         scr.ACTION,
         scr.CHARACTER,
@@ -237,7 +237,7 @@ def testOutlineSample():
         scr.NOTE,
     }
 
-    items = sp.getOutline()
+    items = ed.sp.getOutline()
 
     assert len([it for it in items if it.lt == scr.ACTBREAK]) == 3
     assert len([it for it in items if it.lt == scr.SCENE]) == 11

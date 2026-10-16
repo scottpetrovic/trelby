@@ -167,11 +167,12 @@ def checkPath(path, mustExist=True):
 #  read(): return (Screenplay, revision). the Screenplay must not be
 #   modified.
 #
-#  write(revision, edit, ownUndo): check the revision, call edit(sp) to
-#   modify the script, store the result and return (Screenplay, new
+#  write(revision, edit, ownUndo): check the revision, call edit(ed) to
+#   modify the script, ed being an Editor (see screenplay/editor.py) on
+#   it, store the result and return (Screenplay, new
 #   revision). edit returns the (first, last) range of lines it inserted
 #   or joined, which need to be rewrapped, or None. ownUndo is True if
-#   edit uses a Screenplay method that records its own undo information.
+#   edit uses an Editor method that records its own undo information.
 #   if edit raises ToolError, it must not have modified anything.
 #
 #  describe(sp): return a dict of information about the document.
@@ -204,25 +205,27 @@ class FileDoc:
         # the changed-lines range edit returns and ownUndo don't matter
         # here: save() rewraps the whole script and throws away the undo
         # history anyway
-        edit(sp)
+        ed = screenplay.Editor(sp)
+        edit(ed)
 
-        return (sp, save(sp, self.path))
+        return (sp, save(ed, self.path))
 
     def describe(self, sp):
         return {"path": self.path}
 
 
-# reformat and save the script. returns the new revision.
-def save(sp, path, backup=True):
+# reformat and save the script being edited by Editor ed. returns the
+# new revision.
+def save(ed, path, backup=True):
     # some edits (moveSceneTo, renameCharacters) add undo history, which
     # reformatAll refuses to run with. nobody can undo here anyway.
-    sp.undoHistory.clear()
+    ed.undoHistory.clear()
 
-    sp.reformatAll()
-    sp.paginate()
-    sp.validatePos()
+    ed.reformatAll()
+    ed.sp.paginate()
+    ed.validatePos()
 
-    data = sp.save()
+    data = ed.save()
 
     try:
         util.atomicWrite(path, data, backup)
@@ -232,13 +235,17 @@ def save(sp, path, backup=True):
     return revisionOf(data)
 
 
-# a script in memory that has undo history, like one open in the app.
-# edits are recorded for undo and rewrapped in place, and the cursor is
-# moved to the start of the change. mcpapp.AppDoc adds updating the
-# screen.
+# a script in memory that has undo history, like one open in the app,
+# edited through Editor ed. edits are recorded for undo and rewrapped in
+# place, and the cursor is moved to the start of the change. mcpapp.AppDoc
+# adds updating the screen.
 class LiveDoc:
-    def __init__(self, sp):
-        self.sp = sp
+    def __init__(self, ed):
+        self.ed = ed
+
+    @property
+    def sp(self):
+        return self.ed.sp
 
     def read(self):
         return (self.sp, linesRevision(self.sp))
@@ -246,7 +253,7 @@ class LiveDoc:
     def describe(self, sp):
         return {
             "modified": sp.isModified(),
-            "cursor_scene": partOfLine(sp, sp.line),
+            "cursor_scene": partOfLine(sp, self.ed.line),
         }
 
     # raise ToolError if the script can't be edited right now
@@ -260,34 +267,35 @@ class LiveDoc:
     def write(self, revision, edit, ownUndo=False):
         self.checkWritable()
 
-        sp = self.sp
+        ed = self.ed
+        sp = ed.sp
         current = linesRevision(sp)
 
         if revision != current:
             raise staleError(revision, current)
 
-        sp.clearAutoComp()
-        sp.clearMark()
+        ed.clearAutoComp()
+        ed.clearMark()
 
         # the undo step spans both the edit and the rewrapping it causes,
         # so undoing it restores the old lines exactly. an edit with
         # ownUndo records its own step, which must not be wrapped in a
         # second one, and returns None, leaving any rewrapping to the
-        # Screenplay method it uses.
+        # Editor method it uses.
         u = None if ownUndo else undo.AnyDifference(sp)
 
-        changedLines = edit(sp)
+        changedLines = edit(ed)
 
         if changedLines:
-            sp.rewrapSpeechesAround(*changedLines)
-            sp.line = min(changedLines[0], len(sp.lines) - 1)
-            sp.column = 0
+            ed.rewrapSpeechesAround(*changedLines)
+            ed.line = min(changedLines[0], len(sp.lines) - 1)
+            ed.column = 0
 
-        sp.validatePos()
+        ed.validatePos()
 
         if u:
             u.setAfter(sp)
-            sp.undoHistory.add(u)
+            ed.undoHistory.add(u)
 
         sp.markChanged()
         sp.paginate()
@@ -676,7 +684,8 @@ def write(doc, revision, edit, ownUndo=False):
 # replaced keeps its color unless the new heading says otherwise, and a
 # scene replaced by a scene keeps its locked number.
 def replaceScene(doc, revision, index, elements):
-    def edit(sp):
+    def edit(ed):
+        sp = ed.sp
         first, last = getPart(sp, index)
         lines = buildLines(elements, index > 0)
 
@@ -701,7 +710,8 @@ def replaceScene(doc, revision, index, elements):
 # insert elements before part 'position' (1 - number of parts, or one
 # more to append at the end).
 def insertScenes(doc, revision, position, elements):
-    def edit(sp):
+    def edit(ed):
+        sp = ed.sp
         parts = getParts(sp)
 
         if not isinstance(position, int) or not (1 <= position <= len(parts)):
@@ -725,7 +735,8 @@ def insertScenes(doc, revision, position, elements):
 
 
 def deleteScene(doc, revision, index):
-    def edit(sp):
+    def edit(ed):
+        sp = ed.sp
         first, last = getPart(sp, index)
 
         if last < first:
@@ -747,16 +758,16 @@ def deleteScene(doc, revision, index):
 
 
 def moveScene(doc, revision, index, newIndex):
-    def edit(sp):
-        first = getPart(sp, index, False)[0]
-        getPart(sp, newIndex, False)
+    def edit(ed):
+        first = getPart(ed.sp, index, False)[0]
+        getPart(ed.sp, newIndex, False)
 
         if index == newIndex:
             raise ToolError("The scene is already at index %d." % index)
 
         # part n is outline item n - 1: moveSceneTo counts from 0, without
         # the opening part
-        if not sp.moveSceneTo(first, newIndex - 1):
+        if not ed.moveSceneTo(first, newIndex - 1):
             raise ToolError("Moving scene %d to %d failed." % (index, newIndex))
 
         return None
@@ -778,14 +789,15 @@ def renameCharacter(doc, revision, oldName, newName):
 
     counts = {}
 
-    def edit(sp):
+    def edit(ed):
+        sp = ed.sp
         names = {characterprofiles.normalizeName(n) for n in sp.getCharacterNames()}
         prof = sp.characterProfiles.get(old)
 
         if (old not in names) and not prof:
             raise ToolError("Character '%s' was not found." % old)
 
-        counts["cues"], counts["mentions"] = sp.renameCharacters({old: new}, True)
+        counts["cues"], counts["mentions"] = ed.renameCharacters({old: new}, True)
 
         return None
 
@@ -818,11 +830,12 @@ def setWorldBuilding(doc, revision, text):
     if text == sp.worldBuilding.text:
         return {"revision": current, "length": len(text)}
 
-    def edit(sp):
+    def edit(ed):
+        sp = ed.sp
         u = undo.WorldBuildingText(sp)
         sp.worldBuilding.text = text
         u.setAfter(sp)
-        sp.undoHistory.add(u)
+        ed.undoHistory.add(u)
 
         return None
 
@@ -873,11 +886,12 @@ def getCharacterProfiles(doc, name=None):
 def writeProfiles(doc, revision, edit):
     ret = {}
 
-    def wrapper(sp):
+    def wrapper(ed):
+        sp = ed.sp
         u = undo.CharacterProfiles(sp)
         ret.update(edit(sp))
         u.setAfter(sp)
-        sp.undoHistory.add(u)
+        ed.undoHistory.add(u)
 
         return None
 
@@ -947,7 +961,7 @@ def createScript(path, elements):
     sp = screenplay.Screenplay(_cfgGl)
     sp.lines = buildLines(elements, False)
 
-    rev = save(sp, path, False)
+    rev = save(screenplay.Editor(sp), path, False)
 
     return {"revision": rev, "scenes": getOutline(sp)}
 
