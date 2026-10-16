@@ -121,6 +121,31 @@ The following config sections exists and appear in the file in this order:
   Words (list of strings): Script-specific spell checker dictionary.
 
 
+ Character-Profiles (optional, only present if the script has any):
+
+  Profiles (integer): Number of profiles. Each profile N (1-based) has
+  these values, all optional except Name:
+
+  Profile/N/(Name|Notes) (string): The character's name and free-form
+  notes. Newlines are stored as \n, the \ character as \\, and other
+  line breaks and control characters as \uXXXX (4 hex digits).
+
+  Profile/N/Photos (integer): Number of photos.
+
+  Profile/N/Photo/M (string): Photo M (1-based) as a base64-encoded PNG
+  or JPEG file.
+
+  Unknown Profile/N/... values are kept as-is when saving.
+
+
+ World-Building (optional, only present if it has any text):
+
+  Text (string): Free-form notes about the world the story is set in,
+  escaped like the character profile notes.
+
+  Unknown values are kept as-is when saving.
+
+
 After this (in version 1 files after "#Version 1") there is more
 configuration, but in a different syntax, that is mostly due to historical
 accidents.
@@ -235,8 +260,44 @@ Line types:
 
 '%' - Note
 
+'@' - Act break
+
 More line types are probably going to be added in the future without
 increasing the fileformat version number, so unknown line types should be
 converted to Action, and a warning given to user about this.
+
+Script lines can be preceded by config lines of the following type:
+
+"Page-Lock". Value: page label. The pages are locked, and the page with
+this label starts at the next line. Labels are of the form "16" (a page
+that existed when the pages were locked), "15A", "15B", ... (pages added
+after page 15), "A1", "B1", ... (pages added before page 1) or "16-17"
+(page 16 combined with page 17 after all of its text was deleted). Labels
+must be in increasing order; out-of-order ones are ignored.
+
+"Dual-Dialogue". Value: empty. The next line is the first line of a
+Character element, and that character's speech (the Character element and
+the Parenthetical and Dialogue elements following it) is printed as the
+right-hand column of a dual dialogue, beside the speech just before it.
+Ignored if the next line isn't the first line of a Character element, or
+if the speech before it doesn't directly precede it or is itself the
+right-hand column of a dual dialogue.
+
+"Scene-Color". Value: six hex digits, "rrggbb". The next line is the first
+line of a Scene or Act break element, and the outline view shows that
+scene (or act break) in this color. Ignored if the next line isn't the
+first line of such an element, or the value isn't valid.
+
+"Centered". Value: empty. The next line is the first line of an Action
+element, and each of the element's lines is centered within the action
+width. Ignored if the next line isn't the first line of an Action
+element.
+
+"Format". Value: comma-separated "start-end:flags" items, where start and
+end (exclusive) are 0-based character offsets into the next line's text
+and flags is any combination of "b", "i" and "u": those characters of the
+next line are bold / italic / underlined, on top of their element type's
+own style. Example: "4-8:b,15-21:iu". Invalid items, and the parts of
+items past the end of the line, are ignored.
 
 See sample.trelby for an example screenplay.

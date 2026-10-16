@@ -10,6 +10,7 @@ import trelby.config as config
 import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.screenplay as screenplay
+import trelby.textfmt as textfmt
 import trelby.titles as titles
 import trelby.util as util
 from trelby.importdlg import ImportDlg
@@ -325,7 +326,8 @@ def importFDX(fileName, frame):
         root = etree.XML(data.encode("UTF-8"))
         lines = []
 
-        def addElem(eleType, eleText):
+        # fmt is the format string for eleText, or None
+        def addElem(eleType, eleText, fmt=None):
             lns = eleText.split("\n")
 
             # if elem ends in a newline, last line is empty and useless;
@@ -333,10 +335,14 @@ def importFDX(fileName, frame):
             if not lns[-1] and (len(lns) > 1):
                 lns = lns[:-1]
 
-            for s in lns[:-1]:
-                lines.append(Line(screenplay.LB_FORCED, eleType, util.cleanInput(s)))
+            pos = 0
 
-            lines.append(Line(screenplay.LB_LAST, eleType, util.cleanInput(lns[-1])))
+            for i, s in enumerate(lns):
+                lb = screenplay.LB_LAST if (i == len(lns) - 1) else screenplay.LB_FORCED
+                lineFmt = fmt and fmt[pos : pos + len(s)]
+                pos += len(s) + 1
+
+                lines.append(Line(lb, eleType, util.cleanInput(s), fmt=lineFmt))
 
         for para in root.xpath("Content//Paragraph"):
             addedNote = False
@@ -364,6 +370,7 @@ def importFDX(fileName, frame):
                 continue
 
             s = ""
+            fmt = ""
             for text in para.xpath("Text"):
                 # text.text is None for paragraphs with no text, and +=
                 # blows up trying to add a string object and None, so
@@ -371,11 +378,39 @@ def importFDX(fileName, frame):
                 if text.text:
                     s += text.text
 
+                    styles = (text.get("Style") or "").split("+")
+                    style = 0
+
+                    for name, bit in (
+                        ("Bold", textfmt.BOLD),
+                        ("Italic", textfmt.ITALIC),
+                        ("Underline", textfmt.UNDERLINED),
+                    ):
+                        if name in styles:
+                            style |= bit
+
+                    fmt += textfmt.char(style) * len(text.text)
+
             # don't remove paragraphs with no text, unless that paragraph
             # contained a scriptnote
             if s or not addedNote:
                 lt = elemMap.get(et, screenplay.ACTION)
-                addElem(lt, s)
+                firstLine = len(lines)
+                addElem(lt, s, textfmt.compact(fmt))
+
+                if (lt == screenplay.ACTION) and (para.get("Alignment") == "Center"):
+                    lines[firstLine].centered = True
+
+                # in a DualDialogue, the second character's speech is the
+                # right-hand column
+                parent = para.getparent()
+
+                if (
+                    (lt == screenplay.CHARACTER)
+                    and (parent.tag == "DualDialogue")
+                    and (parent.xpath("Paragraph[@Type='Character']")[0] is not para)
+                ):
+                    lines[firstLine].dual = True
 
         if len(lines) == 0:
             wx.MessageBox(
@@ -393,49 +428,7 @@ def importFDX(fileName, frame):
 # import Fountain files.
 # http://fountain.io
 def importFountain(fileName, frame, titlePages):
-    # regular expressions for fountain markdown.
-    # https://github.com/vilcans/screenplain/blob/master/screenplain/richstring.py
-    ire = re.compile(
-        # one star
-        r"\*"
-        # anything but a space, then text
-        r"([^\s].*?)"
-        # finishing with one star
-        r"\*"
-        # must not be followed by star
-        r"(?!\*)"
-    )
-    bre = re.compile(
-        # two stars
-        r"\*\*"
-        # must not be followed by space
-        r"(?=\S)"
-        # inside text
-        r"(.+?[*_]*)"
-        # finishing with two stars
-        r"(?<=\S)\*\*"
-    )
-    ure = re.compile(
-        # underline
-        r"_"
-        # must not be followed by space
-        r"(?=\S)"
-        # inside text
-        r"([^_]+)"
-        # finishing with underline
-        r"(?<=\S)_"
-    )
     boneyard_re = re.compile("/\\*.*?\\*/", flags=re.DOTALL)
-
-    # random magicstring used to escape literal star '\*'
-    literalstar = "Aq7RR"
-
-    # returns s with markdown formatting removed.
-    def unmarkdown(s):
-        s = s.replace("\\*", literalstar)
-        for style in (bre, ire, ure):
-            s = style.sub(r"\1", s)
-        return s.replace(literalstar, "*")
 
     data = util.loadFile(fileName, frame, -1)
 
@@ -449,7 +442,9 @@ def importFountain(fileName, frame, titlePages):
     inf = []
     inf.append(misc.CheckBoxItem(_("Import titles to title page.")))
     inf.append(misc.CheckBoxItem(_("Import titles as action lines."), selected=False))
-    inf.append(misc.CheckBoxItem(_("Remove unsupported formatting markup.")))
+    inf.append(
+        misc.CheckBoxItem(_("Import bold, italic and underline markup as formatting."))
+    )
     inf.append(misc.CheckBoxItem(_("Import section/synopsis as notes.")))
 
     dlg = misc.CheckBoxDlg(
@@ -462,7 +457,7 @@ def importFountain(fileName, frame, titlePages):
 
     importTitlePage = inf[0].selected
     importTitles = inf[1].selected
-    removeMarkdown = inf[2].selected
+    convertMarkup = inf[2].selected
     importSectSyn = inf[3].selected
 
     # pre-process data - fix newlines, remove boneyard.
@@ -655,9 +650,16 @@ def importFountain(fileName, frame, titlePages):
         # Start testing lines for element type. Go in order:
         # Scene Character, Paren, Dialog, Transition, Note.
 
-        if s == "" or isCentered(s) or isPageBreak(s):
+        if s == "" or isPageBreak(s):
             # do nothing - import as action.
             pass
+
+        elif isCentered(s.strip()):
+            # an action, but centered. for now every centered line has the
+            # flag, so that the second pass can tell where they start and
+            # end.
+            line.centered = True
+            line.text = s.strip()[1:-1].strip()
 
         elif s == TWOSPACE:
             line.lt = getPrevType()
@@ -711,19 +713,16 @@ def importFountain(fileName, frame, titlePages):
             line.text = line.text.lstrip()
 
         else:
-            tmp = line.text.rstrip()
-            # we don't support center align, so simply add required indent.
-            if isCentered(tmp):
-                tmp = tmp[1:-1].strip()
-                width = frame.panel.ctrl.sp.cfg.getType(screenplay.ACTION).width
-                if len(tmp) < width:
-                    tmp = " " * ((width - len(tmp)) // 2) + tmp
-            line.text = tmp
+            line.text = line.text.rstrip()
 
-        if removeMarkdown:
-            line.text = unmarkdown(line.text)
-            if line.lt == screenplay.CHARACTER and line.text.endswith("^"):
-                line.text = line.text[:-1]
+        if convertMarkup:
+            line.text, line.fmt = textfmt.fromMarkup(line.text)
+
+        # "^" after a character name makes it the right-hand column of a
+        # dual dialogue
+        if line.lt == screenplay.CHARACTER and line.text.rstrip().endswith("^"):
+            line.setText(line.text.rstrip()[:-1].rstrip(), line.fmt)
+            line.dual = True
 
         lns.append(line)
 
@@ -748,7 +747,7 @@ def importFountain(fileName, frame, titlePages):
             else:
                 ret.append(ln)
 
-        elif not isRetPrevType(ln.lt):
+        elif not isRetPrevType(ln.lt) or (ret[-1].centered != ln.centered):
             makeLastLBLast()
             ret.append(ln)
 
@@ -756,6 +755,12 @@ def importFountain(fileName, frame, titlePages):
             ret.append(ln)
 
     makeLastLBLast()
+
+    # the centered flag only goes on the first line of an element
+    for i in range(1, len(ret)):
+        if ret[i - 1].lb != screenplay.LB_LAST:
+            ret[i].centered = False
+
     return ret, titlePages
 
 

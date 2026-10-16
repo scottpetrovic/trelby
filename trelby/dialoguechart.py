@@ -3,62 +3,95 @@ from typing import List
 
 import wx
 
-import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.pdf as pdf
 import trelby.pml as pml
+import trelby.reportwindow as reportwindow
 import trelby.screenplay as screenplay
 import trelby.util as util
 
 
-def genDialogueChart(mainFrame, sp):
-    # TODO: would be nice if this behaved like the other reports, i.e. the
-    # junk below would be inside the class, not outside. this would allow
-    # testcases to be written. only complication is the minLines thing
-    # which would need some thinking.
+# colors (r, g, b, each 0-1) for the page content bars and their legend.
+# the speaking bars in the chart use the dialogue color.
+OTHER_COLOR = (1.0, 1.0, 1.0)
+CHARACTER_COLOR = (0.106, 0.686, 0.478)
+DIALOGUE_COLOR = (0.922, 0.408, 0.204)
+ACTION_COLOR = (0.165, 0.471, 0.839)
 
-    inf = []
-    for it in [
-        (_("Characters with < 10 lines"), None),
-        (_("Sorted by: First appearance"), cmpFirst),
-        (_("Sorted by: Last appearance"), cmpLast),
-        (_("Sorted by: Number of lines spoken"), cmpCount),
-        (_("Sorted by: Name"), cmpName),
-    ]:
-        inf.append(misc.CheckBoxItem(it[0], cdata=it[1]))
+# background color for every other row of the chart
+ROW_COLOR = (0.933, 0.957, 0.988)
 
-    dlg = misc.CheckBoxDlg(
-        mainFrame, _("Report type"), inf, _("Information to include:"), False
-    )
 
-    if dlg.ShowModal() != wx.ID_OK:
-        dlg.Destroy()
+# return a pml.PDFOp that sets the fill color to 'color', an (r, g, b) tuple
+def fillColor(color):
+    return pml.PDFOp("%.3f %.3f %.3f rg" % color)
 
-        return
 
-    dlg.Destroy()
+def genDialogueChart(mainFrame, sp, scriptName):
+    reportwindow.show(DialogueChartFrame, mainFrame, sp, scriptName)
 
-    minLines = 1
-    if not inf[0].selected:
-        minLines = 10
 
-    chart = DialogueChart(sp, minLines)
+class DialogueChartFrame(reportwindow.ReportFrame):
+    def __init__(self, parent, sp, scriptName):
+        # (label, compare function) for each sort order
+        self.sorts = [
+            (_("Sorted by: First appearance"), cmpFirst),
+            (_("Sorted by: Last appearance"), cmpLast),
+            (_("Sorted by: Number of lines spoken"), cmpCount),
+            (_("Sorted by: Name"), cmpName),
+        ]
 
-    if not chart.cinfo:
-        wx.MessageBox(_("No characters speaking found."), "Error", wx.OK, mainFrame)
+        self.allChars = True
+        self.doc = None
 
-        return
+        reportwindow.ReportFrame.__init__(self, parent, sp, scriptName, (1100, 800))
 
-    del inf[0]
+    def getName(self):
+        return _("Dialogue Chart")
 
-    if len(misc.CheckBoxItem.getClientData(inf)) == 0:
-        wx.MessageBox(_("Can't disable all output."), "Error", wx.OK, mainFrame)
+    def makeReport(self):
+        self.chart = DialogueChart(self.sp, 1 if self.allChars else 10)
 
-        return
+    def createControls(self, panel):
+        self.allCharsCb = wx.CheckBox(panel, -1, _("Characters with < 10 lines"))
+        self.allCharsCb.SetValue(self.allChars)
+        self.Bind(wx.EVT_CHECKBOX, self.OnAllChars, id=self.allCharsCb.GetId())
+        self.optionsSizer.Add(
+            self.allCharsCb, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 15
+        )
 
-    data = chart.generate(inf)
+        self.sortChoice = wx.Choice(panel, -1, choices=[s[0] for s in self.sorts])
+        self.sortChoice.SetSelection(0)
+        self.Bind(wx.EVT_CHOICE, lambda e: self.update(), id=self.sortChoice.GetId())
+        self.optionsSizer.Add(self.sortChoice, 0, wx.ALIGN_CENTER_VERTICAL)
 
-    gutil.showTempPDF(data, sp.cfgGl, mainFrame)
+        self.view = reportwindow.PageView(panel)
+        self.contentSizer.Add(self.view, 1, wx.EXPAND)
+
+    def OnAllChars(self, event):
+        self.allChars = self.allCharsCb.GetValue()
+        self.makeReport()
+        self.update()
+
+    def updateView(self):
+        if not self.chart.cinfo:
+            self.doc = None
+
+            if self.allChars:
+                msg = _("No characters speaking found.")
+            else:
+                msg = _("No characters with 10 or more lines found.")
+
+            self.view.setDoc(None, msg)
+        else:
+            label, func = self.sorts[self.sortChoice.GetSelection()]
+            self.doc = self.chart.generateDoc([misc.CheckBoxItem(label, cdata=func)])
+            self.view.setDoc(self.doc)
+
+        self.hasContents = self.doc is not None
+
+    def getPDF(self):
+        return pdf.generate(self.doc)
 
 
 class DialogueChart:
@@ -173,7 +206,9 @@ class DialogueChart:
         # spacing from one legend item to next
         self.legendSize = 4.0
 
-    def generate(self, cbil: List[misc.CheckBoxItem]) -> bytes:
+    # return a pml.Document with a page for each selected sort order in
+    # 'cbil'.
+    def generateDoc(self, cbil: List[misc.CheckBoxItem]) -> pml.Document:
         doc = pml.Document(self.sp.cfg.paperHeight, self.sp.cfg.paperWidth)
 
         for it in cbil:
@@ -181,7 +216,10 @@ class DialogueChart:
                 self.cinfo = sorted(self.cinfo, key=functools.cmp_to_key(it.cdata))
                 doc.add(self.generatePage(it.text, doc))
 
-        return pdf.generate(doc)
+        return doc
+
+    def generate(self, cbil: List[misc.CheckBoxItem]) -> bytes:
+        return pdf.generate(self.generateDoc(cbil))
 
     def generatePage(self, title, doc):
         pg = pml.Page(doc)
@@ -208,7 +246,7 @@ class DialogueChart:
             y = self.chartY + i * self.charY
 
             if (i % 2) == 1:
-                pg.add(pml.PDFOp("0.93 g"))
+                pg.add(fillColor(ROW_COLOR))
                 pg.add(pml.RectOp(self.chartX, y, self.chartWidth, self.charY))
                 pg.add(pml.PDFOp("0.0 g"))
 
@@ -226,7 +264,11 @@ class DialogueChart:
                 x = self.chartX + i * mmPerPage
                 pg.add(
                     pml.TextOp(
-                        "%d" % (i + 1), x, self.pageY, 10, align=util.ALIGN_CENTER
+                        self.sp.getPageLabel(i + 1),
+                        x,
+                        self.pageY,
+                        10,
+                        align=util.ALIGN_CENTER,
                     )
                 )
                 if i != 0:
@@ -260,10 +302,10 @@ class DialogueChart:
             )
         )
 
-        self.drawLegend(pg, 0, 1.0, "Other", lw)
-        self.drawLegend(pg, 1, 0.7, "Character", lw)
-        self.drawLegend(pg, 2, 0.5, "Dialogue", lw)
-        self.drawLegend(pg, 3, 0.3, "Action", lw)
+        self.drawLegend(pg, 0, OTHER_COLOR, "Other", lw)
+        self.drawLegend(pg, 1, CHARACTER_COLOR, "Character", lw)
+        self.drawLegend(pg, 2, DIALOGUE_COLOR, "Dialogue", lw)
+        self.drawLegend(pg, 3, ACTION_COLOR, "Action", lw)
 
         # page content bars
         for i in range(pageCnt):
@@ -272,19 +314,19 @@ class DialogueChart:
             pi = self.pages[i]
             tlc = pi.getTotalLineCount()
 
-            pg.add(pml.PDFOp("0.3 g"))
+            pg.add(fillColor(ACTION_COLOR))
             pct = util.safeDivInt(pi.getLineCount(screenplay.ACTION), tlc)
             barH = self.barHeight * pct
             pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
             y -= barH
 
-            pg.add(pml.PDFOp("0.5 g"))
+            pg.add(fillColor(DIALOGUE_COLOR))
             pct = util.safeDivInt(pi.getLineCount(screenplay.DIALOGUE), tlc)
             barH = self.barHeight * pct
             pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
             y -= barH
 
-            pg.add(pml.PDFOp("0.7 g"))
+            pg.add(fillColor(CHARACTER_COLOR))
             pct = util.safeDivInt(pi.getLineCount(screenplay.CHARACTER), tlc)
             barH = self.barHeight * pct
             pg.add(pml.RectOp(x, y - barH, mmPerPage, barH))
@@ -313,6 +355,8 @@ class DialogueChart:
                 )
             )
 
+            pg.add(fillColor(DIALOGUE_COLOR))
+
             for i in range(pageCnt):
                 pi = self.pages[i]
                 cnt = pi.getSpeakerLineCount(ci.name)
@@ -329,6 +373,8 @@ class DialogueChart:
                         )
                     )
 
+            pg.add(pml.PDFOp("0.0 g"))
+
         return pg
 
     # draw a single legend for page content bars
@@ -336,7 +382,7 @@ class DialogueChart:
         x = self.legendX + self.legendMargin
         y = self.legendY + self.legendMargin + pos * self.legendSpacing
 
-        pg.add(pml.PDFOp("%f g" % color))
+        pg.add(fillColor(color))
 
         pg.add(pml.RectOp(x, y, self.legendSize, self.legendSize, pml.STROKE_FILL, lw))
 

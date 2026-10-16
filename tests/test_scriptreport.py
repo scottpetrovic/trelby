@@ -14,3 +14,12 @@ def testBasic():
     # document
     assert len(data) > 200
     assert data[:8] == util.toLatin1("%PDF-1.5")
+
+
+def testHtml():
+    sp = u.load()
+    report = scriptreport.ScriptReport(sp)
+    html = report.generateHtml()
+
+    # spaces are kept so the columns line up
+    assert "&nbsp;&nbsp;" in html

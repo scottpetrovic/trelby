@@ -37,9 +37,8 @@ def load(filename="test.trelby"):
     init()
     filename = fixtureFilePath(filename)
 
-    return screenplay.Screenplay.load(
-        open(filename, "r").read(), config.ConfigGlobal()
-    )[0]
+    with open(filename, "r", encoding="utf-8") as f:
+        return screenplay.Screenplay.load(f.read(), config.ConfigGlobal())[0]
 
 
 # load script from given string

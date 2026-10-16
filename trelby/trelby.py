@@ -9,9 +9,9 @@ import wx
 
 import trelby
 import trelby.config as config
+import trelby.mcpapp as mcpapp
 import trelby.misc as misc
 import trelby.opts as opts
-import trelby.splash as splash
 import trelby.util as util
 import trelby.translations as translations
 from trelby.globaldata import GlobalData
@@ -48,10 +48,18 @@ class MyApp(wx.App):
             )
             sys.exit()
 
+        # fixed name, so per-user data wx keeps (e.g. the built-in PDF
+        # viewer's browser profile) goes to the same place for source runs
+        # and the exe
+        self.SetAppName("Trelby")
+
         misc.init()
         util.init()
 
         gd = GlobalData()
+
+        # for gutil.currentCfgGui
+        self.gd = gd
 
         if misc.isWindows:
             major = sys.getwindowsversion()[0]
@@ -91,8 +99,12 @@ class MyApp(wx.App):
             # various reasons, if no default config file yet exists
             util.writeToFile(gd.confFilename, cfgGl.save(), None)
 
-        # refreshGuiConfig()
-        gd.cfgGui = config.ConfigGui(gd.cfgGl)
+        # errors are shown on the Theme settings page
+        for err in config.loadCustomThemes():
+            print("Skipped theme file", err, file=sys.stderr)
+
+        # wx wants this done before any windows are created
+        config.applyAppearance(cfgGl.theme)
 
         # cfgGl.scriptDir is the directory used on startup, while
         # misc.scriptDir is updated every time the user opens something in
@@ -106,6 +118,9 @@ class MyApp(wx.App):
                 gd.load(s)
 
         gd.setViewMode(gd.viewMode)
+
+        # refreshGuiConfig()
+        gd.cfgGui = config.ConfigGui(gd.cfgGl, gd.zoom)
 
         if util.fileExists(gd.scDictFilename):
             s = util.loadFile(gd.scDictFilename, None)
@@ -129,15 +144,27 @@ class MyApp(wx.App):
 
         mainFrame.checkFonts()
 
-        if cfgGl.splashTime > 0:
-            win = splash.SplashWindow(mainFrame, cfgGl.splashTime * 1000)
-            win.Show()
-            win.Raise()
+        # start the MCP server if it's turned on. before offering recovery,
+        # since calls queued after that wait until its dialog is closed.
+        wx.CallAfter(mcpapp.configure, gd, mainFrame)
+
+        # after the main window is up, so the question has a parent
+        wx.CallAfter(mainFrame.offerRecovery)
 
         return True
 
 
 def main():
+    # Trelby.exe --mcp-bridge [--port N]: run as the stdio bridge to the MCP
+    # server in a running Trelby (see mcpserver.py), for exe users with no
+    # Python to run "python -m trelby.mcpserver --app" with
+    if sys.argv[1:2] == ["--mcp-bridge"]:
+        import trelby.mcpserver as mcpserver
+
+        mcpserver.main(["--app"] + sys.argv[2:])
+
+        return
+
     opts.init()
 
     myApp = MyApp(0)

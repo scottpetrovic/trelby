@@ -12,7 +12,7 @@ element types, and so on.
 The settings here are saved within the screenplay itself.
 
 If you're looking for the user interface settings (colors, keyboard
-shortcuts, etc.), those are found in File/Settings."""
+shortcuts, etc.), those are found in Edit/Settings."""
         )
 
         AboutPanel.__init__(self, parent, id, cfg, s)

@@ -6,6 +6,7 @@ from typing import AnyStr
 
 import trelby.gutil as gutil
 import trelby.opts as opts
+import trelby.textfmt as textfmt
 import trelby.util as util
 
 if "TRELBY_TESTING" in os.environ:
@@ -15,7 +16,7 @@ if "TRELBY_TESTING" in os.environ:
 else:
     import wx
 
-TAB_BAR_HEIGHT = 24
+TAB_BAR_HEIGHT = 30
 
 version = "2.4.16.2"
 
@@ -103,22 +104,27 @@ def getFullPath(relative):
     return progPath + "/" + relative
 
 
+# return menu label 'label' (already translated, optionally followed by
+# "\t<accelerator>") with a mnemonic for 'key'. the '&' goes before the
+# first occurrence of 'key' in the text (preferring an exact case match),
+# so it's only underlined while Alt is held. if the text doesn't contain
+# 'key' at all (e.g. in some translations), " (&KEY)" is appended instead.
+def mnemonic(key, label):
+    text, sep, accel = label.partition("\t")
+
+    i = text.find(key)
+    if i == -1:
+        i = text.lower().find(key.lower())
+
+    if i != -1:
+        text = text[:i] + "&" + text[i:]
+    else:
+        text += " (&%s)" % key.upper()
+
+    return text + sep + accel
+
+
 # TODO: move all GUI stuff to gutil
-
-
-class MyColorSample(wx.Window):
-    def __init__(self, parent, id, size):
-        wx.Window.__init__(self, parent, id, size=size)
-
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-
-    def OnPaint(self, event):
-        dc = wx.PaintDC(self)
-
-        w, h = self.GetClientSize()
-        br = wx.Brush(self.GetBackgroundColour())
-        dc.SetBrush(br)
-        dc.DrawRectangle(0, 0, w, h)
 
 
 # Custom "exit fullscreen" button for our tab bar. Used so that we have
@@ -152,92 +158,261 @@ class MyFSButton(wx.Window):
         self.GetEventHandler().ProcessEvent(clickEvent)
 
 
-# custom status control
-class MyStatus(wx.Window):
-    WIDTH = 280
-    X_ELEDIVIDER = 100
+# toolbar control showing the element types as a group of toggle buttons,
+# with the current element's type selected. 'items' is a list of (lt,
+# label) tuples; clicking one calls onSelect(lt). getToolTip(lt) returns
+# the tooltip for an item.
+class MyElemTypeBar(wx.Control):
+    def __init__(self, parent, id, getCfgGui, items, onSelect, getToolTip, height):
+        wx.Control.__init__(self, parent, id, style=wx.BORDER_NONE)
 
-    def __init__(self, parent, id, getCfgGui):
-        wx.Window.__init__(
-            self,
-            parent,
-            id,
-            size=(MyStatus.WIDTH, TAB_BAR_HEIGHT),
-            style=wx.FULL_REPAINT_ON_RESIZE,
-        )
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
         self.getCfgGui = getCfgGui
+        self.items = items
+        self.onSelect = onSelect
+        self.getToolTip = getToolTip
 
-        self.page = 0
-        self.pageCnt = 0
-        self.elemType = ""
-        self.tabNext = ""
-        self.enterNext = ""
+        # line type of the current element, and indexes of the selected
+        # and hovered items (-1 = none)
+        self.curLt = None
+        self.selected = -1
+        self.hover = -1
 
-        self.elementFont = util.createPixelFont(
-            TAB_BAR_HEIGHT // 2 + 6, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.NORMAL
-        )
+        # if True, the items are greyed out and clicking them does
+        # nothing. unlike a disabled window, this still shows tooltips,
+        # which can say why.
+        self.disabled = False
 
-        self.font = util.createPixelFont(
-            TAB_BAR_HEIGHT // 2 + 2, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.NORMAL
-        )
+        self.font = self.GetFont()
+        self.boldFont = self.font.Bold()
+
+        # every item is as wide as its label in bold, so selecting one
+        # doesn't shift the others
+        padX = self.FromDIP(10)
+        self.margin = self.FromDIP(2)
+
+        self.rects = []
+        x = self.margin
+
+        for lt, label in items:
+            w = self.GetFullTextExtent(label, self.boldFont)[0] + padX * 2
+            self.rects.append(wx.Rect(x, self.margin, w, height - self.margin * 2))
+            x += w
+
+        size = wx.Size(x + self.margin, height)
+        self.SetMinSize(size)
+        self.SetSize(size)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDown)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeave)
+
+    def AcceptsFocus(self):
+        return False
+
+    def SetValue(self, lt):
+        if lt == self.curLt:
+            return
+
+        self.curLt = lt
+        self.selected = -1
+
+        for i, (itemLt, label) in enumerate(self.items):
+            if itemLt == lt:
+                self.selected = i
+
+        self.Refresh(False)
+
+    # whether item i is shown highlighted
+    def isSelected(self, i):
+        return i == self.selected
+
+    # font to draw item i's label in
+    def itemFont(self, i, selected):
+        return self.boldFont if selected else self.font
+
+    def itemAt(self, pos):
+        for i, rect in enumerate(self.rects):
+            if rect.Contains(pos):
+                return i
+
+        return -1
+
+    def OnLeftDown(self, event):
+        i = self.itemAt(event.GetPosition())
+
+        if (i != -1) and not self.disabled:
+            self.onSelect(self.items[i][0])
+
+    def OnMotion(self, event):
+        i = self.itemAt(event.GetPosition())
+
+        if i != self.hover:
+            self.hover = i
+            self.SetToolTip(self.getToolTip(self.items[i][0]) if i != -1 else "")
+            self.Refresh(False)
+
+    def OnLeave(self, event):
+        if self.hover != -1:
+            self.hover = -1
+            self.Refresh(False)
 
     def OnPaint(self, event):
         cfgGui = self.getCfgGui()
 
-        cy = (TAB_BAR_HEIGHT - 1) // 2
-        xoff = 5
-
-        dc = wx.PaintDC(self)
+        dc = wx.AutoBufferedPaintDC(self)
         w, h = self.GetClientSize()
 
         dc.SetBrush(cfgGui.tabBarBgBrush)
         dc.SetPen(cfgGui.tabBarBgPen)
         dc.DrawRectangle(0, 0, w, h)
 
-        dc.SetPen(cfgGui.tabTextPen)
-        dc.SetTextForeground(cfgGui.tabTextColor)
+        radius = self.FromDIP(4)
+        group = wx.Rect(0, 0, w, h).Deflate(self.margin - 1)
 
-        pageText = "Page %d / %d" % (self.page, self.pageCnt)
-        dc.SetFont(self.font)
+        dc.SetBrush(wx.TRANSPARENT_BRUSH)
+        dc.SetPen(cfgGui.tabBorderPen)
+        dc.DrawRoundedRectangle(group, radius)
 
-        util.drawText(
-            dc,
-            pageText,
-            MyStatus.WIDTH - xoff,
-            cy,
-            util.ALIGN_RIGHT,
-            util.VALIGN_CENTER,
+
+        inset = self.FromDIP(2)
+
+        for i, rect in enumerate(self.rects):
+            label = self.items[i][1]
+
+            # Deflate works in place, and self.rects is also used for
+            # hit testing, so deflate a copy
+            fillRect = wx.Rect(rect).Deflate(inset)
+
+            if self.isSelected(i):
+                dc.SetBrush(cfgGui.accentBrush)
+                dc.SetPen(cfgGui.accentPen)
+                dc.DrawRoundedRectangle(fillRect, radius - 1)
+                dc.SetTextForeground(cfgGui.accentTextColor)
+                dc.SetFont(self.itemFont(i, True))
+            else:
+                if (i == self.hover) and not self.disabled:
+                    dc.SetBrush(cfgGui.tabNonActiveBgBrush)
+                    dc.SetPen(cfgGui.tabNonActiveBgPen)
+                    dc.DrawRoundedRectangle(fillRect, radius - 1)
+
+                if not self.disabled:
+                    dc.SetTextForeground(cfgGui.tabTextColor)
+                else:
+                    dc.SetTextForeground(
+                        wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT)
+                    )
+
+                dc.SetFont(self.itemFont(i, False))
+
+            tw, th = dc.GetTextExtent(label)
+            dc.DrawText(
+                label, rect.x + (rect.width - tw) // 2, rect.y + (rect.height - th) // 2
+            )
+
+            # divider between two items that are both unhighlighted
+            if (
+                (i > 0)
+                and not self.isSelected(i - 1)
+                and not self.isSelected(i)
+                and (self.hover not in (i - 1, i))
+            ):
+                dc.SetPen(cfgGui.tabBorderPen)
+                dy = rect.height // 4
+                dc.DrawLine(rect.x, rect.y + dy, rect.x, rect.bottom - dy + 1)
+
+
+# a vertical line between groups of tools in the toolbar
+class MyToolbarDivider(wx.Control):
+    def __init__(self, parent, getCfgGui, height):
+        wx.Control.__init__(self, parent, -1, style=wx.BORDER_NONE)
+
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.getCfgGui = getCfgGui
+
+        size = wx.Size(self.FromDIP(13), height)
+        self.SetMinSize(size)
+        self.SetSize(size)
+
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+
+    def AcceptsFocus(self):
+        return False
+
+    def OnPaint(self, event):
+        cfgGui = self.getCfgGui()
+
+        dc = wx.AutoBufferedPaintDC(self)
+        w, h = self.GetClientSize()
+
+        dc.SetBrush(cfgGui.tabBarBgBrush)
+        dc.SetPen(cfgGui.tabBarBgPen)
+        dc.DrawRectangle(0, 0, w, h)
+
+        # halfway between the group borders and the text, so that it
+        # stands out in both light and dark themes
+        a = cfgGui.tabBorderColor
+        b = cfgGui.tabTextColor
+        color = wx.Colour(
+            (a.Red() + b.Red()) // 2,
+            (a.Green() + b.Green()) // 2,
+            (a.Blue() + b.Blue()) // 2,
         )
 
-        s1 = "%s [Enter]" % self.enterNext
-        s2 = "%s [Tab]" % self.tabNext
+        # a filled rectangle rather than a line, for an exact width
+        lw = self.FromDIP(2)
+        dy = h // 5
+        dc.SetBrush(wx.Brush(color))
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.DrawRectangle((w - lw) // 2, dy, lw, h - dy * 2)
 
-        x = MyStatus.X_ELEDIVIDER + xoff
-        dc.DrawText(s1, x, 0)
-        dc.DrawText(s2, x, cy)
 
-        x = xoff
-        s = "%s" % self.elemType
-        dc.SetFont(self.elementFont)
-        util.drawText(dc, s, x, cy, valign=util.VALIGN_CENTER)
+# the toolbar's bold / italic / underline toggles, drawn like the element
+# type bar but with any number of items on at once. items are (bit, label)
+# tuples, where bit is textfmt.BOLD etc., and each label is drawn in the
+# style it stands for. onSelect(bit) is called when one is clicked.
+class MyFormatBar(MyElemTypeBar):
+    def __init__(self, parent, id, getCfgGui, items, onSelect, getToolTip, height):
+        MyElemTypeBar.__init__(
+            self, parent, id, getCfgGui, items, onSelect, getToolTip, height
+        )
 
-        dc.SetPen(cfgGui.tabBorderPen)
-        dc.DrawLine(0, h - 1, w, h - 1)
+        # bits that are on
+        self.style = 0
 
-        for x in (MyStatus.X_ELEDIVIDER, 0):
-            dc.DrawLine(x, 0, x, h - 1)
+        self.fonts = {
+            textfmt.BOLD: self.boldFont,
+            textfmt.ITALIC: self.font.Italic(),
+            textfmt.UNDERLINED: self.font.Underlined(),
+        }
 
-    def SetValues(self, page, pageCnt, elemType, tabNext, enterNext):
-        self.page = page
-        self.pageCnt = pageCnt
-        self.elemType = elemType
-        self.tabNext = tabNext
-        self.enterNext = enterNext
+    def SetValue(self, style):
+        if style == self.style:
+            return
 
+        self.style = style
         self.Refresh(False)
+
+    # grey the items out or not (see MyElemTypeBar.disabled)
+    def setDisabled(self, disabled):
+        if disabled == self.disabled:
+            return
+
+        self.disabled = disabled
+        self.Refresh(False)
+
+        # the tooltip can depend on it
+        if self.hover != -1:
+            self.SetToolTip(self.getToolTip(self.items[self.hover][0]))
+
+    def isSelected(self, i):
+        return not self.disabled and bool(self.style & self.items[i][0])
+
+    def itemFont(self, i, selected):
+        return self.fonts.get(self.items[i][0], self.font)
 
 
 # our own version of a tab control, which exists for two reasons: it does
@@ -266,11 +441,11 @@ class MyTabCtrl(wx.Window):
         # control, and within each tab
         self.paddingX = 10
 
-        # starting Y-pos of text in labels
-        self.textY = 5
-
         # width of a single tab
         self.tabWidth = 150
+
+        # x-pos of the center of a tab's close button, relative to the tab
+        self.closeX = self.tabWidth - 18
 
         # width, height, spacing, y-pos of arrows
         self.arrowWidth = 8
@@ -280,7 +455,6 @@ class MyTabCtrl(wx.Window):
 
         # initialized in OnPaint since we don't know our height yet
         self.font = None
-        self.boldFont = None
 
         self.SetMinSize(
             wx.Size(
@@ -435,7 +609,7 @@ class MyTabCtrl(wx.Window):
             page += self.firstTab
 
             if page < len(self.pages):
-                hitX = pageOffset >= (self.tabWidth - self.paddingX * 2)
+                hitX = pageOffset >= (self.closeX - self.paddingX)
 
                 if hitX:
                     panel = self.pages[page][0]
@@ -483,73 +657,83 @@ class MyTabCtrl(wx.Window):
 
         xpos = self.paddingX
 
-        tabW = self.tabWidth
-        tabH = h - 2
-        tabY = h - tabH
+        # each tab leaves a gap at its right edge, so tabs don't touch
+        tabGap = 3
+        tabW = self.tabWidth - tabGap
+        radius = 5
 
         if not self.font:
-            textH = h - self.textY - 1
             self.font = util.createPixelFont(
-                textH, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.NORMAL
+                h // 2, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
             )
-            self.boldFont = util.createPixelFont(
-                textH, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.BOLD
-            )
+
+        dc.SetFont(self.font)
+        textH = dc.GetTextExtent("Ag")[1]
+
+        gc = wx.GraphicsContext.Create(dc)
+        borderPen = gc.CreatePen(
+            wx.GraphicsPenInfo(cfgGui.tabBorderColor, separatorLineThickness)
+        )
 
         maxTab = self.getLastVisibleTab()
 
         for i in range(self.firstTab, maxTab + 1):
-            dc.SetFont(self.font)
             p = self.pages[i]
+            selected = i == self.selected
 
-            if i == self.selected:
-                points = (
-                    (0, tabH),
-                    (4, 2),
-                    (6, 1),
-                    (tabW - 8, 1),
-                    (tabW - 6, 2),
-                    (tabW - 2, tabH),
-                )
-                dc.SetBrush(cfgGui.workspaceBrush)
+            # the selected tab is taller and covers the separator line, so
+            # it joins the script below it
+            if selected:
+                tabY = 2
+                bottom = h
+                brush = cfgGui.workspaceBrush
             else:
-                points = (
-                    (0, tabH - separatorLineThickness),
-                    (3, 3),
-                    (5, 2),
-                    (tabW - 8, 2),
-                    (tabW - 6, 3),
-                    (tabW - 2, tabH - separatorLineThickness),
-                )  # subtract its thickness to not cover the separator line
-                dc.SetBrush(cfgGui.tabNonActiveBgBrush)
+                tabY = 4
+                bottom = h - separatorLineThickness
+                brush = cfgGui.tabNonActiveBgBrush
 
-            dc.DestroyClippingRegion()
+            # outline: up the left side, around the rounded top corners,
+            # down the right side; the bottom stays open
+            path = gc.CreatePath()
+            path.MoveToPoint(xpos + 0.5, bottom)
+            path.AddArcToPoint(xpos + 0.5, tabY + 0.5, xpos + tabW / 2, tabY + 0.5, radius)
+            path.AddArcToPoint(
+                xpos + tabW - 0.5, tabY + 0.5, xpos + tabW - 0.5, bottom, radius
+            )
+            path.AddLineToPoint(xpos + tabW - 0.5, bottom)
 
-            # draw tab background
-            dc.SetClippingRegion(xpos, tabY, tabW, tabH)
-            dc.SetPen(wx.Pen(wx.NullPen))
-            dc.DrawPolygon(points, xpos, tabY)
+            gc.SetBrush(gc.CreateBrush(brush))
+            gc.FillPath(path)
+            gc.SetPen(borderPen)
+            gc.StrokePath(path)
 
-            # draw tab borders
+            textY = tabY + (h - tabY - textH) // 2
+
+            # clip the text to fit within the tab, leaving room for the
+            # close button
             dc.SetClippingRegion(
-                xpos, tabY, tabW, tabH - separatorLineThickness
-            )  # tab borders should never cross the seperator line
-            dc.SetPen(cfgGui.tabBorderPen)
-            dc.DrawLines(points, xpos, tabY)
-
-            # clip the text to fit within the tabs
-            dc.DestroyClippingRegion()
-            dc.SetClippingRegion(xpos, tabY, tabW - self.paddingX * 3, tabH)
-
-            dc.SetPen(cfgGui.tabTextPen)
+                xpos + self.paddingX, tabY, self.closeX - self.paddingX * 2, h - tabY
+            )
             dc.SetTextForeground(cfgGui.tabTextColor)
-            dc.DrawText(p[1], xpos + self.paddingX, self.textY)
-
+            dc.DrawText(p[1], xpos + self.paddingX, textY)
             dc.DestroyClippingRegion()
-            dc.SetFont(self.boldFont)
-            dc.DrawText("x", xpos + tabW - self.paddingX * 2, self.textY)
 
-            xpos += tabW
+            # close button; OnLeftDown takes clicks from paddingX left of
+            # its center to the end of the tab
+            cx = xpos + self.closeX
+            cy = textY + textH / 2
+            s = 3.5
+            gc.SetPen(
+                gc.CreatePen(
+                    wx.GraphicsPenInfo(cfgGui.tabTextColor, 1.5).Cap(wx.CAP_ROUND)
+                )
+            )
+            gc.StrokeLine(cx - s, cy - s, cx + s, cy + s)
+            gc.StrokeLine(cx - s, cy + s, cx + s, cy - s)
+
+            xpos += self.tabWidth
+
+        del gc
 
         # start of right arrow
         rx = w - 1 - self.paddingX - self.arrowWidth + 1
@@ -778,7 +962,7 @@ class CheckBoxDlg(wx.Dialog):
 
             sizer.Add(hsizer, 0, wx.TOP | wx.BOTTOM, 5)
 
-        tmp = wx.CheckListBox(parent, -1)
+        tmp = gutil.ThemedListBox(parent, -1, checkable=True)
 
         longest = -1
         for i in range(len(items)):
@@ -805,11 +989,8 @@ class CheckBoxDlg(wx.Dialog):
         else:
             h = min(10, len(items))
 
-        # don't know of a way to get the vertical spacing of items in a
-        # wx.CheckListBox, so estimate it at font height + 5 pixels, which
-        # is close enough on everything I've tested.
-        h *= util.getFontHeight(tmp.GetFont()) + 5
-        h += 5
+        # the items and the border
+        h = h * tmp.list.rowHeight + 2
         h = max(25, h)
 
         util.setWH(tmp, w, h)
@@ -877,7 +1058,7 @@ class TextDlg(wx.Dialog):
         tc.SetValue(text)
         vsizer.Add(tc, 1, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         okBtn = gutil.createStockButton(self, "OK")
         vsizer.Add(okBtn, 0, wx.ALIGN_CENTER)
@@ -919,7 +1100,7 @@ class TextInputDlg(wx.Dialog):
         self.tc = wx.TextCtrl(self, -1, style=wx.TE_PROCESS_ENTER)
         vsizer.Add(self.tc, 1, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -1019,7 +1200,8 @@ class KeyDlgWidget(wx.Window):
         p.EndModal(wx.ID_OK)
 
 
-# handles the "Most recently used" list of files in a menu.
+# handles the "Most recently used" list of files, shown in its own menu
+# (File/Open Recent).
 class MRUFiles:
     def __init__(self, maxCount):
         # max number of items
@@ -1028,64 +1210,76 @@ class MRUFiles:
         # items (Unicode strings)
         self.items = []
 
-        for i in range(self.maxCount):
-            id = wx.NewId()
+        # menu showing the items, set by useMenu
+        self.menu = None
 
-            if i == 0:
-                # first menu id
-                self.firstId = id
-            elif i == (self.maxCount - 1):
-                # last menu id
-                self.lastId = id
+        # contiguous menu ids. keep the refs alive so wx doesn't reuse them;
+        # store plain ints since the code below does arithmetic on them.
+        self.idRefs = wx.NewIdRef(count=self.maxCount)
+        if self.maxCount == 1:
+            self.idRefs = [self.idRefs]
 
-    # use given menu. this must be called before any "add" calls.
-    def useMenu(self, menu, menuPos):
-        # menu to use
+        self.firstId = int(self.idRefs[0])
+        self.lastId = int(self.idRefs[-1])
+
+        # "Clear Recent Files" menu item
+        self.clearId = wx.NewIdRef()
+
+    # use given (dedicated) menu. its contents are owned by this object.
+    def useMenu(self, menu):
         self.menu = menu
-
-        # position in menu to add first item at
-        self.menuPos = menuPos
-
-        # if we already have items, add them to the menu (in reverse order
-        # to maintain the correct ordering)
-        tmp = self.items
-        tmp.reverse()
-        self.items = []
-
-        for it in tmp:
-            self.add(it)
+        self.updateMenu()
 
     # return (firstMenuId, lastMenuId).
     def getIds(self):
         return (self.firstId, self.lastId)
 
-    # add item.
+    # add item to top of list.
     def add(self, s):
-        # remove old menu items
-        for i in range(self.getCount()):
-            self.menu.Delete(self.firstId + i)
+        s = str(s)
 
         # if item already exists, remove it
-        try:
-            i = self.items.index(s)
-            del self.items[i]
-        except ValueError:
-            pass
+        if s in self.items:
+            self.items.remove(s)
 
-        # add item to top of list
-        self.items.insert(0, str(s))
+        self.items.insert(0, s)
 
         # prune overlong list
-        if self.getCount() > self.maxCount:
-            self.items = self.items[: self.maxCount]
+        del self.items[self.maxCount :]
 
-        # add new menu items
+        self.updateMenu()
+
+    # remove item number 'i'.
+    def remove(self, i):
+        del self.items[i]
+        self.updateMenu()
+
+    # remove all items.
+    def clear(self):
+        self.items = []
+        self.updateMenu()
+
+    # rebuild the menu from the current items.
+    def updateMenu(self):
+        if not self.menu:
+            return
+
+        for it in list(self.menu.GetMenuItems()):
+            self.menu.Delete(it)
+
+        if not self.items:
+            self.menu.Append(wx.ID_ANY, _("No recent files")).Enable(False)
+
         for i in range(self.getCount()):
-            self.menu.Insert(
-                self.menuPos + i,
+            self.menu.Append(
                 self.firstId + i,
-                "&%d %s" % (i + 1, os.path.basename(str(self.get(i)))),
+                "&%d %s" % (i + 1, os.path.basename(self.get(i))),
             )
+
+        self.menu.AppendSeparator()
+        self.menu.Append(self.clearId, _("Clear Recent Files")).Enable(
+            bool(self.items)
+        )
 
     # return number of items.
     def getCount(self):

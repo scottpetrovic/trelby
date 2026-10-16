@@ -1,3 +1,4 @@
+import copy
 import zlib
 
 from trelby.line import Line
@@ -28,6 +29,9 @@ from trelby.line import Line
 # convertTypeTo          ManyElems(N, N)
 # cut                    AnyDifference
 # paste                  AnyDifference
+# (MCP) world building   WorldBuildingText
+# (MCP) char. profiles   CharacterProfiles
+# renameCharacters       RenameCharacters (a FullCopy)
 
 
 # extremely rough estimate for the base memory usage of a single undo
@@ -59,9 +63,30 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[2]: string; the line objects converted to their string
 #   representation and joined by the "\n" character
 #
+#   tuple[3]: dict of {index: pageLock} for the lines that have a page
+#   lock, or None if none do
+#
+#   tuple[4]: tuple of indexes of the lines that have the dual flag set,
+#   or None if none do
+#
+#   tuple[5]: dict of {index: color} for the lines that have a color, or
+#   None if none do
+#
+#   tuple[6]: dict of {index: fmt} for the lines that have formatting, or
+#   None if none do
+#
+#   tuple[7]: tuple of indexes of the lines that have the centered flag
+#   set, or None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
+
+    locks = {i: ln.pageLock for i, ln in enumerate(lines) if ln.pageLock}
+    duals = tuple(i for i, ln in enumerate(lines) if ln.dual) or None
+    colors = {i: ln.color for i, ln in enumerate(lines) if ln.color} or None
+    fmts = {i: ln.fmt for i, ln in enumerate(lines) if ln.fmt} or None
+    centers = tuple(i for i, ln in enumerate(lines) if ln.centered) or None
 
     lines = [str(ln) for ln in lines]
     linesStr = "\n".join(lines)
@@ -72,10 +97,14 @@ def lines2storage(lines):
 
     linesStrCompressed = zlib.compress(linesStr.encode(), 6)
 
+    locks = locks or None
+
     if len(linesStrCompressed) < len(linesStr):
-        return (len(lines), True, linesStrCompressed)
+        data = (True, linesStrCompressed)
     else:
-        return (len(lines), False, linesStr.encode())
+        data = (False, linesStr.encode())
+
+    return (len(lines),) + data + (locks, duals, colors, fmts, centers)
 
 
 # see lines2storage.
@@ -88,7 +117,29 @@ def storage2lines(storage):
     else:
         linesStr = storage[2].decode()
 
-    return [Line.fromStr(s) for s in linesStr.split("\n")]
+    lines = [Line.fromStr(s) for s in linesStr.split("\n")]
+
+    if storage[3]:
+        for i, label in storage[3].items():
+            lines[i].pageLock = label
+
+    if storage[4]:
+        for i in storage[4]:
+            lines[i].dual = True
+
+    if storage[5]:
+        for i, color in storage[5].items():
+            lines[i].color = color
+
+    if storage[6]:
+        for i, fmt in storage[6].items():
+            lines[i].fmt = fmt
+
+    if storage[7]:
+        for i in storage[7]:
+            lines[i].centered = True
+
+    return lines
 
 
 # how much memory is used by the given storage object
@@ -177,6 +228,35 @@ class FullCopy(Base):
         self.setEndPos(sp)
 
 
+# renaming characters: a FullCopy of the lines, plus the character
+# profiles that were renamed, as a list of (old name, new name). undo
+# renames those profiles back.
+class RenameCharacters(FullCopy):
+    def __init__(self, sp, profileRenames):
+        FullCopy.__init__(self, sp)
+
+        self.profileRenames = profileRenames
+
+    def undo(self, sp):
+        FullCopy.undo(self, sp)
+        renameProfiles(sp, [(new, old) for old, new in self.profileRenames])
+
+    def redo(self, sp):
+        FullCopy.redo(self, sp)
+        renameProfiles(sp, self.profileRenames)
+
+
+# rename character profiles, given a list of (old name, new name). all
+# the profiles are looked up before any is renamed, so names can be
+# swapped.
+def renameProfiles(sp, renames):
+    found = [(sp.characterProfiles.get(old), new) for old, new in renames]
+
+    for prof, new in found:
+        if prof:
+            prof.name = new
+
+
 # stores a single modified paragraph
 class SinglePara(Base):
     # line is any line belonging to the modified paragraph. there is no
@@ -241,7 +321,7 @@ class AnyDifference(Base):
     def __init__(self, sp):
         Base.__init__(self, sp, CMD_MISC)
 
-        self.linesBefore = [Line(ln.lb, ln.lt, ln.text) for ln in sp.lines]
+        self.linesBefore = [ln.copy() for ln in sp.lines]
 
     def setAfter(self, sp):
         self.a, self.b, self.x, self.y = mySequenceMatcher(self.linesBefore, sp.lines)
@@ -265,6 +345,54 @@ class AnyDifference(Base):
         sp.line, sp.column = self.endPos.line, self.endPos.column
 
         sp.lines[self.a : self.b] = storage2lines(self.inserted)
+
+
+# a change to the text of the script's world building notes, which are
+# not part of the lines. the cursor is left where it is.
+class WorldBuildingText(Base):
+    def __init__(self, sp):
+        Base.__init__(self, sp, CMD_MISC)
+
+        self.textBefore = sp.worldBuilding.text
+
+    def setAfter(self, sp):
+        self.textAfter = sp.worldBuilding.text
+        self.setEndPos(sp)
+
+    def memoryUsed(self):
+        return BASE_MEMORY_USAGE + len(self.textBefore) + len(self.textAfter)
+
+    def undo(self, sp):
+        sp.worldBuilding.text = self.textBefore
+
+    def redo(self, sp):
+        sp.worldBuilding.text = self.textAfter
+
+
+# a change to the script's character profiles, which are not part of the
+# lines. the cursor is left where it is.
+class CharacterProfiles(Base):
+    def __init__(self, sp):
+        Base.__init__(self, sp, CMD_MISC)
+
+        # photos are immutable bytes, so these copies share them
+        self.before = copy.deepcopy(sp.characterProfiles)
+
+    def setAfter(self, sp):
+        self.after = copy.deepcopy(sp.characterProfiles)
+        self.setEndPos(sp)
+
+    def memoryUsed(self):
+        return BASE_MEMORY_USAGE + sum(
+            len(p.name) + len(p.notes)
+            for p in self.before.profiles + self.after.profiles
+        )
+
+    def undo(self, sp):
+        sp.characterProfiles = copy.deepcopy(self.before)
+
+    def redo(self, sp):
+        sp.characterProfiles = copy.deepcopy(self.after)
 
 
 # Our own implementation of difflib.SequenceMatcher, since the actual one

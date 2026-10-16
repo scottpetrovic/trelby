@@ -34,17 +34,21 @@ from typing import Tuple
 from lxml import etree
 
 import trelby.autocompletion as autocompletion
+import trelby.characterprofiles as characterprofiles
 import trelby.config as config
 import trelby.error as error
 import trelby.headers as headers
 import trelby.locations as locations
 import trelby.mypager as mypager
+import trelby.pagelock as pagelock
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.spellcheck as spellcheck
+import trelby.textfmt as textfmt
 import trelby.titles as titles
 import trelby.undo as undo
 import trelby.util as util
+import trelby.worldbuilding as worldbuilding
 from trelby.line import Line
 
 
@@ -56,6 +60,8 @@ class Screenplay:
         self.locations = locations.Locations()
         self.titles = titles.Titles()
         self.scDict = spellcheck.Dict()
+        self.characterProfiles = characterprofiles.CharacterProfiles()
+        self.worldBuilding = worldbuilding.WorldBuilding()
 
         self.lines = [Line(LB_LAST, SCENE)]
 
@@ -73,9 +79,14 @@ class Screenplay:
         # Mark object if selection active, or None.
         self.mark = None
 
-        # FIXME: document these
+        # pagination: pages[n] is the last line on page n (1-based) and
+        # pages[0] is -1. pagesNoAdjust is the same, but without the
+        # adjustments made to avoid things like dangling scene headings.
+        # pageLabels[n] is the label printed on page n, which differs from
+        # n once pages are locked (see paginate).
         self.pages = [-1, 0]
         self.pagesNoAdjust = [-1, 0]
+        self.pageLabels = ["", "1"]
 
         # time when last paginated
         self.lastPaginated = 0.0
@@ -89,6 +100,11 @@ class Screenplay:
 
         # max nr of auto comp items displayed at once
         self.acMax = 10
+
+        # (line, column, style): the style (see textfmt) to type text in
+        # at that cursor position, set by toggling bold etc. with nothing
+        # selected, or None. see getTypingStyle.
+        self.typingStyle = None
 
         # True if script has had changes done to it after
         # load/save/creation.
@@ -158,8 +174,10 @@ class Screenplay:
         sp.locations = copy.deepcopy(self.locations)
         sp.titles = copy.deepcopy(self.titles)
         sp.scDict = copy.deepcopy(self.scDict)
+        sp.characterProfiles = copy.deepcopy(self.characterProfiles)
+        sp.worldBuilding = copy.deepcopy(self.worldBuilding)
 
-        sp.lines = [Line(ln.lb, ln.lt, ln.text) for ln in self.lines]
+        sp.lines = [ln.copy() for ln in self.lines]
 
         # "open PDF on current page" breaks on scripts we're removing
         # notes from before printing if we don't copy these
@@ -194,6 +212,19 @@ class Screenplay:
         output += self.scDict.save()
         output += "#End-Spell-Checker-Dict \n"
 
+        # only written when there are profiles, so that scripts without
+        # any stay readable by older versions without a warning
+        if self.characterProfiles.profiles:
+            output += "#Begin-Character-Profiles \n"
+            output += self.characterProfiles.save()
+            output += "#End-Character-Profiles \n"
+
+        # likewise only written when there's something in it
+        if self.worldBuilding.hasInfo():
+            output += "#Begin-World-Building \n"
+            output += self.worldBuilding.save()
+            output += "#End-World-Building \n"
+
         pgs = self.titles.pages
         for pg in range(len(pgs)):
             if pg != 0:
@@ -209,8 +240,25 @@ class Screenplay:
 
         output += "#Start-Script \n"
 
-        for i in range(len(self.lines)):
-            output += str(self.lines[i]) + "\n"
+        for i, ln in enumerate(self.lines):
+            if ln.pageLock:
+                output += "#Page-Lock %s\n" % ln.pageLock
+
+            if self.hasDualFlag(i):
+                output += "#Dual-Dialogue \n"
+
+            color = self.getSceneColor(i)
+
+            if color:
+                output += "#Scene-Color %s\n" % color
+
+            if self.hasCenteredFlag(i):
+                output += "#Centered \n"
+
+            if ln.fmt:
+                output += "#Format %s\n" % textfmt.encode(ln.getFmt())
+
+            output += str(ln) + "\n"
 
         return output.encode("UTF-8")
 
@@ -266,6 +314,14 @@ class Screenplay:
         if s:
             sp.scDict.load(s)
 
+        s, index = Screenplay.getConfigPart(lines, "Character-Profiles", index)
+        if s:
+            sp.characterProfiles.load(s)
+
+        s, index = Screenplay.getConfigPart(lines, "World-Building", index)
+        if s:
+            sp.worldBuilding.load(s)
+
         # used to keep track that element type only changes after a
         # LB_LAST line.
         prevType = None
@@ -282,6 +338,22 @@ class Screenplay:
         # have we seen the Start-Script line. defaults to True in old
         # files which didn't have it.
         startSeen = version < 3
+
+        # page lock to set on the next script line, or None
+        pageLock = None
+
+        # whether to set the dual flag on the next script line
+        dual = False
+
+        # color to set on the next script line, or None
+        color = None
+
+        # formatting (as saved by textfmt.encode) to set on the next script
+        # line, or None
+        fmt = None
+
+        # whether to set the centered flag on the next script line
+        centered = False
 
         for i in range(index, len(lines)):
             s = lines[i]
@@ -318,6 +390,21 @@ class Screenplay:
                 elif key == "Start-Script":
                     startSeen = True
 
+                elif (key == "Page-Lock") and startSeen and pagelock.isValid(val):
+                    pageLock = val
+
+                elif (key == "Dual-Dialogue") and startSeen:
+                    dual = True
+
+                elif (key == "Scene-Color") and startSeen and isValidColor(val):
+                    color = val.lower()
+
+                elif (key == "Format") and startSeen:
+                    fmt = val
+
+                elif (key == "Centered") and startSeen:
+                    centered = True
+
                 else:
                     unknownConfigs = True
 
@@ -330,6 +417,12 @@ class Screenplay:
                 lb = config.char2lb(s[0], False)
                 lt = config.char2lt(s[1], False)
                 text = util.toInputStr(util.fromUTF8(s[2:]))
+
+                # an early development version had a separate centered
+                # element type
+                if s[1] == "^":
+                    lt = ACTION
+                    centered = centered or not prevType
 
                 # convert unknown lb types into LB_SPACE
                 if lb == None:
@@ -346,8 +439,18 @@ class Screenplay:
                         _("Line {} has invalid element type.").format(i + 1)
                     )
 
-                line = Line(lb, lt, text)
+                line = Line(lb, lt, text, pageLock, dual, color)
+                line.centered = centered
+
+                if fmt:
+                    line.fmt = textfmt.decode(fmt, len(text))
+
                 sp.lines.append(line)
+                pageLock = None
+                dual = False
+                color = None
+                fmt = None
+                centered = False
 
                 if lb != LB_LAST:
                     prevType = lt
@@ -444,6 +547,54 @@ class Screenplay:
     def saveCfg(self):
         return self.cfg.save()
 
+    # return line i's text for export, upper-cased if its type's export
+    # style says so
+    def getExportText(self, i):
+        line = self.lines[i]
+
+        if self.cfg.getType(line.lt).export.isCaps:
+            return util.upper(line.text)
+
+        return line.text
+
+    # return a dual dialogue (see getDualLines) as a list of (lineType,
+    # text) rows of plain text, indented with spaces, with the columns side
+    # by side. lineType is that of the row's left column if it has a line
+    # there, otherwise the right column's, and DIALOGUE for empty rows.
+    def getDualTextRows(self, first, right, last):
+        def column(start, end, col):
+            rows = []
+
+            for i in range(start, end + 1):
+                if i != start:
+                    rows.extend([(None, "")] * (self.getSpacingBefore(i) // 10))
+
+                text = self.getExportText(i)
+
+                if text and self.needsExtraParenIndent(i):
+                    text = " " + text
+
+                indent = self.cfg.getDualIndentWidth(self.lines[i].lt, col)[0]
+                rows.append((self.lines[i].lt, " " * indent + text))
+
+            return rows
+
+        leftRows = column(first, right - 1, 1)
+        rightRows = column(right, last, 2)
+        ret = []
+
+        for k in range(max(len(leftRows), len(rightRows))):
+            lt1, text1 = leftRows[k] if k < len(leftRows) else (None, "")
+            lt2, text2 = rightRows[k] if k < len(rightRows) else (None, "")
+
+            if text2.strip():
+                indent = len(text2) - len(text2.lstrip())
+                text1 = text1.ljust(indent) + text2.lstrip()
+
+            ret.append((lt1 or lt2 or DIALOGUE, text1))
+
+        return ret
+
     # generate formatted text and return it as a string. if 'dopages' is
     # True, marks pagination in the output.
     def generateText(self, doPages):
@@ -453,26 +604,37 @@ class Screenplay:
 
         for p in range(1, len(self.pages)):
             start, end = self.page2lines(p)
+            dualLines = self.getDualLines(start, end)
 
             if doPages and (p != 1):
-                s = "%s %d. " % ("-" * 30, p)
+                s = "%s %s. " % ("-" * 30, self.pageLabels[p])
                 s += "-" * (60 - len(s))
                 output += "\n%s\n\n" % s
 
             for i in range(start, end + 1):
                 line = ls[i]
                 tcfg = self.cfg.getType(line.lt)
+                dual = dualLines.get(i)
 
-                if tcfg.export.isCaps:
-                    text = util.upper(line.text)
-                else:
-                    text = line.text
+                # dual dialogues are output whole at their first line
+                if dual and (i != dual[1]):
+                    continue
+
+                text = self.getExportText(i)
 
                 if (i != 0) and (not doPages or (i != start)):
                     output += (self.getSpacingBefore(i) // 10) * "\n"
 
+                if dual:
+                    for lt, s in self.getDualTextRows(*dual[1:]):
+                        output += s + "\n"
+
+                    continue
+
                 if text and self.needsExtraParenIndent(i):
                     text = " " + text
+
+                text = " " * int(self.getCenterOffset(i)) + text
 
                 output += " " * tcfg.indent + text + "\n"
 
@@ -536,22 +698,26 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             para.set("class", "title")
             para.text = "***"
 
+        dualLines = self.getDualLines(0, len(ls) - 1)
+
         for i in range(len(ls)):
             line = ls[i]
+            dual = dualLines.get(i)
 
             if not includeNotes and (line.lt == NOTE):
                 continue
 
+            # dual dialogues are output whole at their first line
+            if dual and (i != dual[1]):
+                continue
+
             tcfg = self.cfg.getType(line.lt)
-            if tcfg.export.isCaps:
-                text = util.upper(line.text)
-            else:
-                text = line.text
+            text = self.getExportText(i)
 
             if text and self.needsExtraParenIndent(i):
                 text = " " + text
 
-            text = " " * tcfg.indent + text
+            text = " " * (tcfg.indent + int(self.getCenterOffset(i))) + text
 
             # do we need space before this line?
             lineSpaces = self.getSpacingBefore(i) // 10
@@ -561,23 +727,70 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 para.set("class", htmlMap[line.lt])
                 para.text = " "
 
-            # and now the line text
+            if dual:
+                for lt, s in self.getDualTextRows(*dual[1:]):
+                    para = etree.SubElement(content, "pre")
+                    para.set("class", htmlMap[lt])
+                    para.text = s or " "
+
+                continue
+
+            # and now the line text, with bold / italic / underlined runs
+            # in spans
             para = etree.SubElement(content, "pre")
             para.set("class", htmlMap[line.lt])
-            para.text = str(text)
+
+            # text has the indent in front of the line's own text
+            pad = len(text) - len(line.text)
+            fmt = "0" * pad + line.getFmt() if line.fmt else None
+            prev = None
+
+            for a, b, style in textfmt.runs(fmt, len(text)):
+                part = str(text[a:b])
+
+                if style:
+                    prev = etree.SubElement(para, "span")
+                    prev.set(
+                        "style",
+                        ";".join(
+                            css
+                            for bit, css in (
+                                (textfmt.BOLD, "font-weight:bold"),
+                                (textfmt.ITALIC, "font-style:italic"),
+                                (textfmt.UNDERLINED, "text-decoration:underline"),
+                            )
+                            if style & bit
+                        ),
+                    )
+                    prev.text = part
+                elif prev is None:
+                    para.text = part
+                else:
+                    prev.tail = part
+
+            if not text:
+                para.text = ""
 
         bodyText = etree.tostring(content, encoding="UTF-8", pretty_print=True).decode()
 
         return htmlHeader + bodyText + htmlFooter
 
-    # Return screenplay as list of tuples of the form (elType, elText).
+    # Return screenplay as list of tuples of the form (elType, elText,
+    # firstLine, fmt), where firstLine is the index of the element's first
+    # line and fmt is the format string for elText (see textfmt), or None.
     # forced linebreaks are represented as \n characters.
     def getElementsAsList(self):
         ls = self.lines
         eleList = []
         curLine = ""
+        firstLine = 0
 
-        for line in ls:
+        # (text, fmt) of the element's lines and the separators between
+        # them, for its format string
+        parts = []
+        seps = []
+
+        for i, line in enumerate(ls):
             lineType = line.lt
             lineText = line.text
 
@@ -585,14 +798,23 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 lineText = util.upper(lineText)
 
             curLine += lineText
+            parts.append((lineText, line.fmt))
 
             if line.lb == LB_LAST:
-                eleList.append((lineType, curLine))
+                fmt = textfmt.join(parts, seps)
+                eleList.append((lineType, curLine, firstLine, fmt))
                 curLine = ""
+                firstLine = i + 1
+                parts = []
+                seps = []
             elif line.lb == LB_SPACE:
                 curLine += " "
+                seps.append(" ")
             elif line.lb == LB_FORCED:
                 curLine += "\n"
+                seps.append("\n")
+            else:
+                seps.append("")
 
         return eleList
 
@@ -617,8 +839,21 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             ACTBREAK: "New Act",
         }
 
-        for ele in eleList:
-            typ, txt = ele
+        # where to add paragraphs: 'content', or the DualDialogue element
+        # of the dual dialogue we're in, which ends at line dualEnd
+        parent = content
+        dualEnd = -1
+
+        for typ, txt, first, fmt in eleList:
+            if typ == CHARACTER:
+                block = self.getDualBlock(first)
+
+                if block and (block[0] == first):
+                    general = etree.SubElement(content, "Paragraph")
+                    general.set("Type", "General")
+                    parent = etree.SubElement(general, "DualDialogue")
+                    dualEnd = block[2]
+
             if typ == NOTE:
                 dummyPara = etree.SubElement(content, "Paragraph")
                 dummyPara.set("Type", xmlMap[typ])
@@ -626,11 +861,32 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 scriptnote.set("ID", "1")
                 para = etree.SubElement(scriptnote, "Paragraph")
             else:
-                para = etree.SubElement(content, "Paragraph")
+                para = etree.SubElement(parent, "Paragraph")
                 para.set("Type", xmlMap[typ])
 
-            paratxt = etree.SubElement(para, "Text")
-            paratxt.text = str(txt)
+                if (typ == ACTION) and self.hasCenteredFlag(first):
+                    para.set("Alignment", "Center")
+
+            # a Text element for each run of differently formatted text
+            for a, b, style in textfmt.runs(fmt, len(txt)) or [(0, 0, 0)]:
+                paratxt = etree.SubElement(para, "Text")
+                paratxt.text = str(txt[a:b])
+
+                flags = [
+                    name
+                    for bit, name in (
+                        (textfmt.BOLD, "Bold"),
+                        (textfmt.ITALIC, "Italic"),
+                        (textfmt.UNDERLINED, "Underline"),
+                    )
+                    if style & bit
+                ]
+
+                if flags:
+                    paratxt.set("Style", "+".join(flags))
+
+            if self.getElemLastIndexFromLine(first) >= dualEnd:
+                parent = content
 
         # FD does not recognize "New Act" by default. It needs an
         # ElementSettings element added.
@@ -680,23 +936,53 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         titleNeeded = True
         kwPattern = re.compile(r"^([A-za-z][^:]+:)")
         for page in self.titles.pages:
-            for titleLine in page:
+            # index of a title string already used as an author
+            skipIndex = -1
+            for i, titleLine in enumerate(page):
+                if i == skipIndex:
+                    continue
                 if titleNeeded and titleLine.isBold and titleLine.isCentered:
                     generateTitleString("Title:", titleLine.items, 0, "_**", "**_")
                     titleNeeded = False
-                elif titleLine.items[0] == "by":
-                    generateTitleString("Author:", titleLine.items, 2, "", "")
+                elif titleLine.items[0].strip().lower() == "by":
+                    # the author is either in this title string after "by"
+                    # (usually with a blank line in between), or, if "by"
+                    # is alone, in the next one.
+                    author = titleLine.items[1:]
+                    while author and not author[0].strip():
+                        author = author[1:]
+                    if not author and (i + 1) < len(page):
+                        author = page[i + 1].items
+                        skipIndex = i + 1
+                    if author:
+                        generateTitleString("Author:", author, 0, "", "")
                 elif kwPattern.match(titleLine.items[0]):
                     generateTitleString(titleLine.items[0], titleLine.items, 0, "", "")
                 else:
                     generateTitleString("Contact:", titleLine.items, 0, "", "")
 
-        for ele in eleList:
-            typ, txt = ele
-            lns = txt.split("\n")
+        for typ, txt, first, fmt in eleList:
+            # formatting as markup, a line at a time, since it can't span
+            # lines
+            pos = 0
+            lns = []
+
+            for ln in txt.split("\n"):
+                lns.append(textfmt.toMarkup(ln, fmt and fmt[pos : pos + len(ln)]))
+                pos += len(ln) + 1
+
+            txt = "\n".join(lns)
 
             # ensure last element of flines is empty for some types.
-            if typ in (SCENE, ACTION, CHARACTER, TRANSITION, SHOT, ACTBREAK, NOTE):
+            if typ in (
+                SCENE,
+                ACTION,
+                CHARACTER,
+                TRANSITION,
+                SHOT,
+                ACTBREAK,
+                NOTE,
+            ):
                 if flines and flines[-1] != "":
                     flines.append("")
 
@@ -706,6 +992,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 # append a "." so it is forced as a scene line.
                 if not looksLikeScene(txt):
                     txt = "." + txt
+
+            elif (typ == ACTION) and self.hasCenteredFlag(first):
+                txt = "\n".join(">" + ln + "<" for ln in lns)
 
             elif typ == ACTION:
                 tmp = []
@@ -733,10 +1022,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 txt = "[[" + txt + "]]"
 
             elif typ == ACTBREAK:
-                txt = ">" + txt + "<"
+                txt = "\n".join(">" + ln + "<" for ln in lns)
 
             elif typ == SHOT:
                 txt += TWOSPACE
+
+            elif typ == CHARACTER:
+                if self.getDualBlockFromRight(first):
+                    txt += " ^"
 
             flines.append(txt)
 
@@ -809,23 +1102,41 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         length = len(ls)
         i = 0
 
-        magicslash = "TRELBY-MAGIC-SLASH"
-
         while i < length:
             lt = ls[i].lt
             text = ""
+
+            # centered actions are only centered paragraphs, not a style
+            align = r"\qc " if self.hasCenteredFlag(i) else ""
 
             while 1:
                 ln = ls[i]
                 i += 1
 
                 lb = ln.lb
-                text += ln.text
+
+                # bold / italic / underlined runs go in groups of their own
+                for a, b, style in textfmt.runs(ln.fmt, len(ln.text)):
+                    part = util.escapeRTF(ln.text[a:b])
+
+                    if style:
+                        codes = "".join(
+                            code
+                            for bit, code in (
+                                (textfmt.BOLD, r"\b"),
+                                (textfmt.ITALIC, r"\i"),
+                                (textfmt.UNDERLINED, r"\ul"),
+                            )
+                            if style & bit
+                        )
+                        part = "{%s %s}" % (codes, part)
+
+                    text += part
 
                 if lb in (LB_SPACE, LB_NONE):
                     text += config.lb2str(lb)
                 elif lb == LB_FORCED:
-                    text += magicslash + "line "
+                    text += r"\line "
                 elif lb == LB_LAST:
                     break
                 else:
@@ -833,32 +1144,23 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                         _("Unknown line break style {} in generateRTF").format(lb)
                     )
 
-            s += (
-                (r"{\pard \s%d " % lt)
-                + util.escapeRTF(text).replace(magicslash, "\\")
-                + "}{\\par}\n"
-            )
+            s += (r"{\pard \s%d " % lt) + align + text + "}{\\par}\n"
 
         s += "}"
 
         return str(s)
 
     # generate PDF and return it as a string. assumes paginate/reformat is
-    # 100% correct for the screenplay. isExport is True if this is an
-    # "export to file" operation, False if we're just going to launch a
-    # PDF viewer with the data.
-    def generatePDF(self, isExport: bool) -> bytes:
-        return pdf.generate(self.generatePML(isExport))
+    # 100% correct for the screenplay.
+    def generatePDF(self) -> bytes:
+        return pdf.generate(self.generatePML())
 
-    # Same arguments as generatePDF, but returns a PML document.
-    def generatePML(self, isExport: bool) -> pml.Document:
+    # Same as generatePDF, but returns a PML document.
+    def generatePML(self) -> pml.Document:
         pager = mypager.Pager(self.cfg)
         self.titles.generatePages(pager.doc)
 
         pager.doc.showTOC = self.cfg.pdfShowTOC
-
-        if not isExport and self.cfg.pdfOpenOnCurrentPage:
-            pager.doc.defPage = len(self.titles.pages) + self.line2page(self.line) - 1
 
         for i in range(1, len(self.pages)):
             pg = self.generatePMLPage(pager, i, True, True)
@@ -926,7 +1228,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         if pageNr != 1:
             if doExtra:
-                self.headers.generatePML(pg, str(pageNr), cfg)
+                self.headers.generatePML(pg, self.getPageLabel(pageNr), cfg)
             y += self.headers.getNrOfLines() * 10
 
             if cfg.sceneContinueds and not self.isFirstLineOfScene(start):
@@ -971,12 +1273,29 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                 y += 10
 
+        # dual dialogues: the right-hand speech goes back up to where the
+        # left one started, and what follows goes below the longer one
+        dualLines = self.getDualLines(start, end)
+        dualTop = dualLeftBottom = 0
+
         for i in range(start, end + 1):
             line = ls[i]
             tcfg = cfg.getType(line.lt)
+            dual = dualLines.get(i)
 
-            if i != start:
+            if dual and (i == dual[2]):
+                dualLeftBottom = y
+                y = dualTop
+            elif i != start:
                 y += self.getSpacingBefore(i)
+
+            if dual and (i == dual[1]):
+                dualTop = y
+
+            if dual:
+                indent = cfg.getDualIndentWidth(line.lt, dual[0])[0]
+            else:
+                indent = tcfg.indent
 
             typ = pml.NORMAL
 
@@ -1001,14 +1320,16 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 text = line.text
 
             extraIndent = 1 if self.needsExtraParenIndent(i) else 0
+            extraIndent += self.getCenterOffset(i)
 
             to = pml.TextOp(
                 text,
-                cfg.marginLeft + (tcfg.indent + extraIndent) * chX,
+                cfg.marginLeft + (indent + extraIndent) * chX,
                 cfg.marginTop + (y / 10.0) * chY,
                 fs,
                 typ,
                 line=i,
+                fmt=line.fmt,
             )
 
             pg.add(to)
@@ -1064,7 +1385,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                     to.toc = pml.TOCItem(s, to)
 
-            if doExtra and cfg.pdfShowLineNumbers:
+            # the left column's line numbers are where the right one's
+            # would go
+            if doExtra and cfg.pdfShowLineNumbers and not (dual and (dual[0] == 2)):
                 pg.add(
                     pml.TextOp(
                         "%02d" % (i - start + 1),
@@ -1075,6 +1398,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 )
 
             y += 10
+
+            if dual and (i == dual[3]):
+                y = max(y, dualLeftBottom)
 
         if self.needsMore(end):
             if doExtra:
@@ -1132,6 +1458,18 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             )
         )
 
+    # return how many characters (possibly a fraction of one) line i is
+    # indented by in addition to its type's indent: for a line of a
+    # centered action, what centers it within the action width, otherwise
+    # 0.
+    def getCenterOffset(self, i):
+        if not self.isCentered(i):
+            return 0
+
+        width = self.cfg.getType(ACTION).width
+
+        return max(0, width - len(self.lines[i].text)) / 2.0
+
     # get topLine, clamping it to the valid range in the process.
     def getTopLine(self):
         self._topLine = util.clamp(self._topLine, 0, len(self.lines) - 1)
@@ -1176,15 +1514,30 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 break
 
     # wraps a single line into however many lines are needed, according to
-    # the type's width. doesn't modify the input line, returns a list of
-    # new lines.
-    def wrapLine(self, line):
+    # the given width, or the type's width if it's None. doesn't modify the
+    # input line, returns a list of new lines.
+    def wrapLine(self, line, width=None):
         ret = []
-        width = self.cfg.getType(line.lt).width
+
+        if width is None:
+            width = self.cfg.getType(line.lt).width
+
         isParen = line.lt == PAREN
 
-        # text remaining to be wrapped
+        # text remaining to be wrapped, and its format string (or None)
         text = line.text
+        fmt = line.getFmt() if line.fmt else None
+
+        # add a line with text[a:b] and lb, and drop text[:c] from what's
+        # left to be wrapped
+        def add(lb, a, b, c):
+            nonlocal text, fmt
+
+            ret.append(Line(lb, line.lt, text[a:b], fmt=fmt and fmt[a:b]))
+            text = text[c:]
+
+            if fmt:
+                fmt = fmt[c:]
 
         while 1:
             # reduce parenthetical width by 1 from second line onwards
@@ -1194,7 +1547,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 w = width
 
             if len(text) <= w:
-                ret.append(Line(line.lb, line.lt, text))
+                add(line.lb, 0, len(text), len(text))
                 break
             else:
                 i = text.rfind(" ", 0, w + 1)
@@ -1221,20 +1574,17 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                         i += 1
 
                     if i == len(text):
-                        ret.append(Line(line.lb, line.lt, text))
+                        add(line.lb, 0, len(text), len(text))
 
                         break
                     else:
-                        ret.append(Line(LB_SPACE, line.lt, text[0 : i - 1]))
-                        text = text[i:]
+                        add(LB_SPACE, 0, i - 1, i)
 
                 elif i >= 0:
-                    ret.append(Line(LB_SPACE, line.lt, text[0:i]))
-                    text = text[i + 1 :]
+                    add(LB_SPACE, 0, i, i + 1)
 
                 else:
-                    ret.append(Line(LB_NONE, line.lt, text[0:w]))
-                    text = text[w:]
+                    add(LB_NONE, 0, w, w)
 
         return ret
 
@@ -1267,14 +1617,62 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         else:
             cursorOffset = -1
 
-        s = ls[line1].text
-        for i in range(line1 + 1, line2 + 1):
-            s += config.lb2str(ls[i - 1].lb)
+        # page locks in this paragraph, as (offset from the beginning of
+        # the paragraph, label) tuples
+        locks = []
+
+        s = ""
+        for i in range(line1, line2 + 1):
+            if i != line1:
+                s += config.lb2str(ls[i - 1].lb)
+
+            if ls[i].pageLock:
+                locks.append(
+                    (len(s) + getattr(ls[i], "pageLockCol", 0), ls[i].pageLock)
+                )
+
             s += ls[i].text
 
-        tmp = Line(ls[line2].lb, ls[line1].lt, s)
-        wrappedLines = self.wrapLine(tmp)
+        fmt = textfmt.join(
+            [(ls[i].text, ls[i].fmt) for i in range(line1, line2 + 1)],
+            [config.lb2str(ls[i].lb) for i in range(line1, line2)],
+        )
+
+        tmp = Line(ls[line2].lb, ls[line1].lt, s, fmt=fmt)
+
+        # speeches in a dual dialogue are wrapped to fit their column
+        width = None
+        if tmp.lt in (CHARACTER, PAREN, DIALOGUE):
+            col = self.getDualColumn(line1)
+
+            if col:
+                width = self.cfg.getDualIndentWidth(tmp.lt, col)[1]
+
+        wrappedLines = self.wrapLine(tmp, width)
+
+        # the dual flag and color stay on the first line of the element
+        firstOfElem = self.isFirstLineOfElem(line1)
+        wrappedLines[0].dual = ls[line1].dual and firstOfElem
+        wrappedLines[0].color = ls[line1].color if firstOfElem else None
+        wrappedLines[0].centered = ls[line1].centered and firstOfElem
+
         ls[line1 : line2 + 1] = wrappedLines
+
+        # put the page locks back on the lines that now contain the text
+        # they were on
+        if locks:
+            for offset, label in locks:
+                i = line1
+
+                for ln in wrappedLines[:-1]:
+                    offset -= len(ln.text) + len(config.lb2str(ln.lb))
+
+                    if offset < 0:
+                        break
+
+                    i += 1
+
+                self.addPageLock(i, label)
 
         # adjust cursor position
         if cursorOffset != -1:
@@ -1295,6 +1693,58 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             self.line += len(wrappedLines) - (line2 - line1 + 1)
 
         return len(wrappedLines)
+
+    # rewrap the elements of lines line1 - line2 and the elements next to
+    # them, extended to whole speeches (see getSpeechRangeAround), so that
+    # speeches that an edit there has made part of a dual dialogue, or
+    # taken out of one, get their new widths. the undo object for the edit
+    # must cover those lines too.
+    def rewrapSpeechesAround(self, line1, line2):
+        first, last = self.getSpeechRangeAround(line1, line2)
+        self.rewrapElems(first, self.elemsDistance(first, last) + 1)
+
+    # rewrap 'count' elements starting from the one starting at 'line'
+    def rewrapElems(self, line, count):
+        for i in range(count):
+            self.rewrapElem(line)
+            line = self.getElemLastIndexFromLine(line) + 1
+
+    # return (first, last) lines of the elements containing lines line1 -
+    # line2 and the elements before and after them, extended to whole
+    # speeches and the dual dialogues they're in. a speech with the dual
+    # flag right after that is included too, since an edit can make it
+    # the right-hand column of a dual dialogue.
+    def getSpeechRangeAround(self, line1, line2):
+        ls = self.lines
+
+        first = self.getElemFirstIndexFromLine(line1)
+        if first > 0:
+            first = self.getElemFirstIndexFromLine(first - 1)
+
+        last = self.getElemLastIndexFromLine(line2)
+        if (last + 1) < len(ls):
+            last = self.getElemLastIndexFromLine(last + 1)
+
+        speech = self.getSpeechIndexes(first)
+        if speech:
+            first = speech[0]
+
+        speech = self.getSpeechIndexes(last)
+        if speech:
+            last = speech[1]
+
+        block = self.getDualBlock(first)
+        if block:
+            first = block[0]
+
+        block = self.getDualBlock(last)
+        if block:
+            last = block[2]
+
+        if ((last + 1) < len(ls)) and self.hasDualFlag(last + 1):
+            last = self.getSpeechIndexes(last + 1)[1]
+
+        return (first, last)
 
     # rewraps paragraph previous to current one.
     def rewrapPrevPara(self):
@@ -1332,6 +1782,182 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         return (self.lines[line].lb == LB_LAST) and (
             (line == 0) or (self.lines[line - 1].lb == LB_LAST)
         )
+
+    # return True if line i has the centered flag set where it means
+    # something, i.e. on the first line of an action element.
+    def hasCenteredFlag(self, i):
+        ln = self.lines[i]
+
+        return ln.centered and (ln.lt == ACTION) and self.isFirstLineOfElem(i)
+
+    # return True if line i is in a centered action element
+    def isCentered(self, i):
+        if self.lines[i].lt != ACTION:
+            return False
+
+        return self.hasCenteredFlag(self.getElemFirstIndexFromLine(i))
+
+    # return the first lines of the action elements in the selection, or
+    # with nothing selected, of the element at the cursor if it's one
+    def getActionsForCentering(self):
+        marked = self.getMarkedLines()
+        first, last = marked if marked else (self.line, self.line)
+
+        ret = []
+        i = self.getElemFirstIndexFromLine(first)
+
+        while i <= last:
+            if self.lines[i].lt == ACTION:
+                ret.append(i)
+
+            i = self.getElemLastIndexFromLine(i) + 1
+
+        return ret
+
+    # return None if centering can't be toggled at the cursor (no action
+    # element there or in the selection), otherwise whether all of those
+    # actions are centered
+    def getCenteredState(self):
+        starts = self.getActionsForCentering()
+
+        if not starts:
+            return None
+
+        return all(self.lines[i].centered for i in starts)
+
+    # center the action element at the cursor, or the ones in the
+    # selection, or if they all are already, stop centering them. returns
+    # False if there's no action element there.
+    def toggleCentered(self):
+        starts = self.getActionsForCentering()
+
+        if not starts:
+            return False
+
+        center = not self.getCenteredState()
+
+        u = undo.AnyDifference(self)
+
+        for i in starts:
+            self.lines[i].centered = center
+
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return True
+
+    # return True if line i has the dual flag set where it means
+    # something, i.e. on the first line of a character element.
+    def hasDualFlag(self, i):
+        ln = self.lines[i]
+
+        return ln.dual and (ln.lt == CHARACTER) and self.isFirstLineOfElem(i)
+
+    # if 'line' is in a character's speech (a character element and the
+    # parenthetical and dialogue elements following it), return the
+    # (first, last) lines of the speech, otherwise None.
+    def getSpeechIndexes(self, line):
+        ls = self.lines
+        speechTypes = (PAREN, DIALOGUE)
+
+        i = line
+        while (i >= 0) and (ls[i].lt in speechTypes):
+            i -= 1
+
+        if (i < 0) or (ls[i].lt != CHARACTER):
+            return None
+
+        first, last = self.getElemIndexesFromLine(i)
+
+        while ((last + 1) < len(ls)) and (ls[last + 1].lt in speechTypes):
+            last += 1
+
+        return (first, last)
+
+    # if line r starts the speech printed as the right-hand column of a
+    # dual dialogue, return the dual dialogue's lines as (first line of
+    # left speech, r, last line of right speech), otherwise None. the
+    # left speech is the one right before r, and it can't itself be the
+    # right-hand column of another dual dialogue.
+    def getDualBlockFromRight(self, r):
+        if (
+            (r == 0)
+            or not self.hasDualFlag(r)
+            or (self.lines[r - 1].lt not in (PAREN, DIALOGUE))
+        ):
+            return None
+
+        left = self.getSpeechIndexes(r - 1)
+
+        if not left or self.hasDualFlag(left[0]):
+            return None
+
+        return (left[0], r, self.getSpeechIndexes(r)[1])
+
+    # return the dual dialogue 'line' is part of, in the format of
+    # getDualBlockFromRight, or None.
+    def getDualBlock(self, line):
+        speech = self.getSpeechIndexes(line)
+
+        if not speech:
+            return None
+
+        block = self.getDualBlockFromRight(speech[0])
+
+        if not block and ((speech[1] + 1) < len(self.lines)):
+            block = self.getDualBlockFromRight(speech[1] + 1)
+
+        return block
+
+    # return which column of a dual dialogue 'line' is in: 1 = left, 2 =
+    # right, or 0 if it's not in one.
+    def getDualColumn(self, line):
+        block = self.getDualBlock(line)
+
+        if not block:
+            return 0
+
+        return 1 if line < block[1] else 2
+
+    # return the dual dialogues lying entirely within lines start - end
+    # (inclusive) that can be printed as such, as a {line: (column, first,
+    # right, last)} dict containing all of their lines (see
+    # getDualBlockFromRight). a dual dialogue can't be printed if some of
+    # its lines are too long for its columns, which happens when
+    # something has made it one without its speeches being rewrapped.
+    def getDualLines(self, start, end):
+        ls = self.lines
+        cfg = self.cfg
+        ret = {}
+
+        for r in range(start + 1, end + 1):
+            if not ls[r].dual:
+                continue
+
+            block = self.getDualBlockFromRight(r)
+
+            if not block or (block[0] < start) or (block[2] > end):
+                continue
+
+            first, right, last = block
+            fits = True
+
+            for i in range(first, last + 1):
+                col = 1 if i < right else 2
+                width = cfg.getDualIndentWidth(ls[i].lt, col)[1]
+
+                if len(ls[i].text.rstrip(" ")) > width:
+                    fits = False
+
+                    break
+
+            if fits:
+                for i in range(first, last + 1):
+                    ret[i] = (1 if i < right else 2, first, right, last)
+
+        return ret
 
     # get first index of paragraph
     def getParaFirstIndexFromLine(self, line):
@@ -1549,24 +2175,153 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def getCharCount(self):
         return sum([len(ln.text) for ln in self.lines])
 
+    # return total number of words in script
+    def getWordCount(self):
+        # a line broken without a space (LB_NONE) continues the same word
+        # on the next line
+        parts = []
+
+        for ln in self.lines:
+            parts.append(ln.text)
+
+            if ln.lb != LB_NONE:
+                parts.append(" ")
+
+        return len("".join(parts).split())
+
+    # return the script's length in pages, with the last page counted as
+    # the fraction of it that is filled. uses the last pagination, like
+    # the page numbers do.
+    def getPageLength(self):
+        pageCnt = len(self.pages) - 1
+
+        if pageCnt < 1:
+            return 0.0
+
+        ls = self.lines
+        ct = self.cfg.types
+        last = len(ls) - 1
+
+        # self.pages can point to lines that no longer exist
+        start = util.clamp(self.pages[-2] + 1, 0, last)
+
+        # in tenths of a line, like paginate
+        units = 10
+
+        if pageCnt > 1:
+            units += self.headers.getNrOfLines() * 10
+
+        for i in range(start + 1, last + 1):
+            units += 10
+
+            if ls[i - 1].lb == LB_LAST:
+                units += ct[ls[i].lt].beforeSpacing
+            else:
+                units += ct[ls[i].lt].intraSpacing
+
+        return (pageCnt - 1) + min(1.0, units / (self.cfg.linesOnPage * 10))
+
+    # paginate the script. if pages are locked (some lines have a
+    # pageLock), each locked page starts at its line no matter what, which
+    # splits the script into segments that are paginated independently: if
+    # a segment no longer fits on its page, the rest goes onto A-pages
+    # (15A, 15B, ...), and if it has gotten shorter, the page just ends
+    # early.
     def paginate(self):
         # sfdlksjf = util.TimerDev("paginate")
 
         self.pages = [-1]
         self.pagesNoAdjust = [-1]
+        self.pageLabels = [""]
 
+        length = len(self.lines)
+        locks = self.getPageLocks()
+
+        self.initDualPagination()
+
+        if not locks:
+            self.paginateRange(0, length - 1)
+            self.pageLabels.extend(str(p) for p in range(1, len(self.pages)))
+
+        else:
+            if locks[0][0] != 0:
+                cnt = self.paginateRange(0, locks[0][0] - 1)
+                self.pageLabels.extend(pagelock.labelsBefore(locks[0][1], cnt))
+
+            for i, (line, label) in enumerate(locks):
+                if i + 1 < len(locks):
+                    end, nextLabel = locks[i + 1][0] - 1, locks[i + 1][1]
+                else:
+                    end, nextLabel = length - 1, None
+
+                cnt = self.paginateRange(line, end)
+                self.pageLabels.extend(pagelock.segmentLabels(label, nextLabel, cnt))
+
+        self.lastPaginated = time.time()
+
+    # set up what paginateRange needs to know about dual dialogues, for
+    # paginate to call before it:
+    #
+    # dualBlockAt: {line: (first, right, last)} for each line of a dual
+    # dialogue except its last one, i.e. the lines a page must not end on.
+    #
+    # dualCost: {line: (first, cost)} for each line of a right-hand
+    # column. when the whole dual dialogue is on one page (it starts after
+    # the previous page break), 'cost' is how much height the line adds,
+    # in the same units as in paginateRange; together they add whatever
+    # the right column is taller than the left one, if anything.
+    def initDualPagination(self):
+        self.dualBlockAt = {}
+        self.dualCost = {}
+
+        ls = self.lines
+        ct = self.cfg.types
+
+        def height(first, last):
+            h = 10
+
+            for i in range(first + 1, last + 1):
+                h += 10
+
+                if ls[i - 1].lb == LB_LAST:
+                    h += ct[ls[i].lt].beforeSpacing
+                else:
+                    h += ct[ls[i].lt].intraSpacing
+
+            return h
+
+        blocks = {v[1:] for v in self.getDualLines(0, len(ls) - 1).values()}
+
+        for first, right, last in blocks:
+            for i in range(first, last):
+                self.dualBlockAt[i] = (first, right, last)
+
+            for i in range(right, last):
+                self.dualCost[i] = (first, 0)
+
+            extra = height(right, last) - height(first, right - 1)
+            self.dualCost[last] = (first, max(0, extra))
+
+    # paginate lines start - end (inclusive), appending to self.pages and
+    # self.pagesNoAdjust as if 'start' was the first line of the script
+    # and 'end' the last one, except that line 0 is the only one that
+    # starts a page without headers. returns the number of pages added.
+    def paginateRange(self, start, end):
         ls = self.lines
         cfg = self.cfg
 
-        length = len(ls)
-        lastBreak = -1
+        oldCnt = len(self.pages)
+        length = end + 1
+        lastBreak = start - 1
 
         # fast aliases for stuff
         lbl = LB_LAST
         ct = cfg.types
         hdrLines = self.headers.getNrOfLines()
+        dualBlockAt = self.dualBlockAt
+        dualCost = self.dualCost
 
-        i = 0
+        i = start
         while 1:
             lp = cfg.linesOnPage * 10
 
@@ -1595,11 +2350,16 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
                 while i < (length - 1):
 
-                    pageLines += 10
-                    if ls[i].lb == lbl:
-                        pageLines += ct[ls[i + 1].lt].beforeSpacing
+                    dual = dualCost.get(i + 1)
+
+                    if dual and (dual[0] > lastBreak):
+                        pageLines += dual[1]
                     else:
-                        pageLines += ct[ls[i + 1].lt].intraSpacing
+                        pageLines += 10
+                        if ls[i].lb == lbl:
+                            pageLines += ct[ls[i + 1].lt].beforeSpacing
+                        else:
+                            pageLines += ct[ls[i + 1].lt].intraSpacing
 
                     if pageLines > lp:
                         break
@@ -1614,6 +2374,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 break
 
             self.pagesNoAdjust.append(i)
+
+            # don't split a dual dialogue between pages. if it starts at
+            # the top of the page and still doesn't fit, it's split
+            # between its columns, or failing that, like a normal speech.
+            block = dualBlockAt.get(i)
+
+            if block:
+                first, right, last = block
+
+                if first > (lastBreak + 1):
+                    i = first - 1
+                elif i >= right:
+                    i = right - 1
 
             line = ls[i]
 
@@ -1702,7 +2475,152 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             i += 1
 
-        self.lastPaginated = time.time()
+        return len(self.pages) - oldCnt
+
+    # return a list of (line, label) tuples for the lines that start a
+    # locked page, in script order, skipping any that are out of order.
+    def getPageLocks(self):
+        locks = [
+            (i, ln.pageLock)
+            for i, ln in enumerate(self.lines)
+            if ln.pageLock and pagelock.isValid(ln.pageLock)
+        ]
+
+        return pagelock.orderedLocks(locks)
+
+    def hasPageLocks(self):
+        return any(ln.pageLock for ln in self.lines)
+
+    # lock every page to start where it starts now, with its current
+    # label, so later edits create A-pages / leave gaps instead of moving
+    # text to other pages. if pages are already locked, any A-pages
+    # become locked as well.
+    def lockPages(self):
+        u = undo.FullCopy(self)
+
+        self.paginate()
+
+        for ln in self.lines:
+            ln.pageLock = None
+
+        for p in range(1, len(self.pages)):
+            self.lines[self.pages[p - 1] + 1].pageLock = self.pageLabels[p]
+
+        self.paginate()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+    def unlockPages(self):
+        if not self.hasPageLocks():
+            return
+
+        u = undo.FullCopy(self)
+
+        for ln in self.lines:
+            ln.pageLock = None
+
+        self.paginate()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+    # return what toggleDualDialogue would do, as (block, makeDual), where
+    # block is the dual dialogue in the format of getDualBlockFromRight and
+    # makeDual is False if it would be made normal again, or None if
+    # toggling isn't possible at the cursor.
+    def getDualToggle(self):
+        ls = self.lines
+
+        speech = self.getSpeechIndexes(self.line)
+
+        if not speech:
+            return None
+
+        block = self.getDualBlock(self.line)
+
+        if block:
+            return (block, False)
+
+        for r in (speech[0], speech[1] + 1):
+            if (r >= len(ls)) or (ls[r].lt != CHARACTER):
+                continue
+
+            # don't take over a speech from another dual dialogue
+            if (r != speech[0]) and self.getDualBlock(r):
+                continue
+
+            old = ls[r].dual
+            ls[r].dual = True
+            block = self.getDualBlockFromRight(r)
+            ls[r].dual = old
+
+            if block:
+                return (block, True)
+
+        return None
+
+    # if the cursor is in a dual dialogue, make its speeches normal again.
+    # otherwise make the speech the cursor is in a dual dialogue with the
+    # speech right before it, or failing that, the one right after it.
+    # returns False if that wasn't possible.
+    def toggleDualDialogue(self):
+        ls = self.lines
+
+        toggle = self.getDualToggle()
+
+        if not toggle:
+            return False
+
+        block, makeDual = toggle
+        first, right, last = block
+        elemCnt = self.elemsDistance(first, last) + 1
+
+        u = undo.ManyElems(self, undo.CMD_MISC, first, elemCnt, elemCnt)
+
+        ls[right].dual = makeDual
+
+        # rewrap both speeches to their new widths
+        self.rewrapElems(first, elemCnt)
+
+        self.clearAutoComp()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return True
+
+    # add a page lock to the given line. if it already has one, the two
+    # pages are combined (e.g. "16-17").
+    def addPageLock(self, line, label):
+        ln = self.lines[line]
+
+        if ln.pageLock:
+            ln.pageLock = pagelock.combine(label, ln.pageLock)
+        else:
+            ln.pageLock = label
+
+    # lines first - last (inclusive) are about to be deleted or moved
+    # elsewhere, so move their page locks to the line after them. if there
+    # is no line after them, the locks are removed.
+    def movePageLocksForward(self, first, last):
+        ls = self.lines
+        label = None
+
+        for i in range(first, last + 1):
+            if ls[i].pageLock:
+                if label:
+                    label = pagelock.combine(label, ls[i].pageLock)
+                else:
+                    label = ls[i].pageLock
+
+                ls[i].pageLock = None
+
+        if label and (last + 1) < len(ls):
+            self.addPageLock(last + 1, label)
 
     def removeDanglingElement(self, line, lt, lastBreak):
         ls = self.lines
@@ -1745,16 +2663,20 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         currentLine = startSection
 
         if saveUndo:
-            u = undo.ManyElems(
-                self, undo.CMD_MISC, currentLine, selectedElems, selectedElems
-            )
+            # the speeches around the changed elements may move into or
+            # out of a dual dialogue, so they're rewrapped too, and
+            # included in the undo
+            wrapFirst, wrapLast = self.getSpeechRangeAround(startSection, endSection)
+            wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+
+            u = undo.ManyElems(self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt)
 
         while currentLine <= endSection:
             first, last = self.getElemIndexesFromLine(currentLine)
 
             # if changing away from PAREN containing only "()", remove it
             if (first == last) and (ls[first].lt == PAREN) and (ls[first].text == "()"):
-                ls[first].text = ""
+                ls[first].setText("")
 
                 if first == self.line:
                     self.column = 0
@@ -1768,7 +2690,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 and (ls[first].lt == PAREN)
                 and (len(ls[first].text) == 0)
             ):
-                ls[first].text = "()"
+                ls[first].setText("()")
 
                 if first == self.line:
                     self.column = 1
@@ -1796,6 +2718,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.markChanged()
 
         if saveUndo:
+            self.rewrapElems(wrapFirst, wrapCnt)
+
             u.setAfter(self)
             self.addUndo(u)
 
@@ -1806,8 +2730,20 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         ln = ls[line]
 
         pos = len(ln.text)
-        ln.text += ls[line + 1].text
+        ln.appendLine(ls[line + 1])
         ln.lb = ls[line + 1].lb
+
+        # the joined line's page lock now points into the middle of this
+        # line. rewrapPara uses pageLockCol to put it back on the right
+        # line.
+        label = ls[line + 1].pageLock
+
+        if label:
+            if ln.pageLock:
+                ln.pageLock = pagelock.combine(ln.pageLock, label)
+            else:
+                ln.pageLock = label
+                ln.pageLockCol = pos
 
         self.setLineTypes(line + 1, ln.lt)
         del ls[line + 1]
@@ -1822,8 +2758,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         s = ln.text
         preStr = s[: self.column]
         postStr = s[self.column :]
-        newLine = Line(ln.lb, ln.lt, postStr)
-        ln.text = preStr
+        newLine = Line(ln.lb, ln.lt, postStr, fmt=ln.sliceFmt(self.column))
+        ln.setText(preStr, ln.sliceFmt(0, self.column))
         ln.lb = LB_FORCED
         self.lines.insert(self.line + 1, newLine)
 
@@ -1841,13 +2777,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             return
 
-        u = undo.ManyElems(self, undo.CMD_MISC, self.line, 1, 2)
+        # splitting a speech can make it, or the speeches around it, part
+        # of a dual dialogue or take them out of one, so they're rewrapped
+        # too, and included in the undo
+        wrapFirst, wrapLast = self.getSpeechRangeAround(self.line, self.line)
+        wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+
+        u = undo.ManyElems(self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt + 1)
 
         if not self.acItems:
             if self.isAtEndOfParen():
                 self.column += 1
         else:
-            ls[self.line].text = self.acItems[self.acSel]
+            ls[self.line].setText(self.acItems[self.acSel])
             self.column = len(ls[self.line].text)
 
         self.splitLine()
@@ -1857,6 +2799,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         self.rewrapPara()
         self.rewrapPrevPara()
+        self.rewrapElems(wrapFirst, wrapCnt + 1)
         self.markChanged()
 
         u.setAfter(self)
@@ -1865,8 +2808,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     # delete character at given position and optionally position
     # cursor there.
     def deleteChar(self, line, column, posCursor=True):
-        s = self.lines[line].text
-        self.lines[line].text = s[:column] + s[column + 1 :]
+        self.lines[line].deleteText(column, column + 1)
 
         if posCursor:
             self.column = column
@@ -1884,6 +2826,22 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 break
 
             line += 1
+
+    # give every line of the elements in the given range of lines
+    # (inclusive) the type of its element's first line. 'line1' must be
+    # the first line of an element.
+    def fixElemLineTypes(self, line1, line2):
+        ls = self.lines
+        lt = None
+
+        for i in range(line1, line2 + 1):
+            if lt is None:
+                lt = ls[i].lt
+            else:
+                ls[i].lt = lt
+
+            if ls[i].lb == LB_LAST:
+                lt = None
 
     def line2page(self, line):
         return self.line2pageReal(line, self.pages)
@@ -1918,14 +2876,29 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             util.clamp(self.pages[pageNr], 0, last),
         )
 
-    # return a list of all page numbers as strings.
+    # return the label of the given page (1-based index into self.pages),
+    # e.g. "16" or "15A". pageNr is clamped to the valid range.
+    def getPageLabel(self, pageNr):
+        return self.pageLabels[util.clamp(pageNr, 1, len(self.pageLabels) - 1)]
+
+    # return the label of the page the given line is on
+    def line2pageLabel(self, line):
+        return self.getPageLabel(self.line2page(line))
+
+    # return the page number (1-based index into self.pages) of the page
+    # with the given label (case-insensitive), or -1 if there's none.
+    def label2page(self, label):
+        label = pagelock.normalize(label)
+
+        for p in range(1, len(self.pageLabels)):
+            if self.pageLabels[p] == label:
+                return p
+
+        return -1
+
+    # return a list of all page labels, in order.
     def getPageNumbers(self):
-        pages = []
-
-        for p in range(1, len(self.pages)):
-            pages.append(str(p))
-
-        return pages
+        return self.pageLabels[1:]
 
     # return a list of all scene locations in a [(sceneNumber, startLine),
     # ...] format. if script does not start with a scene line, that scene
@@ -1943,6 +2916,213 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 ret.append((str(scene), i))
 
         return ret
+
+    # return the first line of every scene heading and act break element,
+    # in script order.
+    def getOutlineStarts(self):
+        ls = self.lines
+
+        return [
+            i
+            for i in range(len(ls))
+            if (ls[i].lt in (SCENE, ACTBREAK)) and self.isFirstLineOfElem(i)
+        ]
+
+    # return the outline color of the scene heading or act break element
+    # starting at line i, or None if it has none or line i isn't the first
+    # line of such an element.
+    def getSceneColor(self, i):
+        ln = self.lines[i]
+
+        if ln.color and (ln.lt in (SCENE, ACTBREAK)) and self.isFirstLineOfElem(i):
+            return ln.color
+
+        return None
+
+    # set the outline color of the scene (or act break) containing the
+    # given line to color ("rrggbb"), or remove it if color is None.
+    # returns False if the line isn't in a scene or the scene already has
+    # that color.
+    def setSceneColor(self, line, color):
+        starts = self.getOutlineStarts()
+        idx = self.getOutlineIndex(starts, line)
+
+        if idx == -1:
+            return False
+
+        start = starts[idx]
+
+        if color is not None:
+            color = color.lower()
+
+        if self.getSceneColor(start) == color:
+            return False
+
+        u = undo.SinglePara(self, undo.CMD_MISC, start)
+
+        self.lines[start].color = color
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return True
+
+    # return the full text of the element starting at the given line, with
+    # line breaks converted to spaces.
+    def getElemText(self, line):
+        ls = self.lines
+        s = ""
+
+        while 1:
+            ln = ls[line]
+            s += ln.text
+
+            if ln.lb == LB_LAST:
+                break
+
+            s += config.lb2str(ln.lb).replace("\n", " ")
+            line += 1
+
+        return s
+
+    # return the script's outline as a list of OutlineItems, one for each
+    # scene and act break, in script order. anything before the first
+    # scene / act break is not included. page numbers are only accurate
+    # if pagination is up to date.
+    def getOutline(self):
+        ls = self.lines
+        starts = self.getOutlineStarts()
+        ret = []
+        scene = 0
+
+        for idx, start in enumerate(starts):
+            if idx + 1 < len(starts):
+                end = starts[idx + 1] - 1
+            else:
+                end = len(ls) - 1
+
+            lt = ls[start].lt
+            heading = self.getElemText(start)
+
+            if self.cfg.getType(lt).screen.isCaps:
+                heading = util.upper(heading)
+
+            if lt == SCENE:
+                scene += 1
+                sceneNr = str(scene)
+            else:
+                sceneNr = ""
+
+            note = None
+            action = None
+
+            i = start + 1
+
+            while i <= end:
+                if self.isFirstLineOfElem(i):
+                    if (ls[i].lt == NOTE) and (note is None):
+                        note = self.getElemText(i)
+                        break
+                    elif (ls[i].lt == ACTION) and (action is None):
+                        action = self.getElemText(i)
+
+                i += 1
+
+            summary = note if note is not None else (action or "")
+
+            ret.append(
+                OutlineItem(
+                    lt,
+                    sceneNr,
+                    start,
+                    end,
+                    heading,
+                    summary,
+                    self.line2pageLabel(start),
+                    self.getSceneColor(start),
+                )
+            )
+
+        return ret
+
+    # return the index in starts (as returned by getOutlineStarts) of the
+    # scene / act break containing the given line, or -1 if the line is
+    # before the first one.
+    def getOutlineIndex(self, starts, line):
+        idx = -1
+
+        for i, start in enumerate(starts):
+            if start <= line:
+                idx = i
+            else:
+                break
+
+        return idx
+
+    # move the scene (or act break) containing the given line one step up
+    # (direction = -1) or down (direction = 1) in the script, swapping it
+    # with its neighbor. see moveSceneTo.
+    def moveScene(self, line, direction):
+        idx = self.getOutlineIndex(self.getOutlineStarts(), line)
+
+        if idx == -1:
+            return False
+
+        return self.moveSceneTo(line, idx + direction)
+
+    # move the scene (or act break) containing the given line so that it
+    # becomes item number newIndex (0-based) in the outline, shifting the
+    # ones in between by one. material before the first scene / act break
+    # is never moved, and nothing can be moved above it. on success, the
+    # cursor is placed at the start of the moved scene and True is
+    # returned.
+    def moveSceneTo(self, line, newIndex):
+        starts = self.getOutlineStarts()
+        idx = self.getOutlineIndex(starts, line)
+
+        if (idx == -1) or (newIndex == idx):
+            return False
+
+        if (newIndex < 0) or (newIndex >= len(starts)):
+            return False
+
+        self.clearAutoComp()
+
+        bounds = starts + [len(self.lines)]
+        blocks = [self.lines[bounds[i] : bounds[i + 1]] for i in range(len(starts))]
+
+        u = undo.AnyDifference(self)
+
+        # moving a scene is like cutting and pasting it: the pages it was
+        # locked to stay where they were, starting from whatever followed
+        # the scene.
+        if idx + 1 < len(blocks):
+            self.movePageLocksForward(starts[idx], bounds[idx + 1] - 1)
+        else:
+            for ln in blocks[idx]:
+                ln.pageLock = None
+
+        blocks.insert(newIndex, blocks.pop(idx))
+
+        newLines = []
+
+        for i, block in enumerate(blocks):
+            if i == newIndex:
+                self.line = starts[0] + len(newLines)
+
+            newLines.extend(block)
+
+        self.lines[starts[0] :] = newLines
+        self.column = 0
+
+        self.clearMark()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return True
 
     # return a dictionary of all scene names (single-line text elements
     # only, upper-cased, values = None).
@@ -2052,9 +3232,31 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         lt = ls[self.line].lt
         t = self.autoCompletion.getType(lt)
 
-        if t and t.enabled:
-            self.acItems = self.getMatchingText(ls[self.line].text, lt)
-            self.acSel = 0
+        # completing replaces the line's text, which would mangle an
+        # element that has wrapped onto more than one line
+        if not (t and t.enabled and self.isOnlyLineOfElem(self.line)):
+            self.acItems = None
+
+            return
+
+        text = ls[self.line].text
+        self.acItems = self.getMatchingText(text, lt)
+        self.acSel = 0
+
+        # if what was typed isn't itself a match, offer it as the first
+        # row, so a new name that's the start of an existing one (BOB vs
+        # BOBBY) is one Up away. the best match stays selected, so Enter
+        # still completes. not after a space, where a word or a part of a
+        # scene heading (like "INT. ") has just been finished.
+        typed = util.upper(text)
+        if (
+            self.acItems
+            and typed.strip()
+            and not typed[-1].isspace()
+            and (typed not in self.acItems)
+        ):
+            self.acItems.insert(0, typed)
+            self.acSel = 1
 
     # page up (dir == -1) or page down (dir == 1) was pressed and we're in
     # auto-comp mode, handle it.
@@ -2070,39 +3272,64 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             else:
                 self.acSel = (self.acSel + self.acMax) % len(self.acItems)
 
+    # if the cursor is in a new, empty character element, show the
+    # auto-completion list right away, so the next speaker can be picked
+    # without typing anything.
+    def offerAutoComp(self, cs):
+        ln = self.lines[self.line]
+
+        if (ln.lt == CHARACTER) and not ln.text and self.isOnlyLineOfElem(self.line):
+            cs.doAutoComp = cs.AC_REDO
+
+    # if the selected auto-completion item is only the start of a scene
+    # heading, like "INT. " or "INT. KITCHEN - ".
+    def isAutoCompPartial(self):
+        return (
+            bool(self.acItems)
+            and (self.lines[self.line].lt == SCENE)
+            and autocompletion.isPartial(self.acItems[self.acSel])
+        )
+
+    # put the selected auto-completion item in the current line. if it's
+    # only the start of a scene heading, show the list for the next part.
+    def acceptAutoComp(self, cs):
+        partial = self.isAutoCompPartial()
+
+        u = undo.SinglePara(self, undo.CMD_MISC, self.line)
+
+        self.lines[self.line].setText(self.acItems[self.acSel])
+        self.column = len(self.lines[self.line].text)
+        self.rewrapPara()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        if partial:
+            cs.doAutoComp = cs.AC_REDO
+
     # get a list of strings (single-line text elements for now) that start
-    # with 'text' (not case sensitive) and are of of type 'type'. also
-    # mixes in the type's default items from config. ignores current line.
+    # with 'text' (not case sensitive) and are of of type 'type', in the
+    # order to show them (see AutoCompletion.getMatches), but with an
+    # exact match first. also mixes in the type's default items from
+    # config. ignores current line.
     def getMatchingText(self, text, lt):
         text = util.upper(text)
-        t = self.autoCompletion.getType(lt)
         ls = self.lines
-        matches = {}
-        last = None
+        uses = []
 
         for i in range(len(ls)):
-            if (ls[i].lt == lt) and (ls[i].lb == LB_LAST):
-                upstr = util.upper(ls[i].text)
+            if (ls[i].lt == lt) and (i != self.line) and self.isOnlyLineOfElem(i):
+                upstr = util.upper(ls[i].text).rstrip()
 
-                if upstr.startswith(text) and i != self.line:
-                    matches[upstr] = None
-                    if i < self.line:
-                        last = upstr
+                if upstr:
+                    uses.append((i, upstr))
 
-        for s in t.items:
-            upstr = util.upper(s)
+        mlist = self.autoCompletion.getMatches(text, lt, uses, self.line)
 
-            if upstr.startswith(text):
-                matches[upstr] = None
-
-        if last:
-            del matches[last]
-
-        mlist = list(matches.keys())
-        mlist.sort()
-
-        if last:
-            mlist.insert(0, last)
+        if text in mlist:
+            mlist.remove(text)
+            mlist.insert(0, text)
 
         return mlist
 
@@ -2202,7 +3429,17 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             ln = ls[i]
 
-            cd.lines.append(Line(ln.lb, ln.lt, ln.text[c1 : c2 + 1]))
+            cd.lines.append(
+                Line(
+                    ln.lb,
+                    ln.lt,
+                    ln.text[c1 : c2 + 1],
+                    dual=self.hasDualFlag(i) and (c1 == 0),
+                    color=self.getSceneColor(i) if (c1 == 0) else None,
+                    centered=self.hasCenteredFlag(i) and (c1 == 0),
+                    fmt=ln.sliceFmt(c1, c2 + 1),
+                )
+            )
 
         cd.lines[-1].lb = LB_LAST
 
@@ -2220,7 +3457,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             c1, c2 = self.getMarkedColumns(i, marked)
 
             ln = ls[i]
-            ln.text = ln.text[0:c1] + ln.text[c2 + 1 :]
+            ln.deleteText(c1, c2 + 1)
 
             if i == marked[0]:
                 endCol = c1
@@ -2279,6 +3516,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # anyway) to that of the first element.
         self.setLineTypes(marked[1], ls[marked[0]].lt)
 
+        if del2 != -1:
+            self.movePageLocksForward(del1, del2)
+
         del ls[del1 : del2 + 1]
 
         self.clearMark()
@@ -2290,6 +3530,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.column = min(endCol, len(ls[self.line].text))
 
         self.rewrapElem()
+        self.rewrapSpeechesAround(self.line, self.line)
         self.markChanged()
 
         u.setAfter(self)
@@ -2314,18 +3555,29 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             ln = clines[i]
 
-            newLine = Line(LB_LAST, ln.lt)
+            newLine = Line(
+                LB_LAST, ln.lt, dual=ln.dual, color=ln.color, centered=ln.centered
+            )
+
+            # (text, fmt) of the lines in this paragraph, and the
+            # separators between them
+            parts = []
+            seps = []
 
             while 1:
                 ln = clines[i]
                 i += 1
 
                 newLine.text += ln.text
+                parts.append((ln.text, ln.fmt))
 
                 if ln.lb in (LB_LAST, LB_FORCED):
                     break
 
                 newLine.text += config.lb2str(ln.lb)
+                seps.append(config.lb2str(ln.lb))
+
+            newLine.fmt = textfmt.join(parts, seps)
 
             newLine.lb = ln.lb
             inLines.append(newLine)
@@ -2345,8 +3597,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         if (len(ln.text) == 0) and self.isOnlyLineOfElem(self.line):
             ln.lt = inLines[0].lt
+            ln.dual = inLines[0].dual
+            ln.color = inLines[0].color
+            ln.centered = inLines[0].centered
 
-        ln.text = ln.text[: self.column] + inLines[0].text + ln.text[self.column :]
+        if ln.fmt or inLines[0].fmt:
+            fmt = ln.getFmt()
+            ln.setText(
+                ln.text[: self.column] + inLines[0].text + ln.text[self.column :],
+                fmt[: self.column] + inLines[0].getFmt() + fmt[self.column :],
+            )
+        else:
+            ln.text = ln.text[: self.column] + inLines[0].text + ln.text[self.column :]
+
         self.column += len(inLines[0].text)
 
         if len(inLines) != 1:
@@ -2357,25 +3620,39 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 ls[self.line : self.line] = inLines[1:]
                 self.line += len(inLines) - 2
 
-                # FIXME: pasting a multi-paragraph ACTION where first line
-                # has FORCED lb, in middle of a CHARACTER block, breaks
-                # things
-
             else:
+                origLb = ln.lb
+                ln.lb = inLines[0].lb
+
+                # don't join the pasted text to the element after this
+                # one
+                if origLb == LB_LAST:
+                    inLines[-1].lb = LB_LAST
+
                 ls[self.line + 1 : self.line + 1] = inLines[1:]
                 self.line += len(inLines) - 1
 
-                # FIXME: this doesn't modify .lb, and pasting a
-                # multi-paragraph ACTION at end of line in CHARACTER block
-                # where that line ends in forced linebreak breaks things.
-
             self.column = len(ls[self.line].text)
+
+            # the pasted lines can now be part of the element they were
+            # pasted into, or the text after the cursor part of a pasted
+            # element, so give every element around the paste the type
+            # of its first line.
+            self.fixElemLineTypes(
+                self.getElemFirstIndexFromLine(wrap1),
+                self.getElemLastIndexFromLine(min(self.line + 1, len(ls) - 1)),
+            )
 
         # FIXME: copy/paste, when copying elements containing forced
         # linebreaks, converts them to end of element? this seems like a
         # bug...
 
-        self.reformatRange(wrap1, self.getParaFirstIndexFromLine(self.line))
+        # the line after the paste can now start a paragraph, so it's
+        # reformatted too
+        wrap2 = min(self.line + 1, len(ls) - 1)
+
+        self.reformatRange(wrap1, self.getParaFirstIndexFromLine(wrap2))
+        self.rewrapSpeechesAround(wrap1, min(self.line + 1, len(ls) - 1))
 
         u.setAfter(self)
         self.addUndo(u)
@@ -2728,12 +4005,29 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         # (inclusive)
         cnt = 0
 
+        # page lock of removed lines, to be moved to the next line kept
+        label = None
+
         for i in range(len(lsOld)):
             l = lsOld[i]
 
             if l.lt not in tdict:
+                if label:
+                    if l.pageLock:
+                        l.pageLock = pagelock.combine(label, l.pageLock)
+                    else:
+                        l.pageLock = label
+
+                    label = None
+
                 lsNew.append(l)
             else:
+                if l.pageLock:
+                    if label:
+                        label = pagelock.combine(label, l.pageLock)
+                    else:
+                        label = l.pageLock
+
                 if i <= sl:
                     cnt += 1
 
@@ -2751,6 +4045,143 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         if saveUndo:
             u.setAfter(self)
             self.addUndo(u)
+
+    # rename characters. 'renames' is a dictionary mapping old names to
+    # new ones, both normalized with characterprofiles.normalizeName.
+    # character cues are renamed keeping any extension like "(V.O.)", and
+    # the names are also replaced where they're mentioned in other
+    # elements, matching the case they were written in. all renames are
+    # done in one pass, so names can be swapped. if renameProfiles is
+    # True, the characters' profiles are renamed too, in the same undo
+    # step. returns a (cues, mentions) tuple of how many of each were
+    # renamed.
+    def renameCharacters(self, renames, renameProfiles=False):
+        normalize = characterprofiles.normalizeName
+
+        renames = {k: v for k, v in renames.items() if k and v and (k != v)}
+        if not renames:
+            return (0, 0)
+
+        # (old name, new name) of the profiles to rename
+        profileRenames = []
+
+        if renameProfiles:
+            for old, new in renames.items():
+                prof = self.characterProfiles.get(old)
+
+                if prof:
+                    profileRenames.append((prof.name, new))
+
+        # the names of the other characters are matched too, but left as
+        # they are, so that renaming MARY doesn't touch "Mary" in mentions
+        # of MARY JANE. longest names first, so that "MARY JANE" wins over
+        # "MARY".
+        names = {normalize(n): None for n in self.getCharacterNames()}
+        names.update(renames)
+        names.pop("", None)
+
+        pattern = re.compile(
+            "|".join(
+                r"(?<!\w)%s(?!\w)" % r"\s+".join(re.escape(w) for w in name.split())
+                for name in sorted(names, key=len, reverse=True)
+            ),
+            re.IGNORECASE,
+        )
+
+        # how many mentions the current line had renamed
+        lineMentions = 0
+
+        def replaceMention(mo):
+            nonlocal lineMentions
+
+            found = mo.group(0)
+            new = names[normalize(found)]
+
+            if not new:
+                return found
+
+            lineMentions += 1
+
+            if found.isupper():
+                return new
+            elif found.islower():
+                return util.lower(new)
+            else:
+                # capitalize each word, e.g. "MARY-ANNE O'NEIL" ->
+                # "Mary-Anne O'Neil"
+                return re.sub(
+                    r"[^\W\d_]+",
+                    lambda m: util.upper(m.group(0)[:1]) + util.lower(m.group(0)[1:]),
+                    new,
+                )
+
+        cues = 0
+        mentions = 0
+
+        # (line, new text, new format string) for every changed line
+        changes = []
+
+        for i, ln in enumerate(self.lines):
+            if ln.lt == CHARACTER:
+                new = renames.get(normalize(ln.text)) if ln.lb == LB_LAST else None
+
+                if new:
+                    idx = ln.text.find("(")
+                    ext = (" " + ln.text[idx:].strip()) if idx != -1 else ""
+
+                    # the name gets the style of its first letter, and the
+                    # extension keeps its own
+                    fmt = None
+
+                    if ln.fmt:
+                        fmt = textfmt.char(textfmt.styleAt(ln.fmt, 0)) * len(new)
+
+                        if ext:
+                            fmt += "0" + textfmt.fit(ln.sliceFmt(idx), len(ext) - 1)
+
+                    changes.append((i, new + ext, fmt))
+                    cues += 1
+
+            else:
+                lineMentions = 0
+                text, fmt = textfmt.sub(pattern, replaceMention, ln.text, ln.fmt)
+
+                if lineMentions:
+                    changes.append((i, text, fmt))
+                    mentions += lineMentions
+
+        if not changes and not profileRenames:
+            return (cues, mentions)
+
+        self.clearAutoComp()
+
+        u = undo.RenameCharacters(self, profileRenames)
+
+        undo.renameProfiles(self, profileRenames)
+
+        for i, text, fmt in changes:
+            self.lines[i].setText(text, fmt)
+
+        # rewrap changed paragraphs from the bottom up, so that the line
+        # numbers of the ones still to do stay valid
+        paras = {self.getParaFirstIndexFromLine(i) for i, _text, _fmt in changes}
+
+        for line in sorted(paras, reverse=True):
+            self.rewrapPara(line)
+
+        acType = self.autoCompletion.getType(CHARACTER)
+        acType.items = list(
+            dict.fromkeys(renames.get(normalize(it), it) for it in acType.items)
+        )
+
+        self.validatePos()
+        self.clearMark()
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+        return (cues, mentions)
 
     # set mark at given position
     def setMark(self, line, column):
@@ -2775,6 +4206,12 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def cmdPost(self, cs):
         # TODO: is this needed?
         self.column = min(self.column, len(self.lines[self.line].text))
+
+        # a typing style only lasts while the cursor stays where it was set
+        ts = self.typingStyle
+
+        if ts and ((ts[0] != self.line) or (ts[1] != self.column)):
+            self.typingStyle = None
 
         if cs.doAutoComp == cs.AC_DEL:
             self.clearAutoComp()
@@ -2854,10 +4291,13 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             firstReadFlag = False
             while True:
                 if t == "":  # empty line
-                    self.line += 1
+                    if l + 1 < len(self.lines):
+                        self.line += 1
                     return
 
-                if i + 1 == len(self.lines[l].text):  # end of line
+                # the cursor can sit after the last character, at column
+                # len(t), so test with >= rather than ==
+                if i + 1 >= len(t):  # end of line
                     if firstReadFlag == False:  # event started at the end of the line
                         if l + 1 == len(self.lines):
                             return
@@ -2916,11 +4356,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
     def moveLineEndCmd(self, cs):
         if self.acItems:
-            self.lines[self.line].text = self.acItems[self.acSel]
+            self.acceptAutoComp(cs)
         else:
             self.maybeMark(cs.mark)
-
-        self.column = len(self.lines[self.line].text)
+            self.column = len(self.lines[self.line].text)
 
     def moveLineStartCmd(self, cs):
         self.maybeMark(cs.mark)
@@ -2964,6 +4403,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def deleteBackwardCmd(self, cs):
         u = None
         mergeUndo = False
+        wrapCnt = 0
 
         # only merge with the previous item in undo history if:
         #   -we are not in middle of undo/redo
@@ -2992,9 +4432,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 # delete at start of the line of the first line of the
                 # element means "join up with previous element", so is a
                 # 2->1 change. otherwise we just delete a character from
-                # current element so no element count change.
+                # current element so no element count change. joining
+                # elements can make speeches part of a dual dialogue or
+                # take them out of one, so the speeches around are
+                # rewrapped too, and included in the undo.
                 if ln.lb == LB_LAST:
-                    u = undo.ManyElems(self, undo.CMD_MISC, self.line - 1, 2, 1)
+                    wrapFirst, wrapLast = self.getSpeechRangeAround(
+                        self.line - 1, self.line
+                    )
+                    wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+
+                    u = undo.ManyElems(
+                        self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt - 1
+                    )
                     mergeUndo = False
                 else:
                     if not mergeUndo:
@@ -3009,6 +4459,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         self.rewrapElem()
 
+        if wrapCnt:
+            self.rewrapElems(wrapFirst, wrapCnt - 1)
+
         if u:
             if mergeUndo:
                 self.addMergedUndo(u)
@@ -3019,6 +4472,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     def deleteForwardCmd(self, cs):
         u = None
         mergeUndo = False
+        wrapCnt = 0
 
         # only merge with the previous item in undo history if:
         #   -we are not in middle of undo/redo
@@ -3047,9 +4501,17 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 # delete at end of the line of the last line of the
                 # element means "join up with next element", so is a 2->1
                 # change. otherwise we just delete a character from
-                # current element so no element count change.
+                # current element so no element count change. as in
+                # deleteBackwardCmd, the speeches around are rewrapped.
                 if ln.lb == LB_LAST:
-                    u = undo.ManyElems(self, undo.CMD_MISC, self.line, 2, 1)
+                    wrapFirst, wrapLast = self.getSpeechRangeAround(
+                        self.line, self.line + 1
+                    )
+                    wrapCnt = self.elemsDistance(wrapFirst, wrapLast) + 1
+
+                    u = undo.ManyElems(
+                        self, undo.CMD_MISC, wrapFirst, wrapCnt, wrapCnt - 1
+                    )
                     mergeUndo = False
                 else:
                     if not mergeUndo:
@@ -3063,6 +4525,9 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 self.markChanged()
 
         self.rewrapElem()
+
+        if wrapCnt:
+            self.rewrapElems(wrapFirst, wrapCnt - 1)
 
         if u:
             if mergeUndo:
@@ -3092,6 +4557,54 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.line = len(self.lines) - 1
         self.column = len(self.lines[self.line].text)
 
+    # select the word at (line, col), as on a double click. clicking on
+    # whitespace or punctuation selects the run of it instead. selections
+    # are inclusive, so the cursor ends up on the word's last character.
+    def selectWordAt(self, line, col):
+        self.clearAutoComp()
+
+        s = self.lines[line].text
+
+        if not s:
+            self.clearMark()
+            self.gotoPos(line, 0)
+
+            return
+
+        col = util.clamp(col, 0, len(s) - 1)
+
+        def charClass(ch):
+            if not util.isWordBoundary(ch):
+                return 0
+            elif ch.isspace():
+                return 1
+            else:
+                return 2
+
+        cls = charClass(s[col])
+        start = col
+        end = col
+
+        while (start > 0) and (charClass(s[start - 1]) == cls):
+            start -= 1
+
+        while (end < (len(s) - 1)) and (charClass(s[end + 1]) == cls):
+            end += 1
+
+        self.setMark(line, start)
+        self.line = line
+        self.column = end
+
+    # select the whole element containing line, as on a triple click.
+    def selectElementAt(self, line):
+        self.clearAutoComp()
+
+        first, last = self.getElemIndexesFromLine(line)
+
+        self.setMark(first, 0)
+        self.line = last
+        self.column = len(self.lines[last].text)
+
     def insertForcedLineBreakCmd(self, cs):
         u = undo.ManyElems(self, undo.CMD_MISC, self.line, 1, 1)
 
@@ -3104,8 +4617,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.addUndo(u)
 
     def splitElementCmd(self, cs):
+        if self.isAutoCompPartial():
+            self.acceptAutoComp(cs)
+
+            return
+
+        # with a selection, splitElement only clears it
+        hadMark = bool(self.mark)
+
         tcfg = self.cfgGl.getType(self.lines[self.line].lt)
         self.splitElement(tcfg.newTypeEnter)
+
+        if not hadMark:
+            self.offerAutoComp(cs)
 
     def setMarkCmd(self, cs):
         self.setMark(self.line, self.column)
@@ -3118,12 +4642,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             return
 
+        if self.isAutoCompPartial():
+            self.acceptAutoComp(cs)
+
+            return
+
         tcfg = self.cfgGl.getType(self.lines[self.line].lt)
 
         if self.tabMakesNew():
             self.splitElement(tcfg.newTypeTab)
         else:
             self.convertTypeTo(tcfg.nextTypeTab, True)
+
+        self.offerAutoComp(cs)
 
     # switch current element to prevTypeTab.
     def toPrevTypeTabCmd(self, cs):
@@ -3134,6 +4665,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         tcfg = self.cfgGl.getType(self.lines[self.line].lt)
         self.convertTypeTo(tcfg.prevTypeTab, True)
+        self.offerAutoComp(cs)
 
     # add character cs.char if it's a valid one.
     def addCharCmd(self, cs):
@@ -3214,8 +4746,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     if doIt:
                         s = util.replace(s, "I", self.column - 1, 1)
 
+        style, isSet = self.getTypingStyle()
+        ln = ls[self.line]
+        fmt = ln.getFmt() if (ln.fmt or style) else None
+
         s = s[: self.column] + char + s[self.column :]
-        ls[self.line].text = s
+
+        if fmt is None:
+            ln.text = s
+        else:
+            ln.setText(
+                s, fmt[: self.column] + textfmt.char(style) + fmt[self.column :]
+            )
+
         self.column += 1
 
         tmp = s.upper()
@@ -3228,10 +4771,14 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             and self.isOnlyLineOfElem(self.line)
         ):
             ls[self.line].lt = PAREN
-            ls[self.line].text = "()"
+            ls[self.line].setText("()")
 
         self.rewrapPara()
         self.markChanged()
+
+        # keep typing in the style that was set
+        if isSet:
+            self.typingStyle = (self.line, self.column, style)
 
         cs.doAutoComp = cs.AC_REDO
 
@@ -3241,6 +4788,86 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             u.setAfter(self)
             self.addUndo(u)
 
+    # return (style, isSet) for text typed at the cursor: the style set
+    # with toggleFormat at this cursor position (isSet = True), or else
+    # that of the character before the cursor in the same paragraph.
+    def getTypingStyle(self):
+        ts = self.typingStyle
+
+        if ts and (ts[0] == self.line) and (ts[1] == self.column):
+            return (ts[2], True)
+
+        ls = self.lines
+        ln = ls[self.line]
+
+        if self.column > 0:
+            return (textfmt.styleAt(ln.fmt, self.column - 1), False)
+
+        if (self.line > 0) and (ls[self.line - 1].lb in (LB_SPACE, LB_NONE)):
+            prev = ls[self.line - 1]
+
+            return (textfmt.styleAt(prev.fmt, len(prev.text) - 1), False)
+
+        return (0, False)
+
+    # return the formatting bits (textfmt.BOLD etc.) that are on for the
+    # selected text, i.e. that all of it has, or with nothing selected,
+    # that text typed at the cursor would get
+    def getFormatState(self):
+        marked = self.getMarkedLines()
+
+        if not marked:
+            return self.getTypingStyle()[0]
+
+        style = textfmt.ALL
+        empty = True
+
+        for i in range(marked[0], marked[1] + 1):
+            c1, c2 = self.getMarkedColumns(i, marked)
+
+            for c in self.lines[i].getFmt()[c1 : c2 + 1]:
+                style &= ord(c) - 48
+                empty = False
+
+        return 0 if empty else style
+
+    # toggle a formatting bit (textfmt.BOLD etc.) on the selected text:
+    # set it if any of it doesn't have it, otherwise clear it. with
+    # nothing selected, toggles it for text typed at the cursor. the
+    # selection stays as it is.
+    def toggleFormat(self, bit):
+        marked = self.getMarkedLines()
+
+        if not marked:
+            style = self.getTypingStyle()[0] ^ bit
+            self.typingStyle = (self.line, self.column, style)
+
+            return
+
+        ls = self.lines
+
+        # whether all the selected text has the bit already
+        allSet = bool(self.getFormatState() & bit)
+
+        u = undo.AnyDifference(self)
+
+        for i in range(marked[0], marked[1] + 1):
+            c1, c2 = self.getMarkedColumns(i, marked)
+            ln = ls[i]
+            fmt = ln.getFmt()
+            part = "".join(
+                textfmt.char(
+                    ((ord(c) - 48) & ~bit) if allSet else ((ord(c) - 48) | bit)
+                )
+                for c in fmt[c1 : c2 + 1]
+            )
+            ln.fmt = textfmt.compact(fmt[:c1] + part + fmt[c2 + 1 :])
+
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
     def toSceneCmd(self, cs):
         self.convertTypeTo(SCENE, True)
 
@@ -3248,7 +4875,11 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         self.convertTypeTo(ACTION, True)
 
     def toCharacterCmd(self, cs):
+        hadMark = bool(self.mark)
         self.convertTypeTo(CHARACTER, True)
+
+        if not hadMark:
+            self.offerAutoComp(cs)
 
     def toDialogueCmd(self, cs):
         self.convertTypeTo(DIALOGUE, True)
@@ -3410,6 +5041,13 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             if ln.lb == LB_NONE:
                 assert not ln.text.endswith(" ")
 
+            # format strings go with the text exactly, and are None if
+            # there's no formatting
+            if ln.fmt is not None:
+                assert len(ln.fmt) == len(ln.text)
+                assert ln.fmt == textfmt.compact(ln.fmt)
+                assert not ln.fmt.strip("01234567")
+
             if prevType:
                 assert ln.lt == prevType
 
@@ -3430,12 +5068,51 @@ class Mark:
         return (self.line == other.line) and (self.column == other.column)
 
 
+# return True if s is a valid scene color: six hex digits, "rrggbb"
+def isValidColor(s):
+    return re.fullmatch("[0-9a-fA-F]{6}", s) is not None
+
+
 # data held in internal clipboard.
 class ClipData:
     def __init__(self):
 
         # list of Line objects
         self.lines = []
+
+
+# one entry (a scene or an act break) in a script's outline. see
+# Screenplay.getOutline.
+class OutlineItem:
+    def __init__(
+        self, lt, sceneNr, startLine, endLine, heading, summary, page, color=None
+    ):
+
+        # SCENE or ACTBREAK
+        self.lt = lt
+
+        # scene number as a string, or "" for act breaks
+        self.sceneNr = sceneNr
+
+        # range of lines covered, inclusive
+        self.startLine = startLine
+        self.endLine = endLine
+
+        # text of the scene heading / act break element
+        self.heading = heading
+
+        # text of the first note in the scene, or if there are none, the
+        # first action element. "" if neither exists.
+        self.summary = summary
+
+        # label of the page the item starts on, e.g. "16" or "15A"
+        self.page = page
+
+        # color to show the item with in the outline ("rrggbb"), or None
+        self.color = color
+
+    def __eq__(self, other):
+        return isinstance(other, OutlineItem) and (self.__dict__ == other.__dict__)
 
 
 # stuff we need when handling commands in Screenplay.

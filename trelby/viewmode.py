@@ -9,10 +9,14 @@ import trelby.util as util
 # number to use with the layout mode margins we have.
 MAX_JUMP_DISTANCE = 17
 
+# extra space (pixels) above the first page, for the button that opens
+# the title pages dialog (drawn by MyCtrl.OnPaint)
+TITLE_BUTTON_H = 44
+
 
 # a piece of text on screen.
 class TextString:
-    def __init__(self, line, text, x, y, fi, isUnderlined):
+    def __init__(self, line, text, x, y, fi, isUnderlined, fmt=None):
 
         # if this object is a screenplay line, this is the index of the
         # corresponding line in the Screenplay.lines list. otherwise this
@@ -27,6 +31,10 @@ class TextString:
         self.text = text
         self.fi = fi
         self.isUnderlined = isUnderlined
+
+        # format string for bold / italic / underlined parts of the text
+        # (see textfmt), or None
+        self.fmt = fmt
 
 
 # a page shown on screen.
@@ -117,8 +125,9 @@ class ViewMode:
     def pos2linecolGeneric(self, ctrl, x, y):
         sel = None
         lineh = self.getLineHeight(ctrl)
+        texts = self.getScreen(ctrl, False, True)[0]
 
-        for t in self.getScreen(ctrl, False, True)[0]:
+        for t in texts:
             if t.line == -1:
                 continue
 
@@ -129,6 +138,12 @@ class ViewMode:
 
         if sel == None:
             return (None, None)
+
+        # the two columns of a dual dialogue share rows, so use the
+        # rightmost line on the row that starts left of x
+        for t in texts:
+            if (t.line != -1) and (t.y == sel.y) and (sel.x < t.x <= x):
+                sel = t
 
         line = sel.line
         l = ctrl.sp.lines[line]
@@ -212,7 +227,7 @@ class ViewModeDraft(ViewMode):
 
         marginLeft = int(ctrl.mm2p * cfg.marginLeft)
         cox = util.clamp((width - ctrl.pageW) // 2, 0)
-        fyd = ctrl.sp.cfgGl.fontYdelta
+        fyd = cfgGui.fontYdelta
         length = len(ls)
 
         texts = []
@@ -237,15 +252,17 @@ class ViewModeDraft(ViewMode):
             fi = cfgGui.tt2fi(tcfg.screen)
 
             extraIndent = 1 if ctrl.sp.needsExtraParenIndent(i) else 0
+            extraIndent += ctrl.sp.getCenterOffset(i)
 
             texts.append(
                 TextString(
                     i,
                     text,
-                    cox + marginLeft + (tcfg.indent + extraIndent) * fi.fx,
+                    int(cox + marginLeft + (tcfg.indent + extraIndent) * fi.fx),
                     y,
                     fi,
                     tcfg.screen.isUnderlined,
+                    l.fmt,
                 )
             )
 
@@ -255,7 +272,7 @@ class ViewModeDraft(ViewMode):
         return (texts, [])
 
     def getLineHeight(self, ctrl):
-        return ctrl.sp.cfgGl.fontYdelta
+        return ctrl.getCfgGui().fontYdelta
 
     def getPageWidth(self, ctrl):
         # this is not really used for much in draft mode, as it has no
@@ -322,6 +339,9 @@ class ViewModeLayout(ViewMode):
                 else:
                     y = pageGap
 
+                    if pageNr == 1:
+                        y += TITLE_BUTTON_H
+
                 break
             else:
                 topOfPage = False
@@ -367,9 +387,11 @@ class ViewModeLayout(ViewMode):
 
                 y = max(y, ypos)
 
-                if (y >= height) or (not partials and ((ypos + fontY) > height)):
+                # keep going, since the right-hand column of a dual
+                # dialogue comes after the left one but starts higher up
+                if (ypos >= height) or (not partials and ((ypos + fontY) > height)):
                     done = True
-                    break
+                    continue
 
                 texts.append(
                     TextString(
@@ -379,6 +401,7 @@ class ViewModeLayout(ViewMode):
                         ypos,
                         cfgGui.fonts[op.flags & 3],
                         op.flags & pml.UNDERLINED,
+                        op.fmt,
                     )
                 )
 
@@ -448,6 +471,11 @@ class ViewModeSideBySide(ViewMode):
 
         pagesDone = 0
 
+        # top of the row of pages
+        sy = pageGap
+        if pageNr == 1:
+            sy += TITLE_BUTTON_H
+
         while 1:
             if (pagesDone >= pageCnt) or (pageNr >= len(ctrl.sp.pages)):
                 break
@@ -465,7 +493,6 @@ class ViewModeSideBySide(ViewMode):
                 break
 
             sx = pageGap + pagesDone * (ctrl.pageW + pageGap)
-            sy = pageGap
 
             dp = DisplayPage(pageNr, sx, sy, sx + ctrl.pageW, sy + ctrl.pageH)
             dpages.append(dp)
@@ -482,6 +509,7 @@ class ViewModeSideBySide(ViewMode):
                         int(sy + op.y * mm2p),
                         cfgGui.fonts[op.flags & 3],
                         op.flags & pml.UNDERLINED,
+                        op.fmt,
                     )
                 )
 

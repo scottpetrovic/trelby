@@ -39,7 +39,7 @@ class AutoCompletionDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        vsizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        vsizer.Add(gutil.Separator(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
         self.enabledCb = wx.CheckBox(self, -1, _("Auto-completion enabled"))
         self.Bind(wx.EVT_CHECKBOX, self.OnMisc, id=self.enabledCb.GetId())

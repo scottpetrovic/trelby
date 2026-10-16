@@ -1,0 +1,61 @@
+import tests.u as u
+import trelby.titles as titles
+import trelby.translations as translations
+
+_ = translations.trelby_translations_load()
+
+
+def titleLines(s):
+    # the title page is everything before the first blank line
+    return s.split("\n\n")[0].split("\n")
+
+
+def scriptWithTitles(*strings):
+    sp = u.new()
+    page = [titles.TitleString(["MY SCRIPT"], y=80.0, isBold=True)]
+    for i, items in enumerate(strings):
+        page.append(titles.TitleString(items, y=100.0 + i * 10))
+    sp.titles.pages = [page]
+
+    return sp
+
+
+# the fixture has "by" and the author as separate title strings
+def testLoneByTakesAuthorFromNextString():
+    lines = titleLines(u.load().generateFountain())
+
+    assert lines[0] == "Title: THE KOALA INCIDENT"
+    assert lines[1] == "Author: Anonymous Person"
+    assert "Contact: Anonymous Person" not in lines
+    assert "Contact: Sample script for Trelby." in lines
+    assert "Contact: All rights reserved." in lines
+
+
+# Trelby's default title page: "by", blank line, author in one string
+def testByAndAuthorInOneString():
+    sp = u.new()
+    sp.titles.addDefaults()
+    lines = titleLines(sp.generateFountain())
+
+    assert lines[0] == "Title: UNTITLED SCREENPLAY"
+    assert lines[1] == "Author: My Name Here"
+    assert "Contact: My Name Here" not in lines
+
+
+def testByAndAuthorWithoutBlankLine():
+    lines = titleLines(scriptWithTitles(["by", "Jane Doe"]).generateFountain())
+
+    assert lines[1] == "Author: Jane Doe"
+
+
+def testMultipleAuthors():
+    sp = scriptWithTitles(["by", "", "Jane Doe", "John Doe"])
+    lines = titleLines(sp.generateFountain())
+
+    assert lines[1:4] == ["Author:", "    Jane Doe", "    John Doe"]
+
+
+def testLoneByAsLastString():
+    lines = titleLines(scriptWithTitles(["by"]).generateFountain())
+
+    assert lines == ["Title: MY SCRIPT"]

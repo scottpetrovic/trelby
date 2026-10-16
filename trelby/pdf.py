@@ -7,6 +7,7 @@ from reportlab.pdfgen.canvas import Canvas
 
 import trelby.pml as pml
 import trelby.pml as util
+import trelby.textfmt as textfmt
 
 # PDF transform matrixes where key is the angle from x-axis
 # in counter-clockwise direction.
@@ -20,6 +21,48 @@ TRANSFORM_MATRIX = {
 def generate(doc: "pml.Document") -> bytes:
     tmp = PDFExporter(doc)
     return tmp.generate()
+
+
+# return the characters in doc's text that its fonts can't show, sorted
+# and without duplicates, as a string. the standard PDF fonts (used when
+# no TrueType font is set for a style) only have the WinAnsi (cp1252)
+# characters. reportlab draws others with a fallback font: Greek letters
+# come out in the proportional Symbol font, most others as black boxes.
+def unsupportedChars(doc: "pml.Document") -> str:
+    chars = set()
+
+    for page in doc.pages:
+        for op in page.ops:
+            if not isinstance(op, pml.TextOp) or op.text.isascii():
+                continue
+
+            if op.fmt and (op.angle is None):
+                runs = [
+                    (a, b, op.flags | (style & (pml.BOLD | pml.ITALIC)))
+                    for a, b, style in textfmt.runs(op.fmt, len(op.text))
+                ]
+            else:
+                runs = [(0, len(op.text), op.flags)]
+
+            for a, b, flags in runs:
+                if (flags & 15) in doc.fonts:
+                    continue
+
+                for ch in op.text[a:b]:
+                    if not isWinAnsi(ch):
+                        chars.add(ch)
+
+    return "".join(sorted(chars))
+
+
+# return True if ch is in the WinAnsi encoding of the standard PDF fonts
+def isWinAnsi(ch: str) -> bool:
+    try:
+        ch.encode("cp1252")
+    except UnicodeEncodeError:
+        return False
+
+    return True
 
 
 # An abstract base class for all PDF drawing operations.
@@ -78,19 +121,36 @@ class PDFTextOp(PDFDrawOp):
             else:
                 # unsupported angle, don't print it.
                 pass
+        elif pmlOp.fmt:
+            # bold / italic / underlined parts of the text are drawn
+            # separately, each in its own font
+            partX = x
+
+            for a, b, style in textfmt.runs(pmlOp.fmt, len(pmlOp.text)):
+                part = pmlOp.text[a:b]
+                flags = pmlOp.flags | (style & (pml.BOLD | pml.ITALIC))
+
+                if style & textfmt.UNDERLINED:
+                    flags |= pml.UNDERLINED
+
+                font = pe.getFontForFlags(flags)
+                canvas.setFont(font, pmlOp.size)
+                canvas.drawString(partX, y, part)
+
+                w = canvas.stringWidth(part, font, pmlOp.size)
+
+                if flags & pml.UNDERLINED:
+                    self.underline(canvas, partX, y, w, pmlOp.size)
+
+                partX += w
         else:
             canvas.drawString(x, y, pmlOp.text)
 
-        if pmlOp.flags & pml.UNDERLINED:
-
+        if (pmlOp.flags & pml.UNDERLINED) and not (
+            pmlOp.fmt and (pmlOp.angle is None)
+        ):
             undLen = canvas.stringWidth(pmlOp.text, newFont, pmlOp.size)
-
-            # all standard PDF fonts have the underline line 100 units
-            # below baseline with a thickness of 50
-            undY = y - 0.1 * pmlOp.size
-            canvas.setLineWidth(0.05 * pmlOp.size)
-
-            canvas.line(x, undY, x + undLen, undY)
+            self.underline(canvas, x, y, undLen, pmlOp.size)
 
         # create bookmark for table of contents if applicable
         if pmlOp.toc:
@@ -99,6 +159,17 @@ class PDFTextOp(PDFDrawOp):
             )  # we need a unique key to link the bookmark in toc – TODO: generate a more speaking one
             canvas.bookmarkHorizontal(bookmarkKey, pe.x(pmlOp.x), pe.y(pmlOp.y))
             canvas.addOutlineEntry(pmlOp.toc.text, bookmarkKey)
+
+
+    # underline text of width w drawn at (x, y) in the given font size
+    @staticmethod
+    def underline(canvas, x, y, w, size):
+        # all standard PDF fonts have the underline line 100 units below
+        # baseline with a thickness of 50
+        undY = y - 0.1 * size
+        canvas.setLineWidth(0.05 * size)
+
+        canvas.line(x, undY, x + w, undY)
 
 
 class PDFLineOp(PDFDrawOp):
@@ -262,11 +333,6 @@ class PDFExporter:
         canvas.setProducer("Trelby " + version)
         if self.doc.uniqueId:
             canvas.setKeywords(self.doc.uniqueId)
-
-        if doc.defPage != -1:
-            # canvas.addLiteral("/OpenAction [%d 0 R /XYZ null null 0]\n" % (self.pageObjs[0].nr + doc.defPage * 2)) # this should make the PDF reader open the PDF at the desired page
-            # TODO: This doesn't seem to be easily doable with reportlab. /OpenAction is considered a security threat by some (as it allows executing JavaScript), so I think it's unlikely they'll add support. Also, this feature didn't work with many PDF viewers anyway; I tested Evince, Okular and pdf.js in Firefox, and they all didn't support it. So maybe, we should remove this feature entirely?
-            pass
 
         numberOfPages: int = len(doc.pages)
 

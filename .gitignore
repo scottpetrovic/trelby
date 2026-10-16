@@ -4,6 +4,7 @@
 .trelby/
 *.trelby
 !tests/fixtures/*.trelby
+!/outline-sample.trelby
 .tox/
 MANIFEST
 .pybuild/

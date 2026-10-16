@@ -28,6 +28,9 @@ class GlobalData:
         VIEWMODE_SIDE_BY_SIDE,
     ) = list(range(3))
 
+    # available zoom levels, in percent
+    ZOOM_LEVELS = [50, 67, 75, 90, 100, 125, 150, 175, 200, 250, 300]
+
     def __init__(self):
 
         self.confFilename = misc.confPath + "/default.conf"
@@ -66,6 +69,11 @@ class GlobalData:
             self.VIEWMODE_DRAFT,
             self.VIEWMODE_SIDE_BY_SIDE,
         )
+
+        v.addInt("zoom", 100, "Zoom", self.ZOOM_LEVELS[0], self.ZOOM_LEVELS[-1])
+
+        v.addBool("showOutline", False, "ShowOutline")
+        v.addInt("outlineWidth", 240, "OutlineWidth", 120, 2000)
 
         v.addList("files", [], _("Files"), mypickle.StrUnicodeVar("", "", ""))
 
@@ -112,6 +120,17 @@ class GlobalData:
             self.vm = self.vmSideBySide
         else:
             self.vm = self.vmDraft
+
+    # return the zoom level 'step' levels away from the current one (1 =
+    # next larger, -1 = next smaller). the current zoom need not be one of
+    # ZOOM_LEVELS (the state file can be edited by hand).
+    def getZoomStep(self, step):
+        if step > 0:
+            larger = [z for z in self.ZOOM_LEVELS if z > self.zoom]
+            return larger[0] if larger else self.zoom
+        else:
+            smaller = [z for z in self.ZOOM_LEVELS if z < self.zoom]
+            return smaller[-1] if smaller else self.zoom
 
     # load from string 's'. does not throw any exceptions and silently
     # ignores any errors.

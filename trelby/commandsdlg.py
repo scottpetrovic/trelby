@@ -17,30 +17,73 @@ class CommandsDlg(wx.Frame):
         vsizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(vsizer)
 
+        htmlWin = wx.html.HtmlWindow(self)
+        rep = htmlWin.GetInternalRepresentation()
+        rep.SetIndent(0, wx.html.HTML_INDENT_BOTTOM)
+
+        # shown in the current theme's colors, but saved in light ones so
+        # the file looks normal in a browser
+        self.html = self.buildHtml(cfgGl, "#ffffff", "#000000", "#e8e8e8", "#a0a0a0")
+
+        bg = htmlWin.GetBackgroundColour()
+        fg = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
+        alt = bg.ChangeLightness(85 if bg.GetLuminance() > 0.5 else 125)
+        border = bg.ChangeLightness(60 if bg.GetLuminance() > 0.5 else 160)
+        htmlWin.SetPage(
+            self.buildHtml(
+                cfgGl,
+                bg.GetAsString(wx.C2S_HTML_SYNTAX),
+                fg.GetAsString(wx.C2S_HTML_SYNTAX),
+                alt.GetAsString(wx.C2S_HTML_SYNTAX),
+                border.GetAsString(wx.C2S_HTML_SYNTAX),
+            )
+        )
+        htmlWin.SetFocus()
+
+        vsizer.Add(htmlWin, 1, wx.EXPAND)
+
+        id = wx.NewIdRef()
+        menu = wx.Menu()
+        menu.Append(id, "&Save as...")
+
+        mb = wx.MenuBar()
+        mb.Append(menu, "&File")
+        self.SetMenuBar(mb)
+
+        self.Bind(wx.EVT_MENU, self.OnSave, id=id)
+
+        self.Layout()
+
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+
+    # return the commands list as an HTML page using the given colors
+    def buildHtml(self, cfgGl, bgColor, textColor, keyBgColor, borderColor):
         s = (
-            '<table border="1"><tr><td><b>' + _("Key(s)") + "</b></td>"
-            "<td><b>" + _("Command") + "</b></td></tr>"
+            '<table width="100%%" border="0" cellspacing="1" cellpadding="5"'
+            ' bgcolor="%s">'
+            '<tr><td width="30%%" bgcolor="%s"><b>%s</b></td>'
+            '<td bgcolor="%s"><b>%s</b></td></tr>'
+            % (borderColor, keyBgColor, _("Key(s)"), keyBgColor, _("Command"))
         )
 
         for cmd in cfgGl.commands:
-            s += '<tr><td bgcolor="#dddddd" valign="top">'
+            s += '<tr><td width="30%%" bgcolor="%s" valign="top">' % keyBgColor
 
             if cmd.keys:
-                for key in cmd.keys:
-                    k = util.Key.fromInt(key)
-                    s += "%s<br>" % xss.escape(k.toStr())
+                s += "<br>".join(
+                    xss.escape(util.Key.fromInt(key).toStr()) for key in cmd.keys
+                )
             else:
-                s += _("No key defined") + "<br>"
+                s += "<i>%s</i>" % _("No key defined")
 
-            s += '</td><td valign="top">'
-            s += "%s" % xss.escape(cmd.desc)
+            s += '</td><td bgcolor="%s" valign="top">' % bgColor
+            s += xss.escape(cmd.desc)
             s += "</td></tr>"
 
         s += "</table>"
 
-        self.html = (
-            """
-<html><head></head><body>
+        return """
+<html><head></head><body bgcolor="%s" text="%s">
 
 %s
 
@@ -57,31 +100,11 @@ F                      Find
 R                      Replace
 </pre>
 </body></html>
-        """
-            % s
+""" % (
+            bgColor,
+            textColor,
+            s,
         )
-
-        htmlWin = wx.html.HtmlWindow(self)
-        rep = htmlWin.GetInternalRepresentation()
-        rep.SetIndent(0, wx.html.HTML_INDENT_BOTTOM)
-        htmlWin.SetPage(self.html)
-        htmlWin.SetFocus()
-
-        vsizer.Add(htmlWin, 1, wx.EXPAND)
-
-        id = wx.NewId()
-        menu = wx.Menu()
-        menu.Append(id, "&Save as...")
-
-        mb = wx.MenuBar()
-        mb.Append(menu, "&File")
-        self.SetMenuBar(mb)
-
-        self.Bind(wx.EVT_MENU, self.OnSave, id=id)
-
-        self.Layout()
-
-        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
     def OnCloseWindow(self, event):
         self.Destroy()

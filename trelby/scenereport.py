@@ -1,12 +1,12 @@
 import trelby.misc as misc
-import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.screenplay as screenplay
+import trelby.textreport as textreport
 import trelby.util as util
 from trelby.pagelist import PageList
 
 
-class SceneReport:
+class SceneReport(textreport.TextReport):
     def __init__(self, sp):
         self.sp = sp
 
@@ -38,11 +38,7 @@ class SceneReport:
         for s in [_("Speakers")]:
             self.inf.append(misc.CheckBoxItem(s))
 
-    def generate(self) -> bytes:
-        tf = pml.TextFormatter(
-            self.sp.cfg.paperWidth, self.sp.cfg.paperHeight, 15.0, 12
-        )
-
+    def format(self, tf) -> None:
         for si in self.scenes:
             tf.addSpace(5.0)
 
@@ -65,7 +61,6 @@ class SceneReport:
                 for it in util.sortDict(si.chars):
                     tf.addText("     %3d  %s" % (it[1], it[0]))
 
-        return pdf.generate(tf.doc)
 
 
 # information about one scene
@@ -107,7 +102,7 @@ class SceneInfo:
         else:
             self.name = "(NO SCENE NAME)"
 
-        self.pages.addPage(sp.line2page(startLine))
+        self.pages.addPage(sp.line2pageLabel(startLine))
 
         line = startLine
 
@@ -126,7 +121,7 @@ class SceneInfo:
 
         # get number of action lines and store page information
         for i in range(startLine, endLine + 1):
-            self.pages.addPage(sp.line2page(i))
+            self.pages.addPage(sp.line2pageLabel(i))
 
             if ls[i].lt == screenplay.ACTION:
                 self.actionLines += 1

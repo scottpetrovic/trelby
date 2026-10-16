@@ -22,10 +22,6 @@ class PDFPanel(wx.Panel):
             _("Show table of contents on PDF open"), vsizer, pad
         )
 
-        self.openOnCurrentPageCb = self.addCb(
-            _("Open PDF on current page"), vsizer, pad
-        )
-
         self.removeNotesCb = self.addCb(_("Omit Note elements"), vsizer, pad)
 
         self.outlineNotesCb = self.addCb(
@@ -48,7 +44,6 @@ class PDFPanel(wx.Panel):
     def OnMisc(self, event=None):
         self.cfg.pdfIncludeTOC = self.includeTOCCb.GetValue()
         self.cfg.pdfShowTOC = self.showTOCCb.GetValue()
-        self.cfg.pdfOpenOnCurrentPage = self.openOnCurrentPageCb.GetValue()
         self.cfg.pdfRemoveNotes = self.removeNotesCb.GetValue()
         self.cfg.pdfOutlineNotes = self.outlineNotesCb.GetValue()
         self.cfg.pdfShowMargins = self.marginsCb.GetValue()
@@ -58,7 +53,6 @@ class PDFPanel(wx.Panel):
     def cfg2gui(self):
         self.includeTOCCb.SetValue(self.cfg.pdfIncludeTOC)
         self.showTOCCb.SetValue(self.cfg.pdfShowTOC)
-        self.openOnCurrentPageCb.SetValue(self.cfg.pdfOpenOnCurrentPage)
         self.removeNotesCb.SetValue(self.cfg.pdfRemoveNotes)
         self.outlineNotesCb.SetValue(self.cfg.pdfOutlineNotes)
         self.marginsCb.SetValue(self.cfg.pdfShowMargins)

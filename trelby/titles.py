@@ -3,6 +3,93 @@ import functools
 import trelby.pml as pml
 import trelby.util as util
 
+# kinds of title strings, in the order they're offered when adding one.
+# the kind is a label and a starting template (see makeString); it doesn't
+# affect the output.
+TITLE = "title"
+BYLINE = "byline"
+AUTHOR = "author"
+BASED_ON = "basedon"
+DRAFT = "draft"
+CONTACT = "contact"
+COPYRIGHT = "copyright"
+TEXT = "text"
+
+KINDS = [TITLE, BYLINE, AUTHOR, BASED_ON, DRAFT, CONTACT, COPYRIGHT, TEXT]
+
+# distance of the strings at the bottom of the page from the page edges,
+# in mm
+EDGE_X = 15.0
+BOTTOM_Y = 30.94
+
+
+# return a new TitleString of the given kind, with placeholder text and
+# typical formatting and position for that kind on a page of the given
+# size (in mm)
+def makeString(kind, paperWidth, paperHeight):
+    bottom = paperHeight - BOTTOM_Y
+
+    if kind == TITLE:
+        ts = TitleString(
+            ["UNTITLED SCREENPLAY"], y=105.0, size=24, isBold=True, font=pml.HELVETICA
+        )
+    elif kind == BYLINE:
+        ts = TitleString(["Written by", "", "Author Name"], y=120.46)
+    elif kind == AUTHOR:
+        ts = TitleString(["Author Name"], y=137.39)
+    elif kind == BASED_ON:
+        ts = TitleString(["Based on", "Source Material", "by Original Author"], y=150.0)
+    elif kind == DRAFT:
+        ts = TitleString(["First Draft", "Month Day, Year"], y=bottom, isCentered=False)
+        ts.x = paperWidth - EDGE_X
+        ts.isRightJustified = True
+    elif kind == CONTACT:
+        ts = TitleString(
+            ["Name", "Address", "Phone", "Email"], EDGE_X, bottom, isCentered=False
+        )
+    elif kind == COPYRIGHT:
+        ts = TitleString(["Copyright (c) Year"], y=bottom + 17.0, isCentered=False)
+        ts.x = paperWidth - EDGE_X
+        ts.isRightJustified = True
+    else:
+        kind = TEXT
+        ts = TitleString(["Text"], y=paperHeight / 2.0)
+
+    ts.kind = kind
+
+    return ts
+
+
+# return a guess at the kind of title string 'ts', for strings saved
+# before kinds existed. 'prev' is the kind of the string above it on the
+# page, or None.
+def guessKind(ts, prev):
+    text = " ".join(ts.items).strip().lower()
+    first = ts.items[0].strip().lower() if ts.items else ""
+
+    if (first == "by") or first.endswith(" by"):
+        return BYLINE
+
+    if text.startswith("based on"):
+        return BASED_ON
+
+    if ("draft" in text) or ("revision" in text):
+        return DRAFT
+
+    if any(w in text for w in ("copyright", "(c)", "©", "rights reserved", "wga")):
+        return COPYRIGHT
+
+    if ("@" in text) or (sum(ch.isdigit() for ch in text) >= 7):
+        return CONTACT
+
+    if ts.isCentered and (prev == BYLINE):
+        return AUTHOR
+
+    if ts.isCentered and (ts.isBold or (ts.size > 12)):
+        return TITLE
+
+    return TEXT
+
 
 # a script's title pages.
 class Titles:
@@ -18,16 +105,41 @@ class Titles:
         y = 105.0
         a.append(
             TitleString(
-                ["UNTITLED SCREENPLAY"], y=y, size=24, isBold=True, font=pml.HELVETICA
+                ["UNTITLED SCREENPLAY"],
+                y=y,
+                size=24,
+                isBold=True,
+                font=pml.HELVETICA,
+                kind=TITLE,
             )
         )
-        a.append(TitleString(["by", "", "My Name Here"], y=y + 15.46))
+        a.append(TitleString(["by", "", "My Name Here"], y=y + 15.46, kind=BYLINE))
 
         x = 15.0
         y = 240.0
-        a.append(TitleString(["123/456-7890", "no.such@thing.com"], x, y + 8.46, False))
+        a.append(
+            TitleString(
+                ["123/456-7890", "no.such@thing.com"],
+                x,
+                y + 8.46,
+                False,
+                kind=CONTACT,
+            )
+        )
 
         self.pages.append(a)
+
+    # set the kind of every title string that doesn't have one, by
+    # guessing from its text and formatting
+    def guessKinds(self):
+        for page in self.pages:
+            prev = None
+
+            for ts in sorted(page, key=lambda ts: ts.y):
+                if ts.kind is None:
+                    ts.kind = guessKind(ts, prev)
+
+                prev = ts.kind
 
     # add title pages to doc.
     def generatePages(self, doc):
@@ -72,7 +184,12 @@ class TitleString:
         isBold=False,
         size=12,
         font=pml.COURIER,
+        kind=None,
     ):
+
+        # what this string is (one of KINDS), or None if not known, for
+        # strings saved before kinds existed
+        self.kind = kind
 
         # list of text strings
         self.items = items
@@ -155,9 +272,9 @@ class TitleString:
             tmp = "\\fs%d" % (self.size * 2)
 
             if self.isCentered:
-                tmp += " \qc"
+                tmp += r" \qc"
             elif self.isRightJustified:
-                tmp += " \qr"
+                tmp += r" \qr"
 
             if self.isBold:
                 tmp += r" \b"
@@ -176,7 +293,10 @@ class TitleString:
     # and set object state accordingly. keeps default settings on any
     # errors, does not throw any exceptions.
     #
-    # sample of the format: '0.000000,70.000000,24,cb,Helvetica,,text here'
+    # sample of the format:
+    # '0.000000,70.000000,24,cb,Helvetica,title,text here'
+    #
+    # the kind field was empty and ignored before kinds existed.
     def load(self, s):
         a = util.fromUTF8(s).split(",", 6)
 
@@ -202,6 +322,7 @@ class TitleString:
         }
 
         self.font = tmp.get(a[4], pml.COURIER)
+        self.kind = a[5] if a[5] in KINDS else None
         self.items = util.unescapeStrings(a[6])
 
     def __str__(self):
@@ -224,6 +345,6 @@ class TitleString:
         else:
             s += "Times"
 
-        s += ",,%s" % util.escapeStrings(self.items)
+        s += ",%s,%s" % (self.kind or "", util.escapeStrings(self.items))
 
         return s

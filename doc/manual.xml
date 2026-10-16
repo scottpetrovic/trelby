@@ -317,14 +317,14 @@
 	shortcuts.</para>
 
 	<sect1>
-	  <title>Draft</title>
+	  <title>Continuous</title>
 
-	  <para>In 'Draft' mode, the text area consists of an empty background
+	  <para>In 'Continuous' mode, the text area consists of an empty background
 	  with the script's text drawn on top. This text includes only actual
 	  script contents, so page headers, CONTINUED/(MORE) and other
 	  automatically added texts are not shown at all. Page breaks, if
 	  enabled, are shown as a horizontal line (see <xref
-	  linkend="display_cfg"/>).</para>
+	  linkend="draft_cfg"/>).</para>
 
 	  <para>Reasons you might want to use this mode:</para>
 
@@ -355,9 +355,9 @@
 	</sect1>
 
 	<sect1>
-	  <title>Layout</title>
+	  <title>Page</title>
 
-	  <para>'Layout' mode shows an almost exact representation of the page
+	  <para>'Page' mode shows an almost exact representation of the page
 	  as it would appear when printed. Page borders, margins, headers,
 	  CONTINUED/(MORE) and so on are all shown at their correct
 	  places.</para>
@@ -396,7 +396,7 @@
 	  <para>'Side by side' mode shows multiple pages side by side, as many
 	  as fit on your screen. You need to use a high resolution display
 	  and/or small fonts in order to fit more than one page on the screen
-	  at a time. Otherwise this mode is the same as the 'Layout'
+	  at a time. Otherwise this mode is the same as the 'Page'
 	  mode.</para>
 
 	  <para>Note that this mode also assumes that the entire pages fit
@@ -428,33 +428,25 @@
 	</sect1>
 
 	<sect1>
-	  <title>File/Print (via PDF)</title>
+	  <title>File/Export/Watermarked PDF</title>
 
-	  <para>This opens up the current script in your configured PDF viewer
-	  program, from which you can print it, or just see what it looks
-	  like.</para>
+	  <para>This allows you to generate multiple watermarked PDFs to
+	  distribute to multiple people. Watermarks are handy when you want to
+	  let your readers know overtly that the script is meant only for their
+	  viewing, and is not to be distributed.</para>
 
-	</sect1>
+	  <para>Enter details like directory, filename prefix, and watermark
+	  font size. You can have two lines of watermarks per file, and the
+	  first line is common in all files. The second line for each file
+	  is provided as a list under the "Watermarks" entry box.</para>
 
-	<sect1 id="globcfg_menu">
-	  <title>File/Settings/(Change|Load|Save as)</title>
+	  <para>The watermark in the PDF is applied as slanted text, in light
+	  grey color, as part of the background of the page. The watermark is
+	  applied on every page.</para>
 
-	  <para>These allow you to edit/load/save global settings (see <xref
-	  linkend="settings"/>).</para>
-
-	  <para>By default, &trelby; loads settings from a file named
-	  "default.conf" on startup. See <xref linkend="cmdparams"/> for
-	  customizing this.</para>
-
-	</sect1>
-
-	<sect1>
-	  <title>File/Settings/Spell checker dictionary</title>
-
-	  <para>This opens a dialog allowing you to edit the global spell
-	  checker user-defined dictionary. Insert new words by entering them
-	  on separate lines, or delete existing words by deleting the lines
-	  they are on.</para>
+	  <para>A unique ID is also saved in the 'Keywords' metadata
+	  of the PDF file, as a second source of identification of a PDF
+	  (if it is leaked with only the watermark removed).</para>
 
 	</sect1>
 
@@ -595,6 +587,45 @@
 
 	</sect1>
 
+	<sect1 id="globcfg_menu">
+	  <title>Edit/Settings</title>
+
+	  <para>This opens the global settings dialog (see <xref
+	  linkend="settings"/>), which also lets you load and save settings
+	  files and edit the global spell checker dictionary.</para>
+
+	  <para>By default, &trelby; loads settings from a file named
+	  "default.conf" on startup. See <xref linkend="cmdparams"/> for
+	  customizing this.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>View/Outline</title>
+
+	  <para>This toggles the outline view, a panel to the left of the
+	  script listing every scene and act break with its scene number,
+	  the page it starts on, and a short summary. The summary is the text
+	  of the first note in the scene, or if there are none, the first
+	  action element. The current scene is highlighted as you move
+	  around in the script, and you can drag the divider to make the
+	  panel wider or narrower.</para>
+
+	  <para>Click a scene to jump to it, or press Enter or double-click to
+	  jump to it and continue editing there.</para>
+
+	  <para>To reorder scenes, drag a scene onto the row whose place it
+	  should take; the scenes in between shift by one to make room.
+	  Dragging past the top or bottom of the list scrolls it, and
+	  pressing Escape or releasing the mouse outside the list cancels the
+	  move. 'Move up' and 'Move down' (or Ctrl+Up and Ctrl+Down in the
+	  list) swap the selected scene with the one before or after it.
+	  Either way, everything in the scene moves along with it. Anything
+	  before the first scene heading, such as 'FADE IN:', stays where it
+	  is. Moving scenes can be undone like any other edit.</para>
+
+	</sect1>
+
 	<sect1>
 	  <title>View/Show formatting</title>
 
@@ -624,155 +655,13 @@
 	</sect1>
 
 	<sect1>
-	  <title>Script/Find next error</title>
+	  <title>Script/Script settings</title>
 
-	  <para>'Find next error' searches through the script, starting from
-	  the cursor position, looking for errors. This means that to search
-	  the entire script for errors you should first position the cursor at
-	  the beginning of the script.</para>
-
-	  <para>If it finds any errors, it positions the cursor on the line
-	  containing the error and displays a message detailing the error. You
-	  should fix the error, back up a few lines, and activate the command
-	  again to search for more errors. Alternatively, if you don't want to
-	  fix the error right now, move the cursor down one line if you want
-	  to search for more errors.</para>
-
-	  <para>It can detect the following errors:</para>
-
-	  <itemizedlist>
-
-		<listitem>
-
-		  <para>An empty line, or a parenthetical element containing only
-		  ().</para>
-
-		</listitem>
-
-		<listitem>
-
-		  <para>A character element that is not followed by a
-		  parenthetical or a dialogue element.</para>
-
-		</listitem>
-
-		<listitem>
-
-		  <para>A parenthetical element that does not follow a character or
-		  a dialogue element.</para>
-
-		</listitem>
-
-		<listitem>
-
-		  <para>A dialogue element that does not follow a character or a
-			parenthetical element.</para>
-
-		</listitem>
-
-		<listitem>
-
-		  <para>Various error conditions that can only arise from bugs in
-		  the program. This includes things like overlong lines, elements
-		  that have lines with different element types, invalid characters
-		  in the script, etc. You should never find any of these errors,
-		  but if you do, you should try to fix them before saving the
-		  script, otherwise you might not be able to load it again. You
-		  should also notify us about the problem so we can fix it.</para>
-
-		  <para>The messages for these all say "(BUG)" at the end so they
-		  can be identified from normal errors.</para>
-
-		</listitem>
-
-	  </itemizedlist>
-
-	</sect1>
-
-	<sect1>
-	  <title>Script/Paginate</title>
-
-	  <para>'Paginate' simply repaginates the script. You normally don't
-	  need to run this if you have automatic repagination enabled, but the
-	  command is available for use when automatic repagination is disabled
-	  or you want immediate repagination for some reason.</para>
-
-	</sect1>
-
-	<sect1 id="autocomp">
-	  <title>Scripts/Auto-completion</title>
-
-	  <para>Here you can define items to be added to the auto-completion
-	  lists for Scene, Character and Transition elements, and optionally
-	  disable auto-completion for any one of them.</para>
-
-	  <para>Transition auto-completes are pretty generic so by default
-	  there are a few of them here, but the Scene and Character lists are
-	  empty. The main use for them are TV shows, where you have a
-	  recurring cast of characters and locations, and it's nice to have
-	  them always available, even if they haven't yet been used in the
-	  current episode's script.</para>
-
-	</sect1>
-
-	<sect1>
-	  <title>Script/Headers</title>
-
-	  <para>'Headers' allows you to edit your script's headers. Headers
-	  are lines that are automatically added to the top of each page of
-	  the script, excluding title pages and the first page of the actual
-	  script.</para>
-
-	  <para>Topmost in the window is a setting for how many empty lines
-	  you want inserted after your header lines.</para>
-
-	  <para>After that is a listbox of all the strings in your headers.
-	  Select the text string you want to edit in this listbox, and use the
-	  add/delete buttons to add/delete text strings.</para>
-
-	  <para>Below the listbox are the settings for the selected string.
-	  You can adjust the string text, style, alignment, line and
-	  positioning.</para>
-
-	  <para>The text is first positioned according to the alignment
-	  setting, and then its horizontal starting position is adjusted by
-	  the number of characters given in 'X offset'. Note that this
-	  parameter can be negative, so for example, if you want your header
-	  string to start 2 characters before the left margin, select
-	  'Alignment: Left' and 'X offset: -2'.</para>
-
-	  <para>Any occurrences of '${PAGE}' in the text string will be
-	  replaced by the page number in the actual headers.</para>
-
-	  <para>Finally there are 'Preview' and 'Apply' buttons that you can
-	  use to preview your changes. 'Preview' opens up a sample page in
-	  your PDF viewer program, while 'Apply' applies the new headers to
-	  the open script, so you can e.g. see how the page count of the
-	  script would change.</para>
-
-	</sect1>
-
-	<sect1 id="locations_dlg">
-	  <title>Scripts/Locations</title>
-
-	  <para>This dialog allows you to define what scenes are part of the
-	  same location (see <xref linkend="location_rep"/>). The top listbox
-	  shows locations, separated by lines of "-----------", while the
-	  bottom listbox shows scenes not part of a user-specified location.
-	  In the middle are 'Add' and 'Delete' buttons for moving scenes
-	  between the two listboxes. The bottom listbox allows you to select
-	  many scenes at once.</para>
-
-	  <para>An example of how to use this dialog: select the scenes "INT.
-	  MOTEL ROOM - DAY", "INT. MOTEL ROOM - DAY - LATER" and "INT. MOTEL
-	  ROOM - NIGHT" in the bottom listbox, then click 'Add' which adds
-	  those three into a single location in the top listbox. Then, if you
-	  want to add more scenes to the same location, make sure one of the
-	  scenes for the location is selected in the top listbox, select the
-	  new scenes you want to add in the bottom listbox, and click 'Add'.
-	  If you want to add scenes to a new location, select one of the
-	  "-----------" lines in the top listbox as the destination before
-	  clicking 'Add'.</para>
+	  <para>This edits the script format settings (see
+	  <xref linkend="format_settings"/>): paper size, element formatting,
+	  PDF output and so on. The 'Load' and 'Save as' buttons load the
+	  settings from, or save them to, a script settings file (.sconf), so
+	  you can use the same format for several scripts.</para>
 
 	</sect1>
 
@@ -840,7 +729,84 @@
 	</sect1>
 
 	<sect1>
-	  <title>Script/Spell checker dictionary</title>
+	  <title>Script/Page headers</title>
+
+	  <para>'Page headers' allows you to edit your script's headers. Headers
+	  are lines that are automatically added to the top of each page of
+	  the script, excluding title pages and the first page of the actual
+	  script.</para>
+
+	  <para>Topmost in the window is a setting for how many empty lines
+	  you want inserted after your header lines.</para>
+
+	  <para>After that is a listbox of all the strings in your headers.
+	  Select the text string you want to edit in this listbox, and use the
+	  add/delete buttons to add/delete text strings.</para>
+
+	  <para>Below the listbox are the settings for the selected string.
+	  You can adjust the string text, style, alignment, line and
+	  positioning.</para>
+
+	  <para>The text is first positioned according to the alignment
+	  setting, and then its horizontal starting position is adjusted by
+	  the number of characters given in 'X offset'. Note that this
+	  parameter can be negative, so for example, if you want your header
+	  string to start 2 characters before the left margin, select
+	  'Alignment: Left' and 'X offset: -2'.</para>
+
+	  <para>Any occurrences of '${PAGE}' in the text string will be
+	  replaced by the page number in the actual headers.</para>
+
+	  <para>Finally there are 'Preview' and 'Apply' buttons that you can
+	  use to preview your changes. 'Preview' opens up a sample page in
+	  your PDF viewer program, while 'Apply' applies the new headers to
+	  the open script, so you can e.g. see how the page count of the
+	  script would change.</para>
+
+	</sect1>
+
+	<sect1 id="locations_dlg">
+	  <title>Script/Locations</title>
+
+	  <para>This dialog allows you to define what scenes are part of the
+	  same location (see <xref linkend="location_rep"/>). The top listbox
+	  shows locations, separated by lines of "-----------", while the
+	  bottom listbox shows scenes not part of a user-specified location.
+	  In the middle are 'Add' and 'Delete' buttons for moving scenes
+	  between the two listboxes. The bottom listbox allows you to select
+	  many scenes at once.</para>
+
+	  <para>An example of how to use this dialog: select the scenes "INT.
+	  MOTEL ROOM - DAY", "INT. MOTEL ROOM - DAY - LATER" and "INT. MOTEL
+	  ROOM - NIGHT" in the bottom listbox, then click 'Add' which adds
+	  those three into a single location in the top listbox. Then, if you
+	  want to add more scenes to the same location, make sure one of the
+	  scenes for the location is selected in the top listbox, select the
+	  new scenes you want to add in the bottom listbox, and click 'Add'.
+	  If you want to add scenes to a new location, select one of the
+	  "-----------" lines in the top listbox as the destination before
+	  clicking 'Add'.</para>
+
+	</sect1>
+
+	<sect1 id="autocomp">
+	  <title>Script/Auto-completion</title>
+
+	  <para>Here you can define items to be added to the auto-completion
+	  lists for Scene, Character and Transition elements, and optionally
+	  disable auto-completion for any one of them.</para>
+
+	  <para>Transition auto-completes are pretty generic so by default
+	  there are a few of them here, but the Scene and Character lists are
+	  empty. The main use for them are TV shows, where you have a
+	  recurring cast of characters and locations, and it's nice to have
+	  them always available, even if they haven't yet been used in the
+	  current episode's script.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Script/Script dictionary</title>
 
 	  <para>This opens a dialog allowing you to edit the script-specific
 	  spell checker dictionary. Insert new words by entering them on
@@ -850,10 +816,25 @@
 	</sect1>
 
 	<sect1>
-	  <title>Script/Settings/(Change|Load|Save as)</title>
+	  <title>Script/Paginate</title>
 
-	  <para>These allow you to edit/load/save script format settings (see
-	  <xref linkend="format_settings"/>).</para>
+	  <para>'Paginate' simply repaginates the script. You normally don't
+	  need to run this if you have automatic repagination enabled, but the
+	  command is available for use when automatic repagination is disabled
+	  or you want immediate repagination for some reason.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Script/Lock pages, Script/Unlock pages</title>
+
+	  <para>'Lock pages' locks every page to start where it starts now,
+	  with its current page number. After that, adding text creates
+	  A-pages (12A, 12B, ...) instead of moving text onto later pages, and
+	  removing text leaves gaps instead of pulling text back. This is
+	  normally done once a script goes into production. Locking again also
+	  locks any A-pages created since. 'Unlock pages' removes the locks and
+	  repaginates the script normally.</para>
 
 	</sect1>
 
@@ -940,6 +921,72 @@
 	</sect1>
 
 	<sect1>
+	  <title>Tools/Find next error</title>
+
+	  <para>'Find next error' searches through the script, starting from
+	  the cursor position, looking for errors. This means that to search
+	  the entire script for errors you should first position the cursor at
+	  the beginning of the script.</para>
+
+	  <para>If it finds any errors, it positions the cursor on the line
+	  containing the error and displays a message detailing the error. You
+	  should fix the error, back up a few lines, and activate the command
+	  again to search for more errors. Alternatively, if you don't want to
+	  fix the error right now, move the cursor down one line if you want
+	  to search for more errors.</para>
+
+	  <para>It can detect the following errors:</para>
+
+	  <itemizedlist>
+
+		<listitem>
+
+		  <para>An empty line, or a parenthetical element containing only
+		  ().</para>
+
+		</listitem>
+
+		<listitem>
+
+		  <para>A character element that is not followed by a
+		  parenthetical or a dialogue element.</para>
+
+		</listitem>
+
+		<listitem>
+
+		  <para>A parenthetical element that does not follow a character or
+		  a dialogue element.</para>
+
+		</listitem>
+
+		<listitem>
+
+		  <para>A dialogue element that does not follow a character or a
+			parenthetical element.</para>
+
+		</listitem>
+
+		<listitem>
+
+		  <para>Various error conditions that can only arise from bugs in
+		  the program. This includes things like overlong lines, elements
+		  that have lines with different element types, invalid characters
+		  in the script, etc. You should never find any of these errors,
+		  but if you do, you should try to fix them before saving the
+		  script, otherwise you might not be able to load it again. You
+		  should also notify us about the problem so we can fix it.</para>
+
+		  <para>The messages for these all say "(BUG)" at the end so they
+		  can be identified from normal errors.</para>
+
+		</listitem>
+
+	  </itemizedlist>
+
+	</sect1>
+
+	<sect1>
 	  <title>Tools/Name database</title>
 
 	  <para>'Name database' opens a window allowing you browse and search
@@ -1012,29 +1059,6 @@
 	  separated by two gray lines.</para>
 
 	</sect1>
-
-    <sect1>
-      <title>Tools/Generate watermarked PDFs</title>
-
-      <para>This tool allows you to generate multiple watermarked PDFs to
-      distribute to multiple people. Watermarks are handy when you want to
-      let your readers know overtly that the script is meant only for their
-      viewing, and is not to be distributed.</para>
-
-      <para>Enter details like directory, filename prefix, and watermark
-      font size. You can have two lines of watermarks per file, and the
-      first line is common in all files. The second line for each file
-      is provided as a list under the "Watermarks" entry box.</para>
-
-      <para>The watermark in the PDF is applied as slanted text, in light
-      grey color, as part of the background of the page. The watermark is
-      applied on every page.</para>
-
-      <para>A unique ID is also saved in the 'Keywords' metadata
-      of the PDF file, as a second source of identification of a PDF
-      (if it is leaked with only the watermark removed).</para>
-
-    </sect1>
 
 	<sect1>
 	  <title>Help/Commands</title>
@@ -1109,7 +1133,7 @@
 	  <title>Global settings</title>
 
 	  <para>The global settings dialog is found under
-	  File/Settings/Change. It has a list of categories on the left, the
+	  Edit/Settings. It has a list of categories on the left, the
 	  selected category's settings on the right, and three buttons, Apply,
 	  Cancel and OK on the bottom. Apply updates the settings to the ones
 	  given in the dialog so you can easily preview your changes without
@@ -1117,18 +1141,108 @@
 	  effect, it only cancels changes that haven't yet been
 	  committed.</para>
 
+	  <para>The Load and Save as buttons on the bottom left load the
+	  dialog's settings from a file, or save them to one. Loaded settings
+	  take effect on Apply or OK, like any other change, and from then on
+	  changes are saved to that file.</para>
+
+	  <para>The global spell checker dictionary is edited with the Global
+	  dictionary button on the Misc page. Insert new words by entering
+	  them on separate lines, or delete existing words by deleting the
+	  lines they are on. Dictionary changes are saved as soon as you
+	  close its dialog with OK.</para>
+
 	  <para>The following sections detail the various settings.</para>
 
 	  <sect2>
-		<title>Colors</title>
+		<title>Theme</title>
 
-		<para>Color configuration. These only affect the display, the PDF
-		output is always black on white.</para>
+		<para>Chooses the colors &trelby; uses on screen: Light, Dark,
+		Parchment, Solarized Light, Solarized Dark, Monokai, Dracula or
+		Nord. Each theme also gives scene headings, character names and
+		other element types their own text colors. 'System default' uses
+		Light or Dark, following the light or dark mode setting of your
+		operating system. Themes only affect the display, the PDF output is
+		always black on white.</para>
 
-		<para>The 'Use per-element-type colors' checkbox controls whether
-		to use the same text color for all element types (Text foreground)
-		or whether to use the per-element color settings (Text foreground
-		for Action, Text foreground for Character, etc.). </para>
+		<para>You can also make your own themes. A theme is a file
+		ending in .json in the 'themes' folder of the &trelby; settings
+		folder ('Trelby\conf\themes' in your user folder on Windows,
+		'~/.config/trelby/themes' on Linux). Click 'Open themes folder' to
+		open it. The easiest way to start is to pick the theme closest to
+		what you want and click 'Export...', which saves it as a theme file
+		in that folder, named after the file. Edit the file in any text
+		editor, then click 'Reload' to see your theme in the list. Themes
+		are also read when &trelby; starts.</para>
+
+		<para>A theme file looks like this (most colors left out):</para>
+
+		<screen>
+{
+    "name": "My Theme",
+    "dark": false,
+    "colors": {
+        "text": "#000000",
+        "textBg": "#ffffff",
+        "workspace": [237, 237, 237],
+        "scene": "#1e4b8c"
+    }
+}
+		</screen>
+
+		<variablelist>
+
+		  <varlistentry>
+			<term>name</term>
+			<listitem>
+
+			  <para>The name shown in the list. If left out, the file's
+			  name is used. It can't be the name of another theme. Your
+			  choice of theme is saved by name, so if you remove a theme
+			  file, System default is used until it's back.</para>
+
+			</listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+			<term>dark</term>
+			<listitem>
+
+			  <para>true if the theme is dark, so that the rest of
+			  &trelby; (menus, dialogs and toolbar icons) uses its dark
+			  appearance too, false if not.</para>
+
+			</listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+			<term>colors</term>
+			<listitem>
+
+			  <para>Each color is either "#rrggbb" in hexadecimal, as in
+			  web pages, or [red, green, blue] with values from 0 to 255.
+			  These colors are required: text, textHdr (page headers),
+			  textBg (the page), workspace (around the pages), pageBorder,
+			  pageShadow, selected, cursor, autoCompFg and autoCompBg (the
+			  auto-completion list), note (the background of notes),
+			  pagebreak, pagebreakNoAdjust, tabText, tabBorder, tabBarBg and
+			  tabNonActiveBg.</para>
+
+			  <para>These are optional: the text colors of scene, action,
+			  character, dialogue, parenthetical, transition, shot,
+			  actBreak and noteText, which default to text; and accent and
+			  accentText, for the selected item in lists, which go
+			  together and default to the operating system's highlight
+			  colors.</para>
+
+			</listitem>
+		  </varlistentry>
+
+		</variablelist>
+
+		<para>A theme file with an error, such as a missing color or a
+		misspelled color name, is skipped, and the Theme page says what is
+		wrong with it.</para>
 
 	  </sect2>
 
@@ -1139,11 +1253,19 @@
 		want to use for normal, bold, italic, and bold + italic text. Note
 		that you should use the same size font for each one.</para>
 
-		<para>(Draft view mode only) The row spacing setting affects how
-		many pixels there are between each row. It has an effect only in
-		the 'Draft' view mode.</para>
+	  </sect2>
 
-		<para>(Draft view mode only) The 'Page break lines to show'
+	  <sect2 id="draft_cfg">
+		<title>Continuous Mode</title>
+
+		<para>These settings have an effect only in the 'Continuous' view
+		mode.</para>
+
+		<para>The row spacing setting affects how many pixels there are
+		between each row. Changing the screen font on the Display page
+		resets it to suit the new font.</para>
+
+		<para>The 'Page break lines to show'
 		setting affects how page breaks are shown. If you select 'None',
 		they are not shown at all. 'Normal', you see solid gray lines in
 		the scripts indicating actual page break positions. 'Normal +
@@ -1197,16 +1319,6 @@
 		the default directory for File/Open dialog on program
 		startup.</para>
 
-		<para>You can specify what application you want to use as your PDF
-		viewer. On Windows, this is usually Adobe Acrobat, and the path is
-		something like "C:\Program Files\Adobe\Acrobat
-		7.0\Reader\AcroRd32.exe". On Linux, you can also use Adobe
-		Acrobat, path being something like
-		"/usr/local/Adobe/Acrobat7.0/bin/acroread".</para>
-
-		<para>You can also specify arguments to give to the PDF viewer
-		program.</para>
-
 		<para>'Auto-capitalize sentences', if on, auto-capitalizes
 		sentences as you write them. If it capitalizes something you don't
 		want capitalized, write another letter, and then replace the
@@ -1230,17 +1342,13 @@
         removed and replaced with the character entered whenever a key is
         pressed and there's an active selection.</para>
 
-		<para>'Check script for errors before print, export or compare',
-		if checked, causes the program to run 'Script/Find next error' for
-		the entire script automatically before print/export/compare
+		<para>'Check script for errors before export or compare',
+		if checked, causes the program to run 'Tools/Find next error' for
+		the entire script automatically before export/compare
 		operations. This is to avoid printing 100 pages and then finding
 		there's an error on one of them, fixing of which causes
 		repagination of the entire script, and having to print all the 100
 		pages again.</para>
-
-		<para>'Show splash screen for X seconds' can be used to customize
-		for how long to show the splash screen on startup for, or to
-		disable showing it completely.</para>
 
 		<para>'Auto-paginate interval' defines how often to repaginate the
 		script automatically. If you have a particularly slow machine, you
@@ -1255,12 +1363,28 @@
 
 	  </sect2>
 
+	  <sect2 id="pdf_gcfg">
+		<title>PDF</title>
+
+		<para>You can specify what application you want to use as your PDF
+		viewer. On Windows, this is usually Adobe Acrobat, and the path is
+		something like "C:\Program Files\Adobe\Acrobat
+		7.0\Reader\AcroRd32.exe". On Linux, you can also use Adobe
+		Acrobat, path being something like
+		"/usr/local/Adobe/Acrobat7.0/bin/acroread". The Guess button tries
+		to find an installed viewer for you.</para>
+
+		<para>You can also specify arguments to give to the PDF viewer
+		program.</para>
+
+	  </sect2>
+
 	</sect1>
 
 	<sect1 id="format_settings">
 	  <title>Script format settings</title>
 
-	  <para>Script format settings are found in Script/Settings/Change. It
+	  <para>Script format settings are found in Script/Script settings. It
 	  has the same Apply/Cancel/OK buttons as the global settings
 	  dialog.</para>
 
@@ -1346,7 +1470,7 @@
 		<title>PDF</title>
 
 		<para>Here you can configure parameters affecting the generation
-		of the PDF file for printing or exporting.</para>
+		of the PDF file for exporting.</para>
 
 		<para>'Add table of contents', if on, will cause the PDF file to
 		have a table of contents listing all the scenes. Note that this is
@@ -1356,16 +1480,6 @@
 		<para>'Show table of contents on PDF open', if on, will cause the
 		table of contents to be shown by default when opening the PDF
 		file.</para>
-
-		<para>'Open PDF on current page', if on, will insert a command
-		into the PDF file telling the PDF viewer application to show the
-		current page when opening the file. Not all PDF viewer
-		applications support this command. Note that this only affects PDF
-		files generated through the File/Print command, File/Export
-		command isn't affected by this. If you really want to generate a
-		permanent PDF file opening on a non-standard page, use File/Print
-		and save the PDF file from the PDF viewer application to a
-		different name.</para>
 
 		<para>'Omit Note elements', if on, will cause all Note elements to
 		be omitted from the PDF output.</para>
@@ -1779,8 +1893,8 @@ Something starts beeping.
 	  <para>You can export the script in PDF, RTF, formatted ASCII, HTML,
       Final Draft XML (.fdx) and Fountain (.fountain) format.</para>
 
-	  <para>All are found in the File/Export dialog, which allows you to
-	  choose which one to export as. If you export as a text file, &trelby;
+	  <para>Each has its own entry in the File/Export menu. To print the
+	  script, export it as PDF and print that. If you export as a text file, &trelby;
 	  will ask whether you want the page markers included or not. If
 	  you're planning on importing the script to some other program, you
 	  shouldn't include them, otherwise you probably should.</para>

@@ -74,7 +74,7 @@ class FindDlg(wx.Dialog):
         self.extraLabel = wx.StaticText(self, -1, _("Search in:"))
         vsizer.Add(self.extraLabel)
 
-        self.elements = wx.CheckListBox(self, -1)
+        self.elements = gutil.ThemedListBox(self, -1, checkable=True)
 
         # sucky wxMSW doesn't support client data for checklistbox items,
         # so we have to store it ourselves
@@ -226,14 +226,10 @@ class FindDlg(wx.Dialog):
         if flag:
             self.moreButton.SetLabel(_("<<< Less"))
             pos = self.elements.GetPosition()
-
-            # don't know of a way to get the vertical spacing of items in
-            # a wx.CheckListBox, so estimate it at font height + 5 pixels,
-            # which is close enough on everything I've tested.
             h = (
                 pos.y
-                + len(self.elementTypes)
-                * (util.getFontHeight(self.elements.GetFont()) + 5)
+                + len(self.elementTypes) * self.elements.list.rowHeight
+                + 2
                 + 15
             )
         else:
@@ -408,8 +404,8 @@ class FindDlg(wx.Dialog):
         sp = self.ctrl.sp
         u = undo.SinglePara(sp, undo.CMD_MISC, self.searchLine)
 
-        ls[self.searchLine].text = util.replace(
-            ls[self.searchLine].text, value, self.searchColumn, self.searchWidth
+        ls[self.searchLine].replaceText(
+            self.searchColumn, self.searchWidth, util.toInputStr(value)
         )
 
         sp.rewrapPara(sp.getParaFirstIndexFromLine(self.searchLine))

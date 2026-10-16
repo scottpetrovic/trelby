@@ -1,23 +1,19 @@
 import trelby.characterreport as characterreport
 import trelby.config as config
-import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.scenereport as scenereport
 import trelby.screenplay as screenplay
+import trelby.textreport as textreport
 import trelby.util as util
 
 
-class ScriptReport:
+class ScriptReport(textreport.TextReport):
     def __init__(self, sp):
         self.sp = sp
         self.sr = scenereport.SceneReport(sp)
         self.cr = characterreport.CharacterReport(sp)
 
-    def generate(self) -> bytes:
-        tf = pml.TextFormatter(
-            self.sp.cfg.paperWidth, self.sp.cfg.paperHeight, 15.0, 12
-        )
-
+    def format(self, tf) -> None:
         ls = self.sp.lines
 
         total = len(ls)
@@ -107,4 +103,3 @@ class ScriptReport:
 
         tf.addText(_("Speaking characters") + ": %d" % len(self.cr.cinfo))
 
-        return pdf.generate(tf.doc)

@@ -8,6 +8,7 @@ import trelby.misc as misc
 import trelby.mypickle as mypickle
 import trelby.pml as pml
 import trelby.screenplay as screenplay
+import trelby.themes as themes
 import trelby.util as util
 from trelby.error import ConfigError
 
@@ -59,6 +60,90 @@ PBI_REAL_AND_UNADJ = 2
 
 # for range checking above value
 PBI_FIRST, PBI_LAST = PBI_NONE, PBI_REAL_AND_UNADJ
+
+# the name of the "System default" theme setting, which uses themes.LIGHT or
+# themes.DARK following the operating system
+THEME_SYSTEM = ""
+
+# the theme names saved as Appearance:N by older versions, indexed by N
+_oldAppearances = [
+    THEME_SYSTEM,
+    "Light",
+    "Dark",
+    "Parchment",
+    "Solarized Light",
+    "Solarized Dark",
+    "Monokai",
+    "Dracula",
+    "Nord",
+]
+
+# key = line type, value = the name of its text color in a theme
+_lt2themeElem = {
+    screenplay.SCENE: "scene",
+    screenplay.ACTION: "action",
+    screenplay.CHARACTER: "character",
+    screenplay.DIALOGUE: "dialogue",
+    screenplay.PAREN: "parenthetical",
+    screenplay.TRANSITION: "transition",
+    screenplay.SHOT: "shot",
+    screenplay.ACTBREAK: "actBreak",
+    screenplay.NOTE: "noteText",
+}
+
+
+# the folder custom theme files are read from
+def themesDir():
+    return os.path.join(misc.confPath, "themes")
+
+
+# (re)load the custom themes from themesDir. returns a list of error
+# messages for the files that were skipped.
+def loadCustomThemes():
+    return themes.loadCustom(themesDir())
+
+
+# the themes.Theme the given theme setting names, or None for the system
+# default. a theme that doesn't exist (e.g. a custom theme whose file has
+# been removed) also gives the system default, while the setting keeps the
+# name in case the theme comes back.
+def findTheme(name):
+    if name == THEME_SYSTEM:
+        return None
+
+    return themes.find(name)
+
+
+# make the application use the given theme setting. the colors we draw
+# ourselves are picked up by the next ConfigGui created.
+def applyAppearance(name):
+    theme = findTheme(name)
+
+    if theme is None:
+        a = wx.App.Appearance.System
+    elif theme.dark:
+        a = wx.App.Appearance.Dark
+    else:
+        a = wx.App.Appearance.Light
+
+    wx.GetApp().SetAppearance(a)
+
+
+# whether the application is currently using a dark theme
+def isDarkAppearance():
+    return wx.SystemSettings.GetAppearance().IsDark()
+
+
+# the themes.Theme for the given theme setting. must be called after
+# applyAppearance.
+def getTheme(name):
+    theme = findTheme(name)
+
+    if theme is None:
+        return themes.DARK if isDarkAppearance() else themes.LIGHT
+
+    return theme
+
 
 # constants for identifying PDFFontInfos
 PDF_FONT_NORMAL = "Normal"
@@ -503,7 +588,6 @@ class Config:
         v.addBool("pdfShowTOC", True, "ShowTOC")
 
         # whether to open PDF document on current page
-        v.addBool("pdfOpenOnCurrentPage", True, "OpenOnCurrentPage")
 
         # whether to remove Note elements in PDF output
         v.addBool("pdfRemoveNotes", False, "RemoveNotes")
@@ -595,6 +679,31 @@ class Config:
 
     def getType(self, lt):
         return self.types[lt]
+
+    # return (indent, width) of element type lt (character, parenthetical
+    # or dialogue) in the given column (1 = left, 2 = right) of a dual
+    # dialogue. the action width is split into two columns, and each
+    # column gets the same layout as a normal speech, scaled down so that
+    # dialogue fills the column.
+    def getDualIndentWidth(self, lt, col):
+        action = self.types[screenplay.ACTION]
+        dlg = self.types[screenplay.DIALOGUE]
+
+        gap = 2
+        colWidth = (action.width - gap) // 2
+        dlgWidth = max(5, colWidth - 2)
+
+        x = action.indent + (0 if col == 1 else colWidth + gap)
+
+        if lt == screenplay.DIALOGUE:
+            return (x, dlgWidth)
+
+        t = self.types[lt]
+        offset = round(max(0, t.indent - dlg.indent) * dlgWidth / dlg.width)
+        width = round(t.width * dlgWidth / dlg.width)
+        width = max(5, min(width, colWidth - offset))
+
+        return (x + offset, width)
 
     # get a PDFFontInfo object for the given font type (PDF_FONT_*)
     def getPDFFont(self, fontType):
@@ -743,6 +852,11 @@ class ConfigGlobal:
                 ),
                 Command("CharacterMap", _("Open the character map."), isMenu=True),
                 Command(
+                    "CharacterProfilesDlg",
+                    _("Open the character profiles dialog."),
+                    isMenu=True,
+                ),
+                Command(
                     "CloseScript",
                     _("Close the current script."),
                     [util.Key(23, ctrl=True).toInt()],
@@ -789,6 +903,15 @@ class ConfigGlobal:
                 Command(
                     "DeleteElements",
                     _("Open the 'Delete elements' dialog."),
+                    isMenu=True,
+                ),
+                Command(
+                    "DualDialogue",
+                    _(
+                        "Turn dual dialogue on or off for the current speech"
+                        " and the one before it."
+                    ),
+                    [util.Key(4, ctrl=True).toInt()],
                     isMenu=True,
                 ),
                 Command("ExportScript", _("Export the current script."), isMenu=True),
@@ -1097,8 +1220,44 @@ class ConfigGlobal:
                 ),
                 Command("TitlesDlg", _("Open the titles dialog."), isMenu=True),
                 Command(
+                    "ToggleBold",
+                    _("Make the selected text, or the text typed next, bold or not."),
+                    [util.Key(2, ctrl=True).toInt()],
+                    isMenu=True,
+                ),
+                Command(
+                    "ToggleCentered",
+                    _("Center the current action element, or stop centering it."),
+                    isMenu=True,
+                ),
+                Command(
+                    "ToggleItalic",
+                    _(
+                        "Make the selected text, or the text typed next, italic"
+                        " or not."
+                    ),
+                    # CTRL+I comes in as the same key code as CTRL+Tab, so
+                    # it's only a menu accelerator (see MyFrame), which
+                    # sees the two apart
+                    isMenu=True,
+                ),
+                Command(
+                    "ToggleOutline",
+                    _("Show or hide the outline view."),
+                    isMenu=True,
+                ),
+                Command(
                     "ToggleShowFormatting",
                     _("Toggle 'Show formatting' display."),
+                    isMenu=True,
+                ),
+                Command(
+                    "ToggleUnderline",
+                    _(
+                        "Make the selected text, or the text typed next,"
+                        " underlined or not."
+                    ),
+                    [util.Key(21, ctrl=True).toInt()],
                     isMenu=True,
                 ),
                 Command(
@@ -1108,16 +1267,44 @@ class ConfigGlobal:
                     isFixed=True,
                     isMenu=True,
                 ),
-                Command("ViewModeDraft", _("Change view mode to draft."), isMenu=True),
                 Command(
-                    "ViewModeLayout", _("Change view mode to layout."), isMenu=True
+                    "ViewModeDraft", _("Change view mode to continuous."), isMenu=True
+                ),
+                Command(
+                    "ViewModeLayout", _("Change view mode to page."), isMenu=True
                 ),
                 Command(
                     "ViewModeSideBySide",
                     _("Change view mode to side by side."),
                     isMenu=True,
                 ),
-                Command("Watermark", _("Generate watermarked PDFs."), isMenu=True),
+                Command("Watermark", _("Export the current script as watermarked PDFs."), isMenu=True),
+                Command(
+                    "WorldBuildingDlg",
+                    _("Open the world building dialog."),
+                    isMenu=True,
+                ),
+                Command(
+                    "ZoomIn",
+                    _("Zoom in."),
+                    [util.Key(ord("="), ctrl=True).toInt()],
+                    isFixed=True,
+                    isMenu=True,
+                ),
+                Command(
+                    "ZoomOut",
+                    _("Zoom out."),
+                    [util.Key(ord("-"), ctrl=True).toInt()],
+                    isFixed=True,
+                    isMenu=True,
+                ),
+                Command(
+                    "ZoomReset",
+                    _("Reset zoom to 100%."),
+                    [util.Key(ord("0"), ctrl=True).toInt()],
+                    isFixed=True,
+                    isMenu=True,
+                ),
             ]
         )
 
@@ -1126,17 +1313,25 @@ class ConfigGlobal:
     def setupVars(self):
         v = self.__class__.cvars = mypickle.Vars()
 
-        # how many seconds to show splash screen for on startup (0 = disabled)
-        v.addInt("splashTime", 2, "SplashTime", 0, 10)
-
         # vertical distance between rows, in pixels
         v.addInt("fontYdelta", 18, "FontYDelta", 4, 125)
+
+        # size of the toolbar icons, in pixels (before DPI scaling)
+        v.addInt("toolbarIconSize", 20, "ToolbarIconSize", 16, 48)
+
+        # application theme: the name of a built-in or custom theme, or
+        # THEME_SYSTEM
+        v.addStrUnicode("theme", THEME_SYSTEM, "Theme")
 
         # how many lines to scroll per mouse wheel event
         v.addInt("mouseWheelLines", 4, "MouseWheelLines", 1, 50)
 
         # interval in seconds between automatic pagination (0 = disabled)
         v.addInt("paginateInterval", 1, "PaginateInterval", 0, 10)
+
+        # interval in minutes between writing recovery copies of modified
+        # scripts (0 = disabled)
+        v.addInt("autosaveInterval", 2, "AutosaveInterval", 0, 60)
 
         # whether to check script for errors before export / print
         v.addBool("checkOnExport", True, "CheckScriptForErrors")
@@ -1156,12 +1351,18 @@ class ConfigGlobal:
         # whether to overwrite selected text on typing
         v.addBool("overwriteSelectionOnInsert", True, "OverwriteSelectionOnInsert")
 
-        # whether to use per-elem-type colors (textSceneColor etc.)
-        # instead of using textColor for all elem types
-        v.addBool("useCustomElemColors", False, "UseCustomElemColors")
-
         # page break indicators to show
         v.addInt("pbi", PBI_REAL, "PageBreakIndicators", PBI_FIRST, PBI_LAST)
+
+        # whether to run the MCP server that lets AI assistants read and
+        # edit the open scripts (see mcpapp.py), and the localhost port it
+        # listens on. the default port must match mcpserver.DEFAULT_PORT.
+        v.addBool("mcpEnabled", False, "MCP/Enabled")
+        v.addInt("mcpPort", 7789, "MCP/Port", 1024, 65535)
+
+        # whether to show PDFs in the built-in viewer (where the platform
+        # supports it) instead of the external viewer program below
+        v.addBool("pdfUseBuiltinViewer", True, "PDF/UseBuiltinViewer")
 
         # PDF viewer program and args. defaults are empty since generating
         # them is a complex process handled by findPDFViewer.
@@ -1177,62 +1378,19 @@ class ConfigGlobal:
         # default script directory
         v.addStrUnicode("scriptDir", misc.progPath, "DefaultScriptDirectory")
 
-        # colors
-        v.addColor("text", 0, 0, 0, "TextFG", _("Text foreground"))
-        v.addColor(
-            "textHdr", 128, 128, 128, "TextHeadersFG", _("Text foreground (headers)")
-        )
-        v.addColor("textBg", 255, 255, 255, "TextBG", _("Text background"))
-        v.addColor("workspace", 237, 237, 237, "Workspace", _("Workspace"))
-        v.addColor("pageBorder", 202, 202, 202, "PageBorder", _("Page border"))
-        v.addColor("pageShadow", 153, 153, 153, "PageShadow", _("Page shadow"))
-        v.addColor("selected", 200, 200, 200, "Selected", _("Selection"))
-        v.addColor("cursor", 135, 135, 253, "Cursor", _("Cursor"))
-        v.addColor(
-            "autoCompFg", 0, 0, 0, "AutoCompletionFG", _("Auto-completion foreground")
-        )
-        v.addColor(
-            "autoCompBg",
-            255,
-            240,
-            168,
-            "AutoCompletionBG",
-            _("Auto-completion background"),
-        )
-        v.addColor("note", 255, 237, 223, "ScriptNote", _("Script note"))
-        v.addColor("pagebreak", 221, 221, 221, "PageBreakLine", _("Page-break line"))
-        v.addColor(
-            "pagebreakNoAdjust",
-            221,
-            221,
-            221,
-            "PageBreakNoAdjustLine",
-            _("Page-break (original, not adjusted) line"),
-        )
-
-        v.addColor("tabText", 50, 50, 50, "TabText", _("Tab text"))
-        v.addColor("tabBorder", 202, 202, 202, "TabBorder", _("Tab border"))
-        v.addColor("tabBarBg", 221, 217, 215, "TabBarBG", _("Tab bar background"))
-        v.addColor(
-            "tabNonActiveBg", 180, 180, 180, "TabNonActiveBg", _("Tab, non-active")
-        )
-
-        for t in getTIs():
-            v.addColor(
-                "text%s" % t.name,
-                0,
-                0,
-                0,
-                "Text%sFG" % t.name,
-                _("Text foreground for {}").format(t.name),
-            )
-
         v.makeDicts()
 
     # load config from string 's'. does not throw any exceptions, silently
     # ignores any errors, and always leaves config in an ok state.
     def load(self, s):
         vals = self.cvars.makeVals(s)
+
+        # older versions saved the theme as Appearance:N
+        if ("Theme" not in vals) and ("Appearance" in vals):
+            n = util.str2int(vals["Appearance"], 0)
+
+            if 0 <= n < len(_oldAppearances):
+                vals["Theme"] = _oldAppearances[n]
 
         self.cvars.load(vals, "", self)
 
@@ -1383,7 +1541,9 @@ class ConfigGui:
     redColor = None
     blackColor = None
 
-    def __init__(self, cfgGl):
+    # zoom is the screen zoom level in percent; it scales the fonts and
+    # the draft mode line spacing.
+    def __init__(self, cfgGl, zoom=100):
 
         if not ConfigGui.constantsInited:
             ConfigGui.bluePen = wx.Pen(wx.Colour(0, 0, 255))
@@ -1392,17 +1552,21 @@ class ConfigGui:
 
             ConfigGui.constantsInited = True
 
-        # convert cfgGl.MyColor -> cfgGui.wx.Colour
-        for it in cfgGl.cvars.color.values():
-            c = getattr(cfgGl, it.name)
-            tmp = wx.Colour(c.r, c.g, c.b)
-            setattr(self, it.name, tmp)
+        theme = getTheme(cfgGl.theme)
+
+        # the theme setting's themes.Theme, None for the system default, to
+        # tell when the theme needs applying again (see applyGlobalCfg)
+        self.themeChoice = findTheme(cfgGl.theme)
+
+        # the theme's colors, e.g. "textBg" -> self.textBgColor
+        for name in themes.COLORS:
+            setattr(self, name + "Color", wx.Colour(*theme.colors[name]))
 
         # key = line type, value = wx.Colour
-        self._lt2textColor = {}
-
-        for t in getTIs():
-            self._lt2textColor[t.lt] = getattr(self, "text%sColor" % t.name)
+        self._lt2textColor = {
+            lt: wx.Colour(*theme.elementColor(elem))
+            for lt, elem in _lt2themeElem.items()
+        }
 
         self.textPen = wx.Pen(self.textColor)
         self.textHdrPen = wx.Pen(self.textHdrColor)
@@ -1425,10 +1589,39 @@ class ConfigGui:
         self.noteBrush = wx.Brush(self.noteColor)
         self.notePen = wx.Pen(self.noteColor)
 
-        self.autoCompPen = wx.Pen(self.autoCompFgColor)
+        # the theme's accent color, for the selected item in lists and
+        # toolbars we draw ourselves: the system's highlight color, unless
+        # the theme has its own
+        if "accent" in theme.colors:
+            self.accentColor = wx.Colour(*theme.colors["accent"])
+            self.accentTextColor = wx.Colour(*theme.colors["accentText"])
+        else:
+            self.accentColor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+            self.accentTextColor = wx.SystemSettings.GetColour(
+                wx.SYS_COLOUR_HIGHLIGHTTEXT
+            )
+        self.accentBrush = wx.Brush(self.accentColor)
+        self.accentPen = wx.Pen(self.accentColor)
+
         self.autoCompBrush = wx.Brush(self.autoCompBgColor)
-        self.autoCompRevPen = wx.Pen(self.autoCompBgColor)
-        self.autoCompRevBrush = wx.Brush(self.autoCompFgColor)
+
+        # border and scroll bar, a third of the way from the background to
+        # the text
+        fg, bg = self.autoCompFgColor, self.autoCompBgColor
+        self.autoCompBorderColor = wx.Colour(
+            *[(2 * b + f) // 3 for f, b in zip(fg.Get(False), bg.Get(False))]
+        )
+        self.autoCompBorderPen = wx.Pen(self.autoCompBorderColor)
+        self.autoCompBorderBrush = wx.Brush(self.autoCompBorderColor)
+
+        # the selected item: the accent color blended into the background,
+        # like the current scene in the outline, so the text stays as is
+        ac = self.accentColor
+        self.autoCompSelColor = wx.Colour(
+            *[int(b * 0.8 + a * 0.2) for a, b in zip(ac.Get(False), bg.Get(False))]
+        )
+        self.autoCompSelBrush = wx.Brush(self.autoCompSelColor)
+        self.autoCompSelPen = wx.Pen(self.autoCompSelColor)
 
         self.pagebreakPen = wx.Pen(self.pagebreakColor)
         self.pagebreakNoAdjustPen = wx.Pen(self.pagebreakNoAdjustColor, style=wx.DOT)
@@ -1480,12 +1673,15 @@ class ConfigGui:
             if not fi.font:
                 fi.font = wx.Font(
                     10,
-                    wx.MODERN,
-                    wx.NORMAL,
-                    wx.NORMAL,
+                    wx.FONTFAMILY_MODERN,
+                    wx.FONTSTYLE_NORMAL,
+                    wx.FONTWEIGHT_NORMAL,
                     encoding=wx.FONTENCODING_ISO8859_1,
                 )
                 setattr(cfgGl, fname, fi.font.GetNativeFontInfo().ToString())
+
+            if zoom != 100:
+                fi.font = fi.font.Scaled(zoom / 100.0)
 
             fx, fy = util.getTextExtent(fi.font, "O")
 
@@ -1493,6 +1689,9 @@ class ConfigGui:
             fi.fy = max(1, fy)
 
             self.fonts.append(fi)
+
+        # vertical distance between rows in draft mode, in pixels
+        self.fontYdelta = max(1, round(cfgGl.fontYdelta * zoom / 100.0))
 
     # TextType -> FontInfo
     def tt2fi(self, tt):
