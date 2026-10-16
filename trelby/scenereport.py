@@ -87,7 +87,7 @@ class SceneInfo:
 
     # read information for scene within given lines.
     def read(self, sp, startLine, endLine):
-        self.number = sp.getSceneNumber(startLine)
+        self.number = sp.getSceneNumber(startLine) or "0"
 
         ls = sp.lines
 

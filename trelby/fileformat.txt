@@ -288,6 +288,15 @@ line of a Scene or Act break element, and the outline view shows that
 scene (or act break) in this color. Ignored if the next line isn't the
 first line of such an element, or the value isn't valid.
 
+"Scene-Lock". Value: scene number. The scene numbers are locked, and the
+next line is the first line of a Scene element, which is numbered with
+this label. Labels are of the form "16" (a scene that existed when the
+scene numbers were locked), "15A", "15B", ... (scenes added after scene
+15) or "A1", "B1", ... (scenes added before scene 1). Scenes without one
+are numbered after the scene before them. Ignored if the next line isn't
+the first line of a Scene element, or the value isn't valid, or another
+scene before it already has the same label.
+
 "Centered". Value: empty. The next line is the first line of an Action
 element, and each of the element's lines is centered within the action
 width. Ignored if the next line isn't the first line of an Action

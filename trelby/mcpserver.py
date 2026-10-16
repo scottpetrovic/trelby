@@ -173,8 +173,9 @@ def makeServer(run, inApp):
     @server.tool(annotations=READ)
     async def list_scenes(*, path: Path) -> Result:
         """List the script's scenes and act breaks with their index,
-        heading, scene number, page and a short summary. Start here to find
-        a scene's index."""
+        heading, scene number (e.g. "12", or "12A" for a scene added after
+        scene numbers were locked), page and a short summary. Start here to
+        find a scene's index, which is not the same as its scene number."""
         return await run("list_scenes", {"path": path})
 
     @server.tool(annotations=READ)

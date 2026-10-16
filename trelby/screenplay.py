@@ -252,6 +252,11 @@ class Screenplay:
             if color:
                 output += "#Scene-Color %s\n" % color
 
+            sceneLock = self.getSceneLock(i)
+
+            if sceneLock:
+                output += "#Scene-Lock %s\n" % sceneLock
+
             if self.hasCenteredFlag(i):
                 output += "#Centered \n"
 
@@ -348,6 +353,9 @@ class Screenplay:
         # color to set on the next script line, or None
         color = None
 
+        # scene lock to set on the next script line, or None
+        sceneLock = None
+
         # formatting (as saved by textfmt.encode) to set on the next script
         # line, or None
         fmt = None
@@ -399,6 +407,11 @@ class Screenplay:
                 elif (key == "Scene-Color") and startSeen and isValidColor(val):
                     color = val.lower()
 
+                elif (
+                    (key == "Scene-Lock") and startSeen and pagelock.isValidScene(val)
+                ):
+                    sceneLock = val
+
                 elif (key == "Format") and startSeen:
                     fmt = val
 
@@ -441,6 +454,7 @@ class Screenplay:
 
                 line = Line(lb, lt, text, pageLock, dual, color)
                 line.centered = centered
+                line.sceneLock = sceneLock
 
                 if fmt:
                     line.fmt = textfmt.decode(fmt, len(text))
@@ -449,6 +463,7 @@ class Screenplay:
                 pageLock = None
                 dual = False
                 color = None
+                sceneLock = None
                 fmt = None
                 centered = False
 
@@ -1251,7 +1266,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     if cfg.pdfShowSceneNumbers:
                         self.addSceneNumbers(
                             pg,
-                            "%d" % pager.scene,
+                            pager.scene,
                             cfg.getType(SCENE).width,
                             y,
                             chX,
@@ -1375,14 +1390,15 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                 pager.sceneContNr = 0
 
                 if cfg.pdfShowSceneNumbers:
-                    pager.scene += 1
-                    self.addSceneNumbers(
-                        pg, "%d" % pager.scene, tcfg.width, y, chX, chY
-                    )
+                    if pager.sceneNrs is None:
+                        pager.sceneNrs = dict(self.getSceneLabels())
+
+                    pager.scene = pager.sceneNrs.get(i, "")
+                    self.addSceneNumbers(pg, pager.scene, tcfg.width, y, chX, chY)
 
                 if cfg.pdfIncludeTOC:
                     if cfg.pdfShowSceneNumbers:
-                        s = "%d %s" % (pager.scene, text)
+                        s = "%s %s" % (pager.scene, text)
                     else:
                         s = text
 
@@ -1653,11 +1669,13 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         wrappedLines = self.wrapLine(tmp, width)
 
-        # the dual flag and color stay on the first line of the element
+        # the dual flag, color and scene lock stay on the first line of
+        # the element
         firstOfElem = self.isFirstLineOfElem(line1)
         wrappedLines[0].dual = ls[line1].dual and firstOfElem
         wrappedLines[0].color = ls[line1].color if firstOfElem else None
         wrappedLines[0].centered = ls[line1].centered and firstOfElem
+        wrappedLines[0].sceneLock = ls[line1].sceneLock if firstOfElem else None
 
         ls[line1 : line2 + 1] = wrappedLines
 
@@ -2128,17 +2146,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         return (top, bottom)
 
-    # return scene number for the given line. if line is -1, return 0.
+    # return the number (e.g. "12" or "12A") of the scene the given line
+    # is in, i.e. that of the last scene heading at or before it, or ""
+    # if there is none (e.g. line is -1).
     def getSceneNumber(self, line):
-        ls = self.lines
-        sc = SCENE
-        scene = 0
+        ret = ""
 
-        for i in range(line + 1):
-            if (ls[i].lt == sc) and self.isFirstLineOfElem(i):
-                scene += 1
+        for start, label in self.getSceneLabels():
+            if start > line:
+                break
 
-        return scene
+            ret = label
+
+        return ret
 
     # return how many elements one must advance to get from element
     # containing line1 to element containing line2. line1 must be <=
@@ -2941,19 +2961,101 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     # return a list of all scene locations in a [(sceneNumber, startLine),
     # ...] format. if script does not start with a scene line, that scene
     # is not included in this list. note that the sceneNumber in the
-    # returned list is a string, not a number.
+    # returned list is a string, e.g. "12" or "12A".
     def getSceneLocations(self):
-        ls = self.lines
-        sc = SCENE
-        scene = 0
-        ret = []
+        return [(label, i) for i, label in self.getSceneLabels()]
 
-        for i in range(len(ls)):
-            if (ls[i].lt == sc) and self.isFirstLineOfElem(i):
-                scene += 1
-                ret.append((str(scene), i))
+    # return the first line of every scene heading element, in script
+    # order.
+    def getSceneStarts(self):
+        ls = self.lines
+
+        return [
+            i
+            for i in range(len(ls))
+            if (ls[i].lt == SCENE) and self.isFirstLineOfElem(i)
+        ]
+
+    # return the locked number of the scene heading element starting at
+    # line i, or None if it has none or line i isn't the first line of
+    # such an element.
+    def getSceneLock(self, i):
+        ln = self.lines[i]
+
+        if ln.sceneLock and (ln.lt == SCENE) and self.isFirstLineOfElem(i):
+            return ln.sceneLock
+
+        return None
+
+    # return {line: label} for the scene headings that have a locked
+    # number. if several have the same one (which editing can't cause),
+    # only the first one keeps it.
+    def getSceneLocks(self):
+        ret = {}
+        used = set()
+
+        for i in self.getSceneStarts():
+            label = self.lines[i].sceneLock
+
+            if label and pagelock.isValidScene(label) and (label not in used):
+                ret[i] = label
+                used.add(label)
 
         return ret
+
+    def hasSceneLocks(self):
+        return bool(self.getSceneLocks())
+
+    # return a list of (line, number) tuples for all scene headings, in
+    # script order. see pagelock.sceneLabels for how scenes are numbered
+    # once their numbers are locked.
+    def getSceneLabels(self):
+        starts = self.getSceneStarts()
+        locks = self.getSceneLocks()
+
+        labels = pagelock.sceneLabels(
+            len(starts),
+            {n: locks[i] for n, i in enumerate(starts) if i in locks},
+        )
+
+        return list(zip(starts, labels))
+
+    # lock the numbers of all scenes, so that adding scenes creates
+    # A-scenes (12A, 12B, ...) and deleting them leaves gaps instead of
+    # renumbering the scenes after them. if scenes are already locked,
+    # any A-scenes become locked as well.
+    def lockScenes(self):
+        labels = self.getSceneLabels()
+
+        if all(self.getSceneLock(i) == label for i, label in labels):
+            return
+
+        u = undo.FullCopy(self)
+
+        for ln in self.lines:
+            ln.sceneLock = None
+
+        for i, label in labels:
+            self.lines[i].sceneLock = label
+
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
+
+    def unlockScenes(self):
+        if not any(ln.sceneLock for ln in self.lines):
+            return
+
+        u = undo.FullCopy(self)
+
+        for ln in self.lines:
+            ln.sceneLock = None
+
+        self.markChanged()
+
+        u.setAfter(self)
+        self.addUndo(u)
 
     # return the first line of every scene heading and act break element,
     # in script order.
@@ -3032,7 +3134,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         ls = self.lines
         starts = self.getOutlineStarts()
         ret = []
-        scene = 0
+        sceneNrs = dict(self.getSceneLabels())
 
         for idx, start in enumerate(starts):
             if idx + 1 < len(starts):
@@ -3046,11 +3148,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             if self.cfg.getType(lt).screen.isCaps:
                 heading = util.upper(heading)
 
-            if lt == SCENE:
-                scene += 1
-                sceneNr = str(scene)
-            else:
-                sceneNr = ""
+            sceneNr = sceneNrs.get(start, "")
 
             note = None
             action = None
@@ -3476,6 +3574,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     color=self.getSceneColor(i) if (c1 == 0) else None,
                     centered=self.hasCenteredFlag(i) and (c1 == 0),
                     fmt=ln.sliceFmt(c1, c2 + 1),
+                    sceneLock=self.getSceneLock(i) if (c1 == 0) else None,
                 )
             )
 
@@ -3583,6 +3682,11 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         u = undo.AnyDifference(self)
 
+        # a pasted scene keeps its locked number (so cutting and pasting a
+        # scene moves it with its number), unless the script already has
+        # a scene with that number (e.g. it was copied, not cut)
+        usedLocks = set(self.getSceneLocks().values())
+
         inLines = []
         i = 0
 
@@ -3596,6 +3700,10 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             newLine = Line(
                 LB_LAST, ln.lt, dual=ln.dual, color=ln.color, centered=ln.centered
             )
+
+            if ln.sceneLock and (ln.sceneLock not in usedLocks):
+                newLine.sceneLock = ln.sceneLock
+                usedLocks.add(ln.sceneLock)
 
             # (text, fmt) of the lines in this paragraph, and the
             # separators between them
@@ -3633,11 +3741,20 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         atEnd = self.column == len(ln.text)
 
+        # pasting several lines at the start of a scene heading puts them
+        # before it, so its locked number has to move with its text
+        movedLock = None
+
+        if (self.column == 0) and (len(inLines) != 1) and not atEnd:
+            movedLock = ln.sceneLock
+            ln.sceneLock = inLines[0].sceneLock
+
         if (len(ln.text) == 0) and self.isOnlyLineOfElem(self.line):
             ln.lt = inLines[0].lt
             ln.dual = inLines[0].dual
             ln.color = inLines[0].color
             ln.centered = inLines[0].centered
+            ln.sceneLock = inLines[0].sceneLock or ln.sceneLock
 
         if ln.fmt or inLines[0].fmt:
             fmt = ln.getFmt()
@@ -3654,6 +3771,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
             if not atEnd:
                 self.splitLine()
+                ls[self.line].sceneLock = movedLock
                 ls[self.line - 1].lb = inLines[0].lb
                 ls[self.line : self.line] = inLines[1:]
                 self.line += len(inLines) - 2

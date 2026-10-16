@@ -839,6 +839,22 @@
 	</sect1>
 
 	<sect1>
+	  <title>Script/Lock scene numbers, Script/Unlock scene numbers</title>
+
+	  <para>'Lock scene numbers' makes every scene keep the number it has
+	  now. After that, a scene added after scene 12 becomes 12A (then 12B,
+	  ...), one added before scene 1 becomes A1, deleting a scene leaves a
+	  gap in the numbering instead of renumbering the scenes after it, and
+	  a scene that is moved, in the outline or by cutting and pasting it,
+	  keeps its number. Locking again also locks any A-scenes created
+	  since. 'Unlock scene numbers' removes the locks and numbers the
+	  scenes 1, 2, 3, ... again. The numbers are shown in the outline and
+	  the scene report, and printed if 'Include scene numbers' is on in
+	  the script's Formatting settings.</para>
+
+	</sect1>
+
+	<sect1>
 	  <title>Tools/Spell checker</title>
 
 	  <para>This spell checks the current script beginning at the current

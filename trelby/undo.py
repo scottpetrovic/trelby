@@ -78,6 +78,9 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[7]: tuple of indexes of the lines that have the centered flag
 #   set, or None if none do
 #
+#   tuple[8]: dict of {index: sceneLock} for the lines that have a scene
+#   lock, or None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
@@ -87,6 +90,7 @@ def lines2storage(lines):
     colors = {i: ln.color for i, ln in enumerate(lines) if ln.color} or None
     fmts = {i: ln.fmt for i, ln in enumerate(lines) if ln.fmt} or None
     centers = tuple(i for i, ln in enumerate(lines) if ln.centered) or None
+    sceneLocks = {i: ln.sceneLock for i, ln in enumerate(lines) if ln.sceneLock}
 
     lines = [str(ln) for ln in lines]
     linesStr = "\n".join(lines)
@@ -104,7 +108,14 @@ def lines2storage(lines):
     else:
         data = (False, linesStr.encode())
 
-    return (len(lines),) + data + (locks, duals, colors, fmts, centers)
+    return (len(lines),) + data + (
+        locks,
+        duals,
+        colors,
+        fmts,
+        centers,
+        sceneLocks or None,
+    )
 
 
 # see lines2storage.
@@ -138,6 +149,10 @@ def storage2lines(storage):
     if storage[7]:
         for i in storage[7]:
             lines[i].centered = True
+
+    if storage[8]:
+        for i, label in storage[8].items():
+            lines[i].sceneLock = label
 
     return lines
 

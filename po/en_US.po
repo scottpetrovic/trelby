@@ -2258,6 +2258,14 @@ msgstr ""
 msgid "Unlock pages"
 msgstr ""
 
+#: trelby/trelbyframe.py
+msgid "Lock scene numbers"
+msgstr ""
+
+#: trelby/trelbyframe.py
+msgid "Unlock scene numbers"
+msgstr ""
+
 #: trelby/trelbyframe.py:232
 msgid "Script report"
 msgstr "Script report"

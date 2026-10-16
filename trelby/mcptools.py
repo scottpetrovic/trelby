@@ -102,7 +102,7 @@ def revisionOf(data):
 # profiles, but not e.g. the cursor position.
 def linesRevision(sp):
     s = "\n".join(
-        "%s|%s|%s|%s|%s|%s"
+        "%s|%s|%s|%s|%s|%s|%s"
         % (
             ln,
             ln.pageLock or "",
@@ -110,6 +110,7 @@ def linesRevision(sp):
             ln.color or "",
             ln.fmt or "",
             int(ln.centered),
+            ln.sceneLock or "",
         )
         for ln in sp.lines
     )
@@ -445,7 +446,7 @@ def getOutline(sp):
         }
 
         if item.sceneNr:
-            d["scene_number"] = int(item.sceneNr)
+            d["scene_number"] = item.sceneNr
 
         if item.summary:
             d["summary"] = item.summary
@@ -642,7 +643,8 @@ def write(doc, revision, edit, ownUndo=False):
 
 
 # replace part 'index' with the given elements. a scene / act break being
-# replaced keeps its color unless the new heading says otherwise.
+# replaced keeps its color unless the new heading says otherwise, and a
+# scene replaced by a scene keeps its locked number.
 def replaceScene(doc, revision, index, elements):
     def edit(sp):
         first, last = getPart(sp, index)
@@ -650,6 +652,9 @@ def replaceScene(doc, revision, index, elements):
 
         if (index > 0) and ("color" not in elements[0]):
             lines[0].color = sp.getSceneColor(first)
+
+        if index > 0:
+            lines[0].sceneLock = sp.getSceneLock(first)
 
         # like cut + paste: page locks on the replaced lines move to the
         # line after them

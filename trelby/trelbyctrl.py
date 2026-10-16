@@ -22,6 +22,7 @@ import trelby.mcpapp as mcpapp
 import trelby.misc as misc
 import trelby.myimport as myimport
 import trelby.opts as opts
+import trelby.pagelock as pagelock
 import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.reports as reports
@@ -863,6 +864,14 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(self.sp.line)
         self.updateScreen()
 
+    def OnLockScenes(self):
+        self.sp.lockScenes()
+        self.updateScreen()
+
+    def OnUnlockScenes(self):
+        self.sp.unlockScenes()
+        self.updateScreen()
+
     def OnAutoCompletionDlg(self):
         dlg = autocompletiondlg.AutoCompletionDlg(
             self.gd.mainFrame, copy.deepcopy(self.sp.autoCompletion)
@@ -1237,7 +1246,7 @@ class MyCtrl(wx.Control):
         scenes = self.sp.getSceneLocations()
 
         def validateFunc(s):
-            if s in [x[0] for x in scenes]:
+            if pagelock.normalize(s) in [x[0] for x in scenes]:
                 return ""
             else:
                 return _("Invalid scene number.")
@@ -1251,7 +1260,7 @@ class MyCtrl(wx.Control):
 
         if dlg.ShowModal() == wx.ID_OK:
             for it in scenes:
-                if it[0] == dlg.input:
+                if it[0] == pagelock.normalize(dlg.input):
                     self.sp.line = it[1]
                     self.sp.column = 0
 

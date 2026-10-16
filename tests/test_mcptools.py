@@ -65,12 +65,12 @@ def testListScenes(small):
     assert [s["index"] for s in scenes] == [0, 1, 2, 3, 4]
     assert scenes[0]["type"] == "opening"
     assert scenes[1]["heading"] == "INT. KITCHEN - DAY"
-    assert scenes[1]["scene_number"] == 1
+    assert scenes[1]["scene_number"] == "1"
     assert scenes[1]["color"] == "#ffb3b3"
     assert scenes[1]["summary"] == "Mary cooks."
     assert scenes[3]["type"] == "act break"
     assert "scene_number" not in scenes[3]
-    assert scenes[4]["scene_number"] == 3
+    assert scenes[4]["scene_number"] == "3"
 
 
 def testNoOpening(sample):

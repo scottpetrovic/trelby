@@ -227,6 +227,12 @@ class MyFrame(wx.Frame):
         scriptMenu.Append(
             ID_SCRIPT_UNLOCK_PAGES, misc.mnemonic("U", _("Unlock pages"))
         )
+        scriptMenu.Append(
+            ID_SCRIPT_LOCK_SCENES, misc.mnemonic("n", _("Lock scene numbers"))
+        )
+        scriptMenu.Append(
+            ID_SCRIPT_UNLOCK_SCENES, misc.mnemonic("k", _("Unlock scene numbers"))
+        )
 
         reportsMenu = wx.Menu()
         reportsMenu.Append(
@@ -430,6 +436,8 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnPaginate, id=ID_SCRIPT_PAGINATE)
         self.Bind(wx.EVT_MENU, self.OnLockPages, id=ID_SCRIPT_LOCK_PAGES)
         self.Bind(wx.EVT_MENU, self.OnUnlockPages, id=ID_SCRIPT_UNLOCK_PAGES)
+        self.Bind(wx.EVT_MENU, self.OnLockScenes, id=ID_SCRIPT_LOCK_SCENES)
+        self.Bind(wx.EVT_MENU, self.OnUnlockScenes, id=ID_SCRIPT_UNLOCK_SCENES)
         self.Bind(
             wx.EVT_MENU, self.OnAutoCompletionDlg, id=ID_SCRIPT_AUTO_COMPLETION
         )
@@ -1421,6 +1429,12 @@ class MyFrame(wx.Frame):
 
     def OnUnlockPages(self, event=None):
         self.panel.ctrl.OnUnlockPages()
+
+    def OnLockScenes(self, event=None):
+        self.panel.ctrl.OnLockScenes()
+
+    def OnUnlockScenes(self, event=None):
+        self.panel.ctrl.OnUnlockScenes()
 
     def OnAutoCompletionDlg(self, event=None):
         self.panel.ctrl.OnAutoCompletionDlg()

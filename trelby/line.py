@@ -19,6 +19,7 @@ class Line:
         color=None,
         fmt=None,
         centered=False,
+        sceneLock=None,
     ):
 
         # line break type
@@ -56,8 +57,14 @@ class Line:
         # Screenplay.isCentered.
         self.centered = centered
 
+        # on the first line of a scene heading element: if not None, the
+        # scene numbers are locked and this scene is numbered with this
+        # string (e.g. "16" or "15A"). only meaningful on such lines; see
+        # Screenplay.getSceneLabels.
+        self.sceneLock = sceneLock
+
     # return a copy of this line, including its page lock, dual flag,
-    # color, formatting and centered flag
+    # color, formatting, centered flag and scene lock
     def copy(self):
         return Line(
             self.lb,
@@ -68,6 +75,7 @@ class Line:
             self.color,
             self.fmt,
             self.centered,
+            self.sceneLock,
         )
 
     # return the format string, exactly as long as the text
@@ -149,6 +157,7 @@ class Line:
             or (self.color != other.color)
             or (textfmt.compact(self.fmt) != textfmt.compact(other.fmt))
             or (self.centered != other.centered)
+            or (self.sceneLock != other.sceneLock)
         )
 
     def __eq__(self, other):

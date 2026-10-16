@@ -204,3 +204,64 @@ def orderedLocks(locks):
     ret.reverse()
 
     return ret
+
+
+# scene locking uses the same labels, except for combined ones: once
+# scenes are locked, each scene heading keeps its number, scenes added
+# after scene 15 become 15A, 15B, ..., and scenes added before scene 1
+# become A1, B1, .... deleting a scene leaves a gap in the numbering.
+
+
+def isValidScene(label):
+    return isValid(label) and ("-" not in label)
+
+
+# given the number of scenes and a {index: label} dict of the locked ones
+# (index being 0 for the first scene, labels valid and distinct), return
+# the labels of all the scenes. locked scenes keep their labels. the
+# others get labels after the previous scene's, before the next locked
+# scene's, skipping labels any locked scene has. locked scenes that are
+# out of order (they were moved) keep their labels too, but don't affect
+# the others'.
+def sceneLabels(count, locks):
+    if not locks:
+        return [str(i + 1) for i in range(count)]
+
+    anchors = orderedLocks(sorted(locks.items()))
+    used = {labelRange(label)[0] for label in locks.values()}
+
+    # sort key of the previous scene, starting at the "before" form of
+    # the first anchor so that scenes before it become A1, B1, ... (or
+    # 0A, 0B, ... before A1, which nothing else sorts before)
+    first = labelRange(anchors[0][1])[0]
+
+    if first[1:3] == (0, "A"):
+        prev = (first[0] - 1, 1, "", 0)
+    else:
+        prev = (first[0], 0, "", 0)
+
+    # index into anchors of the next anchor
+    a = 0
+
+    ret = []
+
+    for i in range(count):
+        if (a < len(anchors)) and (anchors[a][0] == i):
+            prev = labelRange(anchors[a][1])[0]
+            a += 1
+            ret.append(locks[i])
+
+        elif i in locks:
+            ret.append(locks[i])
+
+        else:
+            bound = labelRange(anchors[a][1])[0] if a < len(anchors) else None
+
+            key = _keyAfter(prev, bound)
+            while key in used:
+                key = _keyAfter(key, bound)
+
+            prev = key
+            ret.append(_label(key))
+
+    return ret
