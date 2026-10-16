@@ -1061,9 +1061,19 @@ class MyFrame(wx.Frame):
             tb.AddControl(d)
             self.tbDividers.append(d)
 
+        # disabled tools' icons, faded most of the way into the background.
+        # wx's own greyed versions barely differ from the normal ones, and
+        # on a dark appearance come out lighter.
+        disabledColor = gutil.blendColors(
+            gutil.svgIconColor(), self.gd.cfgGui.tabBarBgColor, 0.65
+        )
+
         def addTB(id, iconFilename, toolTip, kind=wx.ITEM_NORMAL):
             bitmap = gutil.svgBitmap(iconFilename, size, pad)
-            tool = tb.AddTool(id, "", bitmap, shortHelp=toolTip, kind=kind)
+            disabledBitmap = gutil.svgBitmap(iconFilename, size, pad, disabledColor)
+            tool = tb.AddTool(
+                id, "", bitmap, disabledBitmap, kind=kind, shortHelp=toolTip
+            )
 
             # the status bar shows this while the tool is hovered
             tool.SetLongHelp(toolTip)
@@ -1259,6 +1269,13 @@ class MyFrame(wx.Frame):
 
         self.zoomBtns = (self.zoomOutBtn, self.zoomLevelBtn, self.zoomInBtn)
 
+        # flat buttons don't look clickable, so they get a hand cursor and
+        # are highlighted while hovered
+        for btn in self.zoomBtns:
+            btn.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+            btn.Bind(wx.EVT_ENTER_WINDOW, self.OnZoomButtonHover)
+            btn.Bind(wx.EVT_LEAVE_WINDOW, self.OnZoomButtonHover)
+
         # fixed widths, so nothing shifts as the values change
         pad = sb.FromDIP(16)
         btnW = sb.FromDIP(24)
@@ -1315,6 +1332,25 @@ class MyFrame(wx.Frame):
         zoomFunc()
         self.panel.ctrl.SetFocus()
 
+    def OnZoomButtonHover(self, event):
+        self.setZoomButtonHover(event.GetEventObject() if event.Entering() else None)
+        event.Skip()
+
+    # highlight the zoom button hovered (None for none), unless it's
+    # disabled
+    def setZoomButtonHover(self, hovered):
+        sb = self.statusBar
+
+        for btn in self.zoomBtns:
+            if (btn is hovered) and btn.IsEnabled():
+                color = self.gd.cfgGui.tabNonActiveBgColor
+            else:
+                color = sb.bgColor
+
+            if btn.GetBackgroundColour() != color:
+                btn.SetBackgroundColour(color)
+                btn.Refresh()
+
     # page is the label of the current page, pageCnt the number of pages
     def setPageStatus(self, page, pageCnt, locked=False):
         if locked:
@@ -1349,6 +1385,12 @@ class MyFrame(wx.Frame):
         self.zoomLevelBtn.SetLabel("%d%%" % zoom)
         self.zoomOutBtn.Enable(self.gd.getZoomStep(-1) != zoom)
         self.zoomInBtn.Enable(self.gd.getZoomStep(1) != zoom)
+
+        # a button disabled while hovered gets no leave event, and one
+        # enabled under the mouse no enter event
+        pos = wx.GetMousePosition()
+        hovered = [b for b in self.zoomBtns if b.GetScreenRect().Contains(pos)]
+        self.setZoomButtonHover(hovered[0] if hovered else None)
 
     def ShowHideToolbar(self, event=None):
         self.toolBar.Show(self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR))

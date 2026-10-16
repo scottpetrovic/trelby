@@ -21,14 +21,19 @@ else:
 # the given size (in DIPs), recolored to show up on a dark appearance. a
 # non-zero padding (in DIPs) adds that much empty space on every side of the
 # icon, by growing the SVG's viewBox, so the bundle is size + 2 * padding.
-def svgBitmap(iconFilename, size, padding=0):
+# a color (wx.Colour) draws the icon in that color instead.
+def svgBitmap(iconFilename, size, padding=0, color=None):
     filepath = misc.getFullPath("trelby/resources/%s" % iconFilename)
 
     with open(filepath, "r") as svg_file:
         svg_content = svg_file.read()
 
-    if config.isDarkAppearance():
-        svg_content = svg_content.replace("fill:#000000", "fill:#CCCCCC")
+    if color is None:
+        color = svgIconColor()
+
+    svg_content = svg_content.replace(
+        "fill:#000000", "fill:%s" % color.GetAsString(wx.C2S_HTML_SYNTAX)
+    )
 
     if padding:
         svg_content = re.sub(
@@ -40,6 +45,14 @@ def svgBitmap(iconFilename, size, padding=0):
         size = wx.Size(size.width + padding * 2, size.height + padding * 2)
 
     return wx.BitmapBundle.FromSVG(svg_content.encode(), size)
+
+
+# the color svgBitmap draws icons in by default
+def svgIconColor():
+    if config.isDarkAppearance():
+        return wx.Colour(0xCC, 0xCC, 0xCC)
+
+    return wx.Colour(0, 0, 0)
 
 
 # return the SVG viewBox 'box' grown on every side by 'padding' DIPs, for an
