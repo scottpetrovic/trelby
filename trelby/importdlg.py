@@ -21,7 +21,7 @@ class ImportDlg(wx.Dialog):
         self.inputLb = wx.ListBox(self, -1, size=(400, 200))
         for it in indents:
             self.inputLb.Append(
-                _("{} lines (indented {} characters)".format(len(it.lines), it.indent)),
+                _("{} lines (indented {} characters)").format(len(it.lines), it.indent),
                 it,
             )
 

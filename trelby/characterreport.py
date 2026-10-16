@@ -99,29 +99,25 @@ class CharacterReport:
 
             if self.inf[self.INF_BASIC].selected:
                 tf.addText(
-                    _(
-                        "Speeches: {}, Lines: {} %{:.2f}, per speech: {:.2f}".format(
-                            ci.speechCnt,
-                            ci.lineCnt,
-                            util.pctf(ci.lineCnt, self.totalLineCnt),
-                            util.safeDiv(ci.lineCnt, ci.speechCnt),
-                        )
+                    _("Speeches: {}, Lines: {} %{:.2f}, per speech: {:.2f}").format(
+                        ci.speechCnt,
+                        ci.lineCnt,
+                        util.pctf(ci.lineCnt, self.totalLineCnt),
+                        util.safeDiv(ci.lineCnt, ci.speechCnt),
                     )
                 )
 
                 tf.addText(
-                    _(
-                        "Words: {}, per speech: {:.2f}, characters per: {:.2f}".format(
-                            ci.wordCnt,
-                            util.safeDiv(ci.wordCnt, ci.speechCnt),
-                            util.safeDiv(ci.wordCharCnt, ci.wordCnt),
-                        )
+                    _("Words: {}, per speech: {:.2f}, characters per: {:.2f}").format(
+                        ci.wordCnt,
+                        util.safeDiv(ci.wordCnt, ci.speechCnt),
+                        util.safeDiv(ci.wordCharCnt, ci.wordCnt),
                     )
                 )
 
             if self.inf[self.INF_PAGES].selected:
                 tf.addWrappedText(
-                    _("Pages: {}, list: {}".format(len(ci.pages), ci.pages)), "       "
+                    _("Pages: {}, list: {}").format(len(ci.pages), ci.pages), "       "
                 )
 
             if self.inf[self.INF_LOCATIONS].selected:

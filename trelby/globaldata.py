@@ -92,10 +92,8 @@ class GlobalData:
                 os.mkdir(misc.toPath(misc.confPath), mode=0o755)
             except OSError(os.errno, os.strerror):
                 wx.MessageBox(
-                    _(
-                        "Error creating configuration directory\n'{}': {}".format(
-                            misc.confPath, os.strerror
-                        )
+                    _("Error creating configuration directory\n'{}': {}").format(
+                        misc.confPath, os.strerror
                     ),
                     _("Error"),
                     wx.OK,

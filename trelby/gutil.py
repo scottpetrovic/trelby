@@ -104,7 +104,7 @@ def showTempPDF(
 
     except TrelbyError as e:
         wx.MessageBox(
-            _("Error writing temporary PDF file: {}".format(e)),
+            _("Error writing temporary PDF file: {}").format(e),
             _("Error"),
             wx.OK,
             mainFrame,

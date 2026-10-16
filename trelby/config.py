@@ -1224,7 +1224,7 @@ class ConfigGlobal:
                 0,
                 0,
                 "Text%sFG" % t.name,
-                _("Text foreground for {}".format(t.name)),
+                _("Text foreground for {}").format(t.name),
             )
 
         v.makeDicts()
@@ -1506,7 +1506,7 @@ class ConfigGui:
 def _conv(dict, key, raiseException=True):
     val = dict.get(key)
     if (val == None) and raiseException:
-        raise ConfigError(_("key '{}' not found from '{}'".format(key, dict)))
+        raise ConfigError(_("key '{}' not found from '{}'").format(key, dict))
 
     return val
 

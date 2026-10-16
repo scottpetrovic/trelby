@@ -40,10 +40,8 @@ class MyApp(wx.App):
 
         if (wx.MAJOR_VERSION != 4) or (wx.MINOR_VERSION < 0):
             wx.MessageBox(
-                _(
-                    "You seem to have an invalid version\n({}) of wxWidgets installed. This\nprogram needs version 4.x.".format(
-                        wx.VERSION_STRING
-                    )
+                _("You seem to have an invalid version\n({}) of wxWidgets installed. This\nprogram needs version 4.x.").format(
+                    wx.VERSION_STRING
                 ),
                 _("Error"),
                 wx.OK,

@@ -131,7 +131,7 @@ class MyCtrl(wx.Control):
             (sp, msg) = screenplay.Screenplay.load(s, self.gd.cfgGl)
         except TrelbyError as e:
             wx.MessageBox(
-                _("Error loading file:\n\n{}".format(e)),
+                _("Error loading file:\n\n{}").format(e),
                 _("Error"),
                 wx.OK,
                 self.gd.mainFrame,
@@ -408,10 +408,8 @@ class MyCtrl(wx.Control):
             if line != -1:
                 if (
                     wx.MessageBox(
-                        _(
-                            "The script seems to contain errors.\nAre you sure you want to {} it?".format(
-                                action
-                            )
+                        _("The script seems to contain errors.\nAre you sure you want to {} it?").format(
+                            action
                         ),
                         _("Confirm"),
                         wx.YES_NO | wx.NO_DEFAULT,
@@ -850,7 +848,7 @@ class MyCtrl(wx.Control):
 
         dlg = misc.TextInputDlg(
             self.gd.mainFrame,
-            _("Enter scene number ({} - {}):".format(scenes[0][0], scenes[-1][0])),
+            _("Enter scene number ({} - {}):").format(scenes[0][0], scenes[-1][0]),
             _("Goto scene"),
             validateFunc,
         )
@@ -882,7 +880,7 @@ class MyCtrl(wx.Control):
 
         dlg = misc.TextInputDlg(
             self.gd.mainFrame,
-            _("Enter page number ({} - {}):".format(pages[0], pages[-1])),
+            _("Enter page number ({} - {}):").format(pages[0], pages[-1]),
             _("Goto page"),
             validateFunc,
         )
@@ -1260,7 +1258,7 @@ class MyCtrl(wx.Control):
 
             t = time.time() - t
 
-            print(_("{.5f} seconds per {}".format(t / count, name)))
+            print(_("{.5f} seconds per {}").format(t / count, name))
 
         print("-" * 20)
 
