@@ -10,10 +10,13 @@ import stat
 import tempfile
 import time
 import unicodedata
-from typing import AnyStr, Optional
+from typing import TYPE_CHECKING, AnyStr, Optional
 
-import trelby.config as config
 import trelby.misc as misc
+
+# only for type hints: importing config here makes a circular import
+if TYPE_CHECKING:
+    import trelby.config as config
 
 if "TRELBY_TESTING" in os.environ:
     import unittest.mock as mock

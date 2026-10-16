@@ -1,11 +1,18 @@
 import os
 import re
 import tempfile
+from typing import TYPE_CHECKING
 
-import trelby.config as config
 import trelby.misc as misc
 import trelby.util as util
 from trelby.error import MiscError, TrelbyError
+
+# config is imported where it's used: misc imports this module, and config
+# imports pml and screenplay, which import misc and util, so importing it
+# here makes "import trelby.util" (or pml, fontinfo...) as the first import
+# fail with a partially initialized module.
+if TYPE_CHECKING:
+    import trelby.config as config
 
 if "TRELBY_TESTING" in os.environ:
     import unittest.mock as mock
@@ -53,6 +60,8 @@ def svgBitmap(iconFilename, size, padding=0, color=None):
 
 # the color svgBitmap draws icons in by default
 def svgIconColor():
+    import trelby.config as config
+
     if config.isDarkAppearance():
         return wx.Colour(0xCC, 0xCC, 0xCC)
 
