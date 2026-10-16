@@ -61,6 +61,12 @@ PBI_REAL_AND_UNADJ = 2
 # for range checking above value
 PBI_FIRST, PBI_LAST = PBI_NONE, PBI_REAL_AND_UNADJ
 
+# standard paper sizes, (width, height) in mm, by name
+PAPER_SIZES = {
+    "A4": (210.0, 297.0),
+    "Letter": (215.9, 279.4),
+}
+
 # the name of the "System default" theme setting, which uses themes.LIGHT or
 # themes.DARK following the operating system
 THEME_SYSTEM = ""
@@ -643,6 +649,11 @@ class Config:
         for pf in self.pdfFonts.values():
             pf.load(vals, "Font/")
 
+        self.recalc()
+
+    # set the paper size to one of PAPER_SIZES, by name.
+    def setPaper(self, name):
+        self.paperWidth, self.paperHeight = PAPER_SIZES[name]
         self.recalc()
 
     # save config into a string and return that.
@@ -1346,6 +1357,9 @@ class ConfigGlobal:
         # variable). takes effect on the next startup.
         v.addStrUnicode("language", "", "Language")
 
+        # paper size of new scripts, a key of PAPER_SIZES
+        v.addStrLatin1("defaultPaper", "A4", "DefaultPaper")
+
         # how many lines to scroll per mouse wheel event
         v.addInt("mouseWheelLines", 4, "MouseWheelLines", 1, 50)
 
@@ -1438,6 +1452,9 @@ class ConfigGlobal:
     def recalc(self):
         for it in self.cvars.numeric.values():
             util.clampObj(self, it.name, it.minVal, it.maxVal)
+
+        if self.defaultPaper not in PAPER_SIZES:
+            self.defaultPaper = "A4"
 
     def getType(self, lt):
         return self.types[lt]

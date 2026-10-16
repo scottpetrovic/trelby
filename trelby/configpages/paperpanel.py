@@ -1,3 +1,4 @@
+import trelby.config as config
 import trelby.util as util
 import wx
 
@@ -9,11 +10,8 @@ class PaperPanel(wx.Panel):
 
         self.blockEvents = 1
 
-        self.paperSizes = {
-            "A4": (210.0, 297.0),
-            "Letter": (215.9, 279.4),
-            "Custom": (1.0, 1.0),
-        }
+        self.paperSizes = dict(config.PAPER_SIZES)
+        self.paperSizes["Custom"] = (1.0, 1.0)
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 

@@ -1,3 +1,4 @@
+import trelby.config as config
 import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.util as util
@@ -28,6 +29,22 @@ class MiscPanel(wx.Panel):
         bsizer.Add(hsizer, 1, wx.EXPAND | wx.RIGHT | wx.TOP | wx.BOTTOM, 10)
 
         vsizer.Add(bsizer, 0, wx.EXPAND)
+
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer.Add(
+            wx.StaticText(self, -1, _("Paper size for new scripts:")),
+            0,
+            wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
+            10,
+        )
+
+        self.paperCombo = wx.ComboBox(self, -1, style=wx.CB_READONLY)
+        for name in config.PAPER_SIZES:
+            self.paperCombo.Append(name)
+        self.Bind(wx.EVT_COMBOBOX, self.OnMisc, id=self.paperCombo.GetId())
+        hsizer.Add(self.paperCombo)
+
+        vsizer.Add(hsizer, 0, wx.TOP, 10)
 
         # wxGTK adds way more space by default than wxMSW between the
         # items, have to adjust for that
@@ -105,6 +122,7 @@ class MiscPanel(wx.Panel):
 
     def OnMisc(self, event=None):
         self.cfg.scriptDir = self.scriptDirEntry.GetValue().rstrip("/\\")
+        self.cfg.defaultPaper = self.paperCombo.GetStringSelection()
 
         for i, it in enumerate(self.checkListItems):
             setattr(self.cfg, it[0], bool(self.checkList.IsChecked(i)))
@@ -128,6 +146,7 @@ class MiscPanel(wx.Panel):
         self.autosaveEntry.SetValue(5)
 
         self.scriptDirEntry.SetValue(self.cfg.scriptDir)
+        self.paperCombo.SetStringSelection(self.cfg.defaultPaper)
 
         for i, it in enumerate(self.checkListItems):
             self.checkList.Check(i, getattr(self.cfg, it[0]))

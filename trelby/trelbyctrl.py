@@ -136,6 +136,7 @@ class MyCtrl(wx.Control):
         self.removeRecovery()
         self.clearVars()
         self.sp = screenplay.Screenplay(self.gd.cfgGl)
+        self.sp.cfg.setPaper(self.gd.cfgGl.defaultPaper)
         self.sp.titles.addDefaults()
         self.sp.headers.addDefaults()
         self.setFile(None)
