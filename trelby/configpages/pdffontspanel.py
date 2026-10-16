@@ -21,13 +21,18 @@ class PDFFontsPanel(wx.Panel):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         vsizer.Add(
-            wx.StaticText(
+            gutil.WrappedText(
                 self,
-                -1,
                 _(
-                    "Leave all the fields empty to use the default PDF Courier\nfonts. This is highly recommended.\n\nOtherwise, fill in the the font filename to use\nthe specified TrueType font. \nSee the manual for the full details.\n"
+                    "Leave all the fields empty to use the default PDF Courier "
+                    "fonts. This is highly recommended.\n\n"
+                    "Otherwise, fill in the font filename to use the specified "
+                    "TrueType font. See the manual for the full details."
                 ),
-            )
+            ),
+            0,
+            wx.EXPAND | wx.BOTTOM,
+            10,
         )
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)

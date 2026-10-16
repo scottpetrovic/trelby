@@ -27,16 +27,6 @@ class MiscPanel(wx.Panel):
 
         bsizer.Add(hsizer, 1, wx.EXPAND | wx.RIGHT | wx.TOP | wx.BOTTOM, 10)
 
-        vsizer.Add(bsizer, 0, wx.EXPAND | wx.BOTTOM, 10)
-
-        bsizer = wx.StaticBoxSizer(
-            wx.StaticBox(self, -1, _("Spell checker")), wx.VERTICAL
-        )
-
-        btn = wx.Button(bsizer.GetStaticBox(), -1, _("Global dictionary") + "...")
-        btn.Bind(wx.EVT_BUTTON, self.OnScDict)
-        bsizer.Add(btn, 0, wx.ALL, 10)
-
         vsizer.Add(bsizer, 0, wx.EXPAND)
 
         # wxGTK adds way more space by default than wxMSW between the
@@ -57,7 +47,7 @@ class MiscPanel(wx.Panel):
             ),
         ]
 
-        self.checkList = gutil.ThemedListBox(self, -1, size=(-1, 120), checkable=True)
+        self.checkList = gutil.ThemedListBox(self, -1, checkable=True)
 
         for it in self.checkListItems:
             self.checkList.Append(it[1])
@@ -140,9 +130,6 @@ class MiscPanel(wx.Panel):
             self.scriptDirEntry.SetValue(dlg.GetPath())
 
         dlg.Destroy()
-
-    def OnScDict(self, event):
-        self.cfgFrame.editScDict()
 
     def cfg2gui(self):
         # stupid wxwindows/wxpython displays empty box if the initial

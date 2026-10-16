@@ -35,19 +35,18 @@ class ThemePanel(wx.Panel):
         vsizer.Add(self.themeList, 0, wx.BOTTOM, 10)
 
         vsizer.Add(
-            wx.StaticText(
+            gutil.WrappedText(
                 self,
-                -1,
                 _(
-                    "System default follows the light or dark mode setting\n"
+                    "System default follows the light or dark mode setting "
                     "of your operating system.\n\n"
-                    "To make your own theme, export one as a starting point,\n"
-                    "edit the file's colors, and click Reload. Theme files\n"
+                    "To make your own theme, export one as a starting point, "
+                    "edit the file's colors, and click Reload. Theme files "
                     "are read from the themes folder."
                 ),
             ),
             0,
-            wx.BOTTOM,
+            wx.EXPAND | wx.BOTTOM,
             10,
         )
 

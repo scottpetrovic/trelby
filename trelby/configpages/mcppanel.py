@@ -3,6 +3,7 @@ import os.path
 import sys
 
 import trelby
+import trelby.gutil as gutil
 import trelby.mcpapp as mcpapp
 import trelby.util as util
 import wx
@@ -16,17 +17,16 @@ class MCPPanel(wx.Panel):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         vsizer.Add(
-            wx.StaticText(
+            gutil.WrappedText(
                 self,
-                -1,
                 _(
-                    "The MCP server lets AI assistants like Claude read and edit\n"
-                    "the scripts open in Trelby. Their edits show up right away\n"
+                    "The MCP server lets AI assistants like Claude read and edit "
+                    "the scripts open in Trelby. Their edits show up right away "
                     "and can be undone, but aren't saved until you save the script."
                 ),
             ),
             0,
-            wx.BOTTOM,
+            wx.EXPAND | wx.BOTTOM,
             10,
         )
 
@@ -63,16 +63,15 @@ class MCPPanel(wx.Panel):
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.BOTTOM, 5)
 
         vsizer.Add(
-            wx.StaticText(
+            gutil.WrappedText(
                 self,
-                -1,
                 _(
-                    "Only programs on this computer can connect. Clients that\n"
+                    "Only programs on this computer can connect. Clients that "
                     "connect by URL (like Claude Code) can use the address above."
                 ),
             ),
             0,
-            wx.BOTTOM,
+            wx.EXPAND | wx.BOTTOM,
             10,
         )
 

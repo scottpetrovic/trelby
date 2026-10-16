@@ -1170,12 +1170,12 @@ class KeyDlg(wx.Dialog):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         vsizer.Add(
-            wx.StaticText(
+            gutil.WrappedText(
                 self,
-                -1,
-                _("Press the key combination you\nwant to bind to the command\n'{}'.").format(
+                _("Press the key combination you want to bind to the command '{}'.").format(
                     cmdName
                 ),
+                width=250,
             )
         )
 

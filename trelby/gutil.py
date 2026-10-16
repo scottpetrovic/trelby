@@ -474,6 +474,79 @@ class Separator(wx.Window):
         return False
 
 
+# a label that wraps its text to the width it's given, and wraps it again
+# when that changes, e.g. when the window is resized. add it to its sizer
+# with wx.EXPAND, or it stays at its minimum width, 'width' DIPs. line
+# breaks in the text are kept, so use "\n\n" between paragraphs and no
+# single line breaks.
+class WrappedText(wx.StaticText):
+    def __init__(self, parent, text, width=300):
+        wx.StaticText.__init__(self, parent, -1, "", style=wx.ST_NO_AUTORESIZE)
+
+        self.text = text
+        self.minWidth = self.FromDIP(width)
+
+        # how much taller the native control is than its text
+        dc = wx.ClientDC(self)
+        dc.SetFont(self.GetFont())
+        self.SetLabelText("Ag")
+        self.InvalidateBestSize()
+        self.extraHeight = max(
+            0, self.GetBestSize().height - dc.GetTextExtent("Ag")[1]
+        )
+
+        # width the text is wrapped to
+        self.wrapWidth = None
+
+        self.rewrap(self.minWidth)
+
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+
+    def rewrap(self, width):
+        self.wrapWidth = width
+
+        dc = wx.ClientDC(self)
+        dc.SetFont(self.GetFont())
+
+        label = util.wrapText(self.text, width, lambda s: dc.GetTextExtent(s)[0])
+        self.SetLabelText(label)
+
+        # tall enough for the wrapped text. GetBestSize can't be used, as
+        # it isn't updated for the new label.
+        height = dc.GetMultiLineTextExtent(label)[1] + self.extraHeight
+        self.SetMinSize(wx.Size(self.minWidth, height))
+
+    def OnSize(self, event):
+        event.Skip()
+
+        width = event.GetSize().width
+
+        if (width <= 0) or (width == self.wrapWidth):
+            return
+
+        height = self.GetMinSize().height
+        self.rewrap(width)
+        self.Refresh()
+
+        # the new height only takes effect on the next layout, which can't
+        # be done in the middle of this one
+        if self.GetMinSize().height != height:
+            wx.CallAfter(self.relayout)
+
+    def relayout(self):
+        if not self:
+            return
+
+        # the nearest window that lays out its children with a sizer
+        w = self.GetParent()
+
+        while w and not w.GetSizer():
+            w = w.GetParent()
+
+        if w:
+            w.Layout()
+
+
 # a list box in the theme's colors, with the selection in its accent color.
 # it has the parts of wx.ListBox's interface we use, and with checkable set,
 # those of wx.CheckListBox. it sends the same events with the control's id:

@@ -137,6 +137,56 @@ def hasWideChars(s):
     return not s.isascii() and any(isWideChar(ch) for ch in s)
 
 
+# wide punctuation that mustn't start a line
+_NO_BREAK_BEFORE = "，。、；：？！）」』》〉】”’"
+
+
+# split s into the pieces wrapText may put on different lines: a line can
+# be broken after a space, or between two characters if one of them is
+# wide, since Chinese, Japanese and Korean text has no spaces. spaces stay
+# at the end of the piece before them.
+def _wrapPieces(s):
+    pieces = []
+    start = 0
+
+    for i in range(1, len(s)):
+        prev, ch = s[i - 1], s[i]
+
+        if ch == " ":
+            continue
+
+        if (prev == " ") or (
+            (isWideChar(prev) or isWideChar(ch)) and (ch not in _NO_BREAK_BEFORE)
+        ):
+            pieces.append(s[start:i])
+            start = i
+
+    pieces.append(s[start:])
+
+    return pieces
+
+
+# wrap text to fit in width, where measure(s) returns the width of string
+# s, and return it with line breaks added. existing line breaks are kept.
+# a word that doesn't fit by itself gets a line of its own.
+def wrapText(text, width, measure):
+    lines = []
+
+    for para in text.split("\n"):
+        line = ""
+
+        for piece in _wrapPieces(para):
+            if line and (measure((line + piece).rstrip()) > width):
+                lines.append(line.rstrip())
+                line = piece
+            else:
+                line += piece
+
+        lines.append(line.rstrip())
+
+    return "\n".join(lines)
+
+
 # return s with the characters that can't be in a script dropped, except
 # for the ones in 'keep'
 def removeInvalidChars(s, keep="\n"):

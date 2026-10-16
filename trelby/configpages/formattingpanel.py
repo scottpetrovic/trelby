@@ -1,3 +1,4 @@
+import trelby.gutil as gutil
 import trelby.misc as misc
 import trelby.util as util
 import wx
@@ -11,15 +12,15 @@ class FormattingPanel(wx.Panel):
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         vsizer.Add(
-            wx.StaticText(
+            gutil.WrappedText(
                 self,
-                -1,
                 _(
-                    "Leave at least this many lines at the end of a page when\nbreaking in the middle of an element:"
+                    "Leave at least this many lines at the end of a page when "
+                    "breaking in the middle of an element:"
                 ),
             ),
             0,
-            wx.BOTTOM,
+            wx.EXPAND | wx.BOTTOM,
             5,
         )
 

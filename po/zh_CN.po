@@ -1159,14 +1159,8 @@ msgstr "捕获按键"
 
 #: trelby/misc.py:1177
 #, python-brace-format
-msgid ""
-"Press the key combination you\n"
-"want to bind to the command\n"
-"'{}'."
-msgstr ""
-"请按下要绑定到以下命令的\n"
-"组合键：\n"
-"“{}”。"
+msgid "Press the key combination you want to bind to the command '{}'."
+msgstr "请按下要绑定到以下命令的组合键：“{}”。"
 
 #: trelby/misc.py:1273
 msgid "No recent files"
@@ -2812,12 +2806,8 @@ msgid "Caps"
 msgstr "大写"
 
 #: trelby/configpages/formattingpanel.py:18
-msgid ""
-"Leave at least this many lines at the end of a page when\n"
-"breaking in the middle of an element:"
-msgstr ""
-"在元素中间分页时，\n"
-"页末至少保留的行数："
+msgid "Leave at least this many lines at the end of a page when breaking in the middle of an element:"
+msgstr "在元素中间分页时，页末至少保留的行数："
 
 #: trelby/configpages/formattingpanel.py:28
 msgid "Action:"
@@ -2897,14 +2887,8 @@ msgid "You can't bind input characters to commands."
 msgstr "不能将输入字符绑定到命令。"
 
 #: trelby/configpages/mcppanel.py:23
-msgid ""
-"The MCP server lets AI assistants like Claude read and edit\n"
-"the scripts open in Trelby. Their edits show up right away\n"
-"and can be undone, but aren't saved until you save the script."
-msgstr ""
-"MCP 服务器让 Claude 等 AI 助手可以读取和编辑\n"
-"在 Trelby 中打开的剧本。它们的编辑会立即显示，\n"
-"并且可以撤销，但在您保存剧本之前不会被保存。"
+msgid "The MCP server lets AI assistants like Claude read and edit the scripts open in Trelby. Their edits show up right away and can be undone, but aren't saved until you save the script."
+msgstr "MCP 服务器让 Claude 等 AI 助手可以读取和编辑在 Trelby 中打开的剧本。它们的编辑会立即显示，并且可以撤销，但在您保存剧本之前不会被保存。"
 
 #: trelby/configpages/mcppanel.py:33
 msgid "Turn on the MCP server"
@@ -2919,12 +2903,8 @@ msgid "Address:"
 msgstr "地址："
 
 #: trelby/configpages/mcppanel.py:70
-msgid ""
-"Only programs on this computer can connect. Clients that\n"
-"connect by URL (like Claude Code) can use the address above."
-msgstr ""
-"只有本机上的程序可以连接。通过 URL 连接的客户端\n"
-"（如 Claude Code）可以使用上面的地址。"
+msgid "Only programs on this computer can connect. Clients that connect by URL (like Claude Code) can use the address above."
+msgstr "只有本机上的程序可以连接。通过 URL 连接的客户端（如 Claude Code）可以使用上面的地址。"
 
 #: trelby/configpages/mcppanel.py:82
 msgid "Copy Claude Desktop config"
@@ -2955,9 +2935,17 @@ msgstr "状态：{}"
 msgid "Default script directory"
 msgstr "默认剧本目录"
 
-#: trelby/configpages/miscpanel.py:36
-msgid "Global dictionary"
-msgstr "全局词典"
+#: trelby/cfgdlg.py:203
+msgid "Spelling Exclusion List"
+msgstr "拼写排除列表"
+
+#: trelby/configpages/spellcheckpanel.py:19
+msgid "Mark these words as correct spelling so the spell checker won't flag them."
+msgstr "将这些词标记为拼写正确，拼写检查就不会再标出它们。"
+
+#: trelby/configpages/spellcheckpanel.py:29
+msgid "Global words (one per line):"
+msgstr "全局词汇（每行一个）："
 
 #: trelby/configpages/miscpanel.py:49
 msgid "Auto-capitalize sentences"
@@ -3034,19 +3022,13 @@ msgstr "每页行数：{}"
 
 #: trelby/configpages/pdffontspanel.py:28
 msgid ""
-"Leave all the fields empty to use the default PDF Courier\n"
-"fonts. This is highly recommended.\n"
+"Leave all the fields empty to use the default PDF Courier fonts. This is highly recommended.\n"
 "\n"
-"Otherwise, fill in the the font filename to use\n"
-"the specified TrueType font. \n"
-"See the manual for the full details.\n"
+"Otherwise, fill in the font filename to use the specified TrueType font. See the manual for the full details."
 msgstr ""
-"将所有字段留空即可使用默认的 PDF Courier 字体。\n"
-"强烈建议这样做。\n"
+"将所有字段留空即可使用默认的 PDF Courier 字体。强烈建议这样做。\n"
 "\n"
-"否则，请填写字体文件名，\n"
-"以使用指定的 TrueType 字体。\n"
-"详情请参阅使用手册。\n"
+"否则，请填写字体文件名，以使用指定的 TrueType 字体。详情请参阅使用手册。"
 
 #: trelby/configpages/pdffontspanel.py:61
 msgid "File:"
@@ -3180,19 +3162,13 @@ msgstr "主题："
 
 #: trelby/configpages/themepanel.py:42
 msgid ""
-"System default follows the light or dark mode setting\n"
-"of your operating system.\n"
+"System default follows the light or dark mode setting of your operating system.\n"
 "\n"
-"To make your own theme, export one as a starting point,\n"
-"edit the file's colors, and click Reload. Theme files\n"
-"are read from the themes folder."
+"To make your own theme, export one as a starting point, edit the file's colors, and click Reload. Theme files are read from the themes folder."
 msgstr ""
-"“系统默认”会跟随操作系统的\n"
-"浅色或深色模式设置。\n"
+"“系统默认”会跟随操作系统的浅色或深色模式设置。\n"
 "\n"
-"要制作自己的主题，可先导出一个主题作为起点，\n"
-"编辑文件中的颜色，然后点击“重新加载”。\n"
-"主题文件从主题文件夹中读取。"
+"要制作自己的主题，可先导出一个主题作为起点，编辑文件中的颜色，然后点击“重新加载”。主题文件从主题文件夹中读取。"
 
 #: trelby/configpages/themepanel.py:57
 msgid "Save the selected theme as a theme file"

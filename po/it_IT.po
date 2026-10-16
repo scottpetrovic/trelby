@@ -1169,14 +1169,8 @@ msgstr "Cattura chiave"
 
 #: trelby/misc.py:1177
 #, python-brace-format
-msgid ""
-"Press the key combination you\n"
-"want to bind to the command\n"
-"'{}'."
-msgstr ""
-"Premi la combinazione di tasti\n"
-"che vuoi associare al comando\n"
-"'{}'."
+msgid "Press the key combination you want to bind to the command '{}'."
+msgstr "Premi la combinazione di tasti che vuoi associare al comando '{}'."
 
 #: trelby/misc.py:1273
 msgid "No recent files"
@@ -2851,12 +2845,8 @@ msgid "Caps"
 msgstr "Maiuscole"
 
 #: trelby/configpages/formattingpanel.py:18
-msgid ""
-"Leave at least this many lines at the end of a page when\n"
-"breaking in the middle of an element:"
-msgstr ""
-"Lascia almeno questo numero di righe alla fine di una pagina quando\n"
-"c'è un'interruzione nel mezzo di un elemento:"
+msgid "Leave at least this many lines at the end of a page when breaking in the middle of an element:"
+msgstr "Lascia almeno questo numero di righe alla fine di una pagina quando c'è un'interruzione nel mezzo di un elemento:"
 
 #: trelby/configpages/formattingpanel.py:28
 msgid "Action:"
@@ -2948,10 +2938,7 @@ msgid "You can't bind input characters to commands."
 msgstr "Ipossibile associare i caratteri di input ai comandi."
 
 #: trelby/configpages/mcppanel.py:23
-msgid ""
-"The MCP server lets AI assistants like Claude read and edit\n"
-"the scripts open in Trelby. Their edits show up right away\n"
-"and can be undone, but aren't saved until you save the script."
+msgid "The MCP server lets AI assistants like Claude read and edit the scripts open in Trelby. Their edits show up right away and can be undone, but aren't saved until you save the script."
 msgstr ""
 
 #: trelby/configpages/mcppanel.py:33
@@ -2967,9 +2954,7 @@ msgid "Address:"
 msgstr ""
 
 #: trelby/configpages/mcppanel.py:70
-msgid ""
-"Only programs on this computer can connect. Clients that\n"
-"connect by URL (like Claude Code) can use the address above."
+msgid "Only programs on this computer can connect. Clients that connect by URL (like Claude Code) can use the address above."
 msgstr ""
 
 #: trelby/configpages/mcppanel.py:82
@@ -2998,9 +2983,17 @@ msgstr ""
 msgid "Default script directory"
 msgstr "Directory predefinita degli script"
 
-#: trelby/configpages/miscpanel.py:36
-msgid "Global dictionary"
-msgstr ""
+#: trelby/cfgdlg.py:203
+msgid "Spelling Exclusion List"
+msgstr "Elenco esclusioni ortografiche"
+
+#: trelby/configpages/spellcheckpanel.py:19
+msgid "Mark these words as correct spelling so the spell checker won't flag them."
+msgstr "Segna queste parole come scritte correttamente, così il controllo ortografico non le segnalerà."
+
+#: trelby/configpages/spellcheckpanel.py:29
+msgid "Global words (one per line):"
+msgstr "Parole globali (una per riga):"
 
 #: trelby/configpages/miscpanel.py:49
 msgid "Auto-capitalize sentences"
@@ -3077,18 +3070,13 @@ msgstr "Righe per pagina: {}"
 
 #: trelby/configpages/pdffontspanel.py:28
 msgid ""
-"Leave all the fields empty to use the default PDF Courier\n"
-"fonts. This is highly recommended.\n"
+"Leave all the fields empty to use the default PDF Courier fonts. This is highly recommended.\n"
 "\n"
-"Otherwise, fill in the the font filename to use\n"
-"the specified TrueType font. \n"
-"See the manual for the full details.\n"
+"Otherwise, fill in the font filename to use the specified TrueType font. See the manual for the full details."
 msgstr ""
-"Lascia tutti i campi vuoti per usare i font Courier PDF predefiniti.\n"
-"Questo è altamente raccomandato.\n"
+"Lascia tutti i campi vuoti per usare i font Courier PDF predefiniti. Questo è altamente raccomandato.\n"
 "\n"
-"Altrimenti, inserisci il nome del file del font TrueType da usare.\n"
-"Vedi il manuale per i dettagli completi.\n"
+"Altrimenti, inserisci il nome del file del font TrueType da usare. Vedi il manuale per i dettagli completi."
 
 #: trelby/configpages/pdffontspanel.py:61
 msgid "File:"
@@ -3237,12 +3225,9 @@ msgstr ""
 
 #: trelby/configpages/themepanel.py:42
 msgid ""
-"System default follows the light or dark mode setting\n"
-"of your operating system.\n"
+"System default follows the light or dark mode setting of your operating system.\n"
 "\n"
-"To make your own theme, export one as a starting point,\n"
-"edit the file's colors, and click Reload. Theme files\n"
-"are read from the themes folder."
+"To make your own theme, export one as a starting point, edit the file's colors, and click Reload. Theme files are read from the themes folder."
 msgstr ""
 
 #: trelby/configpages/themepanel.py:57

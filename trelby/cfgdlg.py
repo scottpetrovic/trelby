@@ -5,7 +5,6 @@ import wx
 
 import trelby.config as config
 import trelby.gutil as gutil
-import trelby.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.util as util
 from trelby.configpages.displaypanel import DisplayPanel
 from trelby.configpages.draftpanel import DraftPanel
@@ -23,6 +22,7 @@ from trelby.configpages.pdffontspanel import PDFFontsPanel
 from trelby.configpages.pdfpanel import PDFPanel
 from trelby.configpages.pdfviewerpanel import PDFViewerPanel
 from trelby.configpages.scriptaboutpanel import ScriptAboutPanel
+from trelby.configpages.spellcheckpanel import SpellCheckPanel
 from trelby.configpages.stringspanel import StringsPanel
 from trelby.configpages.themepanel import ThemePanel
 
@@ -137,6 +137,11 @@ class CfgDlg(wx.Dialog):
             # Load/Save as change it, but it only takes effect on Apply/OK.
             self.confFilename = gd.confFilename
 
+            # the global spell checker dictionary is stored separately from
+            # the settings. the Spelling Exclusion List page edits this copy,
+            # which is saved on Apply/OK.
+            self.scDict = copy.deepcopy(gd.scDict)
+
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
         self.listbook = gutil.ThemedListbook(self)
@@ -195,6 +200,7 @@ class CfgDlg(wx.Dialog):
             self.AddPage(MCPPanel, _("MCP Server"))
             self.AddPage(MiscPanel, _("Misc"))
             self.AddPage(PDFViewerPanel, "PDF")
+            self.AddPage(SpellCheckPanel, _("Spelling Exclusion List"))
         else:
             self.AddPage(ScriptAboutPanel, _("About"))
             self.AddPage(ElementsPanel, _("Elements"))
@@ -212,6 +218,7 @@ class CfgDlg(wx.Dialog):
             MiscPanel,
             PDFFontsPanel,
             PDFViewerPanel,
+            SpellCheckPanel,
         ]
         if classObj in needs_frame_ref:
             p = classObj(self.listbook.book, -1, self.cfg, self)
@@ -233,14 +240,27 @@ class CfgDlg(wx.Dialog):
         if self.isGlobal:
             self.gd.confFilename = self.confFilename
 
+    # save the global spell checker dictionary, if it was changed
+    def commitScDict(self):
+        if not self.isGlobal:
+            return
+
+        self.scDict.refresh()
+
+        if self.scDict.get() != self.gd.scDict.get():
+            self.gd.scDict = copy.deepcopy(self.scDict)
+            self.gd.saveScDict()
+
     def OnOK(self, event):
         self.checkForErrors()
         self.commitConfFilename()
+        self.commitScDict()
         self.EndModal(wx.ID_OK)
 
     def OnApply(self, event):
         self.checkForErrors()
         self.commitConfFilename()
+        self.commitScDict()
         self.applyFunc(self.cfg)
 
     # replace the settings being edited with ones loaded from a file. they
@@ -290,17 +310,6 @@ class CfgDlg(wx.Dialog):
                 self.confFilename = path
             else:
                 self.gd.scriptSettingsPath = os.path.dirname(path)
-
-    # edit the global spell checker dictionary. it's stored separately from
-    # the settings, so changes are saved immediately.
-    def editScDict(self):
-        dlg = spellcheckcfgdlg.SCDictDlg(self, copy.deepcopy(self.gd.scDict), True)
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.gd.scDict = dlg.scDict
-            self.gd.saveScDict()
-
-        dlg.Destroy()
 
     def OnCancel(self, event):
         self.EndModal(wx.ID_CANCEL)

@@ -142,17 +142,21 @@ class ElementsPanel(wx.Panel):
         if misc.isWindows:
             pad = 5
 
-        self.addCheckBox(_("Caps"), prefix, parent, gsizer, pad)
-        self.addCheckBox(_("Italic"), prefix, parent, gsizer, pad)
-        self.addCheckBox(_("Bold"), prefix, parent, gsizer, pad)
-        self.addCheckBox(_("Underlined"), prefix, parent, gsizer, pad)
+        self.addCheckBox("Caps", _("Caps"), prefix, parent, gsizer, pad)
+        self.addCheckBox("Italic", _("Italic"), prefix, parent, gsizer, pad)
+        self.addCheckBox("Bold", _("Bold"), prefix, parent, gsizer, pad)
+        self.addCheckBox(
+            "Underlined", _("Underlined"), prefix, parent, gsizer, pad
+        )
 
         hsizer.Add(gsizer, 0, wx.EXPAND)
 
         return hsizer
 
-    def addCheckBox(self, name, prefix, parent, sizer, pad):
-        cb = wx.CheckBox(parent, -1, name)
+    # the checkbox is stored as self.<prefix><name>Cb. name isn't translated,
+    # unlike label, so the attribute name is the same in every language.
+    def addCheckBox(self, name, label, prefix, parent, sizer, pad):
+        cb = wx.CheckBox(parent, -1, label)
         self.Bind(wx.EVT_CHECKBOX, self.OnStyleCb, id=cb.GetId())
         sizer.Add(cb, 0, wx.TOP, pad)
         setattr(self, prefix + name + "Cb", cb)
