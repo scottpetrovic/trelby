@@ -592,7 +592,7 @@ class Config:
         v.addInt("sceneContinuedIndent", 45, "SceneContinuedIndent", -20, 80)
 
         # whether to include scene numbers
-        v.addBool("pdfShowSceneNumbers", False, "ShowSceneNumbers")
+        v.addBool("pdfShowSceneNumbers", True, "ShowSceneNumbers")
 
         # whether to include PDF TOC
         v.addBool("pdfIncludeTOC", True, "IncludeTOC")
@@ -1335,7 +1335,7 @@ class ConfigGlobal:
         v.addInt("fontYdelta", 18, "FontYDelta", 4, 125)
 
         # size of the toolbar icons, in pixels (before DPI scaling)
-        v.addInt("toolbarIconSize", 20, "ToolbarIconSize", 16, 48)
+        v.addInt("toolbarIconSize", 18, "ToolbarIconSize", 16, 48)
 
         # application theme: the name of a built-in or custom theme, or
         # THEME_SYSTEM
