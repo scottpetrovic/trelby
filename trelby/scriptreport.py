@@ -1,8 +1,8 @@
-import trelby.characterreport as characterreport
 import trelby.config as config
 import trelby.pml as pml
 import trelby.scenereport as scenereport
 import trelby.screenplay as screenplay
+import trelby.screenplay.speeches as speeches
 import trelby.textreport as textreport
 import trelby.textutil as textutil
 import trelby.util as util
@@ -11,8 +11,10 @@ import trelby.util as util
 class ScriptReport(textreport.TextReport):
     def __init__(self, sp):
         self.sp = sp
-        self.sr = scenereport.SceneReport(sp)
-        self.cr = characterreport.CharacterReport(sp)
+        self.scenes = scenereport.splitScenes(sp)
+
+        # the characters with a speech, as in the character report
+        self.speakers = {s.name for s in speeches.iterSpeeches(sp) if s.name}
 
     def format(self, tf) -> None:
         ls = self.sp.lines
@@ -33,14 +35,14 @@ class ScriptReport(textreport.TextReport):
         intLines = sum(
             [
                 si.lines
-                for si in self.sr.scenes
+                for si in self.scenes
                 if textutil.upper(si.name).startswith("INT.")
             ]
         )
         extLines = sum(
             [
                 si.lines
-                for si in self.sr.scenes
+                for si in self.scenes
                 if textutil.upper(si.name).startswith("EXT.")
             ]
         )
@@ -56,9 +58,11 @@ class ScriptReport(textreport.TextReport):
 
         tf.addSpace(4.0)
 
+        lineSeq = [si.lines for si in self.scenes]
+
         tf.addText(
             _("Max / avg. scene length in lines")
-            + ": %d / %.2f" % (self.sr.longestScene, self.sr.avgScene)
+            + ": %d / %.2f" % (max(lineSeq), sum(lineSeq) / len(lineSeq))
         )
 
         # lengths of action elements
@@ -102,5 +106,5 @@ class ScriptReport(textreport.TextReport):
 
         tf.addSpace(4.0)
 
-        tf.addText(_("Speaking characters") + ": %d" % len(self.cr.cinfo))
+        tf.addText(_("Speaking characters") + ": %d" % len(self.speakers))
 

@@ -8,7 +8,7 @@ import trelby.pdf as pdf
 import trelby.pml as pml
 import trelby.reportwindow as reportwindow
 import trelby.screenplay as screenplay
-import trelby.textutil as textutil
+import trelby.screenplay.speeches as speeches
 import trelby.util as util
 
 
@@ -112,23 +112,20 @@ class DialogueChart:
         # map of CharInfo objects. key = name, value = CharInfo.
         tmpCinfo = {}
 
-        # the speaker of the dialogue lines that follow: set by the last
-        # line of a character element, kept over parentheticals, and
-        # reset by any other element type
-        name = "UNKNOWN"
-
         for i in range(len(ls)):
-            pgNr = sp.line2page(i) - 1
-            pi = self.pages[pgNr]
-            line = ls[i]
+            self.pages[sp.line2page(i) - 1].addLine(ls[i].lt)
 
-            pi.addLine(line.lt)
+        # every dialogue line is counted. a speech with no character
+        # element before it is spoken by "UNKNOWN".
+        for speech in speeches.iterSpeeches(sp):
+            if speech.name is None:
+                name = "UNKNOWN"
+            else:
+                name = speech.name
 
-            if (line.lt == screenplay.CHARACTER) and (line.lb == screenplay.LB_LAST):
-                name = textutil.upper(line.text)
-
-            elif line.lt == screenplay.DIALOGUE:
-                pi.addLineToSpeaker(name)
+            for i in speech.dialogue:
+                pgNr = sp.line2page(i) - 1
+                self.pages[pgNr].addLineToSpeaker(name)
 
                 ci = tmpCinfo.get(name)
 
@@ -136,9 +133,6 @@ class DialogueChart:
                     ci.addLine(pgNr)
                 else:
                     tmpCinfo[name] = CharInfo(name, pgNr)
-
-            elif line.lt != screenplay.PAREN:
-                name = "UNKNOWN"
 
         # CharInfo's.
         self.cinfo = []

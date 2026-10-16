@@ -1,6 +1,9 @@
+import bisect
+
 import trelby.checkboxitem as checkboxitem
 import trelby.pml as pml
 import trelby.screenplay as screenplay
+import trelby.screenplay.speeches as speeches
 import trelby.textreport as textreport
 import trelby.textutil as textutil
 import trelby.util as util
@@ -12,29 +15,29 @@ class SceneReport(textreport.TextReport):
         self.sp = sp
 
         # list of SceneInfos
-        self.scenes = []
+        self.scenes = splitScenes(sp)
 
-        # split the whole script into consecutive parts, each starting at
-        # a scene heading or act break. the part before the first heading,
-        # if any, and the parts starting at act breaks get the name
-        # "(NO SCENE NAME)".
-        line = 0
-        while 1:
-            if line >= len(sp.lines):
-                break
+        for si in self.scenes:
+            si.readLines(sp)
 
-            startLine, endLine = sp.getSceneIndexesFromLine(line)
+        # count each speech's dialogue lines in the scene it's in. a speech
+        # with no character element before it isn't counted, and the
+        # speaker's name is the first line of the character element.
+        starts = [si.startLine for si in self.scenes]
 
-            si = SceneInfo(sp)
-            si.read(sp, startLine, endLine)
-            self.scenes.append(si)
+        for speech in speeches.iterSpeeches(sp):
+            if (speech.charLine is None) or not speech.dialogue:
+                continue
 
-            line = endLine + 1
+            si = self.scenes[bisect.bisect_right(starts, speech.start) - 1]
 
-        # we don't use these, but ScriptReport does
-        lineSeq = [si.lines for si in self.scenes]
-        self.longestScene = max(lineSeq)
-        self.avgScene = sum(lineSeq) / float(len(self.scenes))
+            s = textutil.upper(sp.lines[speech.charLine].text)
+            if len(s.strip()) == 0:
+                name = "(EMPTY CHARACTER NAME)"
+            else:
+                name = s
+
+            si.chars[name] = si.chars.get(name, 0) + len(speech.dialogue)
 
         # information about what to include (and yes, the comma is needed
         # to unpack the list)
@@ -68,34 +71,35 @@ class SceneReport(textreport.TextReport):
 
 
 
+# split the whole script into consecutive parts, each starting at a scene
+# heading or act break, and return a SceneInfo for each, with its number,
+# name and size. the part before the first heading, if any, and the parts
+# starting at act breaks get the name "(NO SCENE NAME)".
+def splitScenes(sp):
+    ret = []
+    line = 0
+
+    while line < len(sp.lines):
+        startLine, endLine = sp.getSceneIndexesFromLine(line)
+        ret.append(SceneInfo(sp, startLine, endLine))
+        line = endLine + 1
+
+    return ret
+
+
 # information about one scene
 class SceneInfo:
-    def __init__(self, sp):
-        # scene number, e.g. "42A"
-        self.number = None
-
-        # scene name, e.g. "INT. MOTEL ROOM - NIGHT"
-        self.name = None
-
-        # total lines, excluding scene lines
-        self.lines = 0
-
-        # action lines
-        self.actionLines = 0
-
-        # page numbers
-        self.pages = PageList(sp.getPageNumbers())
-
-        # key = character name (upper cased), value = number of dialogue
-        # lines
-        self.chars = {}
-
-    # read information for scene within given lines.
-    def read(self, sp, startLine, endLine):
-        self.number = sp.getSceneNumber(startLine) or "0"
-
+    def __init__(self, sp, startLine, endLine):
         ls = sp.lines
 
+        # the scene's first and last line
+        self.startLine = startLine
+        self.endLine = endLine
+
+        # scene number, e.g. "42A"
+        self.number = sp.getSceneNumber(startLine) or "0"
+
+        # scene name, e.g. "INT. MOTEL ROOM - NIGHT"
         # TODO: handle multi-line scene names
         if ls[startLine].lt == screenplay.SCENE:
             s = textutil.upper(ls[startLine].text)
@@ -107,78 +111,32 @@ class SceneInfo:
         else:
             self.name = "(NO SCENE NAME)"
 
-        self.pages.addPage(sp.line2pageLabel(startLine))
-
+        # the first line after the scene heading
         line = startLine
-
-        # skip over scene headers
         while (line <= endLine) and (ls[line].lt == screenplay.SCENE):
             line = sp.getElemLastIndexFromLine(line) + 1
 
-        if line > endLine:
-            # empty scene
-            return
+        self.bodyLine = line
 
-        # re-define startLine to be first line after scene header
-        startLine = line
+        # total lines, excluding scene lines
+        self.lines = max(0, endLine - line + 1)
 
-        self.lines = endLine - startLine + 1
+        # action lines
+        self.actionLines = 0
 
-        # get number of action lines and store page information
-        for i in range(startLine, endLine + 1):
+        # page numbers
+        self.pages = PageList(sp.getPageNumbers())
+
+        # key = character name (upper cased), value = number of dialogue
+        # lines
+        self.chars = {}
+
+    # read the scene's pages and number of action lines
+    def readLines(self, sp):
+        self.pages.addPage(sp.line2pageLabel(self.startLine))
+
+        for i in range(self.bodyLine, self.endLine + 1):
             self.pages.addPage(sp.line2pageLabel(i))
 
-            if ls[i].lt == screenplay.ACTION:
+            if sp.lines[i].lt == screenplay.ACTION:
                 self.actionLines += 1
-
-        line = startLine
-        while 1:
-            line = self.readSpeech(sp, line, endLine)
-            if line >= endLine:
-                break
-
-    # read information for one (or zero) speech, beginning at given line.
-    # return line number of the last line of the speech + 1, or endLine if
-    # no speech found.
-    def readSpeech(self, sp, line, endLine):
-        ls = sp.lines
-
-        # find start of speech
-        while (line < endLine) and (ls[line].lt != screenplay.CHARACTER):
-            line += 1
-
-        if line >= endLine:
-            # no speech found, or CHARACTER was on last line, leaving no
-            # space for dialogue.
-            return endLine
-
-        # TODO: handle multi-line character names
-        s = textutil.upper(ls[line].text)
-        if len(s.strip()) == 0:
-            name = "(EMPTY CHARACTER NAME)"
-        else:
-            name = s
-
-        # skip over character name
-        line = sp.getElemLastIndexFromLine(line) + 1
-
-        # dialogue lines
-        dlines = 0
-
-        while 1:
-            if line > endLine:
-                break
-
-            lt = ls[line].lt
-
-            if lt == screenplay.DIALOGUE:
-                dlines += 1
-            elif lt != screenplay.PAREN:
-                break
-
-            line += 1
-
-        if dlines > 0:
-            self.chars[name] = self.chars.get(name, 0) + dlines
-
-        return line

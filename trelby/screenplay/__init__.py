@@ -30,6 +30,7 @@
 #   compare       comparing two scripts
 #   plaintext     lines as plain text and back, for the system clipboard
 #   proofing      the script checker
+#   speeches      who speaks where (iterSpeeches), for the reports
 #
 # constants.py has the line break and element type constants, and
 # datatypes.py the small classes used along with Screenplay.

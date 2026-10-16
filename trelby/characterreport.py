@@ -3,7 +3,7 @@ from functools import reduce
 
 import trelby.checkboxitem as checkboxitem
 import trelby.pml as pml
-import trelby.screenplay as screenplay
+import trelby.screenplay.speeches as speeches
 import trelby.textreport as textreport
 import trelby.textutil as textutil
 import trelby.util as util
@@ -16,60 +16,45 @@ class CharacterReport(textreport.TextReport):
     def __init__(self, sp):
         self.sp = sp
 
-        ls = sp.lines
-
         # key = character name, value = CharInfo
         chars = {}
 
-        name = None
-        scene = "(NO SCENE NAME)"
+        # speeches with no speaker, or an empty name, are left out. the
+        # per-scene counts are of dialogue and parenthetical lines, by the
+        # last scene heading before the speech.
+        for speech in speeches.iterSpeeches(sp):
+            name = speech.name
 
-        # how many lines processed for current speech
-        curSpeechLines = 0
+            if not name:
+                continue
 
-        # 'name' is the current speaker: set by the last line of a
-        # character element, and cleared by any line that isn't dialogue
-        # or a parenthetical. 'scene' is the last line of the latest scene
-        # heading. the per-scene counts are of dialogue and parenthetical
-        # lines.
-        for i in range(len(ls)):
-            line = ls[i]
+            ci = chars.get(name)
+            if not ci:
+                ci = CharInfo(name, sp)
+                chars[name] = ci
 
-            if (line.lt == screenplay.SCENE) and (line.lb == screenplay.LB_LAST):
-                scene = textutil.upper(line.text)
-
-            elif (line.lt == screenplay.CHARACTER) and (line.lb == screenplay.LB_LAST):
-                name = textutil.upper(line.text)
-                curSpeechLines = 0
-
-            elif line.lt in (screenplay.DIALOGUE, screenplay.PAREN) and name:
-                ci = chars.get(name)
-                if not ci:
-                    ci = CharInfo(name, sp)
-                    chars[name] = ci
-
-                if scene:
-                    ci.scenes[scene] = ci.scenes.get(scene, 0) + 1
-
-                if curSpeechLines == 0:
-                    ci.speechCnt += 1
-
-                curSpeechLines += 1
-
-                # PAREN lines don't count as spoken words
-                if line.lt == screenplay.DIALOGUE:
-                    ci.lineCnt += 1
-
-                    words = textutil.splitToWords(line.text)
-
-                    ci.wordCnt += len(words)
-                    ci.wordCharCnt += reduce(lambda x, y: x + len(y), words, 0)
-
-                ci.pages.addPage(sp.line2pageLabel(i))
-
+            if speech.scene is None:
+                scene = "(NO SCENE NAME)"
             else:
-                name = None
-                curSpeechLines = 0
+                scene = speeches.sceneName(sp, speech.scene)
+
+            if scene:
+                lines = speech.end - speech.start + 1
+                ci.scenes[scene] = ci.scenes.get(scene, 0) + lines
+
+            ci.speechCnt += 1
+
+            # PAREN lines don't count as spoken words
+            for i in speech.dialogue:
+                ci.lineCnt += 1
+
+                words = textutil.splitToWords(sp.lines[i].text)
+
+                ci.wordCnt += len(words)
+                ci.wordCharCnt += sum(len(w) for w in words)
+
+            for i in range(speech.start, speech.end + 1):
+                ci.pages.addPage(sp.line2pageLabel(i))
 
         # list of CharInfo objects
         self.cinfo = []
