@@ -6,6 +6,7 @@ import copy
 
 import trelby.keys as keys
 import trelby.mypickle as mypickle
+import trelby.textutil as textutil
 from trelby.error import ConfigError
 
 # scrolling  directions
@@ -699,3 +700,44 @@ def getConflictingKeys(commands):
         return None
     else:
         return s
+
+
+# return the commands' key bindings as a dict (key = keys.Key.toInt(),
+# value = Command) for resolveKey. fixed menu commands (New, Open, Save,
+# Quit...) are left out: their keys are their menu items' accelerators,
+# which wx handles before a key reaches the editor.
+def makeKeyMap(commands):
+    keyMap = {}
+
+    for cmd in commands:
+        if not (cmd.isFixed and cmd.isMenu):
+            for key in cmd.keys:
+                keyMap[key] = cmd
+
+    return keyMap
+
+
+# work out what a key pressed in the editor does. uc is the key event's
+# Unicode character (keys.WXK_NONE if it has none) and keyCode its key
+# code. returns (char, cmd): the character to type, or the Command in
+# keyMap (see makeKeyMap) the key is bound to. both are None if the key
+# does nothing.
+def resolveKey(keyMap, uc, keyCode, ctrl=False, alt=False, shift=False):
+    if (
+        not ctrl
+        and not alt
+        and (uc != keys.WXK_NONE)
+        and textutil.isValidInputChar(uc)
+    ):
+        return (chr(uc), None)
+
+    # the key code to look up commands with. non-character keys (arrows,
+    # Home, PgUp, F-keys...) have no Unicode value, only a key code. key
+    # codes above 255 are wx.WXK_ constants, so a character above 255 must
+    # not be used as one: "ł" (322) is wx.WXK_INSERT.
+    if (uc != keys.WXK_NONE) and (uc < 256):
+        kc = uc
+    else:
+        kc = keyCode
+
+    return (None, keyMap.get(keys.Key(kc, ctrl, alt, shift).toInt()))

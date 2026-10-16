@@ -270,6 +270,23 @@ class StructureMixin:
 
             line -= 1
 
+    # return the name of the character whose name or speech the line is
+    # in, as written on its line, or None if it's not in either
+    def getCharacterAt(self, line):
+        ls = self.lines
+
+        while (line > 0) and (ls[line].lt in (DIALOGUE, PAREN)):
+            line -= 1
+
+        return ls[line].text if ls[line].lt == CHARACTER else None
+
+    # return True if the script has no text, only whitespace
+    def isEmpty(self):
+        return not any(ln.text.strip() for ln in self.lines)
+
+    def hasScenes(self):
+        return any(ln.lt == SCENE for ln in self.lines)
+
     # return total number of characters in script
     def getCharCount(self):
         return sum([len(ln.text) for ln in self.lines])

@@ -19,6 +19,7 @@ import trelby.config as config
 import trelby.configgui as configgui
 import trelby.dialoguechart as dialoguechart
 import trelby.finddlg as finddlg
+import trelby.formats as formats
 import trelby.gutil as gutil
 import trelby.headersdlg as headersdlg
 import trelby.keys as keys
@@ -33,7 +34,7 @@ import trelby.pml as pml
 import trelby.reports as reports
 import trelby.screenplay as screenplay
 import trelby.screenplay.compare as compare
-import trelby.screenplay.export as export
+import trelby.screenplay.plaintext as plaintext
 import trelby.screenplay.proofing as proofing
 import trelby.screenplay.render as render
 import trelby.scriptchooserdlg as scriptchooserdlg
@@ -50,7 +51,6 @@ import trelby.watermarkdlg as watermarkdlg
 import trelby.worldbuildingdlg as worldbuildingdlg
 from trelby.error import TrelbyError
 from trelby.ids import ID_EDIT_REDO, ID_EDIT_UNDO, idToLTMap
-from trelby.line import Line
 
 # Boolean to determine if toolbar should be shown or not.
 toolbarshown = True
@@ -301,27 +301,19 @@ class MyCtrl(wx.Control):
             self.autosaveError = None
             self.gd.mainFrame.updateAutosaveStatus(self)
 
-    # import fileName as format fmt ("fdx", "celtx", "astx", "fountain",
-    # "fadein" or "txt"). if fmt is None, it's guessed from the extension.
+    # import fileName as the formats.Format fmt. if fmt is None, it's
+    # guessed from the extension.
     def importFile(self, fileName, fmt=None):
-        if fmt is None:
-            fmt = os.path.splitext(fileName)[1].lower().lstrip(".")
+        fmt = fmt or formats.guessImportFormat(fileName)
+        importer = getattr(myimport, fmt.importer)
+        titlePages = None
 
-        titlePages = False
-        if fmt == "fdx":
-            lines = myimport.importFDX(fileName, self.gd.mainFrame)
-        elif fmt == "celtx":
-            lines = myimport.importCeltx(fileName, self.gd.mainFrame)
-        elif fmt == "astx":
-            lines = myimport.importAstx(fileName, self.gd.mainFrame)
-        elif fmt == "fountain":
-            lines, titlePages = myimport.importFountain(
+        if fmt.importsTitles:
+            lines, titlePages = importer(
                 fileName, self.gd.mainFrame, self.sp.titles.pages
-            )
-        elif fmt == "fadein":
-            lines = myimport.importFadein(fileName, self.gd.mainFrame)
+            ) or (None, None)
         else:
-            lines = myimport.importTextFile(fileName, self.gd.mainFrame)
+            lines = importer(fileName, self.gd.mainFrame)
 
         if not lines:
             return
@@ -337,42 +329,29 @@ class MyCtrl(wx.Control):
 
         self.checkWideChars("".join(ln.text for ln in self.sp.lines))
 
-    # generate exportable text from given screenplay, or None.
-    def getExportText(self, sp):
-        inf = []
-        inf.append(checkboxitem.CheckBoxItem(_("Include page markers")))
+    # ask for the formats.Format fmt's export options, if it has any.
+    # returns them as a dict, or None if cancelled.
+    def askExportOptions(self, fmt):
+        if not fmt.options:
+            return {}
+
+        inf = [checkboxitem.CheckBoxItem(label()) for name, label in fmt.options]
 
         dlg = checkboxdlg.CheckBoxDlg(
             self.gd.mainFrame, _("Output options"), inf, _("Options:"), False
         )
+        ok = dlg.ShowModal() == wx.ID_OK
+        dlg.Destroy()
 
-        if dlg.ShowModal() != wx.ID_OK:
-            dlg.Destroy()
-
+        if not ok:
             return None
 
-        return export.generateText(sp, inf[0].selected)
+        return {name: it.selected for (name, label), it in zip(fmt.options, inf)}
 
-    def getExportHtml(self, sp):
-        inf = []
-        inf.append(checkboxitem.CheckBoxItem(_("Include Notes")))
-
-        dlg = checkboxdlg.CheckBoxDlg(
-            self.gd.mainFrame, _("Output options"), inf, _("Options:"), False
-        )
-
-        if dlg.ShowModal() != wx.ID_OK:
-            dlg.Destroy()
-
-            return None
-
-        return export.generateHtml(sp, inf[0].selected)
-
-    # generate a PDF of the given screenplay, or None if the user cancels
-    # because the PDF fonts can't show some of its characters.
-    def getExportPdf(self, sp):
-        doc = render.generatePML(sp)
-        chars = pdf.unsupportedChars(doc)
+    # if the PDF fonts can't show some of sp's characters, ask whether to
+    # export it anyway. returns True to go ahead.
+    def confirmPdfChars(self, sp):
+        chars = pdf.unsupportedChars(render.generatePML(sp))
 
         if chars:
             if len(chars) > 40:
@@ -389,9 +368,9 @@ class MyCtrl(wx.Control):
                 )
                 == wx.NO
             ):
-                return None
+                return False
 
-        return pdf.generate(doc)
+        return True
 
     def setFile(self, fileName):
         self.fileName = fileName
@@ -403,32 +382,12 @@ class MyCtrl(wx.Control):
         self.setTabText()
 
     # set the name shown for the script to name, made unique among the open
-    # scripts by adding "-2", "-3"... if needed
+    # scripts
     def setDisplayName(self, name):
-        i = 1
-        while 1:
-            if i == 1:
-                tmp = name
-            else:
-                tmp = name + "-%d" % i
-
-            matched = False
-
-            for c in self.gd.mainFrame.getCtrls():
-                if c == self:
-                    continue
-
-                if c.fileNameDisplay == tmp:
-                    matched = True
-
-                    break
-
-            if not matched:
-                break
-
-            i += 1
-
-        self.fileNameDisplay = tmp
+        taken = [
+            c.fileNameDisplay for c in self.gd.mainFrame.getCtrls() if c is not self
+        ]
+        self.fileNameDisplay = util.uniqueName(name, taken)
 
     # set the tab text and, if this is the current script, the window
     # title
@@ -614,7 +573,7 @@ class MyCtrl(wx.Control):
 
         self.gd.cfgGl.recalc()
         self.refreshGuiConfig()
-        self.gd.mainFrame.updateKbdCommands()
+        self.gd.mainFrame.updateKeyMap()
 
         # every script keeps a reference to the global config, which has
         # just been replaced by a copy
@@ -699,7 +658,7 @@ class MyCtrl(wx.Control):
             action
         ]
 
-        if not any(ln.text.strip() for ln in self.sp.lines):
+        if self.sp.isEmpty():
             dlg = wx.MessageDialog(
                 self.gd.mainFrame,
                 _("\"{}\" is empty.").format(self.fileNameDisplay),
@@ -887,21 +846,13 @@ class MyCtrl(wx.Control):
             self.updateScreen()
 
         # type changes apply to every element in the selection, if any
-        marked = self.ed.getMarkedLines()
-
-        if marked:
-            first, last = marked
-        else:
-            first = last = self.ed.line
-
-        types = {self.sp.lines[i].lt for i in range(first, last + 1)}
-        curLt = types.pop() if len(types) == 1 else None
+        curLt = self.ed.getSelectionType()
 
         # dual dialogue works on the speech at the cursor, so it's only
         # offered when there's no selection
         dualState = None
 
-        if not marked:
+        if not self.ed.mark:
             toggle = self.ed.getDualToggle()
 
             if toggle:
@@ -1000,14 +951,8 @@ class MyCtrl(wx.Control):
         dlg.Destroy()
 
     def OnCharacterProfilesDlg(self):
-        ls = self.sp.lines
-
         # start with the character whose name or speech the cursor is on
-        i = self.ed.line
-        while (i > 0) and (ls[i].lt in (screenplay.DIALOGUE, screenplay.PAREN)):
-            i -= 1
-
-        selectName = ls[i].text if ls[i].lt == screenplay.CHARACTER else None
+        selectName = self.sp.getCharacterAt(self.ed.line)
 
         old = self.sp.characterProfiles.save()
 
@@ -1234,26 +1179,7 @@ class MyCtrl(wx.Control):
         if not cd:
             return
 
-        tmpSp = screenplay.Screenplay(self.gd.cfgGl)
-        tmpSp.lines = cd.lines
-
-        if formatted:
-            # have to call paginate, otherwise generateText will not
-            # process all the text
-            tmpSp.paginate()
-            s = export.generateText(tmpSp, False)
-        else:
-            s = util.String()
-
-            for ln in tmpSp.lines:
-                txt = ln.text
-
-                if tmpSp.cfg.getType(ln.lt).export.isCaps:
-                    txt = textutil.upper(txt)
-
-                s += txt + config.lb2str(ln.lb)
-
-            s = str(s).replace("\n", os.linesep)
+        s = plaintext.linesToText(cd.lines, self.gd.cfgGl, formatted)
 
         if wx.TheClipboard.Open():
             wx.TheClipboard.UsePrimarySelection(False)
@@ -1292,28 +1218,15 @@ class MyCtrl(wx.Control):
             if wx.TheClipboard.IsSupported(df):
                 data = wx.TextDataObject()
                 wx.TheClipboard.GetData(data)
-                s = textutil.cleanInput(data.GetText())
+                s = data.GetText()
 
             wx.TheClipboard.Close()
 
-        s = textutil.removeInvalidChars(textutil.toInputStr(textutil.fixNL(s)))
+        lines = plaintext.textToLines(s)
 
-        if len(s) == 0:
-            return
-
-        inLines = s.split("\n")
-
-        # shouldn't be possible, but...
-        if len(inLines) == 0:
-            return
-
-        lines = []
-
-        for s in inLines:
-            if s:
-                lines.append(Line(screenplay.LB_LAST, screenplay.ACTION, s))
-
-        self.OnPaste(lines)
+        # given no lines, OnPaste would paste Trelby's own clipboard
+        if lines:
+            self.OnPaste(lines)
 
     def OnSelectScene(self):
         self.ed.cmd("selectScene")
@@ -1602,39 +1515,27 @@ class MyCtrl(wx.Control):
 
         dlg.Destroy()
 
-    # export the script in format 'fmt', which is the file suffix
-    # without the dot ("pdf", "rtf", "fdx", "html", "fountain" or "txt").
+    # export the script in the formats.Format fmt
     def OnExportScript(self, fmt):
-        name, generate = {
-            "pdf": ("PDF", self.getExportPdf),
-            "rtf": ("RTF", lambda sp: export.generateRTF(sp)),
-            "fdx": ("Final Draft XML", lambda sp: export.generateFDX(sp)),
-            "html": ("HTML", self.getExportHtml),
-            "fountain": ("Fountain", lambda sp: export.generateFountain(sp)),
-            "txt": (_("Formatted text"), self.getExportText),
-        }[fmt]
-
         sp = self.getExportable("export")
         if not sp:
             return
-
-        suffix = "." + fmt
 
         dlg = wx.FileDialog(
             self.gd.mainFrame,
             _("Filename to export as"),
             misc.scriptDir,
-            wildcard="%s (*%s)|*%s" % (name, suffix, suffix),
+            wildcard=fmt.getWildcard(),
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         )
 
         if dlg.ShowModal() == wx.ID_OK:
             misc.scriptDir = dlg.GetDirectory()
+            fileName = textutil.ensureEndsIn(dlg.GetPath(), "." + fmt.extensions[0])
+            options = self.askExportOptions(fmt)
 
-            data = generate(sp)
-            fileName = textutil.ensureEndsIn(dlg.GetPath(), suffix)
-
-            if data:
+            if (options is not None) and ((fmt.key != "pdf") or self.confirmPdfChars(sp)):
+                data = fmt.generate(sp, **options)
                 gutil.writeToFile(fileName, data, self.gd.mainFrame)
 
         dlg.Destroy()
@@ -1828,28 +1729,20 @@ class MyCtrl(wx.Control):
         pass
 
     def OnKeyChar(self, ev):
-        uc = ev.GetUnicodeKey()
-
-        # the key code to look up commands with. non-character keys
-        # (arrows, Home, PgUp, F-keys...) have no Unicode value, only a key
-        # code. key codes above 255 are wx.WXK_ constants, so a character
-        # above 255 must not be used as one: "ł" (322) is wx.WXK_INSERT.
-        if (uc != wx.WXK_NONE) and (uc < 256):
-            kc = uc
-        else:
-            kc = ev.GetKeyCode()
+        char, cmd = commands.resolveKey(
+            self.gd.keyMap,
+            ev.GetUnicodeKey(),
+            ev.GetKeyCode(),
+            ev.ControlDown(),
+            ev.AltDown(),
+            ev.ShiftDown(),
+        )
 
         cs = screenplay.CommandState()
         cs.mark = bool(ev.ShiftDown())
         scrollDirection = commands.SCROLL_CENTER
 
-        if (
-            not ev.ControlDown()
-            and not ev.AltDown()
-            and (uc != wx.WXK_NONE)
-            and textutil.isValidInputChar(uc)
-        ):
-            kc = uc
+        if char:
             addChar = True
 
             # If there's something selected, either remove it, or clear selection.
@@ -1859,7 +1752,7 @@ class MyCtrl(wx.Control):
                     addChar = False
 
             if addChar:
-                cs.char = chr(kc)
+                cs.char = char
 
                 # test mode hooks: "\xe5" (a with ring) loads the sample
                 # script, "\xa4" (currency sign) runs cmdTest and "\xbd"
@@ -1874,26 +1767,23 @@ class MyCtrl(wx.Control):
                     self.ed.addCharCmd(cs)
                     self.checkWideChars(cs.char)
 
-        else:
-            # a bound key (see MyFrame.updateKbdCommands). a menu command
-            # runs MyFrame.On<name>, which updates the screen itself, so
-            # we're done. other commands are cmd<name> methods here, which
-            # work on self.sp and leave updating the screen to the code
-            # below.
-            cmd = self.gd.mainFrame.kbdCommands.get(
-                keys.Key(kc, ev.ControlDown(), ev.AltDown(), ev.ShiftDown()).toInt()
-            )
+        elif cmd:
+            # a menu command runs MyFrame.On<name>, which updates the screen
+            # itself, so we're done. other commands are cmd<name> methods
+            # here, which work on self.sp and leave updating the screen to
+            # the code below.
+            scrollDirection = cmd.scrollDirection
 
-            if cmd:
-                scrollDirection = cmd.scrollDirection
-                if cmd.isMenu:
-                    getattr(self.gd.mainFrame, "On" + cmd.name)()
-                    return
-                else:
-                    getattr(self, "cmd" + cmd.name)(cs)
-            else:
-                ev.Skip()
+            if cmd.isMenu:
+                getattr(self.gd.mainFrame, "On" + cmd.name)()
+
                 return
+
+            getattr(self, "cmd" + cmd.name)(cs)
+        else:
+            ev.Skip()
+
+            return
 
         self.ed.cmdPost(cs)
 

@@ -19,9 +19,9 @@ import re
 import trelby.characterprofiles as characterprofiles
 import trelby.config as config
 import trelby.error as error
+import trelby.formats as formats
 import trelby.misc as misc
 import trelby.screenplay as screenplay
-import trelby.screenplay.export as exporters
 import trelby.textutil as textutil
 import trelby.translations as translations
 import trelby.undo as undo
@@ -35,16 +35,6 @@ from trelby.screenplay import (
     LB_LAST,
     SCENE,
 )
-
-# export formats, mapped to whether they're binary
-EXPORT_FORMATS = {
-    "pdf": True,
-    "fountain": False,
-    "text": False,
-    "html": False,
-    "fdx": False,
-    "rtf": False,
-}
 
 # maximum number of matches returned by search
 MAX_MATCHES = 200
@@ -622,14 +612,15 @@ def search(doc, query, caseSensitive=False):
 # otherwise it is returned (not possible for PDF).
 def export(doc, fmt, outputPath=None):
     fmt = str(fmt).lower()
+    exporter = formats.find(formats.EXPORT_FORMATS, fmt)
 
-    if fmt not in EXPORT_FORMATS:
+    if not exporter:
         raise ToolError(
             "Unknown format '%s'. Valid formats: %s."
-            % (fmt, ", ".join(EXPORT_FORMATS))
+            % (fmt, ", ".join(f.key for f in formats.EXPORT_FORMATS))
         )
 
-    if EXPORT_FORMATS[fmt] and not outputPath:
+    if exporter.binary and not outputPath:
         raise ToolError("Exporting to %s needs an output path." % fmt)
 
     if outputPath is not None:
@@ -644,18 +635,7 @@ def export(doc, fmt, outputPath=None):
     sp, rev = doc.read()
 
     try:
-        if fmt == "pdf":
-            data = exporters.generatePDF(sp)
-        elif fmt == "fountain":
-            data = exporters.generateFountain(sp)
-        elif fmt == "text":
-            data = exporters.generateText(sp, False)
-        elif fmt == "html":
-            data = exporters.generateHtml(sp)
-        elif fmt == "fdx":
-            data = exporters.generateFDX(sp)
-        else:
-            data = exporters.generateRTF(sp)
+        data = exporter.generate(sp)
     except Exception as e:
         raise ToolError("Exporting to %s failed: %s: %s" % (fmt, type(e).__name__, e))
 

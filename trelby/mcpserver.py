@@ -26,6 +26,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
+import trelby.formats as formats
 import trelby.mcptools as mcptools
 
 # port the server in the app listens on by default
@@ -220,7 +221,7 @@ def makeServer(run, inApp):
     async def export_script(
         *,
         path: Path,
-        format: Literal["pdf", "fountain", "text", "html", "fdx", "rtf"],
+        format: Literal[tuple(f.key for f in formats.EXPORT_FORMATS)],
         output_path: Annotated[
             Optional[str],
             Field(

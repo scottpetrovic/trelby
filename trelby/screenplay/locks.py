@@ -93,6 +93,11 @@ class LocksMixin:
     def hasSceneLocks(self):
         return bool(self.getSceneLocks())
 
+    # return True if any line has a locked scene number, even one that
+    # isn't used (see getSceneLocks). unlocking removes these too.
+    def hasAnySceneLock(self):
+        return any(ln.sceneLock for ln in self.lines)
+
     # return a list of (line, number) tuples for all scene headings, in
     # script order. see pagelock.sceneLabels for how scenes are numbered
     # once their numbers are locked.
@@ -170,7 +175,7 @@ class LocksEditMixin:
         self.undoHistory.add(u)
 
     def unlockScenes(self):
-        if not any(ln.sceneLock for ln in self.sp.lines):
+        if not self.sp.hasAnySceneLock():
             return
 
         u = undo.FullCopy(self)

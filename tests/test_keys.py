@@ -9,7 +9,7 @@ import trelby.keys as keys
 def testKeyCodesMatchWx():
     names = [n for n in dir(keys) if n.startswith("WXK_")]
 
-    assert len(names) == 39
+    assert len(names) == 40
 
     for name in names:
         assert getattr(keys, name) == getattr(wx, name), name

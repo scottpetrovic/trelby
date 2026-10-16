@@ -184,12 +184,11 @@ class MyMenuBar(wx.Control):
             i = 0
 
         # the user's own key bindings come first
-        kbdCommands = getattr(self.frame, "kbdCommands", {})
         bound = (
             keys.Key(
                 key, event.ControlDown(), event.AltDown(), event.ShiftDown()
             ).toInt()
-            in kbdCommands
+            in self.frame.gd.keyMap
         )
 
         if (i != -1) and self.IsShown() and not bound:

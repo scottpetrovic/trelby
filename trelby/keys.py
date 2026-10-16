@@ -6,6 +6,7 @@ import trelby.textutil as textutil
 # the wx.WXK_* key codes Key uses, so that it and the default key bindings
 # don't need to import wx. they're part of the config file format (see
 # Key.toInt), and tests/test_keys.py checks they match wx's.
+WXK_NONE = 0
 WXK_BACK = 8
 WXK_TAB = 9
 WXK_RETURN = 13

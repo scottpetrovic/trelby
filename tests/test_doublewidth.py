@@ -12,7 +12,7 @@ import trelby.screenplay as scr
 import trelby.screenplay.render as render
 import trelby.textutil as textutil
 import trelby.translations as translations
-from tests.test_keyinput import FakeCtrl, KeyEvent, press
+from tests.test_keyinput import KeyEvent, makeCtrl, press
 
 _ = translations.trelby_translations_load()
 
@@ -189,7 +189,7 @@ def testPDFWarnsAboutCharsNotInChineseFont():
 
 
 def newCtrl(ed):
-    ctrl = FakeCtrl(ed.sp)
+    ctrl = makeCtrl(ed.sp)
     ctrl.offers = []
     ctrl.offerDoubleWidth = ctrl.offers.append
 

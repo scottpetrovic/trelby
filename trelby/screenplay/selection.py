@@ -34,6 +34,14 @@ class SelectionMixin:
         else:
             return (mark, self.line)
 
+    # return the type of the selected lines, or of the cursor's line if
+    # nothing is selected, or None if they're of more than one type
+    def getSelectionType(self):
+        first, last = self.getMarkedLines() or (self.line, self.line)
+        types = {self.sp.lines[i].lt for i in range(first, last + 1)}
+
+        return types.pop() if len(types) == 1 else None
+
     # returns pair (start, end) (inclusive) of marked columns for the
     # given line (line must be inside the marked lines). 'marked' is the
     # value returned from getMarkedLines. if marked column is invalid

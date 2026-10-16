@@ -39,6 +39,10 @@ class GlobalData:
     cfgGui = None
     cfgGl = None
 
+    # cfgGl's key bindings (see config.ConfigGlobal.getKeyMap), which the
+    # editor looks up the keys pressed in
+    keyMap = {}
+
     # constants
     (
         VIEWMODE_DRAFT,

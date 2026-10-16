@@ -48,40 +48,25 @@ class KeyEvent:
         self.skipped = True
 
 
-# stands in for the wx control: OnKeyChar and the cmd* methods come from
-# MyCtrl, while the screen updates do nothing
-class FakeCtrl:
-    def __init__(self, sp):
-        cfgGl = config.ConfigGlobal()
-        commands.addShiftKeys(cfgGl.commands)
-        kbdCommands = {}
+# a MyCtrl for sp, without a window: OnKeyChar and the cmd* methods only
+# need the script, its Editor and the key bindings, and the screen updates
+# do nothing
+def makeCtrl(sp):
+    ctrl = trelbyctrl.MyCtrl.__new__(trelbyctrl.MyCtrl)
+    ctrl.sp = sp
+    ctrl.ed = screenplay.Editor(sp)
+    ctrl.gd = SimpleNamespace(cfgGl=sp.cfgGl, keyMap=sp.cfgGl.getKeyMap())
+    ctrl.makeLineVisible = lambda *args: None
+    ctrl.updateScreen = lambda *args: None
 
-        for cmd in cfgGl.commands:
-            if not (cmd.isFixed and cmd.isMenu):
-                for key in cmd.keys:
-                    kbdCommands[key] = cmd
-
-        self.sp = sp
-        self.ed = screenplay.Editor(sp)
-        self.gd = SimpleNamespace(
-            cfgGl=cfgGl, mainFrame=SimpleNamespace(kbdCommands=kbdCommands)
-        )
-
-    def __getattr__(self, name):
-        return getattr(trelbyctrl.MyCtrl, name).__get__(self)
-
-    def makeLineVisible(self, *args):
-        pass
-
-    def updateScreen(self):
-        pass
+    return ctrl
 
 
 def newCtrl():
     sp = u.new()
     sp.lines[0].lt = screenplay.ACTION
 
-    return FakeCtrl(sp)
+    return makeCtrl(sp)
 
 
 def press(ctrl, ev):
@@ -289,3 +274,53 @@ def testSpeedTest(capsys):
     out = capsys.readouterr().out
     assert "seconds per testUndoFullCopy" in out
     assert not ctrl.sp.isModified()
+
+
+# commands.resolveKey, which OnKeyChar uses to tell typing from commands
+def resolve(uc, kc, **mods):
+    cfgGl = config.ConfigGlobal()
+
+    return commands.resolveKey(cfgGl.getKeyMap(), uc, kc, **mods)
+
+
+def testResolveKeyChars():
+    assert resolve(ord("a"), ord("A")) == ("a", None)
+    assert resolve(ord("Å"), wx.WXK_NONE) == ("Å", None)
+    assert resolve(0x0142, wx.WXK_NONE) == ("ł", None)
+
+    # not typeable: C1 control, zero-width space
+    assert resolve(0x85, wx.WXK_NONE) == (None, None)
+    assert resolve(0x200B, wx.WXK_NONE) == (None, None)
+
+
+def testResolveKeyCommands():
+    char, cmd = resolve(wx.WXK_NONE, wx.WXK_LEFT)
+    assert (char, cmd.name) == (None, "MoveLeft")
+
+    # the SHIFT versions of movement keys select
+    char, cmd = resolve(wx.WXK_NONE, wx.WXK_LEFT, shift=True)
+    assert cmd.name == "MoveLeft"
+
+    char, cmd = resolve(ord("s"), ord("S"), alt=True)
+    assert (char, cmd.name) == (None, "ChangeToScene")
+
+    # a character above 255 isn't a key code: with CTRL, "Ĺ" (313) isn't
+    # CTRL+Home
+    assert resolve(wx.WXK_HOME, wx.WXK_NONE, ctrl=True) == (None, None)
+
+    char, cmd = resolve(wx.WXK_NONE, wx.WXK_HOME, ctrl=True)
+    assert cmd.name == "MoveStartOfScript"
+
+    assert resolve(ord("q"), ord("Q"), ctrl=True, alt=True) == (None, None)
+
+
+# fixed menu commands' keys are their menu items' accelerators, so they're
+# not in the key map
+def testKeyMapLeavesOutFixedMenuCommands():
+    cfgGl = config.ConfigGlobal()
+    names = {cmd.name for cmd in cfgGl.getKeyMap().values()}
+
+    assert "MoveLeft" in names
+    assert "ToggleBold" in names
+    assert "Undo" not in names
+    assert "SaveScript" not in names

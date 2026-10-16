@@ -801,6 +801,13 @@ class ConfigGlobal:
     def getType(self, lt):
         return self.types[lt]
 
+    # the key bindings, for commands.resolveKey (see commands.makeKeyMap).
+    # adds the SHIFT versions of the movement keys first.
+    def getKeyMap(self):
+        commands.addShiftKeys(self.commands)
+
+        return commands.makeKeyMap(self.commands)
+
     # set default values that vary depending on platform, wxWidgets
     # version, etc. this is not at the end of __init__ because
     # non-interactive uses have no needs for these.

@@ -75,6 +75,19 @@ def listify(seq, name):
     return l
 
 
+# return name, made unique among the names in taken by adding "-2", "-3"...
+# if needed
+def uniqueName(name, taken):
+    i = 1
+    unique = name
+
+    while unique in taken:
+        i += 1
+        unique = "%s-%d" % (name, i)
+
+    return unique
+
+
 # return percentage of 'val1' of 'val2' (both ints) as an int (50% -> 50
 # etc.), or 0 if val2 is 0.
 def pct(val1, val2):

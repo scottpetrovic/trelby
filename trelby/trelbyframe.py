@@ -17,6 +17,7 @@ import trelby.cfgdlg as cfgdlg
 import trelby.charmapdlg as charmapdlg
 import trelby.commands as commands
 import trelby.commandsdlg as commandsdlg
+import trelby.formats as formats
 import trelby.gutil as gutil
 import trelby.keys as keys
 import trelby.mcpapp as mcpapp
@@ -387,7 +388,7 @@ class MyFrame(wx.Frame):
             (ID_FILE_IMPORT_CELTX, "celtx"),
             (ID_FILE_IMPORT_ASTX, "astx"),
             (ID_FILE_IMPORT_FADEIN, "fadein"),
-            (ID_FILE_IMPORT_TEXT, "txt"),
+            (ID_FILE_IMPORT_TEXT, "text"),
         ):
             self.Bind(
                 wx.EVT_MENU, partial(self.OnImportScript, fmt=fmt), id=importId
@@ -398,7 +399,7 @@ class MyFrame(wx.Frame):
             (ID_FILE_EXPORT_FDX, "fdx"),
             (ID_FILE_EXPORT_HTML, "html"),
             (ID_FILE_EXPORT_FOUNTAIN, "fountain"),
-            (ID_FILE_EXPORT_TEXT, "txt"),
+            (ID_FILE_EXPORT_TEXT, "text"),
         ):
             self.Bind(
                 wx.EVT_MENU, partial(self.OnExportScript, fmt=fmt), id=exportId
@@ -491,7 +492,7 @@ class MyFrame(wx.Frame):
             (ID_EDIT_PASTE, lambda c: bool(self.clipboard)),
             (
                 ID_EDIT_GOTO_SCENE,
-                lambda c: any(ln.lt == screenplay.SCENE for ln in c.sp.lines),
+                lambda c: c.sp.hasScenes(),
             ),
             (ID_EDIT_CENTER, lambda c: c.ed.getCenteredState() is not None),
             (ID_EDIT_DUAL_DIALOGUE, lambda c: c.ed.getDualToggle() is not None),
@@ -501,7 +502,7 @@ class MyFrame(wx.Frame):
             (ID_SCRIPT_UNLOCK_PAGES, lambda c: c.sp.hasPageLocks()),
             (
                 ID_SCRIPT_UNLOCK_SCENES,
-                lambda c: any(ln.sceneLock for ln in c.sp.lines),
+                lambda c: c.sp.hasAnySceneLock(),
             ),
             (
                 ID_TOOLS_COMPARE_SCRIPTS,
@@ -572,7 +573,7 @@ class MyFrame(wx.Frame):
         self.Layout()
 
     def init(self):
-        self.updateKbdCommands()
+        self.updateKeyMap()
         self.panel = self.createNewPanel()
         self.updateAutosaveTimer()
 
@@ -758,15 +759,12 @@ class MyFrame(wx.Frame):
 
         return False
 
-    # rebuild self.kbdCommands (key = keys.Key.toInt(), value =
-    # commands.Command), which MyCtrl.OnKeyChar looks keys up in. it calls
-    # MyCtrl.cmd<name>(cs) for an editing command, and On<name>() here,
-    # with no event, for a menu command, which is why the On* handlers
-    # default event to None. fixed menu commands (New, Open, Save, Quit...)
-    # are left out: their keys are their menu items' accelerators, which
-    # wx handles before a key reaches MyCtrl.
-    def updateKbdCommands(self):
-        commands.addShiftKeys(self.gd.cfgGl.commands)
+    # rebuild gd.keyMap from the global config. MyCtrl.OnKeyChar looks keys
+    # up in it, and calls MyCtrl.cmd<name>(cs) for an editing command, and
+    # On<name>() here, with no event, for a menu command, which is why the
+    # On* handlers default event to None.
+    def updateKeyMap(self):
+        self.gd.keyMap = self.gd.cfgGl.getKeyMap()
 
         if commands.getConflictingKeys(self.gd.cfgGl.commands) != None:
             wx.MessageBox(
@@ -777,13 +775,6 @@ class MyFrame(wx.Frame):
                 wx.OK,
                 self,
             )
-
-        self.kbdCommands = {}
-
-        for cmd in self.gd.cfgGl.commands:
-            if not (cmd.isFixed and cmd.isMenu):
-                for key in cmd.keys:
-                    self.kbdCommands[key] = cmd
 
     # open script, in the current tab if it's untouched, or in a new one
     # otherwise
@@ -915,24 +906,15 @@ class MyFrame(wx.Frame):
     def OnSaveScriptAs(self, event=None):
         self.panel.ctrl.OnSaveScriptAs()
 
-    def OnImportScript(self, event=None, fmt="txt"):
-        # (file type description, wildcard pattern) for each import format
-        types = {
-            "fdx": ("Final Draft XML", "*.fdx"),
-            "fountain": ("Fountain", "*.fountain;*.txt"),
-            "celtx": ("Celtx", "*.celtx"),
-            "astx": ("Adobe Story XML", "*.astx"),
-            "fadein": ("Fade In", "*.fadein"),
-            "txt": (_("Formatted text"), "*.txt"),
-        }
-        desc, pattern = types[fmt]
+    # import a script in the format with the given key (see formats.py)
+    def OnImportScript(self, event=None, fmt="text"):
+        fmt = formats.find(formats.IMPORT_FORMATS, fmt)
 
         dlg = wx.FileDialog(
             self,
             _("File to import"),
             misc.scriptDir,
-            wildcard="%s %s (%s)|%s|%s|*"
-            % (desc, _("files"), pattern, pattern, _("All files")),
+            wildcard="%s|%s|*" % (fmt.getWildcard(), _("All files")),
             style=wx.FD_OPEN,
         )
 
@@ -948,7 +930,7 @@ class MyFrame(wx.Frame):
         dlg.Destroy()
 
     def OnExportScript(self, event=None, fmt="pdf"):
-        self.panel.ctrl.OnExportScript(fmt)
+        self.panel.ctrl.OnExportScript(formats.find(formats.EXPORT_FORMATS, fmt))
 
     def OnCloseScript(self, event=None):
         if not self.panel.ctrl.canBeClosed():
