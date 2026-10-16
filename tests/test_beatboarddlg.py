@@ -1,7 +1,6 @@
 import pytest
 import wx
 
-import tests.u as u
 import trelby.config as config
 import trelby.screenplay.beatboard as beatboard
 import trelby.translations as translations
@@ -26,29 +25,17 @@ def app():
 
 @pytest.fixture
 def dlg(app):
-    ed = u.loadEditor()
-    ed.sp.paginate()
-    line = ed.sp.getOutlineStarts()[1]
-
     board = beatboard.BeatBoard()
-
-    b = beatboard.Beat("Opening image\nThe city at dawn.", 20, 20)
-    b.sceneId = "1"
-    board.beats.append(b)
+    board.beats.append(beatboard.Beat("Opening image\nThe city at dawn.", 20, 20))
 
     b = beatboard.Beat("Catalyst", 240, 20)
     b.color = "ffd1a3"
     board.beats.append(b)
 
-    # linked to a scene that isn't there
-    b = beatboard.Beat("Midpoint", 460, 20)
-    b.sceneId = "9"
-    board.beats.append(b)
+    board.beats.append(beatboard.Beat("Midpoint", 460, 20))
+    board.beats.append(beatboard.Beat("", 700, 180))
 
-    board.beats.append(beatboard.Beat("", 240, 180))
-    ed.setBeatBoard(board, {line: "1"})
-
-    d = beatboarddlg.BeatBoardDlg(None, ed.sp)
+    d = beatboarddlg.BeatBoardDlg(None, board)
     d.canvas.SetClientSize(d.canvas.FromDIP(wx.Size(960, 560)))
 
     yield d
@@ -70,14 +57,35 @@ def pixel(img, x, y):
     return (img.GetRed(x, y), img.GetGreen(x, y), img.GetBlue(x, y))
 
 
-def test_links(dlg):
-    beats = dlg.board.beats
+def test_copy(dlg):
+    # the dialog edits its own copy of the board
+    board = beatboard.BeatBoard()
+    board.beats.append(beatboard.Beat("x"))
 
-    assert dlg.getLinkLabel(beats[0]).endswith(
-        dlg.sp.getElemText(dlg.sp.getOutlineStarts()[1]).upper()
-    )
-    assert dlg.getLinkLabel(beats[1]) is None
-    assert dlg.getLinkLabel(beats[2]) == "Linked scene was deleted"
+    d = beatboarddlg.BeatBoardDlg(None, board)
+    d.board.beats[0].text = "changed"
+    assert board.beats[0].text == "x"
+    d.Destroy()
+
+
+def test_hint(dlg, monkeypatch):
+    c = dlg.canvas
+    w, h = c.GetClientSize()
+    withHint = paint(c)
+
+    monkeypatch.setattr(c, "drawHint", lambda *args: None)
+    without = paint(c)
+
+    def differs(x0, x1, y0, y1):
+        return any(
+            pixel(withHint, x, y) != pixel(without, x, y)
+            for x in range(x0, x1)
+            for y in range(y0, y1)
+        )
+
+    # it's in the middle
+    assert differs(w // 2 - 40, w // 2 + 40, h // 2 - 10, h // 2 + 10)
+    assert not differs(0, w, 0, h // 4)
 
 
 @pytest.mark.parametrize("theme", [None, "Light", "Dark"])
@@ -195,10 +203,10 @@ def test_editInline(dlg):
     assert not isNew
     assert ctrl.GetValue() == old
 
-    # it covers the card's text, but not its link
+    # it covers the card's text
     r = c.textRect(beat)
     assert ctrl.GetRect() == wx.Rect(c.CalcScrolledPosition(r.GetTopLeft()), r.GetSize())
-    assert r.GetBottom() < c.cardRect(beat).GetBottom() - c.FromDIP(20)
+    assert c.cardRect(beat).Contains(r)
 
     # Esc cancels
     ctrl.SetValue("changed")

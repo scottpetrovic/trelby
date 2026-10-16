@@ -11,7 +11,7 @@
 #   dualdialogue* side-by-side speeches
 #   pagination    page breaks and page labels
 #   locks*        locked pages and scene numbers
-#   sceneoutline* the outline, scene colors and ids, moving scenes
+#   sceneoutline* the outline, scene colors, moving scenes
 #
 # Editor:
 #   editing       type changes, joining / splitting, whole-script edits
@@ -42,7 +42,7 @@
 #   characterprofiles  notes about each character
 #   locations     scene headings grouped into locations
 #   worldbuilding notes about the story's world
-#   beatboard*    index cards on a board, which can link to scenes
+#   beatboard*    index cards laid out on a board
 #   pagelock      page labels once the pages are locked
 #   autocompletion, autocompletiontype  the auto-completion lists
 #

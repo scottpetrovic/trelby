@@ -133,7 +133,6 @@ class SelectionMixin:
                     centered=self.sp.hasCenteredFlag(i) and (c1 == 0),
                     fmt=ln.sliceFmt(c1, c2 + 1),
                     sceneLock=self.sp.getSceneLock(i) if (c1 == 0) else None,
-                    sceneId=self.sp.getSceneId(i) if (c1 == 0) else None,
                 )
             )
 
@@ -248,10 +247,6 @@ class SelectionMixin:
         # a scene with that number (e.g. it was copied, not cut)
         usedLocks = set(self.sp.getSceneLocks().values())
 
-        # likewise a pasted scene keeps its id, so that beat board cards
-        # linked to a cut scene stay linked to it where it's pasted
-        usedIds = set(self.sp.getSceneIdLines())
-
         inLines = []
         i = 0
 
@@ -269,10 +264,6 @@ class SelectionMixin:
             if ln.sceneLock and (ln.sceneLock not in usedLocks):
                 newLine.sceneLock = ln.sceneLock
                 usedLocks.add(ln.sceneLock)
-
-            if ln.sceneId and (ln.sceneId not in usedIds):
-                newLine.sceneId = ln.sceneId
-                usedIds.add(ln.sceneId)
 
             # (text, fmt) of the lines in this paragraph, and the
             # separators between them
@@ -313,13 +304,10 @@ class SelectionMixin:
         # pasting several lines at the start of a scene heading puts them
         # before it, so its locked number has to move with its text
         movedLock = None
-        movedId = None
 
         if (self.column == 0) and (len(inLines) != 1) and not atEnd:
             movedLock = ln.sceneLock
             ln.sceneLock = inLines[0].sceneLock
-            movedId = ln.sceneId
-            ln.sceneId = inLines[0].sceneId
 
         if (len(ln.text) == 0) and self.sp.isOnlyLineOfElem(self.line):
             ln.lt = inLines[0].lt
@@ -327,7 +315,6 @@ class SelectionMixin:
             ln.color = inLines[0].color
             ln.centered = inLines[0].centered
             ln.sceneLock = inLines[0].sceneLock or ln.sceneLock
-            ln.sceneId = inLines[0].sceneId or ln.sceneId
 
         if ln.fmt or inLines[0].fmt:
             fmt = ln.getFmt()
@@ -345,7 +332,6 @@ class SelectionMixin:
             if not atEnd:
                 self.splitLine()
                 ls[self.line].sceneLock = movedLock
-                ls[self.line].sceneId = movedId
                 ls[self.line - 1].lb = inLines[0].lb
                 ls[self.line : self.line] = inLines[1:]
                 self.line += len(inLines) - 2

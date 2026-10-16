@@ -35,36 +35,6 @@ class OutlineMixin:
 
         return None
 
-    # return the beat board's id (see beatboard) of the scene heading or
-    # act break element starting at line i, or None if it has none or
-    # line i isn't the first line of such an element.
-    def getSceneId(self, i):
-        ln = self.lines[i]
-
-        if ln.sceneId and (ln.lt in (SCENE, ACTBREAK)) and self.isFirstLineOfElem(i):
-            return ln.sceneId
-
-        return None
-
-    # return {id: line} for the scenes and act breaks that have a scene
-    # id. if several have the same one (which editing can't cause), the
-    # first one has it.
-    def getSceneIdLines(self):
-        ret = {}
-
-        for i in self.getOutlineStarts():
-            sid = self.getSceneId(i)
-
-            if sid and (sid not in ret):
-                ret[sid] = i
-
-        return ret
-
-    # return the first line of the scene or act break with the given
-    # scene id, or -1 if there's none
-    def findSceneId(self, sid):
-        return self.getSceneIdLines().get(sid, -1)
-
     # return the script's outline as a list of OutlineItems, one for each
     # scene and act break, in script order. anything before the first
     # scene / act break is not included. page numbers are only accurate

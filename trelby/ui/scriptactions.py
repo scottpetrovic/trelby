@@ -168,22 +168,10 @@ def worldBuildingDlg(frame, ctrl):
 
 
 def beatBoardDlg(frame, ctrl):
-    # for the scene numbers
-    ctrl.sp.paginate()
-    ctrl.clearAutoComp()
-
-    dlg = beatboarddlg.BeatBoardDlg(frame, ctrl.sp)
+    dlg = beatboarddlg.BeatBoardDlg(frame, ctrl.sp.beatBoard)
 
     if dlg.ShowModal() == wx.ID_OK:
-        ctrl.ed.setBeatBoard(dlg.board, dlg.newIds)
-
-        if dlg.gotoLine is not None:
-            ctrl.ed.line = dlg.gotoLine
-            ctrl.ed.column = 0
-            ctrl.ed.clearMark()
-
-        ctrl.makeLineVisible(ctrl.ed.line)
-        ctrl.updateScreen()
+        ctrl.ed.setBeatBoard(dlg.board)
 
     dlg.Destroy()
 

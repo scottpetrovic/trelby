@@ -1,8 +1,8 @@
 # the beat board dialog: the script's index cards on a board, where they
-# can be added, written on, dragged around, colored and linked to scenes.
-# see screenplay/beatboard.py for the cards and how links work. the dialog
-# works on a copy of the board, which scriptactions.beatBoardDlg puts in
-# the script (with ed.setBeatBoard) when it's closed with OK.
+# can be added, written on, dragged around and colored. see
+# screenplay/beatboard.py for the cards. the dialog works on a copy of the
+# board, which scriptactions.beatBoardDlg puts in the script (with
+# ed.setBeatBoard) when it's closed with OK.
 
 import copy
 
@@ -12,8 +12,6 @@ from wx.lib.wordwrap import wordwrap
 import trelby.screenplay.beatboard as beatboard
 import trelby.ui.gutil as gutil
 import trelby.ui.theming as theming
-import trelby.ui.widgets as widgets
-from trelby.screenplay.constants import SCENE
 from trelby.ui.outline import getSceneColors, luminance, str2color, swatchBitmap
 
 # the board's background grid: the size of its squares, in unscaled
@@ -21,24 +19,13 @@ from trelby.ui.outline import getSceneColors, luminance, str2color, swatchBitmap
 GRID = 40
 GRID_MAJOR = 5
 
-# space around the text on a card, in unscaled pixels, and the size of
-# the link's text at its bottom compared to the rest
+# space around the text on a card, in unscaled pixels
 CARD_PAD = 8
-LINK_FONT_SCALE = 0.85
-
-
-# return the text a scene is shown with: its number and heading
-def sceneLabel(item):
-    if item.sceneNr:
-        return "%s. %s" % (item.sceneNr, item.heading)
-
-    return item.heading
 
 
 class BeatBoardDlg(wx.Dialog):
-    # sp is the script, which the dialog doesn't change. its pagination
-    # should be up to date, for the scene numbers.
-    def __init__(self, parent, sp):
+    # board is the script's beat board, which the dialog doesn't change
+    def __init__(self, parent, board):
         wx.Dialog.__init__(
             self,
             parent,
@@ -47,57 +34,14 @@ class BeatBoardDlg(wx.Dialog):
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER | wx.MAXIMIZE_BOX,
         )
 
-        self.sp = sp
-
         # the board being edited
-        self.board = copy.deepcopy(sp.beatBoard)
-
-        # scene ids for the scenes linked to that didn't have one yet:
-        # {first line of the scene: id}
-        self.newIds = {}
-
-        # if not None, the line to move the cursor to after closing
-        self.gotoLine = None
-
-        # the scenes and act breaks, and the line each scene id is on
-        # (including the new ones)
-        self.outline = sp.getOutline()
-        self.itemsByLine = {it.startLine: it for it in self.outline}
-        self.idLines = sp.getSceneIdLines()
-
-        dip = self.FromDIP
+        self.board = copy.deepcopy(board)
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        hsizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        addBtn = wx.Button(self, -1, _("Add card"))
-        hsizer.Add(addBtn)
-
-        scenesBtn = wx.Button(self, -1, _("Add cards for scenes"))
-        scenesBtn.SetToolTip(
-            _("Add a card linked to each scene that no card is linked to yet")
-        )
-        hsizer.Add(scenesBtn, 0, wx.LEFT, dip(10))
-
-        hint = wx.StaticText(
-            self,
-            -1,
-            _(
-                "Double-click the board to add a card, or a card to write on"
-                " it. Drag cards to move them, and right-click one to color it"
-                " or link it to a scene. To move around the board, drag with"
-                " the middle mouse button, or hold down space and drag."
-            ),
-        )
-        hint.Wrap(dip(560))
-        hsizer.Add(hint, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, dip(20))
-
-        vsizer.Add(hsizer, 0, wx.EXPAND)
-
         self.canvas = BoardCanvas(self)
-        self.canvas.SetMinSize(dip(wx.Size(960, 560)))
-        vsizer.Add(self.canvas, 1, wx.EXPAND | wx.TOP, dip(10))
+        self.canvas.SetMinSize(self.FromDIP(wx.Size(960, 600)))
+        vsizer.Add(self.canvas, 1, wx.EXPAND)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         hsizer.Add((1, 1), 1)
@@ -110,52 +54,13 @@ class BeatBoardDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
 
-        gutil.finishWindow(self, vsizer, center=True)
+        gutil.finishWindow(self, vsizer, pad=10, center=True)
 
-        self.Bind(wx.EVT_BUTTON, self.OnAddCard, id=addBtn.GetId())
-        self.Bind(wx.EVT_BUTTON, self.OnAddSceneCards, id=scenesBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
         self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
 
         self.canvas.updateVirtualSize()
         self.canvas.SetFocus()
-
-    # return the first line of the scene 'beat' is linked to, or -1 if it
-    # isn't linked or the scene has been deleted
-    def getLinkedLine(self, beat):
-        if not beat.sceneId:
-            return -1
-
-        return self.idLines.get(beat.sceneId, -1)
-
-    # the text shown at the bottom of a card for its link, or None if it
-    # isn't linked
-    def getLinkLabel(self, beat):
-        if not beat.sceneId:
-            return None
-
-        item = self.itemsByLine.get(self.getLinkedLine(beat))
-
-        if not item:
-            return _("Linked scene was deleted")
-
-        return sceneLabel(item)
-
-    # link 'beat' to the scene starting at 'line', giving the scene an id
-    # if it doesn't have one yet
-    def linkBeat(self, beat, line):
-        sid = self.sp.getSceneId(line) or self.newIds.get(line)
-
-        if not sid:
-            sid = beatboard.newSceneId(
-                beatboard.usedSceneIds(self.sp)
-                | set(self.idLines)
-                | self.board.getSceneIds()
-            )
-            self.newIds[line] = sid
-            self.idLines[sid] = line
-
-        beat.sceneId = sid
 
     # add a new card at (x, y) and let the user write on it, on the board.
     # the card goes away again if nothing is written on it.
@@ -166,79 +71,6 @@ class BeatBoardDlg(wx.Dialog):
         self.canvas.startEdit(beat, True)
 
         return beat
-
-    # let the user choose the scene for beat to link to
-    def chooseScene(self, beat):
-        if not self.outline:
-            wx.MessageBox(
-                _("The script has no scenes to link to."),
-                _("Beat board"),
-                wx.OK,
-                self,
-            )
-
-            return
-
-        linked = self.getLinkedLine(beat)
-        sel = next(
-            (i for i, it in enumerate(self.outline) if it.startLine == linked), 0
-        )
-
-        dlg = SceneChooserDlg(self, [sceneLabel(it) for it in self.outline], sel)
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.linkBeat(beat, self.outline[dlg.selection].startLine)
-            self.canvas.Refresh()
-
-        dlg.Destroy()
-
-    # close the dialog, keeping the changes, and go to the scene beat is
-    # linked to
-    def gotoScene(self, beat):
-        self.canvas.finishEdit(True)
-        self.gotoLine = self.getLinkedLine(beat)
-        self.EndModal(wx.ID_OK)
-
-    def OnAddCard(self, event):
-        x, y = beatboard.findFreeSpot(self.board)
-        self.addCard(x, y)
-
-    # the button gives the board the focus back, so that space pans it
-    # instead of pressing the button again
-    def OnAddSceneCards(self, event):
-        self.canvas.finishEdit(True)
-        self.canvas.SetFocus()
-        linked = {self.getLinkedLine(b) for b in self.board.beats}
-        added = None
-
-        for it in self.outline:
-            if (it.lt != SCENE) or (it.startLine in linked):
-                continue
-
-            text = it.heading
-
-            if it.summary:
-                text += "\n" + it.summary
-
-            x, y = beatboard.findFreeSpot(self.board)
-            beat = beatboard.Beat(text, x, y)
-            self.linkBeat(beat, it.startLine)
-            self.board.beats.append(beat)
-            added = added or beat
-
-        if not added:
-            wx.MessageBox(
-                _("Every scene already has a card linked to it."),
-                _("Beat board"),
-                wx.OK,
-                self,
-            )
-
-            return
-
-        self.canvas.updateVirtualSize()
-        self.canvas.select(added)
-        self.canvas.makeVisible(added)
 
     def OnOK(self, event):
         self.canvas.finishEdit(True)
@@ -534,9 +366,23 @@ class BoardCanvas(wx.ScrolledWindow):
         dc.Clear()
 
         self.drawGrid(dc, boardColor, textColor)
+        self.drawHint(dc, boardColor, textColor)
 
         for beat in self.board.beats:
             self.drawCard(dc, beat)
+
+    # draw how to add cards in the middle of the window's size, measured
+    # from the board's top left corner, so it scrolls with the board.
+    # cards are drawn over it.
+    def drawHint(self, dc, boardColor, textColor):
+        w, h = self.GetClientSize()
+
+        dc.SetFont(self.GetFont().Scaled(1.4))
+        dc.SetTextForeground(theming.blendColors(boardColor, textColor, 0.35))
+
+        text = _("Double-click to add a card")
+        tw, th = dc.GetTextExtent(text)
+        dc.DrawText(text, (w - tw) // 2, (h - th) // 2)
 
     # draw the board's grid, faint lines a little toward the text color,
     # so it works on light and dark themes alike, with every
@@ -573,18 +419,12 @@ class BoardCanvas(wx.ScrolledWindow):
 
         return (cardBg, cardFg)
 
-    # the part of beat's card its text goes in, above the link if it has
-    # one, in the window's unscrolled coordinates
+    # the part of beat's card its text goes in, in the window's unscrolled
+    # coordinates
     def textRect(self, beat):
         pad = self.FromDIP(CARD_PAD)
-        r = self.cardRect(beat).Deflate(pad, pad)
 
-        if beat.sceneId:
-            dc = wx.ClientDC(self)
-            dc.SetFont(self.GetFont().Scaled(LINK_FONT_SCALE))
-            r.height -= dc.GetTextExtent("X")[1] + self.FromDIP(4)
-
-        return r
+        return self.cardRect(beat).Deflate(pad, pad)
 
     def drawCard(self, dc, beat):
         dip = self.FromDIP
@@ -615,28 +455,7 @@ class BoardCanvas(wx.ScrolledWindow):
         dc.SetClippingRegion(r.x + pad, r.y + pad, width, r.height - 2 * pad)
 
         font = self.GetFont()
-        smallFont = font.Scaled(LINK_FONT_SCALE)
         dim = theming.blendColors(cardFg, cardBg, 0.4)
-
-        # the link goes at the bottom
-        link = self.dlg.getLinkLabel(beat)
-
-        if link:
-            dc.SetFont(smallFont)
-            lh = dc.GetTextExtent("X")[1]
-            bottom -= lh
-
-            missing = self.dlg.getLinkedLine(beat) == -1
-            dc.SetTextForeground(dim if missing else cardFg)
-            dc.DrawText(
-                wx.Control.Ellipsize(
-                    "→ " + link, dc, wx.ELLIPSIZE_END, width
-                ),
-                x,
-                bottom,
-            )
-
-            bottom -= dip(4)
 
         title = beat.getTitle()
 
@@ -852,16 +671,6 @@ class BoardCanvas(wx.ScrolledWindow):
 
         menu.AppendSubMenu(colorMenu, _("Color"))
         menu.AppendSeparator()
-
-        add(menu, _("Link to scene..."), lambda: self.dlg.chooseScene(beat))
-        add(
-            menu,
-            _("Go to scene"),
-            lambda: self.dlg.gotoScene(beat),
-            self.dlg.getLinkedLine(beat) != -1,
-        )
-        add(menu, _("Unlink from scene"), lambda: self.unlink(beat), bool(beat.sceneId))
-        menu.AppendSeparator()
         add(menu, _("Delete card"), lambda: self.deleteCard(beat))
 
         self.PopupMenu(menu, pos)
@@ -870,58 +679,3 @@ class BoardCanvas(wx.ScrolledWindow):
     def setColor(self, beat, color):
         beat.color = color
         self.Refresh()
-
-    def unlink(self, beat):
-        beat.sceneId = None
-        self.Refresh()
-
-
-# choosing a scene from a list of their labels. the chosen one's index is
-# in 'selection' after OK.
-class SceneChooserDlg(wx.Dialog):
-    def __init__(self, parent, labels, sel):
-        wx.Dialog.__init__(
-            self,
-            parent,
-            -1,
-            _("Link to scene"),
-            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
-        )
-
-        dip = self.FromDIP
-
-        vsizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.list = widgets.ThemedListBox(
-            self, -1, size=dip(wx.Size(420, 360)), choices=labels
-        )
-        self.list.SetSelection(sel)
-        vsizer.Add(self.list, 1, wx.EXPAND)
-
-        hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        hsizer.Add((1, 1), 1)
-
-        cancelBtn = gutil.createStockButton(self, _("Cancel"))
-        hsizer.Add(cancelBtn, 0, wx.LEFT, 10)
-
-        okBtn = gutil.createStockButton(self, "OK")
-        hsizer.Add(okBtn, 0, wx.LEFT, 10)
-
-        vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 10)
-
-        gutil.finishWindow(self, vsizer, center=True)
-
-        self.Bind(wx.EVT_BUTTON, self.OnCancel, id=cancelBtn.GetId())
-        self.Bind(wx.EVT_BUTTON, self.OnOK, id=okBtn.GetId())
-        self.list.Bind(wx.EVT_LISTBOX_DCLICK, self.OnOK)
-
-        self.list.SetFocus()
-
-    def OnOK(self, event):
-        self.selection = self.list.GetSelection()
-
-        if self.selection != -1:
-            self.EndModal(wx.ID_OK)
-
-    def OnCancel(self, event):
-        self.EndModal(wx.ID_CANCEL)

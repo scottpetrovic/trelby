@@ -106,7 +106,7 @@ def revisionOf(data):
 # report it, never change it.
 def linesRevision(sp):
     s = "\n".join(
-        "%s|%s|%s|%s|%s|%s|%s|%s"
+        "%s|%s|%s|%s|%s|%s|%s"
         % (
             ln,
             ln.pageLock or "",
@@ -115,7 +115,6 @@ def linesRevision(sp):
             ln.fmt or "",
             int(ln.centered),
             ln.sceneLock or "",
-            ln.sceneId or "",
         )
         for ln in sp.lines
     )
@@ -672,9 +671,6 @@ def replaceScene(doc, revision, index, elements):
 
         if index > 0:
             lines[0].sceneLock = sp.getSceneLock(first)
-
-            # so that beat board cards stay linked to the scene
-            lines[0].sceneId = sp.getSceneId(first)
 
         # like cut + paste: page locks on the replaced lines move to the
         # line after them
