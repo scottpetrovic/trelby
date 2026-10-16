@@ -10,6 +10,7 @@ import tempfile
 import time
 from typing import TYPE_CHECKING, AnyStr, Optional
 
+import trelby.fontinfo as fontinfo
 import trelby.misc as misc
 
 # only for type hints: importing config here makes a circular import
@@ -30,10 +31,6 @@ ALIGN_RIGHT = 2
 VALIGN_TOP = 1
 VALIGN_CENTER = 2
 VALIGN_BOTTOM = 3
-
-# this has to be below the ALIGN stuff, otherwise things break due to
-# circular dependencies
-import trelby.fontinfo as fontinfo
 
 
 # permanent memory DC to get text extents etc

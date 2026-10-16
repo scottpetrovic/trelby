@@ -1,6 +1,18 @@
 from reportlab.pdfbase import pdfmetrics
 
-import trelby.pml as pml
+# text flags (pml.TextOp.flags, re-exported by pml). don't change these
+# unless you know what you're doing.
+#
+# bits 0-1 are bold / italic, bits 2-3 the font family (Courier being 0)
+# and bit 4 underlining, so 'flags & 15' identifies one font: the font
+# tables in pdf.PDFExporter and fontinfo are keyed by that.
+NORMAL = 0
+BOLD = 1
+ITALIC = 2
+COURIER = 0
+TIMES_ROMAN = 4
+HELVETICA = 8
+UNDERLINED = 16
 
 # character widths and general font information for each font. acquired
 # from the PDF font metrics. ((width / 1000) * point_size) / 72.0 = how
@@ -76,7 +88,7 @@ class FontMetrics:
 
 
 _fontMetrics = {
-    pml.COURIER: FontMetrics(
+    COURIER: FontMetrics(
         fontWeight=400,
         flags=35,
         bbox=(-23, -250, 715, 805),
@@ -89,8 +101,8 @@ _fontMetrics = {
         xHeight=426,
         widths=None,
     ),
-    pml.COURIER
-    | pml.BOLD: FontMetrics(
+    COURIER
+    | BOLD: FontMetrics(
         fontWeight=700,
         flags=35,
         bbox=(-113, -250, 749, 801),
@@ -103,8 +115,8 @@ _fontMetrics = {
         xHeight=439,
         widths=None,
     ),
-    pml.COURIER
-    | pml.ITALIC: FontMetrics(
+    COURIER
+    | ITALIC: FontMetrics(
         fontWeight=400,
         flags=99,
         bbox=(-27, -250, 849, 805),
@@ -117,9 +129,9 @@ _fontMetrics = {
         xHeight=426,
         widths=None,
     ),
-    pml.COURIER
-    | pml.BOLD
-    | pml.ITALIC: FontMetrics(
+    COURIER
+    | BOLD
+    | ITALIC: FontMetrics(
         fontWeight=700,
         flags=99,
         bbox=(-57, -250, 869, 801),
@@ -132,7 +144,7 @@ _fontMetrics = {
         xHeight=439,
         widths=None,
     ),
-    pml.HELVETICA: FontMetrics(
+    HELVETICA: FontMetrics(
         fontWeight=400,
         flags=32,
         bbox=(-166, -225, 1000, 931),
@@ -402,8 +414,8 @@ _fontMetrics = {
             500,
         ],
     ),
-    pml.HELVETICA
-    | pml.BOLD: FontMetrics(
+    HELVETICA
+    | BOLD: FontMetrics(
         fontWeight=700,
         flags=32,
         bbox=(-170, -228, 1003, 962),
@@ -673,8 +685,8 @@ _fontMetrics = {
             556,
         ],
     ),
-    pml.HELVETICA
-    | pml.ITALIC: FontMetrics(
+    HELVETICA
+    | ITALIC: FontMetrics(
         fontWeight=400,
         flags=96,
         bbox=(-170, -225, 1116, 931),
@@ -944,9 +956,9 @@ _fontMetrics = {
             500,
         ],
     ),
-    pml.HELVETICA
-    | pml.BOLD
-    | pml.ITALIC: FontMetrics(
+    HELVETICA
+    | BOLD
+    | ITALIC: FontMetrics(
         fontWeight=700,
         flags=96,
         bbox=(-174, -228, 1114, 962),
@@ -1216,7 +1228,7 @@ _fontMetrics = {
             556,
         ],
     ),
-    pml.TIMES_ROMAN: FontMetrics(
+    TIMES_ROMAN: FontMetrics(
         fontWeight=400,
         flags=34,
         bbox=(-168, -218, 1000, 898),
@@ -1486,8 +1498,8 @@ _fontMetrics = {
             500,
         ],
     ),
-    pml.TIMES_ROMAN
-    | pml.BOLD: FontMetrics(
+    TIMES_ROMAN
+    | BOLD: FontMetrics(
         fontWeight=700,
         flags=34,
         bbox=(-168, -218, 1000, 935),
@@ -1757,8 +1769,8 @@ _fontMetrics = {
             500,
         ],
     ),
-    pml.TIMES_ROMAN
-    | pml.ITALIC: FontMetrics(
+    TIMES_ROMAN
+    | ITALIC: FontMetrics(
         fontWeight=400,
         flags=98,
         bbox=(-169, -217, 1010, 883),
@@ -2028,9 +2040,9 @@ _fontMetrics = {
             444,
         ],
     ),
-    pml.TIMES_ROMAN
-    | pml.BOLD
-    | pml.ITALIC: FontMetrics(
+    TIMES_ROMAN
+    | BOLD
+    | ITALIC: FontMetrics(
         fontWeight=700,
         flags=98,
         bbox=(-200, -218, 996, 921),
@@ -2304,17 +2316,17 @@ _fontMetrics = {
 
 # the names of the standard PDF fonts, which reportlab knows the metrics of
 for _style, _name in {
-    pml.COURIER: "Courier",
-    pml.COURIER | pml.BOLD: "Courier-Bold",
-    pml.COURIER | pml.ITALIC: "Courier-Oblique",
-    pml.COURIER | pml.BOLD | pml.ITALIC: "Courier-BoldOblique",
-    pml.HELVETICA: "Helvetica",
-    pml.HELVETICA | pml.BOLD: "Helvetica-Bold",
-    pml.HELVETICA | pml.ITALIC: "Helvetica-Oblique",
-    pml.HELVETICA | pml.BOLD | pml.ITALIC: "Helvetica-BoldOblique",
-    pml.TIMES_ROMAN: "Times-Roman",
-    pml.TIMES_ROMAN | pml.BOLD: "Times-Bold",
-    pml.TIMES_ROMAN | pml.ITALIC: "Times-Italic",
-    pml.TIMES_ROMAN | pml.BOLD | pml.ITALIC: "Times-BoldItalic",
+    COURIER: "Courier",
+    COURIER | BOLD: "Courier-Bold",
+    COURIER | ITALIC: "Courier-Oblique",
+    COURIER | BOLD | ITALIC: "Courier-BoldOblique",
+    HELVETICA: "Helvetica",
+    HELVETICA | BOLD: "Helvetica-Bold",
+    HELVETICA | ITALIC: "Helvetica-Oblique",
+    HELVETICA | BOLD | ITALIC: "Helvetica-BoldOblique",
+    TIMES_ROMAN: "Times-Roman",
+    TIMES_ROMAN | BOLD: "Times-Bold",
+    TIMES_ROMAN | ITALIC: "Times-Italic",
+    TIMES_ROMAN | BOLD | ITALIC: "Times-BoldItalic",
 }.items():
     _fontMetrics[_style].pdfName = _name

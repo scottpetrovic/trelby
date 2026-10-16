@@ -19,18 +19,18 @@ import trelby.misc as misc
 import trelby.pdf as pdf
 import trelby.util as util
 
-# text flags. don't change these unless you know what you're doing.
-#
-# bits 0-1 are bold / italic, bits 2-3 the font family (Courier being 0)
-# and bit 4 underlining, so 'flags & 15' identifies one font: the font
-# tables in pdf.PDFExporter and fontinfo are keyed by that.
-NORMAL = 0
-BOLD = 1
-ITALIC = 2
-COURIER = 0
-TIMES_ROMAN = 4
-HELVETICA = 8
-UNDERLINED = 16
+# text flags, defined in fontinfo (which can't import this module, since
+# util imports fontinfo and this module imports util). they're used as
+# pml.BOLD etc. everywhere, so they're re-exported here.
+from trelby.fontinfo import (  # noqa: F401
+    BOLD,
+    COURIER,
+    HELVETICA,
+    ITALIC,
+    NORMAL,
+    TIMES_ROMAN,
+    UNDERLINED,
+)
 
 # fill types
 NO_FILL = 0
