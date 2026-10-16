@@ -1,13 +1,13 @@
 import tests.u as u
-import trelby.pagelock as pagelock
+import trelby.screenplay.pagelock as pagelock
 import trelby.screenplay as scr
 import trelby.screenplay.render as render
 import trelby.translations as translations
-from trelby.line import Line
+from trelby.screenplay.line import Line
 
 _ = translations.trelby_translations_load()
 
-# tests for page locking: trelby.pagelock and the Screenplay and Editor
+# tests for page locking: trelby.screenplay.pagelock and the Screenplay and Editor
 # functions using it
 
 

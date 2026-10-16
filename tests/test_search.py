@@ -3,7 +3,7 @@ import trelby.screenplay as scr
 import trelby.screenplay.search as search
 import trelby.textfmt as textfmt
 import trelby.translations as translations
-from trelby.line import Line
+from trelby.screenplay.line import Line
 from trelby.screenplay.search import FindOptions, Match
 
 _ = translations.trelby_translations_load()

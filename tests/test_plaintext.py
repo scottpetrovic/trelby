@@ -4,7 +4,7 @@ import tests.u as u
 import trelby.screenplay as screenplay
 import trelby.screenplay.plaintext as plaintext
 import trelby.translations as translations
-from trelby.line import Line
+from trelby.screenplay.line import Line
 
 _ = translations.trelby_translations_load()
 

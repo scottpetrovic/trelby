@@ -11,7 +11,7 @@ import re
 import trelby.screenplay as screenplay
 import trelby.textutil as textutil
 from trelby.importers.common import ImportFailed, ImportResult, checkNotEmpty
-from trelby.line import Line
+from trelby.screenplay.line import Line
 
 # whether parse takes bytes rather than str
 BINARY = False

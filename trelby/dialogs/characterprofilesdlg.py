@@ -3,7 +3,7 @@ import random
 
 import wx
 
-import trelby.characterprofiles as characterprofiles
+import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.ui.gutil as gutil
 import trelby.dialogs.namesdlg as namesdlg
 import trelby.textutil as textutil

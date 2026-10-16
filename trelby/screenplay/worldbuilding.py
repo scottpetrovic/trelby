@@ -1,4 +1,4 @@
-import trelby.characterprofiles as characterprofiles
+import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.mypickle as mypickle
 
 

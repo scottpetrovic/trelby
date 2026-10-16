@@ -3,7 +3,7 @@ import re
 import trelby.mypickle as mypickle
 import trelby.screenplay as screenplay
 import trelby.textutil as textutil
-from trelby.autocompletiontype import AutoCompletionType as Type
+from trelby.screenplay.autocompletiontype import AutoCompletionType as Type
 
 # scene heading prefixes, offered in this order until the script uses
 # some of them

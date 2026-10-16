@@ -1,7 +1,7 @@
 import copy
 import zlib
 
-from trelby.line import Line
+from trelby.screenplay.line import Line
 
 # Which command uses which undo object:
 #

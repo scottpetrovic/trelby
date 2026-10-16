@@ -4,12 +4,12 @@
 
 import re
 
-import trelby.characterprofiles as characterprofiles
-import trelby.pagelock as pagelock
+import trelby.screenplay.characterprofiles as characterprofiles
+import trelby.screenplay.pagelock as pagelock
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.undo as undo
-from trelby.line import Line
+from trelby.screenplay.line import Line
 from trelby.screenplay.constants import (
     CHARACTER,
     LB_FORCED,

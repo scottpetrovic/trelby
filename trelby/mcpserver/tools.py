@@ -16,7 +16,7 @@ import hashlib
 import os
 import re
 
-import trelby.characterprofiles as characterprofiles
+import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.config as config
 import trelby.error as error
 import trelby.formats as formats
@@ -27,7 +27,7 @@ import trelby.textutil as textutil
 import trelby.translations as translations
 import trelby.undo as undo
 import trelby.util as util
-from trelby.line import Line
+from trelby.screenplay.line import Line
 from trelby.screenplay import (
     ACTBREAK,
     ACTION,

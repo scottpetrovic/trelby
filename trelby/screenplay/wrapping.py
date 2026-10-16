@@ -4,7 +4,7 @@
 import trelby.config as config
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
-from trelby.line import Line
+from trelby.screenplay.line import Line
 from trelby.screenplay.constants import (
     CHARACTER,
     DIALOGUE,

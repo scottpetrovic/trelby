@@ -2,7 +2,7 @@ import wx
 
 import trelby.ui.gutil as gutil
 import trelby.pdf.pml as pml
-import trelby.titles as titles
+import trelby.screenplay.titles as titles
 import trelby.util as util
 from trelby.ui.textedit import TextEdit
 from trelby.dialogs.titlespreview import TitlesPreview

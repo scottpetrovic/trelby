@@ -1,7 +1,7 @@
 import wx
 
 import trelby.ui.gutil as gutil
-import trelby.headers as headers
+import trelby.screenplay.headers as headers
 import trelby.misc as misc
 import trelby.textutil as textutil
 from trelby.dialogs.headerspreview import HeadersPreview

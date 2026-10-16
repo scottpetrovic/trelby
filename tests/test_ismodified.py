@@ -1,7 +1,7 @@
 import tests.u as u
 import trelby.config as config
 import trelby.screenplay as scr
-from trelby.line import Line
+from trelby.screenplay.line import Line
 
 # tests isModified updating
 

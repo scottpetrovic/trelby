@@ -1,7 +1,7 @@
 # pagination: deciding where each page ends (sp.pages), what each page is
 # called (sp.pageLabels), and mapping between lines and pages.
 
-import trelby.pagelock as pagelock
+import trelby.screenplay.pagelock as pagelock
 import trelby.util as util
 from trelby.screenplay.constants import (
     ACTBREAK,

@@ -18,7 +18,7 @@
 from dataclasses import dataclass, field
 from typing import Iterator, List, Optional
 
-import trelby.characterprofiles as characterprofiles
+import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.config as config
 import trelby.textutil as textutil
 from trelby.screenplay.constants import (

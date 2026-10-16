@@ -34,6 +34,17 @@
 #   proofing      the script checker
 #   speeches      who speaks where (iterSpeeches), for the reports
 #
+# the parts of a script that a Screenplay holds:
+#
+#   line          one line of the script (Line)
+#   titles        the title pages
+#   headers       the page headers
+#   characterprofiles  notes about each character
+#   locations     scene headings grouped into locations
+#   worldbuilding notes about the story's world
+#   pagelock      page labels once the pages are locked
+#   autocompletion, autocompletiontype  the auto-completion lists
+#
 # constants.py has the line break and element type constants, and
 # datatypes.py the small classes used along with Screenplay.
 

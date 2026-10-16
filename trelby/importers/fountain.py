@@ -7,9 +7,9 @@ import trelby.config as config
 import trelby.screenplay as screenplay
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
-import trelby.titles as titles
+import trelby.screenplay.titles as titles
 from trelby.importers.common import ImportResult, checkNotEmpty
-from trelby.line import Line
+from trelby.screenplay.line import Line
 
 # whether parse takes bytes rather than str
 BINARY = False

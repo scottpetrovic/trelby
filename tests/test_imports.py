@@ -10,7 +10,8 @@ import pytest
 # pml / screenplay -> misc). each is imported in a fresh interpreter, since
 # in this one they're all loaded already.
 #
-# some modules still can't be imported first (line, undo...).
+# line and undo couldn't be, before line moved into the screenplay
+# package.
 
 
 @pytest.mark.parametrize(
@@ -26,7 +27,6 @@ import pytest
         "ui.gutil",
         "pdf.fontinfo",
         "pdf.pml",
-        "titles",
         "pdf.truetype",
         "ui.textedit",
         "ui.menubar",
@@ -45,6 +45,16 @@ import pytest
         "screenplay.plaintext",
         "screenplay.speeches",
         "screenplay.search",
+        "screenplay.line",
+        "screenplay.titles",
+        "screenplay.headers",
+        "screenplay.characterprofiles",
+        "screenplay.locations",
+        "screenplay.worldbuilding",
+        "screenplay.pagelock",
+        "screenplay.autocompletion",
+        "screenplay.autocompletiontype",
+        "undo",
         "spellcheck",
         "formats",
         "mcpserver.tools",
@@ -90,6 +100,16 @@ def testImportFirst(module):
         "formats",
         "screenplay.plaintext",
         "screenplay.search",
+        "screenplay.line",
+        "screenplay.titles",
+        "screenplay.headers",
+        "screenplay.characterprofiles",
+        "screenplay.locations",
+        "screenplay.worldbuilding",
+        "screenplay.pagelock",
+        "screenplay.autocompletion",
+        "screenplay.autocompletiontype",
+        "undo",
         "spellcheck",
         "importers",
         "importers.astx",

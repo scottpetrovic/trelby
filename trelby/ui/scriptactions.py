@@ -23,7 +23,7 @@ import trelby.keys as keys
 import trelby.dialogs.locationsdlg as locationsdlg
 import trelby.misc as misc
 import trelby.dialogs.namesdlg as namesdlg
-import trelby.pagelock as pagelock
+import trelby.screenplay.pagelock as pagelock
 import trelby.pdf.writer as pdf
 import trelby.screenplay as screenplay
 import trelby.screenplay.compare as compare

@@ -7,13 +7,13 @@ from typing import Tuple
 
 import trelby.config as config
 import trelby.error as error
-import trelby.headers as headers
-import trelby.pagelock as pagelock
+import trelby.screenplay.headers as headers
+import trelby.screenplay.pagelock as pagelock
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
-import trelby.titles as titles
+import trelby.screenplay.titles as titles
 import trelby.util as util
-from trelby.line import Line
+from trelby.screenplay.line import Line
 from trelby.screenplay.constants import (
     ACTION,
     LB_LAST,

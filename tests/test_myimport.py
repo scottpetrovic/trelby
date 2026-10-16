@@ -5,7 +5,7 @@ import trelby.importers as importers
 import trelby.screenplay as screenplay
 import trelby.screenplay.export as export
 import trelby.translations as translations
-from trelby.line import Line
+from trelby.screenplay.line import Line
 
 _ = translations.trelby_translations_load()
 

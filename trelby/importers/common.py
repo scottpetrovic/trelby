@@ -5,7 +5,7 @@ from lxml import etree
 
 import trelby.screenplay as screenplay
 import trelby.textutil as textutil
-from trelby.line import Line
+from trelby.screenplay.line import Line
 
 
 # a successful import: the script's lines (at least one), and title pages

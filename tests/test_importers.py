@@ -11,7 +11,7 @@ import tests.u as u
 import trelby.formats as formats
 import trelby.importers as importers
 import trelby.screenplay as screenplay
-import trelby.titles as titles
+import trelby.screenplay.titles as titles
 from tests.importrun import Failed, dumpLines, dumpTitles
 
 SCENE_ACTION = importers.text.SCENE_ACTION

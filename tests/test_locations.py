@@ -1,5 +1,5 @@
 import tests.u as u
-import trelby.locations as locations
+import trelby.screenplay.locations as locations
 
 # test locations.Locations
 

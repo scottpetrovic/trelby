@@ -1,7 +1,7 @@
 # locked pages and scene numbers, which keep their labels (e.g. "15A") as
 # the script changes. the label arithmetic is in trelby/pagelock.py.
 
-import trelby.pagelock as pagelock
+import trelby.screenplay.pagelock as pagelock
 import trelby.undo as undo
 from trelby.screenplay.constants import (
     SCENE,

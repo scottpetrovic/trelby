@@ -6,7 +6,7 @@ import os
 import trelby.config as config
 import trelby.screenplay.export as export
 import trelby.textutil as textutil
-from trelby.line import Line
+from trelby.screenplay.line import Line
 from trelby.screenplay.constants import ACTION, LB_LAST
 from trelby.screenplay.model import Screenplay
 

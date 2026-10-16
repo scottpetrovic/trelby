@@ -8,7 +8,7 @@ import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.undo as undo
 import trelby.util as util
-from trelby.line import Line
+from trelby.screenplay.line import Line
 from trelby.screenplay.constants import (
     LB_FORCED,
     LB_LAST,

@@ -10,19 +10,19 @@
 
 import copy
 
-import trelby.autocompletion as autocompletion
-import trelby.characterprofiles as characterprofiles
+import trelby.screenplay.autocompletion as autocompletion
+import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.config as config
-import trelby.headers as headers
-import trelby.locations as locations
+import trelby.screenplay.headers as headers
+import trelby.screenplay.locations as locations
 import trelby.screenplay.fileformat as fileformat
 import trelby.spellcheck as spellcheck
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
-import trelby.titles as titles
+import trelby.screenplay.titles as titles
 import trelby.util as util
-import trelby.worldbuilding as worldbuilding
-from trelby.line import Line
+import trelby.screenplay.worldbuilding as worldbuilding
+from trelby.screenplay.line import Line
 from trelby.screenplay.centering import CenteringMixin
 from trelby.screenplay.constants import (
     LB_LAST,

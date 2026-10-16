@@ -1,7 +1,7 @@
 import random
 
 import tests.u as u
-import trelby.characterprofiles as characterprofiles
+import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.namearray as namearray
 import trelby.screenplay as screenplay
 import trelby.translations as translations

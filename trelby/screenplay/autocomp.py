@@ -1,7 +1,7 @@
 # the auto-completion list shown while typing scene headings, character
 # names and transitions. the candidates come from trelby/autocompletion.py.
 
-import trelby.autocompletion as autocompletion
+import trelby.screenplay.autocompletion as autocompletion
 import trelby.textutil as textutil
 import trelby.undo as undo
 from trelby.screenplay.constants import (

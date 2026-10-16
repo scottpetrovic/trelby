@@ -12,10 +12,10 @@ import trelby.screenplay.export as export
 import trelby.screenplay.render as render
 import trelby.spellcheck as spellcheck
 import trelby.textutil as textutil
-import trelby.titles as titles
+import trelby.screenplay.titles as titles
 import trelby.translations as translations
 import trelby.util as util
-from trelby.line import Line
+from trelby.screenplay.line import Line
 from trelby.ui.textedit import TextEdit
 
 _ = translations.trelby_translations_load()

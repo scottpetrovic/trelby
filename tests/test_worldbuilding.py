@@ -1,7 +1,7 @@
 import copy
 
 import tests.u as u
-import trelby.worldbuilding as worldbuilding
+import trelby.screenplay.worldbuilding as worldbuilding
 
 # test worldbuilding.WorldBuilding and its saving/loading as part of a
 # script
@@ -73,7 +73,7 @@ def test_scriptRoundTrip():
 
 
 def test_withCharacterProfiles():
-    import trelby.characterprofiles as characterprofiles
+    import trelby.screenplay.characterprofiles as characterprofiles
 
     sp = u.load()
     sp.worldBuilding.text = TEXT
