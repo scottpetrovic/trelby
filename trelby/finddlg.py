@@ -367,12 +367,12 @@ class FindDlg(wx.Dialog):
                     break
 
                 if inc > 0:
-                    s1 = "end"
-                    s2 = "start"
+                    s1 = _("end")
+                    s2 = _("start")
                     restart = 0
                 else:
-                    s1 = "start"
-                    s2 = "end"
+                    s1 = _("start")
+                    s2 = _("end")
                     restart = len(ls) - 1
 
                 if (

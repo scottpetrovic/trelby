@@ -2707,10 +2707,6 @@ msgstr ""
 msgid "Shift+Tab switches to"
 msgstr ""
 
-#: trelby/configpages/elementsglobalpanel.py:67
-msgid "Combo"
-msgstr ""
-
 #: trelby/configpages/elementspanel.py:46
 msgid "Empty lines / 10 before:"
 msgstr ""
@@ -3143,4 +3139,37 @@ msgstr ""
 
 #: trelby/trelbyframe.py
 msgid "Restart later"
+msgstr ""
+
+#: trelby/configpages/formattingpanel.py:33
+msgid "Start each act on a new page"
+msgstr ""
+
+#: trelby/configpages/formattingpanel.py:42
+msgid "Double-width characters (for Chinese, Japanese, Korean)"
+msgstr ""
+
+#: trelby/trelbyctrl.py:538
+msgid ""
+"This script has Chinese, Japanese or Korean characters, which are\n"
+"twice as wide as Latin letters, so they don't fit in the columns\n"
+"of the page.\n"
+"\n"
+"Switch the script to double-width characters? Every character,\n"
+"Latin ones too, will then take up two columns.\n"
+"\n"
+"This clears the undo history. It can be changed back in\n"
+"Script/Script settings/Formatting."
+msgstr ""
+
+#: trelby/trelbyctrl.py:540
+msgid "Double-width characters"
+msgstr ""
+
+#: trelby/finddlg.py:370 trelby/finddlg.py:375
+msgid "end"
+msgstr ""
+
+#: trelby/finddlg.py:371 trelby/finddlg.py:374
+msgid "start"
 msgstr ""

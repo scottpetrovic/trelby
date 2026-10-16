@@ -1,4 +1,6 @@
+import gettext
 import os
+import re
 
 import tests.u as u
 import trelby
@@ -87,6 +89,25 @@ def testGetTranslation(monkeypatch):
     monkeypatch.setenv("LANG", "it_IT")
     assert translations.getTranslation("").gettext("Language") == "Lingua"
     assert translations.getTranslation("en_US").gettext("Language") == "Language"
+
+    monkeypatch.setenv("LANG", "zh_CN.UTF-8")
+    assert translations.getTranslation("").gettext("Language") == "语言"
+
+
+def testPlaceholders():
+    localedir = translations.getLocaleDir()
+
+    # a translation must keep the msgid's format fields, in the same
+    # order, or .format() / % would fail or put values in the wrong place
+    def fields(s):
+        return re.findall(r"\{[^{}]*\}|%[-0-9.]*[sdf]", s)
+
+    for name in translations.getLanguages(localedir):
+        trans = gettext.translation("trelby", localedir, languages=[name])
+
+        for msgid, msgstr in trans._catalog.items():
+            if msgid and msgstr:
+                assert fields(msgid) == fields(msgstr), (name, msgid, msgstr)
 
 
 def testLanguageNames():

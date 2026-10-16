@@ -1,0 +1,3309 @@
+# Simplified Chinese translation of Trelby.
+# Copyright (C) 2026 Gwyn Ciesla <gwync@protonmail.com>
+# This file is distributed under the same license as the trelby package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: trelby 2.4.16.2\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-16 06:03-0500\n"
+"PO-Revision-Date: 2026-10-16 12:00-0500\n"
+"Last-Translator: \n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: trelby/autocompletiondlg.py:14 trelby/trelbyframe.py:218
+msgid "Auto-completion"
+msgstr "自动补全"
+
+#: trelby/autocompletiondlg.py:25 trelby/configpages/elementsglobalpanel.py:17
+#: trelby/configpages/elementspanel.py:19
+msgid "Element:"
+msgstr "元素："
+
+#: trelby/autocompletiondlg.py:44
+msgid "Auto-completion enabled"
+msgstr "启用自动补全"
+
+#: trelby/autocompletiondlg.py:48
+msgid "Default items:"
+msgstr "默认条目："
+
+#: trelby/autocompletiondlg.py:60 trelby/cfgdlg.py:172
+#: trelby/characterprofilesdlg.py:208 trelby/characterprofilesdlg.py:431
+#: trelby/gutil.py:101 trelby/headersdlg.py:157 trelby/importdlg.py:58
+#: trelby/locationsdlg.py:49 trelby/misc.py:833 trelby/misc.py:925
+#: trelby/misc.py:1107 trelby/spellcheckcfgdlg.py:38 trelby/titlesdlg.py:184
+#: trelby/worldbuildingdlg.py:88
+msgid "Cancel"
+msgstr "取消"
+
+#: trelby/autosave.py:91
+msgid "untitled"
+msgstr "未命名"
+
+#: trelby/cfgdlg.py:34 trelby/cfgdlg.py:81 trelby/commandsdlg.py:115
+#: trelby/trelbyctrl.py:1492
+msgid "Filename to save as"
+msgstr "另存为文件名"
+
+#: trelby/cfgdlg.py:37 trelby/cfgdlg.py:84 trelby/trelbyframe.py:796
+msgid "File to open"
+msgstr "要打开的文件"
+
+#: trelby/cfgdlg.py:45
+msgid "Setting"
+msgstr "设置"
+
+#: trelby/cfgdlg.py:47 trelby/cfgdlg.py:95 trelby/trelbyframe.py:799
+#: trelby/trelbyframe.py:835
+msgid "files"
+msgstr "文件"
+
+#: trelby/cfgdlg.py:49 trelby/cfgdlg.py:97 trelby/characterprofilesdlg.py:619
+#: trelby/pdfviewer.py:106 trelby/reportwindow.py:146 trelby/trelbyframe.py:801
+#: trelby/trelbyframe.py:835
+msgid "All files"
+msgstr "所有文件"
+
+#: trelby/cfgdlg.py:91 trelby/trelbyframe.py:285
+msgid "Script"
+msgstr "剧本"
+
+#: trelby/cfgdlg.py:93
+msgid "setting"
+msgstr "设置"
+
+#: trelby/cfgdlg.py:145 trelby/trelbyframe.py:154
+msgid "Settings"
+msgstr "设置"
+
+#: trelby/cfgdlg.py:147 trelby/trelbyframe.py:198
+msgid "Script settings"
+msgstr "剧本设置"
+
+#: trelby/cfgdlg.py:157
+msgid "Load"
+msgstr "加载"
+
+#: trelby/cfgdlg.py:158
+msgid "Load settings from a file"
+msgstr "从文件加载设置"
+
+#: trelby/cfgdlg.py:162 trelby/trelbyframe.py:1036
+msgid "Save as"
+msgstr "另存为"
+
+#: trelby/cfgdlg.py:163
+msgid "Save these settings to a file"
+msgstr "将这些设置保存到文件"
+
+#: trelby/cfgdlg.py:169 trelby/gutil.py:102 trelby/headersdlg.py:154
+msgid "Apply"
+msgstr "应用"
+
+#: trelby/cfgdlg.py:189
+msgid "Theme"
+msgstr "主题"
+
+#: trelby/cfgdlg.py:190 trelby/cfgdlg.py:199 trelby/trelbyframe.py:270
+msgid "About"
+msgstr "关于"
+
+#: trelby/cfgdlg.py:191
+msgid "Display"
+msgstr "显示"
+
+#: trelby/cfgdlg.py:192
+msgid "Continuous Mode"
+msgstr "连续模式"
+
+#: trelby/cfgdlg.py:193 trelby/cfgdlg.py:200
+msgid "Elements"
+msgstr "元素"
+
+#: trelby/cfgdlg.py:194
+msgid "Keyboard"
+msgstr "键盘"
+
+#: trelby/cfgdlg.py:195
+msgid "MCP Server"
+msgstr "MCP 服务器"
+
+#: trelby/cfgdlg.py:196
+msgid "Misc"
+msgstr "其他"
+
+#: trelby/cfgdlg.py:201
+msgid "Formatting"
+msgstr "格式"
+
+#: trelby/cfgdlg.py:202
+msgid "Paper"
+msgstr "纸张"
+
+#: trelby/cfgdlg.py:204
+msgid "PDF/Fonts"
+msgstr "PDF/字体"
+
+#: trelby/cfgdlg.py:205
+msgid "Strings"
+msgstr "字符串"
+
+#: trelby/characterprofilesdlg.py:121
+msgid "No photo"
+msgstr "无照片"
+
+#: trelby/characterprofilesdlg.py:169
+msgid "Name generator"
+msgstr "姓名生成器"
+
+#: trelby/characterprofilesdlg.py:187
+msgid "Origin:"
+msgstr "来源："
+
+#: trelby/characterprofilesdlg.py:189 trelby/characterprofilesdlg.py:194
+msgid "Any"
+msgstr "任意"
+
+#: trelby/characterprofilesdlg.py:193
+msgid "Gender:"
+msgstr "性别："
+
+#: trelby/characterprofilesdlg.py:194
+msgid "Female"
+msgstr "女"
+
+#: trelby/characterprofilesdlg.py:194
+msgid "Male"
+msgstr "男"
+
+#: trelby/characterprofilesdlg.py:202
+msgid "Generate"
+msgstr "生成"
+
+#: trelby/characterprofilesdlg.py:211
+msgid "Use name"
+msgstr "使用此姓名"
+
+#: trelby/characterprofilesdlg.py:284 trelby/trelbyframe.py:209
+msgid "Character profiles"
+msgstr "角色档案"
+
+#: trelby/characterprofilesdlg.py:333
+msgid "Characters:"
+msgstr "角色："
+
+#: trelby/characterprofilesdlg.py:338
+msgid "Grayed out: no profile yet"
+msgstr "灰色：尚无档案"
+
+#: trelby/characterprofilesdlg.py:344 trelby/trelbyframe.py:59
+msgid "New"
+msgstr "新建"
+
+#: trelby/characterprofilesdlg.py:347 trelby/configpages/keyboardpanel.py:42
+#: trelby/gutil.py:104 trelby/headersdlg.py:65 trelby/locationsdlg.py:33
+#: trelby/titlesdlg.py:52
+msgid "Delete"
+msgstr "删除"
+
+#: trelby/characterprofilesdlg.py:364
+msgid "Previous photo"
+msgstr "上一张照片"
+
+#: trelby/characterprofilesdlg.py:368
+msgid "Double-click to view a larger version"
+msgstr "双击查看大图"
+
+#: trelby/characterprofilesdlg.py:372
+msgid "Next photo"
+msgstr "下一张照片"
+
+#: trelby/characterprofilesdlg.py:382
+msgid "Add photo..."
+msgstr "添加照片..."
+
+#: trelby/characterprofilesdlg.py:385
+msgid "Remove photo"
+msgstr "移除照片"
+
+#: trelby/characterprofilesdlg.py:397 trelby/configpages/pdffontspanel.py:57
+msgid "Name:"
+msgstr "姓名："
+
+#: trelby/characterprofilesdlg.py:405
+msgid "Generate..."
+msgstr "生成..."
+
+#: trelby/characterprofilesdlg.py:406
+msgid "Pick a name from the name database"
+msgstr "从人名数据库中选取一个名字"
+
+#: trelby/characterprofilesdlg.py:411
+msgid "Notes:"
+msgstr "备注："
+
+#: trelby/characterprofilesdlg.py:487 trelby/characterprofilesdlg.py:566
+msgid "(unnamed)"
+msgstr "（未命名）"
+
+#: trelby/characterprofilesdlg.py:570
+#, python-brace-format
+msgid "Delete the profile of {}?"
+msgstr "删除 {} 的档案？"
+
+#: trelby/characterprofilesdlg.py:571 trelby/characterprofilesdlg.py:655
+#: trelby/trelbyctrl.py:353 trelby/trelbyctrl.py:1064 trelby/trelbyframe.py:579
+msgid "Confirm"
+msgstr "确认"
+
+#: trelby/characterprofilesdlg.py:616
+msgid "Choose photos"
+msgstr "选择照片"
+
+#: trelby/characterprofilesdlg.py:617
+msgid "Images"
+msgstr "图片"
+
+#: trelby/characterprofilesdlg.py:638
+msgid "Couldn't read these images:"
+msgstr "无法读取以下图片："
+
+#: trelby/characterprofilesdlg.py:639 trelby/characterprofilesdlg.py:691
+#: trelby/characterprofilesdlg.py:700 trelby/configpages/displaypanel.py:97
+#: trelby/configpages/keyboardpanel.py:88 trelby/configpages/keyboardpanel.py:98
+#: trelby/configpages/pdffontspanel.py:166 trelby/configpages/pdffontspanel.py:180
+#: trelby/configpages/themepanel.py:142 trelby/configpages/themepanel.py:194
+#: trelby/globaldata.py:108 trelby/gutil.py:269 trelby/locationsdlg.py:93
+#: trelby/locationsdlg.py:142 trelby/misc.py:1153 trelby/myimport.py:42
+#: trelby/myimport.py:59 trelby/myimport.py:93 trelby/myimport.py:110
+#: trelby/myimport.py:117 trelby/myimport.py:133 trelby/myimport.py:212
+#: trelby/myimport.py:227 trelby/myimport.py:236 trelby/myimport.py:245
+#: trelby/myimport.py:263 trelby/myimport.py:293 trelby/myimport.py:318
+#: trelby/myimport.py:417 trelby/myimport.py:424 trelby/myimport.py:439
+#: trelby/myimport.py:778 trelby/myimport.py:821 trelby/namesdlg.py:51
+#: trelby/pdfviewer.py:115 trelby/splash.py:179 trelby/trelby.py:48
+#: trelby/trelby.py:73 trelby/trelby.py:83 trelby/trelbyctrl.py:171
+#: trelby/trelbyctrl.py:998 trelby/trelbyctrl.py:1026 trelby/trelbyctrl.py:1339
+#: trelby/trelbyframe.py:716 trelby/trelbyframe.py:780 trelby/trelbyframe.py:1471
+#: trelby/util.py:949 trelby/util.py:983 trelby/util.py:1073 trelby/util.py:1275
+#: trelby/watermarkdlg.py:106 trelby/watermarkdlg.py:159
+#: trelby/watermarkdlg.py:172
+msgid "Error"
+msgstr "错误"
+
+#: trelby/characterprofilesdlg.py:655
+msgid "Remove this photo?"
+msgstr "移除这张照片？"
+
+#: trelby/characterprofilesdlg.py:668
+msgid "Photo"
+msgstr "照片"
+
+#: trelby/characterprofilesdlg.py:691
+msgid "Every profile needs a name."
+msgstr "每个档案都需要一个名字。"
+
+#: trelby/characterprofilesdlg.py:699
+#, python-brace-format
+msgid "There is more than one profile for {}."
+msgstr "{} 有不止一个档案。"
+
+#: trelby/characterreport.py:83
+msgid "Basic information"
+msgstr "基本信息"
+
+#: trelby/characterreport.py:83
+msgid "Page list"
+msgstr "页码列表"
+
+#: trelby/characterreport.py:83
+msgid "Location list"
+msgstr "地点列表"
+
+#: trelby/characterreport.py:100
+#, python-brace-format
+msgid "Speeches: {}, Lines: {} %{:.2f}, per speech: {:.2f}"
+msgstr "台词段数：{}，行数：{}（%{:.2f}），每段行数：{:.2f}"
+
+#: trelby/characterreport.py:111
+#, python-brace-format
+msgid "Words: {}, per speech: {:.2f}, characters per: {:.2f}"
+msgstr "词数：{}，每段词数：{:.2f}，每词字符数：{:.2f}"
+
+#: trelby/characterreport.py:121
+#, python-brace-format
+msgid "Pages: {}, list: {}"
+msgstr "页数：{}，列表：{}"
+
+#: trelby/charmapdlg.py:11
+msgid "Latin-1"
+msgstr "Latin-1"
+
+#: trelby/charmapdlg.py:12
+msgid "Latin Extended-A"
+msgstr "拉丁文扩展-A"
+
+#: trelby/charmapdlg.py:13
+msgid "Latin Extended-B"
+msgstr "拉丁文扩展-B"
+
+#: trelby/charmapdlg.py:14
+msgid "Greek"
+msgstr "希腊文"
+
+#: trelby/charmapdlg.py:15
+msgid "Cyrillic"
+msgstr "西里尔文"
+
+#: trelby/charmapdlg.py:17
+msgid "Punctuation and symbols"
+msgstr "标点和符号"
+
+#: trelby/charmapdlg.py:35 trelby/trelbyframe.py:259
+msgid "Character map"
+msgstr "字符映射表"
+
+#: trelby/charmapdlg.py:57
+msgid " Insert character "
+msgstr " 插入字符 "
+
+#: trelby/charmapdlg.py:201
+msgid "Selected:"
+msgstr "已选择："
+
+#: trelby/charmapdlg.py:212
+msgid "Opposite case:"
+msgstr "相反大小写："
+
+#: trelby/charmapdlg.py:217
+#, python-format
+msgid "Character code: %d"
+msgstr "字符代码：%d"
+
+#: trelby/charmapdlg.py:221
+msgid "Normal space"
+msgstr "普通空格"
+
+#: trelby/charmapdlg.py:223
+msgid "Non-breaking space"
+msgstr "不换行空格"
+
+#: trelby/charmapdlg.py:227
+msgid "Click on a character to select it."
+msgstr "单击字符将其选中。"
+
+#: trelby/commandsdlg.py:12 trelby/trelbyframe.py:267
+msgid "Commands"
+msgstr "命令"
+
+#: trelby/commandsdlg.py:66
+msgid "Key(s)"
+msgstr "按键"
+
+#: trelby/commandsdlg.py:66
+msgid "Command"
+msgstr "命令"
+
+#: trelby/commandsdlg.py:77
+msgid "No key defined"
+msgstr "未定义按键"
+
+#: trelby/commandsdlg.py:116
+msgid "HTML files (*.html)|*.html|All files|*"
+msgstr "HTML 文件 (*.html)|*.html|所有文件|*"
+
+#: trelby/config.py:802
+msgid "Abort something, e.g. selection, auto-completion, etc."
+msgstr "中止当前操作，例如选择、自动补全等。"
+
+#: trelby/config.py:806
+msgid "Show the about dialog."
+msgstr "显示“关于”对话框。"
+
+#: trelby/config.py:809
+msgid "Open the auto-completion dialog."
+msgstr "打开自动补全对话框。"
+
+#: trelby/config.py:814
+msgid "Change current element's style to act break."
+msgstr "将当前元素的样式改为分幕。"
+
+#: trelby/config.py:819
+msgid "Change current element's style to action."
+msgstr "将当前元素的样式改为动作。"
+
+#: trelby/config.py:824
+msgid "Change current element's style to character."
+msgstr "将当前元素的样式改为角色。"
+
+#: trelby/config.py:829
+msgid "Change current element's style to dialogue."
+msgstr "将当前元素的样式改为对白。"
+
+#: trelby/config.py:834
+msgid "Change current element's style to note."
+msgstr "将当前元素的样式改为备注。"
+
+#: trelby/config.py:839
+msgid "Change current element's style to parenthetical."
+msgstr "将当前元素的样式改为括号注释。"
+
+#: trelby/config.py:844
+msgid "Change current element's style to scene."
+msgstr "将当前元素的样式改为场景。"
+
+#: trelby/config.py:847
+msgid "Change current element's style to shot."
+msgstr "将当前元素的样式改为镜头。"
+
+#: trelby/config.py:850
+msgid "Change current element's style to transition."
+msgstr "将当前元素的样式改为转场。"
+
+#: trelby/config.py:853
+msgid "Open the character map."
+msgstr "打开字符映射表。"
+
+#: trelby/config.py:856
+msgid "Open the character profiles dialog."
+msgstr "打开角色档案对话框。"
+
+#: trelby/config.py:861
+msgid "Close the current script."
+msgstr "关闭当前剧本。"
+
+#: trelby/config.py:866
+msgid "Compare two scripts."
+msgstr "比较两个剧本。"
+
+#: trelby/config.py:869
+msgid "Copy selected text to the internal clipboard."
+msgstr "将所选文本复制到内部剪贴板。"
+
+#: trelby/config.py:876
+msgid "Copy selected text to the system's clipboard, unformatted."
+msgstr "将所选文本复制到系统剪贴板（不带格式）。"
+
+#: trelby/config.py:881
+msgid "Copy selected text to the system's clipboard, formatted."
+msgstr "将所选文本复制到系统剪贴板（带格式）。"
+
+#: trelby/config.py:886
+msgid "Cut selected text to internal clipboard."
+msgstr "将所选文本剪切到内部剪贴板。"
+
+#: trelby/config.py:893
+msgid "Delete the character under the cursor, or selected text."
+msgstr "删除光标处的字符或所选文本。"
+
+#: trelby/config.py:899
+msgid "Delete the character behind the cursor."
+msgstr "删除光标前的字符。"
+
+#: trelby/config.py:905
+msgid "Open the 'Delete elements' dialog."
+msgstr "打开“删除元素”对话框。"
+
+#: trelby/config.py:911
+msgid "Turn dual dialogue on or off for the current speech and the one before it."
+msgstr "为当前台词及其前一段台词开启或关闭双人对白。"
+
+#: trelby/config.py:917
+msgid "Export the current script."
+msgstr "导出当前剧本。"
+
+#: trelby/config.py:920
+msgid "Open the 'Find & Replace' dialog."
+msgstr "打开“查找和替换”对话框。"
+
+#: trelby/config.py:927
+msgid "Find next error in the current script."
+msgstr "在当前剧本中查找下一个错误。"
+
+#: trelby/config.py:933
+msgid "Insert a forced line break."
+msgstr "插入强制换行。"
+
+#: trelby/config.py:944
+msgid "Toggle fullscreen."
+msgstr "切换全屏。"
+
+#: trelby/config.py:951
+msgid "Goto to a given page."
+msgstr "跳转到指定页。"
+
+#: trelby/config.py:958
+msgid "Goto to a given scene."
+msgstr "跳转到指定场景。"
+
+#: trelby/config.py:963
+msgid "Open the headers dialog."
+msgstr "打开页眉对话框。"
+
+#: trelby/config.py:966
+msgid "Show list of commands and their key bindings."
+msgstr "显示命令及其快捷键列表。"
+
+#: trelby/config.py:969
+msgid "Open the manual."
+msgstr "打开使用手册。"
+
+#: trelby/config.py:970
+msgid "Import a script."
+msgstr "导入剧本。"
+
+#: trelby/config.py:973
+msgid "Insert non-breaking space."
+msgstr "插入不换行空格。"
+
+#: trelby/config.py:979
+msgid "Load script-specific settings."
+msgstr "加载剧本专用设置。"
+
+#: trelby/config.py:982
+msgid "Load global settings."
+msgstr "加载全局设置。"
+
+#: trelby/config.py:983
+msgid "Open the locations dialog."
+msgstr "打开地点对话框。"
+
+#: trelby/config.py:986
+msgid "Move down."
+msgstr "向下移动。"
+
+#: trelby/config.py:993
+msgid "Move to the end of the line or finish auto-completion."
+msgstr "移到行尾或完成自动补全。"
+
+#: trelby/config.py:999
+msgid "Move to the end of the script."
+msgstr "移到剧本末尾。"
+
+#: trelby/config.py:1003
+msgid "Move left."
+msgstr "向左移动。"
+
+#: trelby/config.py:1006
+msgid "Move to start of next word."
+msgstr "移到下一个单词的开头。"
+
+#: trelby/config.py:1013
+msgid "Move one page down."
+msgstr "向下移动一页。"
+
+#: trelby/config.py:1019
+msgid "Move one page up."
+msgstr "向上移动一页。"
+
+#: trelby/config.py:1025
+msgid "Move to start of previous word."
+msgstr "移到上一个单词的开头。"
+
+#: trelby/config.py:1030
+msgid "Move right."
+msgstr "向右移动。"
+
+#: trelby/config.py:1033
+msgid "Move one scene down."
+msgstr "向下移动一个场景。"
+
+#: trelby/config.py:1039
+msgid "Move one scene up."
+msgstr "向上移动一个场景。"
+
+#: trelby/config.py:1045
+msgid "Move to the start of the line."
+msgstr "移到行首。"
+
+#: trelby/config.py:1051
+msgid "Move to the start of the script."
+msgstr "移到剧本开头。"
+
+#: trelby/config.py:1057
+msgid "Move up."
+msgstr "向上移动。"
+
+#: trelby/config.py:1063
+msgid "Open the character name database."
+msgstr "打开角色人名数据库。"
+
+#: trelby/config.py:1067
+msgid "Create a new element."
+msgstr "新建一个元素。"
+
+#: trelby/config.py:1073
+msgid "Create a new script."
+msgstr "新建剧本。"
+
+#: trelby/config.py:1080
+msgid "Open a script."
+msgstr "打开剧本。"
+
+#: trelby/config.py:1085
+msgid "Paginate current script."
+msgstr "为当前剧本分页。"
+
+#: trelby/config.py:1088
+msgid "Paste text from the internal clipboard."
+msgstr "从内部剪贴板粘贴文本。"
+
+#: trelby/config.py:1095
+msgid "Paste text from the system's clipboard."
+msgstr "从系统剪贴板粘贴文本。"
+
+#: trelby/config.py:1100
+msgid "Print current script."
+msgstr "打印当前剧本。"
+
+#: trelby/config.py:1107
+msgid "Quit the program."
+msgstr "退出程序。"
+
+#: trelby/config.py:1114
+msgid "Redo a change that was reverted through undo."
+msgstr "重做被撤销的更改。"
+
+#: trelby/config.py:1120
+msgid "Generate character report."
+msgstr "生成角色报告。"
+
+#: trelby/config.py:1124
+msgid "Generate dialogue chart report."
+msgstr "生成对白图表报告。"
+
+#: trelby/config.py:1127
+msgid "Generate location report."
+msgstr "生成地点报告。"
+
+#: trelby/config.py:1128
+msgid "Generate scene report."
+msgstr "生成场景报告。"
+
+#: trelby/config.py:1129
+msgid "Generate script report."
+msgstr "生成剧本报告。"
+
+#: trelby/config.py:1132
+msgid "Revert current script to the version on disk."
+msgstr "将当前剧本还原为磁盘上的版本。"
+
+#: trelby/config.py:1137
+msgid "Save the current script."
+msgstr "保存当前剧本。"
+
+#: trelby/config.py:1144
+msgid "Save the current script to a new file."
+msgstr "将当前剧本另存为新文件。"
+
+#: trelby/config.py:1149
+msgid "Save script-specific settings to a new file."
+msgstr "将剧本专用设置另存为新文件。"
+
+#: trelby/config.py:1154
+msgid "Save global settings to a new file."
+msgstr "将全局设置另存为新文件。"
+
+#: trelby/config.py:1159
+msgid "Change to next open script."
+msgstr "切换到下一个已打开的剧本。"
+
+#: trelby/config.py:1168
+msgid "Change to previous open script."
+msgstr "切换到上一个已打开的剧本。"
+
+#: trelby/config.py:1176
+msgid "Change script-specific settings."
+msgstr "修改剧本专用设置。"
+
+#: trelby/config.py:1178
+msgid "Select the entire script."
+msgstr "选择整个剧本。"
+
+#: trelby/config.py:1181
+msgid "Select the current scene."
+msgstr "选择当前场景。"
+
+#: trelby/config.py:1187
+msgid "Set mark at current cursor position."
+msgstr "在当前光标位置设置标记。"
+
+#: trelby/config.py:1190
+msgid "Change global settings."
+msgstr "修改全局设置。"
+
+#: trelby/config.py:1193
+msgid "Open the global spell checker dictionary dialog."
+msgstr "打开全局拼写检查词典对话框。"
+
+#: trelby/config.py:1198
+msgid "Spell check the script."
+msgstr "对剧本进行拼写检查。"
+
+#: trelby/config.py:1204
+msgid "Open the script-specific spell checker dictionary dialog."
+msgstr "打开剧本专用拼写检查词典对话框。"
+
+#: trelby/config.py:1210
+msgid "Change current element to the next style or create a new element."
+msgstr "将当前元素改为下一种样式，或新建一个元素。"
+
+#: trelby/config.py:1217
+msgid "Change current element to the previous style."
+msgstr "将当前元素改为上一种样式。"
+
+#: trelby/config.py:1221
+msgid "Open the titles dialog."
+msgstr "打开标题页对话框。"
+
+#: trelby/config.py:1224
+msgid "Make the selected text, or the text typed next, bold or not."
+msgstr "将所选文本或接下来输入的文本设为粗体或取消粗体。"
+
+#: trelby/config.py:1230
+msgid "Center the current action element, or stop centering it."
+msgstr "将当前动作元素居中，或取消居中。"
+
+#: trelby/config.py:1236
+msgid "Make the selected text, or the text typed next, italic or not."
+msgstr "将所选文本或接下来输入的文本设为斜体或取消斜体。"
+
+#: trelby/config.py:1246
+msgid "Show or hide the outline view."
+msgstr "显示或隐藏大纲视图。"
+
+#: trelby/config.py:1251
+msgid "Toggle 'Show formatting' display."
+msgstr "切换“显示格式”显示。"
+
+#: trelby/config.py:1257
+msgid "Make the selected text, or the text typed next, underlined or not."
+msgstr "将所选文本或接下来输入的文本设为下划线或取消下划线。"
+
+#: trelby/config.py:1265
+msgid "Undo the last change."
+msgstr "撤销上一次更改。"
+
+#: trelby/config.py:1271
+msgid "Change view mode to continuous."
+msgstr "将视图模式改为连续。"
+
+#: trelby/config.py:1274
+msgid "Change view mode to page."
+msgstr "将视图模式改为页面。"
+
+#: trelby/config.py:1278
+msgid "Change view mode to side by side."
+msgstr "将视图模式改为并排。"
+
+#: trelby/config.py:1281
+msgid "Export the current script as watermarked PDFs."
+msgstr "将当前剧本导出为带水印的 PDF。"
+
+#: trelby/config.py:1284
+msgid "Open the world building dialog."
+msgstr "打开世界观设定对话框。"
+
+#: trelby/config.py:1289
+msgid "Zoom in."
+msgstr "放大。"
+
+#: trelby/config.py:1296
+msgid "Zoom out."
+msgstr "缩小。"
+
+#: trelby/config.py:1303
+msgid "Reset zoom to 100%."
+msgstr "将缩放重置为 100%。"
+
+#: trelby/config.py:1497
+msgid "Commands not listed in correct order"
+msgstr "命令未按正确顺序列出"
+
+#: trelby/config.py:1519
+msgid "Unknown platform"
+msgstr "未知平台"
+
+#: trelby/config.py:1708
+#, python-brace-format
+msgid "key '{}' not found from '{}'"
+msgstr "找不到键“{}”（在“{}”中）"
+
+#: trelby/dialoguechart.py:38
+msgid "Sorted by: First appearance"
+msgstr "排序方式：首次出场"
+
+#: trelby/dialoguechart.py:39
+msgid "Sorted by: Last appearance"
+msgstr "排序方式：最后出场"
+
+#: trelby/dialoguechart.py:40
+msgid "Sorted by: Number of lines spoken"
+msgstr "排序方式：台词行数"
+
+#: trelby/dialoguechart.py:41
+msgid "Sorted by: Name"
+msgstr "排序方式：姓名"
+
+#: trelby/dialoguechart.py:50
+msgid "Dialogue Chart"
+msgstr "对白图表"
+
+#: trelby/dialoguechart.py:56
+msgid "Characters with < 10 lines"
+msgstr "台词少于 10 行的角色"
+
+#: trelby/dialoguechart.py:81 trelby/reports.py:102
+msgid "No characters speaking found."
+msgstr "未找到有台词的角色。"
+
+#: trelby/dialoguechart.py:83
+msgid "No characters with 10 or more lines found."
+msgstr "未找到台词达到 10 行或以上的角色。"
+
+#: trelby/finddlg.py:16
+msgid "Find & Replace"
+msgstr "查找和替换"
+
+#: trelby/finddlg.py:34
+msgid "Find what:"
+msgstr "查找内容："
+
+#: trelby/finddlg.py:40
+msgid "Replace with:"
+msgstr "替换为："
+
+#: trelby/finddlg.py:57
+msgid "Match whole word only"
+msgstr "全字匹配"
+
+#: trelby/finddlg.py:60
+msgid "Match case"
+msgstr "区分大小写"
+
+#: trelby/finddlg.py:66
+msgid "Direction"
+msgstr "方向"
+
+#: trelby/finddlg.py:66
+msgid "Up"
+msgstr "向上"
+
+#: trelby/finddlg.py:66
+msgid "Down"
+msgstr "向下"
+
+#: trelby/finddlg.py:74 trelby/namesdlg.py:75
+msgid "Search in:"
+msgstr "搜索范围："
+
+#: trelby/finddlg.py:227
+msgid "<<< Less"
+msgstr "<<< 收起"
+
+#: trelby/finddlg.py:236
+msgid "More >>>"
+msgstr "更多 >>>"
+
+#: trelby/finddlg.py:361
+msgid "Search finished without results."
+msgstr "搜索完成，没有找到结果。"
+
+#: trelby/finddlg.py:362
+msgid "No matches"
+msgstr "无匹配项"
+
+#: trelby/finddlg.py:381
+#, python-brace-format
+msgid ""
+"Search finished at the {} of the script. Do\n"
+"you want to continue at the {} of the script?"
+msgstr ""
+"搜索已到达剧本的{}。是否\n"
+"从剧本的{}继续搜索？"
+
+#: trelby/finddlg.py:385
+msgid "Continue?"
+msgstr "继续？"
+
+#: trelby/finddlg.py:461
+#, python-brace-format
+msgid "Replaced {} matches"
+msgstr "已替换 {} 处"
+
+#: trelby/finddlg.py:461 trelby/spellcheckdlg.py:101 trelby/spellcheckdlg.py:206
+#: trelby/trelbyctrl.py:1054 trelby/trelbyctrl.py:1380 trelby/trelbyctrl.py:1423
+msgid "Results"
+msgstr "结果"
+
+#: trelby/globaldata.py:78
+msgid "Files"
+msgstr "文件"
+
+#: trelby/globaldata.py:104
+#, python-brace-format
+msgid ""
+"Error creating configuration directory\n"
+"'{}': {}"
+msgstr ""
+"创建配置目录时出错\n"
+"“{}”：{}"
+
+#: trelby/configpages/keyboardpanel.py:37 trelby/gutil.py:103
+#: trelby/headersdlg.py:60 trelby/locationsdlg.py:29 trelby/titlesdlg.py:48
+msgid "Add"
+msgstr "添加"
+
+#: trelby/gutil.py:105
+msgid "Preview"
+msgstr "预览"
+
+#: trelby/configpages/elementspanel.py:147 trelby/gutil.py:146
+#: trelby/trelbyframe.py:138 trelby/trelbyframe.py:1120 trelby/trelbyframe.py:1543
+msgid "Bold"
+msgstr "粗体"
+
+#: trelby/configpages/elementspanel.py:146 trelby/gutil.py:148
+#: trelby/trelbyframe.py:139 trelby/trelbyframe.py:1121 trelby/trelbyframe.py:1544
+msgid "Italic"
+msgstr "斜体"
+
+#: trelby/configpages/elementspanel.py:148 trelby/gutil.py:150
+msgid "Underlined"
+msgstr "下划线"
+
+#: trelby/gutil.py:167
+msgid "Align left"
+msgstr "左对齐"
+
+#: trelby/gutil.py:168 trelby/trelbyframe.py:1086
+msgid "Center"
+msgstr "居中"
+
+#: trelby/gutil.py:169
+msgid "Align right"
+msgstr "右对齐"
+
+#: trelby/gutil.py:268
+#, python-brace-format
+msgid "Error writing temporary PDF file: {}"
+msgstr "写入临时 PDF 文件时出错：{}"
+
+#: trelby/headersdlg.py:16 trelby/trelbyframe.py:204
+msgid "Page headers"
+msgstr "页眉"
+
+#: trelby/headersdlg.py:37
+msgid "Empty lines after headers:"
+msgstr "页眉后的空行数："
+
+#: trelby/headersdlg.py:52
+msgid "Strings:"
+msgstr "字符串："
+
+#: trelby/headersdlg.py:74
+msgid "Text:"
+msgstr "文本："
+
+#: trelby/headersdlg.py:84
+#, python-brace-format
+msgid "'${PAGE}' will be replaced by the page number."
+msgstr "“${PAGE}”将被替换为页码。"
+
+#: trelby/headersdlg.py:96
+msgid "Header line:"
+msgstr "页眉行："
+
+#: trelby/headersdlg.py:106
+msgid "X offset (characters):"
+msgstr "X 偏移（字符数）："
+
+#: trelby/headersdlg.py:119
+msgid "Alignment:"
+msgstr "对齐方式："
+
+#: trelby/headersdlg.py:126 trelby/titlesdlg.py:84
+msgid "Format:"
+msgstr "格式："
+
+#: trelby/importdlg.py:11
+msgid "Adjust styles"
+msgstr "调整样式"
+
+#: trelby/importdlg.py:18
+msgid "Input:"
+msgstr "输入："
+
+#: trelby/importdlg.py:24
+#, python-brace-format
+msgid "{} lines (indented {} characters)"
+msgstr "{} 行（缩进 {} 个字符）"
+
+#: trelby/importdlg.py:32
+msgid "Style:"
+msgstr "样式："
+
+#: trelby/importdlg.py:35
+msgid "Scene / Action"
+msgstr "场景 / 动作"
+
+#: trelby/importdlg.py:39
+msgid "Ignore"
+msgstr "忽略"
+
+#: trelby/importdlg.py:47
+msgid "Lines:"
+msgstr "行："
+
+#: trelby/locationreport.py:90
+#, python-brace-format
+msgid "Lines: {} (%{} action, %{} of script), Scenes: {}, Pages: {} ({})"
+msgstr "行数：{}（动作占 %{}，占剧本 %{}），场景数：{}，页数：{}（{}）"
+
+#: trelby/locationsdlg.py:13 trelby/trelbyframe.py:212
+msgid "Locations"
+msgstr "地点"
+
+#: trelby/locationsdlg.py:21
+msgid "Locations:"
+msgstr "地点："
+
+#: trelby/locationsdlg.py:39
+msgid "Scenes:"
+msgstr "场景："
+
+#: trelby/locationsdlg.py:93
+msgid "No scenes selected in the lower list."
+msgstr "下方列表中未选择任何场景。"
+
+#: trelby/locationsdlg.py:142
+msgid "No scene selected in the upper list."
+msgstr "上方列表中未选择任何场景。"
+
+#: trelby/mcpapp.py:275
+msgid ""
+"The MCP server needs the 'mcp' Python package, which isn't installed. "
+"Install it with:\n"
+"\n"
+"pip install trelby[mcp]"
+msgstr ""
+"MCP 服务器需要 Python 包“mcp”，但它尚未安装。请用以下命令安装：\n"
+"\n"
+"pip install trelby[mcp]"
+
+#: trelby/configpages/mcppanel.py:149 trelby/mcpapp.py:278 trelby/mcpapp.py:292
+msgid "MCP server"
+msgstr "MCP 服务器"
+
+#: trelby/mcpapp.py:289
+#, python-brace-format
+msgid ""
+"Couldn't start the MCP server on port {}:\n"
+"\n"
+"{}"
+msgstr ""
+"无法在端口 {} 上启动 MCP 服务器：\n"
+"\n"
+"{}"
+
+#: trelby/mcpapp.py:309
+msgid "Not available: the 'mcp' Python package isn't installed."
+msgstr "不可用：未安装 Python 包“mcp”。"
+
+#: trelby/mcpapp.py:312
+#, python-brace-format
+msgid "Running at {}"
+msgstr "运行于 {}"
+
+#: trelby/mcpapp.py:314
+msgid "Not running."
+msgstr "未运行。"
+
+#: trelby/misc.py:813
+msgid "Choose scripts"
+msgstr "选择剧本"
+
+#: trelby/misc.py:820
+msgid "Compare script"
+msgstr "比较剧本"
+
+#: trelby/misc.py:821
+msgid "to"
+msgstr "与"
+
+#: trelby/misc.py:825
+msgid "Use same configuration"
+msgstr "使用相同的配置"
+
+#: trelby/misc.py:951
+msgid "Set"
+msgstr "全部勾选"
+
+#: trelby/misc.py:955
+msgid "Clear"
+msgstr "全部取消"
+
+#: trelby/misc.py:959
+msgid "Toggle"
+msgstr "反选"
+
+#: trelby/misc.py:1167
+msgid "Key capture"
+msgstr "捕获按键"
+
+#: trelby/misc.py:1177
+#, python-brace-format
+msgid ""
+"Press the key combination you\n"
+"want to bind to the command\n"
+"'{}'."
+msgstr ""
+"请按下要绑定到以下命令的\n"
+"组合键：\n"
+"“{}”。"
+
+#: trelby/misc.py:1273
+msgid "No recent files"
+msgstr "没有最近的文件"
+
+#: trelby/misc.py:1282
+msgid "Clear Recent Files"
+msgstr "清除最近的文件"
+
+#: trelby/myimport.py:42 trelby/myimport.py:117 trelby/myimport.py:318
+#: trelby/myimport.py:439 trelby/myimport.py:778
+msgid "File is empty."
+msgstr "文件为空。"
+
+#: trelby/myimport.py:59 trelby/myimport.py:133 trelby/myimport.py:263
+#: trelby/myimport.py:424
+#, python-brace-format
+msgid "Error parsing file: {}"
+msgstr "解析文件时出错：{}"
+
+#: trelby/myimport.py:93
+msgid "File has no content."
+msgstr "文件没有内容。"
+
+#: trelby/myimport.py:110
+msgid "File is not a valid .fadein file."
+msgstr "该文件不是有效的 .fadein 文件。"
+
+#: trelby/myimport.py:212 trelby/myimport.py:293 trelby/myimport.py:417
+msgid "The file contains no importable lines"
+msgstr "该文件中没有可导入的行"
+
+#: trelby/myimport.py:227
+msgid "File is not a valid Celtx script file."
+msgstr "该文件不是有效的 Celtx 剧本文件。"
+
+#: trelby/myimport.py:236
+msgid "Unable to find script in this Celtx file."
+msgstr "在此 Celtx 文件中找不到剧本。"
+
+#: trelby/myimport.py:245
+msgid "Script seems to be empty."
+msgstr "剧本似乎是空的。"
+
+#: trelby/myimport.py:443
+msgid "Import titles to title page."
+msgstr "将标题导入到标题页。"
+
+#: trelby/myimport.py:444
+msgid "Import titles as action lines."
+msgstr "将标题导入为动作行。"
+
+#: trelby/myimport.py:446
+msgid "Import bold, italic and underline markup as formatting."
+msgstr "将粗体、斜体和下划线标记导入为格式。"
+
+#: trelby/myimport.py:448
+msgid "Import section/synopsis as notes."
+msgstr "将章节/梗概导入为备注。"
+
+#: trelby/myimport.py:451
+msgid "Fountain import options"
+msgstr "Fountain 导入选项"
+
+#: trelby/myimport.py:451
+msgid "Import options:"
+msgstr "导入选项："
+
+#: trelby/myimport.py:821
+msgid "File contains only empty lines."
+msgstr "文件只包含空行。"
+
+#: trelby/namesdlg.py:38
+#, python-brace-format
+msgid "No name type set before line: '{}'"
+msgstr "在此行之前未设置姓名类型：“{}”"
+
+#: trelby/namesdlg.py:42
+#, python-brace-format
+msgid "Unknown linetype for line: '{}'"
+msgstr "此行的行类型未知：“{}”"
+
+#: trelby/namesdlg.py:50
+#, python-brace-format
+msgid "Error loading name database: {}"
+msgstr "加载人名数据库时出错：{}"
+
+#: trelby/namesdlg.py:65
+msgid "Character name database"
+msgstr "角色人名数据库"
+
+#: trelby/namesdlg.py:81
+msgid "Count"
+msgstr "数量"
+
+#: trelby/namesdlg.py:82 trelby/titlesdlg.py:62
+msgid "Type"
+msgstr "类型"
+
+#: trelby/namesdlg.py:104 trelby/trelbyframe.py:126
+msgid "Select all"
+msgstr "全选"
+
+#: trelby/namesdlg.py:115
+msgid "Search"
+msgstr "搜索"
+
+#: trelby/namesdlg.py:122
+msgid "Insert"
+msgstr "插入"
+
+#: trelby/namesdlg.py:131
+msgid "Name"
+msgstr "姓名"
+
+#: trelby/namesdlg.py:141
+msgid "Sex"
+msgstr "性别"
+
+#: trelby/namesdlg.py:151
+msgid "Results:"
+msgstr "结果："
+
+#: trelby/namesdlg.py:264
+#, python-brace-format
+msgid "{} names found."
+msgstr "找到 {} 个名字。"
+
+#: trelby/outline.py:17
+msgid "Red"
+msgstr "红色"
+
+#: trelby/outline.py:18
+msgid "Orange"
+msgstr "橙色"
+
+#: trelby/outline.py:19
+msgid "Yellow"
+msgstr "黄色"
+
+#: trelby/outline.py:20
+msgid "Green"
+msgstr "绿色"
+
+#: trelby/outline.py:21
+msgid "Teal"
+msgstr "青色"
+
+#: trelby/outline.py:22
+msgid "Blue"
+msgstr "蓝色"
+
+#: trelby/outline.py:23
+msgid "Purple"
+msgstr "紫色"
+
+#: trelby/outline.py:24
+msgid "Pink"
+msgstr "粉色"
+
+#: trelby/outline.py:25
+msgid "Gray"
+msgstr "灰色"
+
+#: trelby/outline.py:390 trelby/trelbyframe.py:175 trelby/trelbyframe.py:1095
+msgid "Outline"
+msgstr "大纲"
+
+#: trelby/outline.py:402
+msgid "Move the selected scene up (Ctrl+Up)"
+msgstr "上移所选场景（Ctrl+Up）"
+
+#: trelby/outline.py:404
+msgid "Move the selected scene down (Ctrl+Down)"
+msgstr "下移所选场景（Ctrl+Down）"
+
+#: trelby/outline.py:408
+msgid "Set the selected scene's color (or right-click a scene)"
+msgstr "设置所选场景的颜色（或右键单击场景）"
+
+#: trelby/outline.py:411
+msgid "Hide the outline"
+msgstr "隐藏大纲"
+
+#: trelby/outline.py:805
+msgid "No color"
+msgstr "无颜色"
+
+#: trelby/outline.py:820
+msgid "Custom color..."
+msgstr "自定义颜色..."
+
+#: trelby/outline.py:862
+msgid "Scene color"
+msgstr "场景颜色"
+
+#: trelby/pdf.py:76
+msgid "draw not implemented"
+msgstr "未实现 draw"
+
+#: trelby/pdf.py:83
+msgid "PDFTextOp is only compatible with pml.TextOp, got "
+msgstr "PDFTextOp 只兼容 pml.TextOp，实际为 "
+
+#: trelby/pdf.py:179
+msgid "PDFLineOp is only compatible with pml.LineOp, got "
+msgstr "PDFLineOp 只兼容 pml.LineOp，实际为 "
+
+#: trelby/pdf.py:187
+#, python-brace-format
+msgid "LineOp contains only {} points"
+msgstr "LineOp 只包含 {} 个点"
+
+#: trelby/pdf.py:207
+msgid "PDFRectOp is only compatible with pml.RectOp, got "
+msgstr "PDFRectOp 只兼容 pml.RectOp，实际为 "
+
+#: trelby/pdf.py:229
+msgid "PDFQuarterCircleOp is only compatible with pml.QuarterCircleOp, got "
+msgstr "PDFQuarterCircleOp 只兼容 pml.QuarterCircleOp，实际为 "
+
+#: trelby/pdf.py:262
+msgid "PDFArbitraryOp is only compatible with pml.PDFOp, got "
+msgstr "PDFArbitraryOp 只兼容 pml.PDFOp，实际为 "
+
+#: trelby/pdf.py:383
+#, python-brace-format
+msgid "PDF.getfontNr: invalid flags {}"
+msgstr "PDF.getfontNr：无效的标志 {}"
+
+#: trelby/pdf.py:395
+#, python-brace-format
+msgid ""
+"Font name \"{}\" is not known and no font file name provided. Please provide"
+" a file name for this font in the settings or use the default font."
+msgstr "字体名称“{}”未知，且未提供字体文件名。请在设置中为此字体提供文件名，或使用默认字体。"
+
+#: trelby/pdfviewer.py:47
+msgid "PDF Preview"
+msgstr "PDF 预览"
+
+#: trelby/pdfviewer.py:60
+msgid "Save As..."
+msgstr "另存为..."
+
+#: trelby/pdfviewer.py:64
+msgid "Open in External Viewer"
+msgstr "在外部查看器中打开"
+
+#: trelby/pdfviewer.py:104
+msgid "Save PDF As"
+msgstr "将 PDF 另存为"
+
+#: trelby/pdfviewer.py:106 trelby/reportwindow.py:146
+msgid "PDF files"
+msgstr "PDF 文件"
+
+#: trelby/pdfviewer.py:115
+#, python-brace-format
+msgid "Error saving file: {}"
+msgstr "保存文件时出错：{}"
+
+#: trelby/reports.py:13
+msgid "Scene Report"
+msgstr "场景报告"
+
+#: trelby/reports.py:21
+msgid "Location Report"
+msgstr "地点报告"
+
+#: trelby/reports.py:29
+msgid "Script Report"
+msgstr "剧本报告"
+
+#: trelby/reports.py:39
+msgid "Character Report"
+msgstr "角色报告"
+
+#: trelby/reports.py:57
+msgid "Characters to include:"
+msgstr "要包含的角色："
+
+#: trelby/reports.py:67
+msgid "All"
+msgstr "全部"
+
+#: trelby/configpages/draftpanel.py:42 trelby/reports.py:71
+msgid "None"
+msgstr "无"
+
+#: trelby/reports.py:104
+msgid "No characters selected."
+msgstr "未选择任何角色。"
+
+#: trelby/reportwindow.py:79
+msgid "Save as PDF..."
+msgstr "另存为 PDF..."
+
+#: trelby/reportwindow.py:143
+msgid "Save as PDF"
+msgstr "另存为 PDF"
+
+#: trelby/reportwindow.py:203
+msgid "Nothing to show."
+msgstr "没有可显示的内容。"
+
+#: trelby/scenereport.py:38
+msgid "Speakers"
+msgstr "说话角色"
+
+#: trelby/scenereport.py:51
+#, python-brace-format
+msgid "     Lines: {} (%{} action), Pages: {} ({})"
+msgstr "     行数：{}（动作占 %{}），页数：{}（{}）"
+
+#: trelby/screenplay.py:280
+msgid ""
+"File has too few lines to be a valid\n"
+"screenplay file."
+msgstr ""
+"文件行数太少，\n"
+"不是有效的剧本文件。"
+
+#: trelby/screenplay.py:286
+msgid ""
+"File doesn't seem to be a proper\n"
+"screenplay file."
+msgstr ""
+"该文件似乎不是\n"
+"正确的剧本文件。"
+
+#: trelby/screenplay.py:292
+#, python-brace-format
+msgid ""
+"File uses fileformat version '{}',\n"
+"which is not supported by this version\n"
+"of the program."
+msgstr ""
+"该文件使用的文件格式版本为“{}”，\n"
+"此版本的程序不支持。"
+
+#: trelby/screenplay.py:364
+#, python-brace-format
+msgid "Line {} is too short."
+msgstr "第 {} 行太短。"
+
+#: trelby/screenplay.py:370
+#, python-brace-format
+msgid ""
+"Line {} has invalid syntax for\n"
+"config line."
+msgstr ""
+"第 {} 行的配置行\n"
+"语法无效。"
+
+#: trelby/screenplay.py:441
+#, python-brace-format
+msgid "Line {} has invalid element type."
+msgstr "第 {} 行的元素类型无效。"
+
+#: trelby/screenplay.py:463
+msgid "Start-Script line not found."
+msgstr "未找到 Start-Script 行。"
+
+#: trelby/screenplay.py:466
+msgid "File doesn't contain any screenplay lines."
+msgstr "文件中没有任何剧本行。"
+
+#: trelby/screenplay.py:469
+msgid "Last line doesn't end an element."
+msgstr "最后一行没有结束元素。"
+
+#: trelby/screenplay.py:484
+msgid "Screenplay contained unknown linebreak types."
+msgstr "剧本包含未知的换行类型。"
+
+#: trelby/screenplay.py:489
+msgid ""
+"Screenplay contained unknown element types. These have been converted to "
+"Action elements."
+msgstr "剧本包含未知的元素类型，这些元素已被转换为动作元素。"
+
+#: trelby/screenplay.py:496
+msgid ""
+"Screenplay contained unknown information. This probably means that the file "
+"was created with a newer version of this program.\n"
+"\n"
+"  You'll lose that information if you save over the existing file."
+msgstr ""
+"剧本包含未知的信息。这可能意味着该文件是用本程序的较新版本创建的。\n"
+"\n"
+"  如果保存覆盖现有文件，这些信息将会丢失。"
+
+#: trelby/screenplay.py:517
+msgid "not found"
+msgstr "未找到"
+
+#: trelby/screenplay.py:1146
+#, python-brace-format
+msgid "Unknown line break style {} in generateRTF"
+msgstr "generateRTF 中未知的换行样式 {}"
+
+#: trelby/screenplay.py:3765
+msgid "Empty line."
+msgstr "空行。"
+
+#: trelby/screenplay.py:3769
+msgid "Empty line (contains only spaces)."
+msgstr "空行（只包含空格）。"
+
+#: trelby/screenplay.py:3773
+msgid "Empty parenthetical."
+msgstr "空括号注释。"
+
+#: trelby/screenplay.py:3777
+msgid "Line contains invalid characters (BUG)."
+msgstr "行中含有无效字符（程序错误）。"
+
+#: trelby/screenplay.py:3781
+msgid "Line is too long (BUG)."
+msgstr "行太长（程序错误）。"
+
+#: trelby/screenplay.py:3787 trelby/screenplay.py:3796 trelby/screenplay.py:3805
+#, python-brace-format
+msgid "Element type '{}' can not follow type '{}'."
+msgstr "元素类型“{}”不能跟在类型“{}”之后。"
+
+#: trelby/screenplay.py:3813
+msgid "Element contains lines with different line types (BUG)."
+msgstr "元素中的各行行类型不一致（程序错误）。"
+
+#: trelby/scriptreport.py:20
+#, python-brace-format
+msgid "Total lines in script: {}"
+msgstr "剧本总行数：{}"
+
+#: trelby/scriptreport.py:48
+msgid "Interior / exterior scenes"
+msgstr "内景 / 外景场景"
+
+#: trelby/scriptreport.py:59
+msgid "Max / avg. scene length in lines"
+msgstr "场景长度最大值 / 平均值（行）"
+
+#: trelby/scriptreport.py:98
+msgid "Max / avg. action element length in lines"
+msgstr "动作元素长度最大值 / 平均值（行）"
+
+#: trelby/scriptreport.py:104
+msgid "Speaking characters"
+msgstr "说话角色"
+
+#: trelby/spellcheckcfgdlg.py:14
+msgid "Spell checker dictionary"
+msgstr "拼写检查词典"
+
+#: trelby/spellcheckcfgdlg.py:23
+msgid "Global words:"
+msgstr "全局词汇："
+
+#: trelby/spellcheckcfgdlg.py:25
+msgid "Script-specific words:"
+msgstr "剧本专用词汇："
+
+#: trelby/configpages/miscpanel.py:33 trelby/spellcheckdlg.py:15
+#: trelby/trelbyframe.py:249
+msgid "Spell checker"
+msgstr "拼写检查"
+
+#: trelby/spellcheckdlg.py:35
+msgid "Word:"
+msgstr "单词："
+
+#: trelby/spellcheckdlg.py:101
+msgid "No more incorrect words found."
+msgstr "没有发现更多拼写错误的单词。"
+
+#: trelby/spellcheckdlg.py:206
+msgid "No similar words found."
+msgstr "未找到相似的单词。"
+
+#: trelby/spellcheckdlg.py:211
+msgid "Most similar words:"
+msgstr "最相似的单词："
+
+#: trelby/spellcheckdlg.py:211
+msgid "Suggestions"
+msgstr "建议"
+
+#: trelby/splash.py:28
+msgid "Splash"
+msgstr "启动画面"
+
+#: trelby/splash.py:155
+#, python-brace-format
+msgid "No lines defined for quote at line {}"
+msgstr "第 {} 行的引语没有定义内容"
+
+#: trelby/splash.py:161
+#, python-brace-format
+msgid "Too many lines defined for quote at line {}"
+msgstr "第 {} 行的引语定义的行数过多"
+
+#: trelby/splash.py:173
+msgid "Last quote does not have source"
+msgstr "最后一条引语没有出处"
+
+#: trelby/splash.py:179
+#, python-brace-format
+msgid "Error loading quotes: {}"
+msgstr "加载引语时出错：{}"
+
+#: trelby/themes.py:61
+#, python-brace-format
+msgid "missing colors: {}"
+msgstr "缺少颜色：{}"
+
+#: trelby/themes.py:66
+#, python-brace-format
+msgid "unknown colors: {}"
+msgstr "未知颜色：{}"
+
+#: trelby/themes.py:70
+msgid "'accent' and 'accentText' go together"
+msgstr "“accent”和“accentText”必须同时设置"
+
+#: trelby/themes.py:74
+#, python-brace-format
+msgid "color '{}' is not (r, g, b)"
+msgstr "颜色“{}”不是 (r, g, b) 格式"
+
+#: trelby/themes.py:404
+#, python-brace-format
+msgid "Can't read the themes folder '{}': {}"
+msgstr "无法读取主题文件夹“{}”：{}"
+
+#: trelby/themes.py:417
+msgid "not UTF-8 text"
+msgstr "不是 UTF-8 文本"
+
+#: trelby/themes.py:427
+#, python-brace-format
+msgid "there's already a theme named '{}'"
+msgstr "已存在名为“{}”的主题"
+
+#: trelby/themes.py:448
+#, python-brace-format
+msgid "not valid JSON (line {}, column {}: {})"
+msgstr "不是有效的 JSON（第 {} 行，第 {} 列：{}）"
+
+#: trelby/themes.py:454
+#, python-brace-format
+msgid "the file should contain a JSON object, {...}"
+msgstr "文件应包含一个 JSON 对象 {...}"
+
+#: trelby/themes.py:459
+#, python-brace-format
+msgid "unknown settings: {}"
+msgstr "未知设置：{}"
+
+#: trelby/themes.py:464
+msgid "'name' should be a non-empty string"
+msgstr "“name”应为非空字符串"
+
+#: trelby/themes.py:468
+msgid "'dark' should be true or false"
+msgstr "“dark”应为 true 或 false"
+
+#: trelby/themes.py:472
+#, python-brace-format
+msgid "'colors' should be a JSON object, {...}"
+msgstr "“colors”应为一个 JSON 对象 {...}"
+
+#: trelby/themes.py:481
+#, python-brace-format
+msgid "color '{}' should be \"#rrggbb\" or [r, g, b] (0-255), not {}"
+msgstr "颜色“{}”应为 \"#rrggbb\" 或 [r, g, b]（0-255），而不是 {}"
+
+#: trelby/titlesdlg.py:17 trelby/trelbyframe.py:201
+msgid "Title pages"
+msgstr "标题页"
+
+#: trelby/titlesdlg.py:41
+msgid "Items on this page:"
+msgstr "本页条目："
+
+#: trelby/titlesdlg.py:63 trelby/titlesdlg.py:308
+msgid "Text"
+msgstr "文本"
+
+#: trelby/titlesdlg.py:70
+msgid "Double-click an item's text, or click it in the preview, to edit it."
+msgstr "双击条目的文本，或在预览中单击它，即可进行编辑。"
+
+#: trelby/configpages/paperpanel.py:23 trelby/configpages/pdffontspanel.py:36
+#: trelby/titlesdlg.py:76
+msgid "Type:"
+msgstr "类型："
+
+#: trelby/titlesdlg.py:99
+msgid "Font / Size:"
+msgstr "字体 / 字号："
+
+#: trelby/titlesdlg.py:125
+msgid "X / Y Pos (mm):"
+msgstr "X / Y 位置（毫米）："
+
+#: trelby/titlesdlg.py:150
+msgid "Add page"
+msgstr "添加页"
+
+#: trelby/titlesdlg.py:152
+msgid "Delete page"
+msgstr "删除页"
+
+#: trelby/titlesdlg.py:154
+msgid "Move page"
+msgstr "移动页"
+
+#: trelby/titlesdlg.py:155
+msgid "Move this page one place later"
+msgstr "将此页向后移动一位"
+
+#: trelby/titlesdlg.py:160
+msgid "Previous"
+msgstr "上一页"
+
+#: trelby/titlesdlg.py:167
+msgid "Next"
+msgstr "下一页"
+
+#: trelby/titlesdlg.py:301
+msgid "Title"
+msgstr "标题"
+
+#: trelby/titlesdlg.py:302
+msgid "Written by"
+msgstr "编剧"
+
+#: trelby/titlesdlg.py:303
+msgid "Author"
+msgstr "作者"
+
+#: trelby/titlesdlg.py:304
+msgid "Based on"
+msgstr "改编自"
+
+#: trelby/titlesdlg.py:305
+msgid "Draft / date"
+msgstr "稿本 / 日期"
+
+#: trelby/titlesdlg.py:306
+msgid "Contact"
+msgstr "联系方式"
+
+#: trelby/titlesdlg.py:307
+msgid "Copyright"
+msgstr "版权"
+
+#: trelby/titlesdlg.py:574
+msgid "No pages."
+msgstr "没有页面。"
+
+#: trelby/trelby.py:44
+#, python-brace-format
+msgid ""
+"You seem to have an invalid version\n"
+"({}) of wxWidgets installed. This\n"
+"program needs version 4.x."
+msgstr ""
+"您安装的 wxWidgets 版本\n"
+"（{}）似乎无效。本程序\n"
+"需要 4.x 版本。"
+
+#: trelby/trelby.py:71
+msgid ""
+"You seem to have a version of Windows\n"
+"older than Windows 2000, which is the minimum\n"
+"requirement for this program."
+msgstr ""
+"您的 Windows 版本似乎早于\n"
+"Windows 2000，而这是本程序的\n"
+"最低要求。"
+
+#: trelby/trelby.py:81
+msgid ""
+"You seem to be using a non-Unicode build of\n"
+" wxWidgets. This is not supported."
+msgstr ""
+"您使用的似乎是非 Unicode 版本的\n"
+" wxWidgets。不支持此版本。"
+
+#: trelby/trelbyctrl.py:170
+#, python-brace-format
+msgid ""
+"Error loading file:\n"
+"\n"
+"{}"
+msgstr ""
+"加载文件时出错：\n"
+"\n"
+"{}"
+
+#: trelby/trelbyctrl.py:179 trelby/trelbyframe.py:681 trelby/util.py:1297
+msgid "Warning"
+msgstr "警告"
+
+#: trelby/trelbyctrl.py:310
+msgid "Include page markers"
+msgstr "包含分页标记"
+
+#: trelby/trelbyctrl.py:313 trelby/trelbyctrl.py:328
+msgid "Output options"
+msgstr "输出选项"
+
+#: trelby/trelbyctrl.py:313 trelby/trelbyctrl.py:328
+msgid "Options:"
+msgstr "选项："
+
+#: trelby/trelbyctrl.py:325
+msgid "Include Notes"
+msgstr "包含备注"
+
+#: trelby/trelbyctrl.py:351
+#, python-brace-format
+msgid ""
+"The built-in PDF fonts can't show these characters, so they will\n"
+"be shown as boxes or in a different font:\n"
+"\n"
+"{}\n"
+"\n"
+"To show them, choose a TrueType font that has them in\n"
+"Script/Script settings/PDF/Fonts.\n"
+"\n"
+"Export anyway?"
+msgstr ""
+"内置 PDF 字体无法显示以下字符，因此它们将显示为方框\n"
+"或以其他字体显示：\n"
+"\n"
+"{}\n"
+"\n"
+"要显示这些字符，请在“剧本/剧本设置/PDF/字体”中\n"
+"选择包含它们的 TrueType 字体。\n"
+"\n"
+"仍要导出吗？"
+
+#: trelby/trelbyctrl.py:620
+msgid "Export Anyway"
+msgstr "仍然导出"
+
+#: trelby/trelbyctrl.py:620
+msgid "Compare Anyway"
+msgstr "仍然比较"
+
+#: trelby/trelbyctrl.py:627
+#, python-brace-format
+msgid "\"{}\" is empty."
+msgstr "“{}”是空的。"
+
+#: trelby/trelbyctrl.py:628
+msgid "Empty Script"
+msgstr "空剧本"
+
+#: trelby/trelbyctrl.py:631
+msgid "There is no text in the script yet."
+msgstr "剧本中还没有任何文本。"
+
+#: trelby/trelbyctrl.py:645
+#, python-brace-format
+msgid "\"{}\" has a problem on page {}."
+msgstr "“{}”的第 {} 页有问题。"
+
+#: trelby/trelbyctrl.py:648
+msgid "Script Problem"
+msgstr "剧本问题"
+
+#: trelby/trelbyctrl.py:652
+msgid "Go to Problem"
+msgstr "转到问题处"
+
+#: trelby/trelbyctrl.py:997
+msgid "You need at least two scripts open to compare them."
+msgstr "至少需要打开两个剧本才能进行比较。"
+
+#: trelby/trelbyctrl.py:1025
+msgid "You can't compare a script to itself."
+msgstr "不能将剧本与其自身进行比较。"
+
+#: trelby/trelbyctrl.py:1054
+msgid "The scripts are identical."
+msgstr "两个剧本完全相同。"
+
+#: trelby/trelbyctrl.py:1062
+msgid ""
+"The script has been modified. Are you sure\n"
+"you want to discard the changes?"
+msgstr ""
+"剧本已被修改。确定要\n"
+"放弃这些更改吗？"
+
+#: trelby/trelbyctrl.py:1243
+msgid "Invalid scene number."
+msgstr "无效的场景编号。"
+
+#: trelby/trelbyctrl.py:1247
+#, python-brace-format
+msgid "Enter scene number ({} - {}):"
+msgstr "输入场景编号（{} - {}）："
+
+#: trelby/trelbyctrl.py:1248 trelby/trelbyframe.py:135
+msgid "Goto scene"
+msgstr "跳转到场景"
+
+#: trelby/trelbyctrl.py:1307
+msgid "Invalid page number."
+msgstr "无效的页码。"
+
+#: trelby/trelbyctrl.py:1311
+#, python-brace-format
+msgid "Enter page number ({} - {}):"
+msgstr "输入页码（{} - {}）："
+
+#: trelby/trelbyctrl.py:1312 trelby/trelbyframe.py:132
+msgid "Goto page"
+msgstr "跳转到页"
+
+#: trelby/trelbyctrl.py:1335
+msgid ""
+"Dual dialogue needs two speeches in a row (a character followed by its "
+"dialogue), with the cursor in one of them."
+msgstr "双人对白需要两段连续的台词（每段由角色名及其对白组成），并且光标需位于其中一段中。"
+
+#: trelby/trelbyctrl.py:1378
+msgid "No errors found."
+msgstr "未发现错误。"
+
+#: trelby/trelbyctrl.py:1419
+msgid ""
+"\n"
+"\n"
+"(Starting position was not at\n"
+"the beginning of the script.)"
+msgstr ""
+"\n"
+"\n"
+"（起始位置不在\n"
+"剧本开头。）"
+
+#: trelby/trelbyctrl.py:1422
+msgid "Spell checker found no errors."
+msgstr "拼写检查未发现错误。"
+
+#: trelby/trelbyctrl.py:1454 trelby/trelbyframe.py:151
+msgid "Delete elements"
+msgstr "删除元素"
+
+#: trelby/trelbyctrl.py:1456
+msgid "Element types to delete:"
+msgstr "要删除的元素类型："
+
+#: trelby/trelbyctrl.py:1512 trelby/trelbyframe.py:826
+msgid "Formatted text"
+msgstr "带格式文本"
+
+#: trelby/trelbyctrl.py:1523
+msgid "Filename to export as"
+msgstr "导出为文件名"
+
+#: trelby/trelbyctrl.py:1714
+#, python-brace-format
+msgid "{.5f} seconds per {}"
+msgstr "{.5f} 秒/{}"
+
+#: trelby/trelbyctrl.py:2004
+msgid "Manage title page"
+msgstr "管理标题页"
+
+#: trelby/trelbyframe.py:60
+msgid "Open"
+msgstr "打开"
+
+#: trelby/trelbyframe.py:62
+msgid "Open Recent"
+msgstr "打开最近的文件"
+
+#: trelby/trelbyframe.py:63 trelby/trelbyframe.py:1035
+msgid "Save"
+msgstr "保存"
+
+#: trelby/trelbyframe.py:64
+msgid "Save As"
+msgstr "另存为"
+
+#: trelby/trelbyframe.py:65
+msgid "Close\tCTRL-W"
+msgstr "关闭\tCTRL-W"
+
+#: trelby/trelbyframe.py:66
+msgid "Revert"
+msgstr "还原"
+
+#: trelby/trelbyframe.py:70 trelby/trelbyframe.py:96
+msgid "Final Draft (FDX)"
+msgstr "Final Draft (FDX)"
+
+#: trelby/trelbyframe.py:73 trelby/trelbyframe.py:100
+msgid "Fountain"
+msgstr "Fountain"
+
+#: trelby/trelbyframe.py:75
+msgid "Celtx"
+msgstr "Celtx"
+
+#: trelby/trelbyframe.py:77
+msgid "Adobe Story (ASTX)"
+msgstr "Adobe Story (ASTX)"
+
+#: trelby/trelbyframe.py:80
+msgid "Fade In"
+msgstr "Fade In"
+
+#: trelby/trelbyframe.py:83 trelby/trelbyframe.py:103
+msgid "Formatted Text"
+msgstr "带格式文本"
+
+#: trelby/trelbyframe.py:85
+msgid "Import"
+msgstr "导入"
+
+#: trelby/trelbyframe.py:87
+msgid "PDF"
+msgstr "PDF"
+
+#: trelby/trelbyframe.py:90
+msgid "Watermarked PDF"
+msgstr "带水印的 PDF"
+
+#: trelby/trelbyframe.py:93
+msgid "Rich Text (RTF)"
+msgstr "富文本 (RTF)"
+
+#: trelby/trelbyframe.py:98
+msgid "HTML"
+msgstr "HTML"
+
+#: trelby/configpages/themepanel.py:56 trelby/trelbyframe.py:105
+msgid "Export"
+msgstr "导出"
+
+#: trelby/trelbyframe.py:107
+msgid "Exit"
+msgstr "退出"
+
+#: trelby/trelbyframe.py:110 trelby/trelbyframe.py:1046
+msgid "Undo"
+msgstr "撤销"
+
+#: trelby/trelbyframe.py:111 trelby/trelbyframe.py:1047
+msgid "Redo"
+msgstr "重做"
+
+#: trelby/trelbyframe.py:113 trelby/trelbyframe.py:1548
+msgid "Cut"
+msgstr "剪切"
+
+#: trelby/trelbyframe.py:114 trelby/trelbyframe.py:1549
+msgid "Copy"
+msgstr "复制"
+
+#: trelby/trelbyframe.py:115 trelby/trelbyframe.py:1551
+msgid "Paste"
+msgstr "粘贴"
+
+#: trelby/trelbyframe.py:119
+msgid "Unformatted"
+msgstr "不带格式"
+
+#: trelby/trelbyframe.py:120
+msgid "Formatted"
+msgstr "带格式"
+
+#: trelby/trelbyframe.py:122
+msgid "Copy (system)"
+msgstr "复制（系统）"
+
+#: trelby/trelbyframe.py:123
+msgid "Paste (system)"
+msgstr "粘贴（系统）"
+
+#: trelby/trelbyframe.py:125 trelby/trelbyframe.py:1539
+msgid "Select scene"
+msgstr "选择场景"
+
+#: trelby/trelbyframe.py:129
+msgid "Find && Replace"
+msgstr "查找和替换"
+
+#: trelby/trelbyframe.py:141 trelby/trelbyframe.py:1122 trelby/trelbyframe.py:1545
+msgid "Underline"
+msgstr "下划线"
+
+#: trelby/trelbyframe.py:143 trelby/trelbyframe.py:1533
+msgid "Center action"
+msgstr "居中动作"
+
+#: trelby/trelbyframe.py:145
+msgid "Insert non-breaking space"
+msgstr "插入不换行空格"
+
+#: trelby/trelbyframe.py:148 trelby/trelbyframe.py:1528
+msgid "Dual dialogue"
+msgstr "双人对白"
+
+#: trelby/trelbyframe.py:158
+msgid "Continuous"
+msgstr "连续"
+
+#: trelby/trelbyframe.py:160
+msgid "Page"
+msgstr "页面"
+
+#: trelby/trelbyframe.py:162
+msgid "Side by side"
+msgstr "并排"
+
+#: trelby/trelbyframe.py:173
+msgid "Toolbar"
+msgstr "工具栏"
+
+#: trelby/trelbyframe.py:178
+msgid "Show formatting"
+msgstr "显示格式"
+
+#: trelby/trelbyframe.py:181 trelby/trelbyframe.py:1219
+msgid "Zoom in"
+msgstr "放大"
+
+#: trelby/trelbyframe.py:183 trelby/trelbyframe.py:1209
+msgid "Zoom out"
+msgstr "缩小"
+
+#: trelby/trelbyframe.py:186 trelby/trelbyframe.py:1213
+msgid "Reset zoom"
+msgstr "重置缩放"
+
+#: trelby/trelbyframe.py:190
+msgid "Fullscreen"
+msgstr "全屏"
+
+#: trelby/trelbyframe.py:215 trelby/worldbuildingdlg.py:47
+msgid "World building"
+msgstr "世界观设定"
+
+#: trelby/trelbyframe.py:221
+msgid "Script dictionary"
+msgstr "剧本词典"
+
+#: trelby/trelbyframe.py:224
+msgid "Paginate"
+msgstr "分页"
+
+#: trelby/trelbyframe.py:225
+msgid "Lock pages"
+msgstr "锁定页面"
+
+#: trelby/trelbyframe.py:227
+msgid "Unlock pages"
+msgstr "解除页面锁定"
+
+#: trelby/trelbyframe.py
+msgid "Lock scene numbers"
+msgstr "锁定场景编号"
+
+#: trelby/trelbyframe.py
+msgid "Unlock scene numbers"
+msgstr "解除场景编号锁定"
+
+#: trelby/trelbyframe.py:232
+msgid "Script report"
+msgstr "剧本报告"
+
+#: trelby/trelbyframe.py:235
+msgid "Location report"
+msgstr "地点报告"
+
+#: trelby/trelbyframe.py:238
+msgid "Scene report"
+msgstr "场景报告"
+
+#: trelby/trelbyframe.py:241
+msgid "Character report"
+msgstr "角色报告"
+
+#: trelby/trelbyframe.py:244
+msgid "Dialogue chart"
+msgstr "对白图表"
+
+#: trelby/trelbyframe.py:252
+msgid "Find next error"
+msgstr "查找下一个错误"
+
+#: trelby/trelbyframe.py:256
+msgid "Name database"
+msgstr "人名数据库"
+
+#: trelby/trelbyframe.py:263
+msgid "Compare scripts"
+msgstr "比较剧本"
+
+#: trelby/trelbyframe.py:268
+msgid "Manual"
+msgstr "使用手册"
+
+#: trelby/trelbyframe.py:282
+msgid "File"
+msgstr "文件"
+
+#: trelby/trelbyframe.py:283
+msgid "Edit"
+msgstr "编辑"
+
+#: trelby/trelbyframe.py:284
+msgid "View"
+msgstr "视图"
+
+#: trelby/trelbyframe.py:286
+msgid "Reports"
+msgstr "报告"
+
+#: trelby/trelbyframe.py:287
+msgid "Tools"
+msgstr "工具"
+
+#: trelby/trelbyframe.py:288
+msgid "Help"
+msgstr "帮助"
+
+#: trelby/trelbyframe.py:313
+msgid "Exit fullscreen"
+msgstr "退出全屏"
+
+#: trelby/trelbyframe.py:522
+#, python-format
+msgid "Autosave failed: %s"
+msgstr "自动保存失败：%s"
+
+#: trelby/trelbyframe.py:524
+#, python-format
+msgid "Recovery copy autosaved at %s"
+msgstr "恢复副本已自动保存于 %s"
+
+#: trelby/trelbyframe.py:552
+#, python-brace-format
+msgid ""
+"Trelby did not close normally last time. Unsaved changes\n"
+"to the following scripts were recovered:\n"
+"\n"
+"{}\n"
+"\n"
+"Do you want to restore them?"
+msgstr ""
+"Trelby 上次没有正常关闭。以下剧本中未保存的更改\n"
+"已被恢复：\n"
+"\n"
+"{}\n"
+"\n"
+"要还原这些更改吗？"
+
+#: trelby/trelbyframe.py:554
+msgid "Recover Unsaved Changes"
+msgstr "恢复未保存的更改"
+
+#: trelby/trelbyframe.py:558
+msgid "Restore"
+msgstr "恢复"
+
+#: trelby/trelbyframe.py:559
+msgid "Discard"
+msgstr "丢弃"
+
+#: trelby/trelbyframe.py:560
+msgid "Decide later"
+msgstr "稍后决定"
+
+#: trelby/trelbyframe.py:577
+msgid ""
+"Are you sure you want to permanently discard\n"
+"the recovered changes?"
+msgstr ""
+"确定要永久丢弃\n"
+"恢复的更改吗？"
+
+#: trelby/trelbyframe.py:679
+msgid ""
+"You have at least one key bound to more than one\n"
+"command. The program will not work correctly until\n"
+"you fix this."
+msgstr ""
+"至少有一个按键被绑定到多个命令。\n"
+"在修正之前，程序将无法正常工作。"
+
+#: trelby/trelbyframe.py:714
+msgid ""
+"The fonts listed below are not fixed width and\n"
+"will cause the program not to function correctly.\n"
+"Please change the fonts at Edit/Settings.\n"
+"\n"
+"\n"
+msgstr ""
+"下列字体不是等宽字体，\n"
+"会导致程序无法正常工作。\n"
+"请在“编辑/设置”中更改字体。\n"
+"\n"
+"\n"
+
+#: trelby/trelbyframe.py:778
+#, python-brace-format
+msgid ""
+"File not found:\n"
+"\n"
+"{}\n"
+"\n"
+"It has been removed from the recent files list."
+msgstr ""
+"找不到文件：\n"
+"\n"
+"{}\n"
+"\n"
+"已将其从最近的文件列表中移除。"
+
+#: trelby/trelbyframe.py:832
+msgid "File to import"
+msgstr "要导入的文件"
+
+#: trelby/trelbyframe.py:1033
+msgid "New file"
+msgstr "新建文件"
+
+#: trelby/trelbyframe.py:1034
+msgid "Open file"
+msgstr "打开文件"
+
+#: trelby/trelbyframe.py:1037
+msgid "Close file"
+msgstr "关闭文件"
+
+#: trelby/trelbyframe.py:1041
+msgid "Import file"
+msgstr "导入文件"
+
+#: trelby/trelbyframe.py:1042
+msgid "Export file"
+msgstr "导出文件"
+
+#: trelby/trelbyframe.py:1051
+msgid "Find / Replace"
+msgstr "查找 / 替换"
+
+#: trelby/trelbyframe.py:1052
+msgid "View mode"
+msgstr "视图模式"
+
+#: trelby/trelbyframe.py:1106 trelby/trelbyframe.py:1499
+msgid "Scene"
+msgstr "场景"
+
+#: trelby/trelbyframe.py:1107 trelby/trelbyframe.py:1500
+msgid "Action"
+msgstr "动作"
+
+#: trelby/trelbyframe.py:1108 trelby/trelbyframe.py:1501
+msgid "Character"
+msgstr "角色"
+
+#: trelby/trelbyframe.py:1109 trelby/trelbyframe.py:1233
+#: trelby/trelbyframe.py:1502
+msgid "Parenthetical"
+msgstr "括号注释"
+
+#: trelby/configpages/formattingpanel.py:29 trelby/trelbyframe.py:1110
+#: trelby/trelbyframe.py:1503
+msgid "Dialogue"
+msgstr "对白"
+
+#: trelby/trelbyframe.py:1111 trelby/trelbyframe.py:1504
+msgid "Transition"
+msgstr "转场"
+
+#: trelby/trelbyframe.py:1112 trelby/trelbyframe.py:1505
+msgid "Shot"
+msgstr "镜头"
+
+#: trelby/trelbyframe.py:1113 trelby/trelbyframe.py:1506
+msgid "Act break"
+msgstr "分幕"
+
+#: trelby/trelbyframe.py:1114 trelby/trelbyframe.py:1507
+msgid "Note"
+msgstr "备注"
+
+#: trelby/trelbyframe.py:1141
+msgid ""
+"Centering is only for Action elements. Put the cursor in an action, or "
+"select one, to center it."
+msgstr "只有动作元素可以居中。请将光标放在动作元素中，或选中一个动作元素，再进行居中。"
+
+#: trelby/trelbyframe.py:1146
+msgid ""
+"Center this action on the page, e.g. THE END or a title card. Only Action "
+"elements can be centered."
+msgstr "将此动作在页面上居中，例如“剧终”或字幕卡。只有动作元素可以居中。"
+
+#: trelby/trelbyframe.py:1171
+#, python-format
+msgid "Change element to %s"
+msgstr "将元素改为%s"
+
+#: trelby/trelbyframe.py:1184 trelby/trelbyframe.py:1234
+#, python-format
+msgid "Enter: %s    Tab: %s"
+msgstr "Enter：%s    Tab：%s"
+
+#: trelby/trelbyframe.py:1231
+#, python-format
+msgid "Page %d / %d"
+msgstr "第 %d / %d 页"
+
+#: trelby/trelbyframe.py:1283
+#, python-format
+msgid "Page %s / %d (locked)"
+msgstr "第 %s / %d 页（已锁定）"
+
+#: trelby/trelbyframe.py:1285
+#, python-format
+msgid "Page %s / %d"
+msgstr "第 %s / %d 页"
+
+#: trelby/trelbyframe.py:1297
+msgid "1 word"
+msgstr "1 个词"
+
+#: trelby/trelbyframe.py:1299
+#, python-format
+msgid "%s words"
+msgstr "%s 个词"
+
+#: trelby/trelbyframe.py:1305
+#, python-format
+msgid "Runtime: ~%d min"
+msgstr "时长：约 %d 分钟"
+
+#: trelby/trelbyframe.py:1307
+#, python-format
+msgid "Runtime: ~%d h %d min"
+msgstr "时长：约 %d 小时 %d 分钟"
+
+#: trelby/trelbyframe.py:1471
+msgid "Error opening name database."
+msgstr "打开人名数据库时出错。"
+
+#: trelby/trelbyframe.py:1513
+msgid "Multiple types"
+msgstr "多种类型"
+
+#: trelby/trelbyframe.py:1525
+msgid "Switch type"
+msgstr "切换类型"
+
+#: trelby/trelbyframe.py:1575
+msgid ""
+"You have unsaved changes. Do\n"
+"you want to save your changes?"
+msgstr ""
+"您有未保存的更改。\n"
+"是否保存更改？"
+
+#: trelby/trelbyframe.py:1576
+msgid "Save Changes"
+msgstr "保存更改"
+
+#: trelby/trelbyframe.py:1580
+msgid "Don't save"
+msgstr "不保存"
+
+#: trelby/truetype.py:81
+#, python-brace-format
+msgid "Table {} missing/invalid"
+msgstr "表 {} 缺失或无效"
+
+#: trelby/truetype.py:117
+msgid "No Postscript name found"
+msgstr "未找到 PostScript 名称"
+
+#: trelby/util.py:280
+msgid "bools2flags: chars and bools are not equal length"
+msgstr "bools2flags：chars 与 bools 长度不相等"
+
+#: trelby/util.py:941
+#, python-brace-format
+msgid "File too large: {}"
+msgstr "文件太大：{}"
+
+#: trelby/util.py:948
+#, python-brace-format
+msgid "Error loading file '{}': {}"
+msgstr "加载文件“{}”时出错：{}"
+
+#: trelby/util.py:982
+#, python-brace-format
+msgid "Error loading file '{}': Decompression failed"
+msgstr "加载文件“{}”时出错：解压缩失败"
+
+#: trelby/util.py:1072
+#, python-brace-format
+msgid "Error writing file '{}': {}"
+msgstr "写入文件“{}”时出错：{}"
+
+#: trelby/util.py:1151
+#, python-brace-format
+msgid "{}{} took {.5f} seconds"
+msgstr "{}{} 耗时 {.5f} 秒"
+
+#: trelby/util.py:1273
+msgid ""
+"PDF viewer application not found.\n"
+"\n"
+"You can change your PDF viewer\n"
+"settings at Edit/Settings/Misc."
+msgstr ""
+"找不到 PDF 查看器程序。\n"
+"\n"
+"您可以在“编辑/设置/其他”中\n"
+"更改 PDF 查看器设置。"
+
+#: trelby/util.py:1293
+#, python-brace-format, python-format
+msgid ""
+"Currently set PDF viewer ({}) was not found.\n"
+"Change this in Edit/Settings/Misc.\n"
+"\n"
+"Using the default PDF viewer instead:\n"
+"%s"
+msgstr ""
+"找不到当前设置的 PDF 查看器（{}）。\n"
+"请在“编辑/设置/其他”中更改。\n"
+"\n"
+"改用默认的 PDF 查看器：\n"
+"%s"
+
+#: trelby/viewmode.py:91 trelby/viewmode.py:95 trelby/viewmode.py:99
+#: trelby/viewmode.py:111 trelby/viewmode.py:116 trelby/viewmode.py:122
+msgid "not implemented"
+msgstr "未实现"
+
+#: trelby/watermarkdlg.py:20
+msgid "Watermarked PDFs generator"
+msgstr "带水印 PDF 生成器"
+
+#: trelby/watermarkdlg.py:29
+msgid "Directory to save in:"
+msgstr "保存目录："
+
+#: trelby/configpages/miscpanel.py:24 trelby/configpages/pdffontspanel.py:62
+#: trelby/configpages/pdfviewerpanel.py:48 trelby/watermarkdlg.py:34
+msgid "Browse"
+msgstr "浏览"
+
+#: trelby/watermarkdlg.py:39
+msgid "Filename prefix:"
+msgstr "文件名前缀："
+
+#: trelby/watermarkdlg.py:43
+msgid "Watermark font size:"
+msgstr "水印字号："
+
+#: trelby/watermarkdlg.py:51
+msgid "Common mark:"
+msgstr "通用标记："
+
+#: trelby/watermarkdlg.py:52
+msgid "Confidential"
+msgstr "机密"
+
+#: trelby/watermarkdlg.py:55
+msgid "Watermarks (one per line):"
+msgstr "水印（每行一个）："
+
+#: trelby/watermarkdlg.py:62
+msgid "Close"
+msgstr "关闭"
+
+#: trelby/watermarkdlg.py:65
+msgid "Generate PDFs"
+msgstr "生成 PDF"
+
+#: trelby/watermarkdlg.py:106
+msgid "Please set directory."
+msgstr "请设置目录。"
+
+#: trelby/watermarkdlg.py:159
+msgid "PDF generation aborted."
+msgstr "PDF 生成已中止。"
+
+#: trelby/watermarkdlg.py:166
+#, python-brace-format
+msgid "Generated {} files in directory {}."
+msgstr "已生成 {} 个文件，保存在目录 {} 中。"
+
+#: trelby/watermarkdlg.py:167
+msgid "PDFs generated"
+msgstr "PDF 已生成"
+
+#: trelby/watermarkdlg.py:172
+msgid "No watermarks specified."
+msgstr "未指定水印。"
+
+#: trelby/worldbuildingdlg.py:11
+msgid "Physical Environment"
+msgstr "自然环境"
+
+#: trelby/worldbuildingdlg.py:13
+msgid ""
+"The land, climate, weather, natural resources, and geography that shape "
+"daily life and travel."
+msgstr "塑造日常生活与出行方式的土地、气候、天气、自然资源和地理。"
+
+#: trelby/worldbuildingdlg.py:18
+msgid "Society and Culture"
+msgstr "社会与文化"
+
+#: trelby/worldbuildingdlg.py:20
+msgid ""
+"The religions, social classes, traditions, values, languages, and governance"
+" systems of the inhabitants."
+msgstr "居民的宗教、社会阶层、传统、价值观、语言和治理体系。"
+
+#: trelby/worldbuildingdlg.py:25
+msgid "History and Conflict"
+msgstr "历史与冲突"
+
+#: trelby/worldbuildingdlg.py:27
+msgid ""
+"Past wars, power shifts, ancient legends, or systemic oppressions that still"
+" influence the present narrative."
+msgstr "至今仍影响当前叙事的过往战争、权力更迭、古老传说或制度性压迫。"
+
+#: trelby/worldbuildingdlg.py:32
+msgid "Rules and Systems"
+msgstr "规则与体系"
+
+#: trelby/worldbuildingdlg.py:34
+msgid ""
+"The logical boundaries of magic, technology, or physics that must remain "
+"consistent without contradiction."
+msgstr "魔法、科技或物理的逻辑边界，必须始终保持一致、不能自相矛盾。"
+
+#: trelby/worldbuildingdlg.py:58
+msgid "Notes about the world your story takes place in, such as:"
+msgstr "关于故事发生的世界的笔记，例如："
+
+#: trelby/configpages/displaypanel.py:15
+msgid "Screen fonts:"
+msgstr "屏幕字体："
+
+#: trelby/configpages/displaypanel.py:25
+msgid "Change"
+msgstr "更改"
+
+#: trelby/configpages/displaypanel.py:39
+msgid "Toolbar icon size:"
+msgstr "工具栏图标大小："
+
+#: trelby/configpages/displaypanel.py:52 trelby/configpages/draftpanel.py:28
+msgid "pixels"
+msgstr "像素"
+
+#: trelby/configpages/displaypanel.py:96
+msgid "The selected font is not fixed width and can not be used."
+msgstr "所选字体不是等宽字体，无法使用。"
+
+#: trelby/configpages/displaypanel.py:132
+msgid "Fonts have different widths"
+msgstr "字体宽度不一致"
+
+#: trelby/configpages/displaypanel.py:135
+msgid "Fonts have matching widths"
+msgstr "字体宽度一致"
+
+#: trelby/configpages/draftpanel.py:15
+msgid "Row spacing:"
+msgstr "行距："
+
+#: trelby/configpages/draftpanel.py:39
+msgid "Page break lines to show"
+msgstr "要显示的分页线"
+
+#: trelby/configpages/draftpanel.py:42
+msgid "Normal"
+msgstr "普通"
+
+#: trelby/configpages/draftpanel.py:42
+msgid "Normal + unadjusted   "
+msgstr "普通 + 未调整   "
+
+#: trelby/configpages/elementsglobalpanel.py:36
+msgid "Enter creates"
+msgstr "Enter 新建"
+
+#: trelby/configpages/elementsglobalpanel.py:37
+msgid "Tab creates"
+msgstr "Tab 新建"
+
+#: trelby/configpages/elementsglobalpanel.py:38
+msgid "Tab switches to"
+msgstr "Tab 切换到"
+
+#: trelby/configpages/elementsglobalpanel.py:39
+msgid "Shift+Tab switches to"
+msgstr "Shift+Tab 切换到"
+
+#: trelby/configpages/elementspanel.py:46
+msgid "Empty lines / 10 before:"
+msgstr "前置空行（1/10 行）："
+
+#: trelby/configpages/elementspanel.py:62
+msgid "Empty lines / 10 between:"
+msgstr "行间空行（1/10 行）："
+
+#: trelby/configpages/elementspanel.py:82
+msgid "Indent:"
+msgstr "缩进："
+
+#: trelby/configpages/elementspanel.py:97 trelby/configpages/elementspanel.py:119
+msgid "characters (10 characters = 1 inch)"
+msgstr "个字符（10 个字符 = 1 英寸）"
+
+#: trelby/configpages/elementspanel.py:104 trelby/configpages/paperpanel.py:36
+msgid "Width:"
+msgstr "宽度："
+
+#: trelby/configpages/elementspanel.py:145
+msgid "Caps"
+msgstr "大写"
+
+#: trelby/configpages/formattingpanel.py:18
+msgid ""
+"Leave at least this many lines at the end of a page when\n"
+"breaking in the middle of an element:"
+msgstr ""
+"在元素中间分页时，\n"
+"页末至少保留的行数："
+
+#: trelby/configpages/formattingpanel.py:28
+msgid "Action:"
+msgstr "动作："
+
+#: trelby/configpages/formattingpanel.py:34
+msgid "Font size:"
+msgstr "字号："
+
+#: trelby/configpages/formattingpanel.py:37
+msgid "Scene CONTINUEDs:"
+msgstr "场景 CONTINUED："
+
+#: trelby/configpages/formattingpanel.py:40
+msgid "Include,"
+msgstr "包含，"
+
+#: trelby/configpages/formattingpanel.py:45
+msgid "indent:"
+msgstr "缩进："
+
+#: trelby/configpages/formattingpanel.py:48
+msgid "characters"
+msgstr "个字符"
+
+#: trelby/configpages/formattingpanel.py:55
+msgid "Include scene numbers"
+msgstr "包含场景编号"
+
+#: trelby/configpages/formattingpanel.py:65
+msgid "Show line numbers (debug)"
+msgstr "显示行号（调试）"
+
+#: trelby/configpages/globalaboutpanel.py:7
+msgid ""
+"This is the config dialog for global settings, which means things\n"
+"that affect the user interface of the program like interface colors,\n"
+"keyboard shortcuts, display fonts, and so on.\n"
+"\n"
+"The settings here are independent of any script being worked on,\n"
+"and unique to this computer.\n"
+"\n"
+"None of the settings here have any effect on the generated PDF\n"
+"output for a script. See Script/Script settings for those."
+msgstr ""
+"这是全局设置对话框，用于设置影响程序用户界面的内容，\n"
+"例如界面颜色、键盘快捷键、显示字体等。\n"
+"\n"
+"这里的设置与正在编辑的剧本无关，\n"
+"并且只对这台计算机有效。\n"
+"\n"
+"这里的设置不会影响剧本生成的 PDF 输出。\n"
+"相关设置请参阅“剧本/剧本设置”。"
+
+#: trelby/configpages/keyboardpanel.py:19
+msgid "Commands:"
+msgstr "命令："
+
+#: trelby/configpages/keyboardpanel.py:32
+msgid "Keys:"
+msgstr "按键："
+
+#: trelby/configpages/keyboardpanel.py:47
+msgid "Description:"
+msgstr "说明："
+
+#: trelby/configpages/keyboardpanel.py:58
+msgid "Conflicting keys:"
+msgstr "冲突的按键："
+
+#: trelby/configpages/keyboardpanel.py:87
+msgid "The key is already bound to this command."
+msgstr "该按键已绑定到此命令。"
+
+#: trelby/configpages/keyboardpanel.py:97
+msgid "You can't bind input characters to commands."
+msgstr "不能将输入字符绑定到命令。"
+
+#: trelby/configpages/mcppanel.py:23
+msgid ""
+"The MCP server lets AI assistants like Claude read and edit\n"
+"the scripts open in Trelby. Their edits show up right away\n"
+"and can be undone, but aren't saved until you save the script."
+msgstr ""
+"MCP 服务器让 Claude 等 AI 助手可以读取和编辑\n"
+"在 Trelby 中打开的剧本。它们的编辑会立即显示，\n"
+"并且可以撤销，但在您保存剧本之前不会被保存。"
+
+#: trelby/configpages/mcppanel.py:33
+msgid "Turn on the MCP server"
+msgstr "启用 MCP 服务器"
+
+#: trelby/configpages/mcppanel.py:39
+msgid "Port:"
+msgstr "端口："
+
+#: trelby/configpages/mcppanel.py:54
+msgid "Address:"
+msgstr "地址："
+
+#: trelby/configpages/mcppanel.py:70
+msgid ""
+"Only programs on this computer can connect. Clients that\n"
+"connect by URL (like Claude Code) can use the address above."
+msgstr ""
+"只有本机上的程序可以连接。通过 URL 连接的客户端\n"
+"（如 Claude Code）可以使用上面的地址。"
+
+#: trelby/configpages/mcppanel.py:82
+msgid "Copy Claude Desktop config"
+msgstr "复制 Claude Desktop 配置"
+
+#: trelby/configpages/mcppanel.py:85
+msgid ""
+"Copy the claude_desktop_config.json entry that connects Claude Desktop to "
+"Trelby"
+msgstr "复制将 Claude Desktop 连接到 Trelby 的 claude_desktop_config.json 条目"
+
+#: trelby/configpages/mcppanel.py:145
+msgid ""
+"Copied. Quit Claude Desktop, paste this inside the\n"
+"\"mcpServers\" section of claude_desktop_config.json, and\n"
+"start Claude Desktop again."
+msgstr ""
+"已复制。请退出 Claude Desktop，将其粘贴到\n"
+"claude_desktop_config.json 的“mcpServers”部分中，\n"
+"然后重新启动 Claude Desktop。"
+
+#: trelby/configpages/mcppanel.py:163
+#, python-brace-format
+msgid "Status: {}"
+msgstr "状态：{}"
+
+#: trelby/configpages/miscpanel.py:16
+msgid "Default script directory"
+msgstr "默认剧本目录"
+
+#: trelby/configpages/miscpanel.py:36
+msgid "Global dictionary"
+msgstr "全局词典"
+
+#: trelby/configpages/miscpanel.py:49
+msgid "Auto-capitalize sentences"
+msgstr "句首自动大写"
+
+#: trelby/configpages/miscpanel.py:50
+msgid "Auto-capitalize i -> I"
+msgstr "自动将 i 大写为 I"
+
+#: trelby/configpages/miscpanel.py:51
+msgid "When opening a script, start at last saved position"
+msgstr "打开剧本时，从上次保存的位置开始"
+
+#: trelby/configpages/miscpanel.py:52
+msgid "Recenter screen on scrolling"
+msgstr "滚动时使光标居中"
+
+#: trelby/configpages/miscpanel.py:53
+msgid "Typing replaces selected text"
+msgstr "输入时替换所选文本"
+
+#: trelby/configpages/miscpanel.py:56
+msgid "Check script for errors before export or compare"
+msgstr "导出或比较前检查剧本错误"
+
+#: trelby/configpages/miscpanel.py:72
+msgid ""
+"Auto-paginate interval in seconds:\n"
+" (0 = disable)"
+msgstr ""
+"自动分页间隔（秒）：\n"
+" （0 = 禁用）"
+
+#: trelby/configpages/miscpanel.py:80
+msgid ""
+"Autosave recovery copy interval in minutes:\n"
+" (0 = disable)"
+msgstr ""
+"自动保存恢复副本间隔（分钟）：\n"
+" （0 = 禁用）"
+
+#: trelby/configpages/miscpanel.py:88
+msgid "Lines to scroll per mouse wheel event:"
+msgstr "鼠标滚轮每次滚动的行数："
+
+#: trelby/configpages/paperpanel.py:45
+msgid "Height:"
+msgstr "高度："
+
+#: trelby/configpages/paperpanel.py:56
+msgid "Margins"
+msgstr "页边距"
+
+#: trelby/configpages/paperpanel.py:60
+msgid "Top"
+msgstr "上"
+
+#: trelby/configpages/paperpanel.py:61
+msgid "Bottom"
+msgstr "下"
+
+#: trelby/configpages/paperpanel.py:62
+msgid "Left"
+msgstr "左"
+
+#: trelby/configpages/paperpanel.py:63
+msgid "Right"
+msgstr "右"
+
+#: trelby/configpages/paperpanel.py:130
+#, python-brace-format
+msgid "Lines per page: {}"
+msgstr "每页行数：{}"
+
+#: trelby/configpages/pdffontspanel.py:28
+msgid ""
+"Leave all the fields empty to use the default PDF Courier\n"
+"fonts. This is highly recommended.\n"
+"\n"
+"Otherwise, fill in the the font filename to use\n"
+"the specified TrueType font. \n"
+"See the manual for the full details.\n"
+msgstr ""
+"将所有字段留空即可使用默认的 PDF Courier 字体。\n"
+"强烈建议这样做。\n"
+"\n"
+"否则，请填写字体文件名，\n"
+"以使用指定的 TrueType 字体。\n"
+"详情请参阅使用手册。\n"
+
+#: trelby/configpages/pdffontspanel.py:61
+msgid "File:"
+msgstr "文件："
+
+#: trelby/configpages/pdffontspanel.py:162
+#, python-brace-format
+msgid ""
+"File '{}'\n"
+"does not appear to be a valid TrueType font."
+msgstr ""
+"文件“{}”\n"
+"似乎不是有效的 TrueType 字体。"
+
+#: trelby/configpages/pdffontspanel.py:176
+#, python-brace-format
+msgid ""
+"Font '{}'\n"
+"does not allow embedding in its license terms.\n"
+"You may encounter problems using this font embedded."
+msgstr ""
+"字体“{}”\n"
+"的许可条款不允许嵌入。\n"
+"嵌入此字体可能会遇到问题。"
+
+#: trelby/configpages/pdfpanel.py:19
+msgid "Add table of contents"
+msgstr "添加目录"
+
+#: trelby/configpages/pdfpanel.py:22
+msgid "Show table of contents on PDF open"
+msgstr "打开 PDF 时显示目录"
+
+#: trelby/configpages/pdfpanel.py:25
+msgid "Omit Note elements"
+msgstr "省略备注元素"
+
+#: trelby/configpages/pdfpanel.py:28
+msgid "  Draw rectangles around Note elements"
+msgstr "  在备注元素周围绘制矩形框"
+
+#: trelby/configpages/pdfpanel.py:31
+msgid "Show margins (debug)"
+msgstr "显示页边距（调试）"
+
+#: trelby/configpages/pdfviewerpanel.py:17
+msgid "Use built-in PDF viewer"
+msgstr "使用内置 PDF 查看器"
+
+#: trelby/configpages/pdfviewerpanel.py:22
+msgid ""
+"The application below is used when the built-in viewer is turned off or "
+"can't open a file."
+msgstr "当内置查看器被关闭或无法打开文件时，将使用下面的程序。"
+
+#: trelby/configpages/pdfviewerpanel.py:27
+msgid "The built-in viewer isn't available on this system."
+msgstr "内置查看器在此系统上不可用。"
+
+#: trelby/configpages/pdfviewerpanel.py:32
+msgid "PDF viewer application"
+msgstr "PDF 查看器程序"
+
+#: trelby/configpages/pdfviewerpanel.py:39
+msgid "Path:"
+msgstr "路径："
+
+#: trelby/configpages/pdfviewerpanel.py:52
+msgid "Guess"
+msgstr "自动检测"
+
+#: trelby/configpages/pdfviewerpanel.py:61
+msgid "Arguments:"
+msgstr "参数："
+
+#: trelby/configpages/pdfviewerpanel.py:90
+msgid "Choose program"
+msgstr "选择程序"
+
+#: trelby/configpages/pdfviewerpanel.py:108
+msgid "Unable to guess. Please set the path manually."
+msgstr "无法自动检测，请手动设置路径。"
+
+#: trelby/configpages/pdfviewerpanel.py:109
+msgid "PDF Viewer"
+msgstr "PDF 查看器"
+
+#: trelby/configpages/scriptaboutpanel.py:7
+msgid ""
+"This is the config dialog for script format settings, which means\n"
+"things that affect the generated PDF output of a script. Things like\n"
+"paper size, indendation/line widths/font styles for the different\n"
+"element types, and so on.\n"
+"\n"
+"The settings here are saved within the screenplay itself.\n"
+"\n"
+"If you're looking for the user interface settings (colors, keyboard\n"
+"shortcuts, etc.), those are found in Edit/Settings."
+msgstr ""
+"这是剧本格式设置对话框，用于设置影响剧本生成的 PDF 输出\n"
+"的内容，例如纸张大小、各元素类型的缩进/行宽/字体样式等。\n"
+"\n"
+"这里的设置保存在剧本文件中。\n"
+"\n"
+"如果要找用户界面设置（颜色、键盘快捷键等），\n"
+"请前往“编辑/设置”。"
+
+#: trelby/configpages/themepanel.py:14
+msgid "Light"
+msgstr "浅色"
+
+#: trelby/configpages/themepanel.py:15
+msgid "Dark"
+msgstr "深色"
+
+#: trelby/configpages/themepanel.py:16
+msgid "Parchment"
+msgstr "羊皮纸"
+
+#: trelby/configpages/themepanel.py:17
+msgid "Solarized Light"
+msgstr "Solarized 浅色"
+
+#: trelby/configpages/themepanel.py:18
+msgid "Solarized Dark"
+msgstr "Solarized 深色"
+
+#: trelby/configpages/themepanel.py:32
+msgid "Theme:"
+msgstr "主题："
+
+#: trelby/configpages/themepanel.py:42
+msgid ""
+"System default follows the light or dark mode setting\n"
+"of your operating system.\n"
+"\n"
+"To make your own theme, export one as a starting point,\n"
+"edit the file's colors, and click Reload. Theme files\n"
+"are read from the themes folder."
+msgstr ""
+"“系统默认”会跟随操作系统的\n"
+"浅色或深色模式设置。\n"
+"\n"
+"要制作自己的主题，可先导出一个主题作为起点，\n"
+"编辑文件中的颜色，然后点击“重新加载”。\n"
+"主题文件从主题文件夹中读取。"
+
+#: trelby/configpages/themepanel.py:57
+msgid "Save the selected theme as a theme file"
+msgstr "将所选主题保存为主题文件"
+
+#: trelby/configpages/themepanel.py:60
+msgid "Open themes folder"
+msgstr "打开主题文件夹"
+
+#: trelby/configpages/themepanel.py:63
+msgid "Reload"
+msgstr "重新加载"
+
+#: trelby/configpages/themepanel.py:64
+msgid "Read the theme files again"
+msgstr "重新读取主题文件"
+
+#: trelby/configpages/themepanel.py:96
+msgid "System default"
+msgstr "系统默认"
+
+#: trelby/configpages/themepanel.py:108
+#, python-brace-format
+msgid "The theme '{}' wasn't found, so System default is used."
+msgstr "未找到主题“{}”，因此使用系统默认主题。"
+
+#: trelby/configpages/themepanel.py:114
+msgid "Skipped theme files:"
+msgstr "已跳过的主题文件："
+
+#: trelby/configpages/themepanel.py:141
+#, python-brace-format
+msgid "Can't create the themes folder '{}': {}"
+msgstr "无法创建主题文件夹“{}”：{}"
+
+#: trelby/configpages/themepanel.py:165
+msgid "Theme file to save as (its name becomes the theme's name)"
+msgstr "主题文件另存为（文件名即为主题名称）"
+
+#: trelby/configpages/themepanel.py:167
+#, python-brace-format
+msgid "My {}"
+msgstr "我的{}"
+
+#: trelby/configpages/themepanel.py:168
+msgid "Theme files"
+msgstr "主题文件"
+
+#: trelby/configpages/themepanel.py:192
+#, python-brace-format
+msgid "There's already a theme named '{}'. Choose another file name."
+msgstr "已存在名为“{}”的主题。请选择其他文件名。"
+
+#: trelby/trelbyframe.py
+#, python-brace-format
+msgid "System default ({})"
+msgstr "系统默认（{}）"
+
+#: trelby/trelbyframe.py
+msgid "Language"
+msgstr "语言"
+
+#: trelby/trelbyframe.py
+msgid "Language change needs a restart."
+msgstr "更改语言需要重新启动。"
+
+#: trelby/trelbyframe.py
+msgid "Restart now"
+msgstr "立即重新启动"
+
+#: trelby/trelbyframe.py
+msgid "Restart later"
+msgstr "稍后重新启动"
+
+#: trelby/configpages/formattingpanel.py:33
+msgid "Start each act on a new page"
+msgstr "每一幕从新的一页开始"
+
+#: trelby/configpages/formattingpanel.py:42
+msgid "Double-width characters (for Chinese, Japanese, Korean)"
+msgstr "双宽字符（用于中文、日文、韩文）"
+
+#: trelby/trelbyctrl.py:538
+msgid ""
+"This script has Chinese, Japanese or Korean characters, which are\n"
+"twice as wide as Latin letters, so they don't fit in the columns\n"
+"of the page.\n"
+"\n"
+"Switch the script to double-width characters? Every character,\n"
+"Latin ones too, will then take up two columns.\n"
+"\n"
+"This clears the undo history. It can be changed back in\n"
+"Script/Script settings/Formatting."
+msgstr ""
+"此剧本包含中文、日文或韩文字符，这些字符的宽度\n"
+"是拉丁字母的两倍，因此无法对齐页面的列。\n"
+"\n"
+"是否将此剧本切换为双宽字符？切换后，所有字符\n"
+"（包括拉丁字母）都将占用两列。\n"
+"\n"
+"此操作会清除撤销历史。之后可以在\n"
+"“剧本/剧本设置/格式”中改回。"
+
+#: trelby/trelbyctrl.py:540
+msgid "Double-width characters"
+msgstr "双宽字符"
+
+#: trelby/finddlg.py:370 trelby/finddlg.py:375
+msgid "end"
+msgstr "末尾"
+
+#: trelby/finddlg.py:371 trelby/finddlg.py:374
+msgid "start"
+msgstr "开头"

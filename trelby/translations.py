@@ -77,6 +77,7 @@ def getLocaleDir():
 LANGUAGE_NAMES = {
     "en_US": "English",
     "it_IT": "Italiano",
+    "zh_CN": "简体中文",
 }
 
 

@@ -64,7 +64,7 @@ class ElementsGlobalPanel(wx.Panel):
 
         self.Bind(wx.EVT_COMBOBOX, self.OnMisc, id=combo.GetId())
 
-        setattr(self, name + _("Combo"), combo)
+        setattr(self, name + "Combo", combo)
 
     def OnElementCombo(self, event=None):
         self.lt = self.elementsCombo.GetClientData(self.elementsCombo.GetSelection())
