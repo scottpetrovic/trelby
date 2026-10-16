@@ -5,10 +5,11 @@ import trelby.misc as misc
 # the colors of dialogs and other windows besides the main one. those use
 # native controls, which wx draws in the system's light or dark colors.
 # themeWindow gives them the theme's colors where the native controls allow
-# it (including push buttons), and the classes in widgets stand in for the
-# ones that don't: Separator for wx.StaticLine, ThemedListBox for wx.ListBox
-# and wx.CheckListBox, ThemedListbook for wx.Treebook, and ThemedTextCtrl for
-# a multiline wx.TextCtrl, whose scrollbars ignore the colors.
+# it (including push buttons and drop-down lists), and the classes in
+# widgets stand in for the ones that don't: Separator for wx.StaticLine,
+# ThemedListBox for wx.ListBox and wx.CheckListBox, ThemedListbook for
+# wx.Treebook, and ThemedTextCtrl for a multiline wx.TextCtrl, whose
+# scrollbars ignore the colors.
 
 
 # the current configgui.ConfigGui, or None before the app has started
@@ -85,6 +86,12 @@ def _themeTree(w, cfgGui, grown):
 
         if _padButton(w):
             grown.add(w.GetParent())
+    elif isinstance(w, (wx.Choice, wx.ComboBox)):
+        # drop-down lists look like the buttons
+        _setColors(w, cfgGui.buttonBgColor, cfgGui.tabTextColor)
+
+        if isinstance(w, wx.Choice) or w.HasFlag(wx.CB_READONLY):
+            _drawChoiceThemed(w)
     elif isinstance(
         w,
         (
@@ -186,36 +193,14 @@ def sendMessage(hwnd, msg, wParam, lParam):
 def _onButtonPaint(event):
     w = event.GetEventObject()
     dc = wx.AutoBufferedPaintDC(w)
-    dc.SetBackground(wx.Brush(w.GetParent().GetBackgroundColour()))
-    dc.Clear()
 
     # the native button keeps track of being pushed (by the mouse or the
     # keyboard) and focused
     state = sendMessage(w.GetHandle(), _BM_GETSTATE, 0, 0)
-    hover = w.GetScreenRect().Contains(wx.GetMousePosition())
-
-    bg = w.GetBackgroundColour()
-    fg = w.GetForegroundColour()
-
-    if not w.IsEnabled():
-        fg = blendColors(fg, bg, 0.6)
-    elif state & _BST_PUSHED:
-        bg = blendColors(bg, fg, 0.25)
-    elif hover:
-        bg = blendColors(bg, fg, 0.12)
+    gc, fg = _paintFrame(w, dc, state & _BST_PUSHED, state & _BST_FOCUS)
 
     width, height = w.GetClientSize()
-    penW = w.FromDIP(2 if state & _BST_FOCUS else 1)
-
-    gc = wx.GraphicsContext.Create(dc)
-    gc.SetPen(gc.CreatePen(wx.GraphicsPenInfo(fg).Width(penW)))
-    gc.SetBrush(wx.Brush(bg))
-    gc.DrawRoundedRectangle(
-        penW / 2, penW / 2, width - penW, height - penW, w.FromDIP(5)
-    )
-
     label = w.GetLabelText()
-    gc.SetFont(w.GetFont(), fg)
     tw, th = gc.GetTextExtent(label)
     gc.DrawText(label, (width - tw) / 2, (height - th) / 2)
 
@@ -223,6 +208,96 @@ def _onButtonPaint(event):
     # screen when dc goes, so gc must go first
     del gc
     del dc
+
+
+# CB_GETDROPPEDSTATE: whether a combo box's list is open
+_CB_GETDROPPEDSTATE = 0x157
+
+
+# draw drop-down list w (a wx.Choice or a read-only wx.ComboBox) ourselves
+# from now on, like _drawButtonThemed's buttons, with an arrow at the right.
+# the list that drops down stays native. only on Windows, like the buttons.
+def _drawChoiceThemed(w):
+    if not misc.isWindows or getattr(w, "drawnThemed", False):
+        return
+
+    w.drawnThemed = True
+    w.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+    w.Bind(wx.EVT_PAINT, _onChoicePaint)
+
+    for evt in (
+        wx.EVT_ENTER_WINDOW,
+        wx.EVT_LEAVE_WINDOW,
+        wx.EVT_SET_FOCUS,
+        wx.EVT_KILL_FOCUS,
+        wx.EVT_COMBOBOX_DROPDOWN,
+        wx.EVT_COMBOBOX_CLOSEUP,
+    ):
+        w.Bind(evt, _onButtonStateChange)
+
+
+def _onChoicePaint(event):
+    w = event.GetEventObject()
+    dc = wx.AutoBufferedPaintDC(w)
+
+    dropped = sendMessage(w.GetHandle(), _CB_GETDROPPEDSTATE, 0, 0)
+    gc, fg = _paintFrame(w, dc, dropped, w.HasFocus())
+
+    width, height = w.GetClientSize()
+
+    # the native size leaves 28 pixels beside the longest item, which this
+    # layout fits in
+    pad = w.FromDIP(6)
+
+    # the arrow: a chevron pointing down, at the right
+    arrowW = w.FromDIP(8)
+    ax = width - w.FromDIP(7) - arrowW
+    ay = (height - arrowW / 2) / 2
+    gc.SetPen(gc.CreatePen(wx.GraphicsPenInfo(fg).Width(w.FromDIP(3) / 2)))
+    gc.StrokeLines([(ax, ay), (ax + arrowW / 2, ay + arrowW / 2), (ax + arrowW, ay)])
+
+    gc.Clip(pad, 0, ax - w.FromDIP(4) - pad, height)
+    label = w.GetStringSelection()
+    th = gc.GetTextExtent(label)[1]
+    gc.DrawText(label, pad, (height - th) / 2)
+
+    del gc
+    del dc
+
+
+# fill the paint dc of a control we draw ourselves (w) with its parent's
+# background, and draw w's frame on it: a rounded rectangle in w's colors,
+# lighter or darker when the mouse is over it or it's pushed, with a thicker
+# border when it has the focus. returns a GraphicsContext on dc, with w's
+# font set, and the text color.
+def _paintFrame(w, dc, pushed, focused):
+    dc.SetBackground(wx.Brush(w.GetParent().GetBackgroundColour()))
+    dc.Clear()
+
+    hover = w.GetScreenRect().Contains(wx.GetMousePosition())
+
+    bg = w.GetBackgroundColour()
+    fg = w.GetForegroundColour()
+
+    if not w.IsEnabled():
+        fg = blendColors(fg, bg, 0.6)
+    elif pushed:
+        bg = blendColors(bg, fg, 0.25)
+    elif hover:
+        bg = blendColors(bg, fg, 0.12)
+
+    width, height = w.GetClientSize()
+    penW = w.FromDIP(2 if focused else 1)
+
+    gc = wx.GraphicsContext.Create(dc)
+    gc.SetPen(gc.CreatePen(wx.GraphicsPenInfo(fg).Width(penW)))
+    gc.SetBrush(wx.Brush(bg))
+    gc.DrawRoundedRectangle(
+        penW / 2, penW / 2, width - penW, height - penW, w.FromDIP(5)
+    )
+    gc.SetFont(w.GetFont(), fg)
+
+    return gc, fg
 
 
 # set w's colors, unless its own code has set them. a window whose color
