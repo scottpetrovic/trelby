@@ -1,5 +1,3 @@
-import functools
-
 import trelby.pml as pml
 import trelby.util as util
 
@@ -163,18 +161,12 @@ class Titles:
 
         return str(s)
 
-    # sort the title strings in y,x order (makes editing them easier
-    # and RTF output better)
-    #
-    # note: as written this has no effect. sorted() makes a new list that
-    # is only bound to the loop variable, and the x tie-break compares
-    # a.x with a.y.
+    # sort the title strings on each page in y,x order (makes editing them
+    # easier and RTF output better). strings at the same position keep
+    # their order.
     def sort(self):
-        def cmpfunc(a, b):
-            return ((a.y > b.y) - (a.y < b.y)) or ((a.x > b.x) - (a.x < a.y))
-
         for page in self.pages:
-            page = sorted(page, key=functools.cmp_to_key(cmpfunc))
+            page.sort(key=lambda ts: (ts.y, ts.x))
 
 
 # a single string displayed on a title page

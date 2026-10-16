@@ -77,3 +77,65 @@ def testDefaults():
         titles.BYLINE,
         titles.CONTACT,
     ]
+
+
+def _page(*specs):
+    return [titles.TitleString([text], x, y) for text, x, y in specs]
+
+
+def testSort():
+    t = titles.Titles()
+    t.pages = [
+        _page(
+            ("contact", 15.0, 248.0),
+            ("draft", 120.0, 248.0),
+            ("title", 0.0, 105.0),
+            ("copyright", 15.0, 260.0),
+            ("byline", 0.0, 120.0),
+            ("left", 15.0, 105.0),
+        ),
+        _page(("b", 0.0, 50.0), ("a", 0.0, 10.0)),
+    ]
+    t.sort()
+
+    assert [ts.items[0] for ts in t.pages[0]] == [
+        "title",
+        "left",
+        "byline",
+        "contact",
+        "draft",
+        "copyright",
+    ]
+    assert [ts.items[0] for ts in t.pages[1]] == ["a", "b"]
+
+
+def testSortIsStable():
+    t = titles.Titles()
+    t.pages = [_page(("first", 0.0, 100.0), ("second", 0.0, 100.0))]
+    t.sort()
+
+    assert [ts.items[0] for ts in t.pages[0]] == ["first", "second"]
+
+
+# loading a script sorts its title strings, so they're saved in y,x order
+# whatever order the file had them in.
+def testSavedOrder():
+    sp = u.new()
+    sp.titles.pages = [
+        _page(
+            ("CONTACT", 15.0, 248.0),
+            ("TITLE", 0.0, 105.0),
+            ("DRAFT", 120.0, 248.0),
+            ("BY", 0.0, 120.0),
+        )
+    ]
+
+    sp2 = u.loadString(sp.save().decode("utf-8"))
+    out = sp2.save().decode("utf-8")
+    saved = [
+        line.rsplit(",", 1)[1]
+        for line in out.splitlines()
+        if line.startswith("#Title-String ")
+    ]
+
+    assert saved == ["TITLE", "BY", "CONTACT", "DRAFT"]
