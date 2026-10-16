@@ -32,6 +32,7 @@ from trelby.screenplay.line import Line
 # (MCP) scene edits      AnyDifference (move: moveSceneTo's own)
 # (MCP) world building   WorldBuildingText
 # (MCP) char. profiles   CharacterProfiles
+# beat board             BeatBoard (an AnyDifference)
 # renameCharacters       RenameCharacters (a FullCopy)
 
 
@@ -82,6 +83,9 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[8]: dict of {index: sceneLock} for the lines that have a scene
 #   lock, or None if none do
 #
+#   tuple[9]: dict of {index: sceneId} for the lines that have a scene
+#   id, or None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
@@ -92,6 +96,7 @@ def lines2storage(lines):
     fmts = {i: ln.fmt for i, ln in enumerate(lines) if ln.fmt} or None
     centers = tuple(i for i, ln in enumerate(lines) if ln.centered) or None
     sceneLocks = {i: ln.sceneLock for i, ln in enumerate(lines) if ln.sceneLock}
+    sceneIds = {i: ln.sceneId for i, ln in enumerate(lines) if ln.sceneId}
 
     # str(ln) only holds the line break, type and text, which is all
     # Line.fromStr can restore, so every other Line attribute travels in
@@ -121,6 +126,7 @@ def lines2storage(lines):
         fmts,
         centers,
         sceneLocks or None,
+        sceneIds or None,
     )
 
 
@@ -159,6 +165,10 @@ def storage2lines(storage):
     if storage[8]:
         for i, label in storage[8].items():
             lines[i].sceneLock = label
+
+    if storage[9]:
+        for i, sid in storage[9].items():
+            lines[i].sceneId = sid
 
     return lines
 
@@ -433,6 +443,37 @@ class CharacterProfiles(Base):
 
     def redo(self, ed):
         ed.sp.characterProfiles = copy.deepcopy(self.after)
+
+
+# a change to the script's beat board, which is not part of the lines,
+# together with the scene ids given to the scenes its cards were linked
+# to: an AnyDifference of the lines, plus copies of the board before and
+# after.
+class BeatBoard(AnyDifference):
+    def __init__(self, ed):
+        AnyDifference.__init__(self, ed)
+
+        self.boardBefore = copy.deepcopy(ed.sp.beatBoard)
+
+    def setAfter(self, ed):
+        AnyDifference.setAfter(self, ed)
+
+        self.boardAfter = copy.deepcopy(ed.sp.beatBoard)
+
+    def memoryUsed(self):
+        return (
+            AnyDifference.memoryUsed(self)
+            + len(self.boardBefore.save())
+            + len(self.boardAfter.save())
+        )
+
+    def undo(self, ed):
+        AnyDifference.undo(self, ed)
+        ed.sp.beatBoard = copy.deepcopy(self.boardBefore)
+
+    def redo(self, ed):
+        AnyDifference.redo(self, ed)
+        ed.sp.beatBoard = copy.deepcopy(self.boardAfter)
 
 
 # Our own implementation of difflib.SequenceMatcher, since the actual one

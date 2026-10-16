@@ -129,6 +129,11 @@ def defaultCommands():
             isMenu=True,
         ),
         Command(
+            "BeatBoardDlg",
+            _("Open the beat board."),
+            isMenu=True,
+        ),
+        Command(
             "ChangeToActBreak",
             _("Change current element's style to act break."),
             [keys.Key(ord("B"), alt=True).toInt()],

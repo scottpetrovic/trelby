@@ -146,6 +146,26 @@ The following config sections exists and appear in the file in this order:
   Unknown values are kept as-is when saving.
 
 
+ Beat-Board (optional, only present if it has any cards):
+
+  Beats (integer): Number of index cards on the beat board, in drawing
+  order (later cards are drawn on top).
+
+  Beat/N/X, Beat/N/Y (integer): Position of card N's (1-based) top left
+  corner on the board, in unscaled pixels.
+
+  Beat/N/Text (string): The card's text, escaped like the character
+  profile notes. Its first line is the card's title.
+
+  Beat/N/Color (string): The card's color, six hex digits "rrggbb".
+
+  Beat/N/Scene (string): The scene id (see "Scene-Id" below) of the
+  scene the card is linked to. A card whose scene id no scene has is
+  linked to a scene that has been deleted.
+
+  Unknown Beat/N/... values are kept as-is when saving.
+
+
 After this (in version 1 files after "#Version 1") there is more
 configuration, but in a different syntax, that is mostly due to historical
 accidents.
@@ -296,6 +316,13 @@ scene numbers were locked), "15A", "15B", ... (scenes added after scene
 are numbered after the scene before them. Ignored if the next line isn't
 the first line of a Scene element, or the value isn't valid, or another
 scene before it already has the same label.
+
+"Scene-Id". Value: a positive number. The next line is the first line
+of a Scene or Act break element, and beat board cards with this scene
+id are linked to it. Only written for ids that some card uses.
+Ignored if the next line isn't the first line of such an element, or
+the value isn't valid. If several scenes have the same id, the cards
+are linked to the first one.
 
 "Centered". Value: empty. The next line is the first line of an Action
 element, and each of the element's lines is centered within the action

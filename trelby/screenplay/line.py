@@ -20,6 +20,7 @@ class Line:
         fmt=None,
         centered=False,
         sceneLock=None,
+        sceneId=None,
     ):
 
         # line break type: what separates this line from the next one
@@ -65,8 +66,13 @@ class Line:
         # Screenplay.getSceneLabels.
         self.sceneLock = sceneLock
 
+        # on the first line of a scene heading or act break element: the
+        # id a beat board card links to the scene by, or None. only
+        # meaningful on such lines; see Screenplay.getSceneId.
+        self.sceneId = sceneId
+
     # return a copy of this line, including its page lock, dual flag,
-    # color, formatting, centered flag and scene lock
+    # color, formatting, centered flag, scene lock and scene id
     def copy(self):
         return Line(
             self.lb,
@@ -78,6 +84,7 @@ class Line:
             self.fmt,
             self.centered,
             self.sceneLock,
+            self.sceneId,
         )
 
     # return the format string, exactly as long as the text
@@ -162,6 +169,7 @@ class Line:
             or (textfmt.compact(self.fmt) != textfmt.compact(other.fmt))
             or (self.centered != other.centered)
             or (self.sceneLock != other.sceneLock)
+            or (self.sceneId != other.sceneId)
         )
 
     def __eq__(self, other):

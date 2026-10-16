@@ -623,6 +623,14 @@ def makeTable():
                 dots=True,
             ),
             Action(
+                "BeatBoardDlg",
+                ID_SCRIPT_BEAT_BOARD,
+                _("Beat board"),
+                "B",
+                OnScript(scriptactions.beatBoardDlg),
+                dots=True,
+            ),
+            Action(
                 "AutoCompletionDlg",
                 ID_SCRIPT_AUTO_COMPLETION,
                 _("Auto-completion"),

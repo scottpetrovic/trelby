@@ -11,6 +11,7 @@
 import copy
 
 import trelby.screenplay.autocompletion as autocompletion
+import trelby.screenplay.beatboard as beatboard
 import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.config as config
 import trelby.screenplay.headers as headers
@@ -54,6 +55,7 @@ class Screenplay(
         self.scDict = spellcheck.Dict()
         self.characterProfiles = characterprofiles.CharacterProfiles()
         self.worldBuilding = worldbuilding.WorldBuilding()
+        self.beatBoard = beatboard.BeatBoard()
 
         self.lines = [Line(LB_LAST, SCENE)]
 
@@ -107,6 +109,7 @@ class Screenplay(
         sp.scDict = copy.deepcopy(self.scDict)
         sp.characterProfiles = copy.deepcopy(self.characterProfiles)
         sp.worldBuilding = copy.deepcopy(self.worldBuilding)
+        sp.beatBoard = copy.deepcopy(self.beatBoard)
 
         sp.lines = [ln.copy() for ln in self.lines]
 

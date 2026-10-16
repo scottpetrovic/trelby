@@ -10,6 +10,7 @@ from functools import partial
 import wx
 
 import trelby.dialogs.autocompletiondlg as autocompletiondlg
+import trelby.dialogs.beatboarddlg as beatboarddlg
 import trelby.dialogs.cfgdlg as cfgdlg
 import trelby.dialogs.characterprofilesdlg as characterprofilesdlg
 import trelby.dialogs.charmapdlg as charmapdlg
@@ -162,6 +163,27 @@ def worldBuildingDlg(frame, ctrl):
         if dlg.worldBuilding.text != ctrl.sp.worldBuilding.text:
             ctrl.sp.worldBuilding = dlg.worldBuilding
             ctrl.sp.markChanged()
+
+    dlg.Destroy()
+
+
+def beatBoardDlg(frame, ctrl):
+    # for the scene numbers
+    ctrl.sp.paginate()
+    ctrl.clearAutoComp()
+
+    dlg = beatboarddlg.BeatBoardDlg(frame, ctrl.sp)
+
+    if dlg.ShowModal() == wx.ID_OK:
+        ctrl.ed.setBeatBoard(dlg.board, dlg.newIds)
+
+        if dlg.gotoLine is not None:
+            ctrl.ed.line = dlg.gotoLine
+            ctrl.ed.column = 0
+            ctrl.ed.clearMark()
+
+        ctrl.makeLineVisible(ctrl.ed.line)
+        ctrl.updateScreen()
 
     dlg.Destroy()
 

@@ -19,6 +19,7 @@ from trelby.screenplay.constants import (
     LB_LAST,
     LB_SPACE,
 )
+from trelby.screenplay.beatboard import isValidSceneId
 from trelby.screenplay.datatypes import Mark, isValidColor
 
 
@@ -58,6 +59,15 @@ def save(sp) -> bytes:
         output += sp.worldBuilding.save()
         output += "#End-World-Building \n"
 
+    if sp.beatBoard.hasInfo():
+        output += "#Begin-Beat-Board \n"
+        output += sp.beatBoard.save()
+        output += "#End-Beat-Board \n"
+
+    # scene ids are only written for the scenes a card links to, so that
+    # unlinking a card leaves nothing behind in the file
+    linkedIds = sp.beatBoard.getSceneIds()
+
     pgs = sp.titles.pages
     for pg in range(len(pgs)):
         if pg != 0:
@@ -93,6 +103,11 @@ def save(sp) -> bytes:
 
         if sceneLock:
             output += "#Scene-Lock %s\n" % sceneLock
+
+        sceneId = sp.getSceneId(i)
+
+        if sceneId in linkedIds:
+            output += "#Scene-Id %s\n" % sceneId
 
         if sp.hasCenteredFlag(i):
             output += "#Centered \n"
@@ -172,6 +187,10 @@ def load(s: str, cfgGl):
     if s:
         sp.worldBuilding.load(s)
 
+    s, index = getConfigPart(lines, "Beat-Board", index)
+    if s:
+        sp.beatBoard.load(s)
+
     # used to keep track that element type only changes after a
     # LB_LAST line.
     prevType = None
@@ -200,6 +219,9 @@ def load(s: str, cfgGl):
 
     # scene lock to set on the next script line, or None
     sceneLock = None
+
+    # scene id to set on the next script line, or None
+    sceneId = None
 
     # formatting (as saved by textfmt.encode) to set on the next script
     # line, or None
@@ -257,6 +279,9 @@ def load(s: str, cfgGl):
             ):
                 sceneLock = val
 
+            elif (key == "Scene-Id") and startSeen and isValidSceneId(val):
+                sceneId = val
+
             elif (key == "Format") and startSeen:
                 fmt = val
 
@@ -302,6 +327,7 @@ def load(s: str, cfgGl):
             line = Line(lb, lt, text, pageLock, dual, color)
             line.centered = centered
             line.sceneLock = sceneLock
+            line.sceneId = sceneId
 
             if fmt:
                 line.fmt = textfmt.decode(fmt, len(text))
@@ -311,6 +337,7 @@ def load(s: str, cfgGl):
             dual = False
             color = None
             sceneLock = None
+            sceneId = None
             fmt = None
             centered = False
 
