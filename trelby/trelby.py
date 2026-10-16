@@ -10,6 +10,7 @@ import wx
 
 import trelby
 import trelby.config as config
+import trelby.gutil as gutil
 import trelby.mcpapp as mcpapp
 import trelby.misc as misc
 import trelby.opts as opts
@@ -104,6 +105,8 @@ class MyApp(wx.App):
         if cfgGl.language:
             _ = translations.trelby_translations_load(cfgGl.language)
             cfgGl = loadGlobalCfg(s)
+
+        gutil.loadWxTranslations(translations.getLanguage(cfgGl.language))
 
         gd.cfgGl = cfgGl
 

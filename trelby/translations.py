@@ -98,13 +98,19 @@ def pickLanguage(setting, lang, available):
     )
 
 
+def getLanguage(setting=""):
+    """Return the translation used for the global config's language
+    setting, e.g. "zh_CN"."""
+    available = getLanguages(getLocaleDir())
+
+    return pickLanguage(setting, os.environ.get("LANG", ""), available)
+
+
 def getTranslation(setting=""):
     """Return the gettext translation for the global config's language
     setting."""
     localedir = getLocaleDir()
-    available = getLanguages(localedir)
-
-    language = pickLanguage(setting, os.environ.get("LANG", ""), available)
+    language = getLanguage(setting)
 
     # fallback: if even the default isn't built, show the untranslated
     # (English) strings instead of failing to start

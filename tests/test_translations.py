@@ -94,6 +94,65 @@ def testGetTranslation(monkeypatch):
     assert translations.getTranslation("").gettext("Language") == "语言"
 
 
+def testGetLanguage(monkeypatch):
+    monkeypatch.setenv("LANG", "zh_CN.UTF-8")
+    assert translations.getLanguage("") == "zh_CN"
+    assert translations.getLanguage("it_IT") == "it_IT"
+
+
+# gutil.messageBox asks for wx's stock labels and returns what
+# wx.MessageBox would
+def testMessageBox(monkeypatch):
+    import wx
+
+    import trelby.gutil as gutil
+
+    shown = []
+
+    class FakeDialog:
+        def __init__(self, parent, message, caption, style):
+            self.style = style
+            self.labels = None
+            shown.append(self)
+
+        def SetYesNoCancelLabels(self, *labels):
+            self.labels = labels
+
+        def SetYesNoLabels(self, *labels):
+            self.labels = labels
+
+        def SetOKCancelLabels(self, *labels):
+            self.labels = labels
+
+        def SetOKLabel(self, *labels):
+            self.labels = labels
+
+        def ShowModal(self):
+            return result
+
+        def Destroy(self):
+            pass
+
+    monkeypatch.setattr(wx, "MessageDialog", FakeDialog)
+
+    result = wx.ID_NO
+    assert gutil.messageBox("m", "c", wx.YES_NO | wx.CANCEL) == wx.NO
+    assert shown[-1].labels == (wx.ID_YES, wx.ID_NO, wx.ID_CANCEL)
+    assert shown[-1].style & wx.ICON_QUESTION
+
+    result = wx.ID_CANCEL
+    assert gutil.messageBox("m", "c", wx.OK | wx.CANCEL) == wx.CANCEL
+    assert shown[-1].labels == (wx.ID_OK, wx.ID_CANCEL)
+
+    result = wx.ID_OK
+    assert gutil.messageBox("m") == wx.OK
+    assert shown[-1].labels == (wx.ID_OK,)
+    assert shown[-1].style & wx.ICON_INFORMATION
+
+    gutil.messageBox("m", "c", wx.OK | wx.ICON_ERROR)
+    assert not shown[-1].style & wx.ICON_INFORMATION
+
+
 def testPlaceholders():
     localedir = translations.getLocaleDir()
 

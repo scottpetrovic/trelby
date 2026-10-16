@@ -107,7 +107,68 @@ def createStockButton(parent, label):
 
         return wx.Button(parent, ids[label])
     else:
+        if label == "OK":
+            label = wx.GetStockLabel(wx.ID_OK, wx.STOCK_NOFLAGS)
+
         return wx.Button(parent, -1, label)
+
+
+# wxWidgets' own translations, which have the labels of its stock buttons
+# (OK, Cancel, Yes, Save...) and of its generic dialogs. set by
+# loadWxTranslations.
+wxTranslations = None
+
+
+# load wxWidgets' translations for 'language' (e.g. "zh_CN"), the one
+# Trelby's own strings are shown in. if they exist, message boxes are
+# changed to show the stock labels too, since the system's own buttons
+# would be in the language of the operating system instead.
+def loadWxTranslations(language):
+    global wxTranslations
+
+    # wx's strings are in English already
+    if language.startswith("en"):
+        return
+
+    wxTranslations = wx.Translations()
+    wx.Translations.Set(wxTranslations)
+    wxTranslations.SetLanguage(language)
+
+    if wxTranslations.AddStdCatalog():
+        wx.MessageBox = messageBox
+
+
+# wx.MessageBox, but with wx's stock labels on the buttons (see
+# loadWxTranslations)
+def messageBox(message, caption="Message", style=None, parent=None, x=-1, y=-1):
+    if style is None:
+        style = wx.OK | wx.CENTRE
+
+    # the icon wx.MessageBox adds when none is given
+    if not (style & (wx.ICON_MASK | wx.ICON_NONE)):
+        style |= wx.ICON_QUESTION if style & wx.YES else wx.ICON_INFORMATION
+
+    dlg = wx.MessageDialog(parent, message, caption, style)
+
+    if style & wx.YES_NO:
+        if style & wx.CANCEL:
+            dlg.SetYesNoCancelLabels(wx.ID_YES, wx.ID_NO, wx.ID_CANCEL)
+        else:
+            dlg.SetYesNoLabels(wx.ID_YES, wx.ID_NO)
+    elif style & wx.CANCEL:
+        dlg.SetOKCancelLabels(wx.ID_OK, wx.ID_CANCEL)
+    else:
+        dlg.SetOKLabel(wx.ID_OK)
+
+    ret = dlg.ShowModal()
+    dlg.Destroy()
+
+    # wx.MessageBox returns wx.YES etc., not the dialog's wx.ID_YES
+    return {
+        wx.ID_YES: wx.YES,
+        wx.ID_NO: wx.NO,
+        wx.ID_OK: wx.OK,
+    }.get(ret, wx.CANCEL)
 
 
 # add a small toggle button showing 'label' in the given font style to

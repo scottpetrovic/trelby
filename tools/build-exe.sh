@@ -25,7 +25,22 @@ $PY -c "import mcp.server.mcpserver, uvicorn" 2>/dev/null || $PY -m pip install 
 gzip -c trelby/names.txt > trelby/names.txt.gz
 gzip -c trelby/dict_en.dat > trelby/dict_en.dat.gz
 
-$PY -m PyInstaller --noconfirm --windowed --name Trelby \
+# wxWidgets' own translations (stock button labels, see
+# gutil.loadWxTranslations), only for the languages Trelby has, e.g.
+# wx/locale/zh_CN for trelby/locales/zh_CN, or wx/locale/it for it_IT
+WXLOCALE=.venv/Lib/site-packages/wx/locale
+WXDATA=
+for d in trelby/locales/*/; do
+    lang=$(basename "$d")
+    for wxlang in "$lang" "${lang%%_*}"; do
+        if [ -d "$WXLOCALE/$wxlang" ]; then
+            WXDATA="$WXDATA --add-data $WXLOCALE/$wxlang;wx/locale/$wxlang"
+            break
+        fi
+    done
+done
+
+$PY -m PyInstaller --noconfirm --windowed --name Trelby $WXDATA \
     --icon trelby/resources/icon256.ico \
     --add-data "trelby/resources;trelby/resources" \
     --add-data "trelby/locales;trelby/locales" \
