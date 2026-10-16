@@ -7,10 +7,10 @@ import trelby.misc as misc
 import trelby.util as util
 from trelby.error import MiscError, TrelbyError
 
-# config is imported where it's used: misc imports this module, and config
-# imports pml and screenplay, which import misc and util, so importing it
-# here makes "import trelby.util" (or pml, fontinfo...) as the first import
-# fail with a partially initialized module.
+# only for type hints: misc imports this module, and config imports pml
+# and screenplay, which import misc and util, so importing it here makes
+# "import trelby.util" (or pml, fontinfo...) as the first import fail
+# with a partially initialized module.
 if TYPE_CHECKING:
     import trelby.config as config
 
@@ -58,11 +58,14 @@ def svgBitmap(iconFilename, size, padding=0, color=None):
     return wx.BitmapBundle.FromSVG(svg_content.encode(), size)
 
 
+# whether the application is currently using a dark theme
+def isDarkAppearance():
+    return wx.SystemSettings.GetAppearance().IsDark()
+
+
 # the color svgBitmap draws icons in by default
 def svgIconColor():
-    import trelby.config as config
-
-    if config.isDarkAppearance():
+    if isDarkAppearance():
         return wx.Colour(0xCC, 0xCC, 0xCC)
 
     return wx.Colour(0, 0, 0)
@@ -369,7 +372,7 @@ def showTempPDF(
 # ThemedListbook for wx.Treebook.
 
 
-# the current config.ConfigGui, or None before the app has started
+# the current configgui.ConfigGui, or None before the app has started
 def currentCfgGui():
     gd = getattr(wx.GetApp(), "gd", None)
 

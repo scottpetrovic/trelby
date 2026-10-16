@@ -60,7 +60,7 @@ class MyPanel(wx.Panel):
 
         self.showOutline(gd.showOutline)
 
-    # use the colors of the theme in the given config.ConfigGui for the
+    # use the colors of the theme in the given configgui.ConfigGui for the
     # parts not drawn by MyCtrl
     def applyTheme(self, cfgGui):
         # the sash between the script and the outline

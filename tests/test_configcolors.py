@@ -5,6 +5,8 @@ import pytest
 
 import tests.u as u
 import trelby.config as config
+import trelby.configgui as configgui
+import trelby.gutil as gutil
 import trelby.themes as themes
 import trelby.translations as translations
 
@@ -54,8 +56,8 @@ def testThemeColorsAreValid():
 def testEveryElementHasAThemeColor():
     u.init()
 
-    assert set(config._lt2themeElem) == {t.lt for t in config.getTIs()}
-    assert set(config._lt2themeElem.values()) == set(themes.ELEMENTS)
+    assert set(configgui._lt2themeElem) == {t.lt for t in config.getTIs()}
+    assert set(configgui._lt2themeElem.values()) == set(themes.ELEMENTS)
 
 
 def testElementColorDefaultsToText():
@@ -259,7 +261,7 @@ def testReloadReplacesCustomThemes(themesDir):
 
 def testCustomThemeSettingFallsBack(themesDir, monkeypatch):
     u.init()
-    monkeypatch.setattr(config, "isDarkAppearance", lambda: True)
+    monkeypatch.setattr(gutil, "isDarkAppearance", lambda: True)
     writeTheme(themesDir, "mine.json", themeDict("Mine"))
     themes.loadCustom(str(themesDir))
 
@@ -275,7 +277,7 @@ def testCustomThemeSettingFallsBack(themesDir, monkeypatch):
     themes.loadCustom(str(themesDir / "nope"))
 
     assert config.findTheme(cfg.theme) is None
-    assert config.getTheme(cfg.theme) is themes.DARK
+    assert configgui.getTheme(cfg.theme) is themes.DARK
 
     cfg2 = config.ConfigGlobal()
     cfg2.load(cfg.save())

@@ -14,6 +14,7 @@ import trelby.cfgdlg as cfgdlg
 import trelby.characterprofilesdlg as characterprofilesdlg
 import trelby.commands as commands
 import trelby.config as config
+import trelby.configgui as configgui
 import trelby.dialoguechart as dialoguechart
 import trelby.finddlg as finddlg
 import trelby.gutil as gutil
@@ -107,7 +108,7 @@ class MyCtrl(wx.Control):
         self.updateScreen(redraw=False)
 
     def refreshGuiConfig(self):
-        self.gd.cfgGui = config.ConfigGui(self.gd.cfgGl, self.gd.zoom)
+        self.gd.cfgGui = configgui.ConfigGui(self.gd.cfgGl, self.gd.zoom)
 
     def OnChangeType(self, event):
         self.changeType(idToLTMap[event.GetId()])
@@ -604,7 +605,7 @@ class MyCtrl(wx.Control):
         )
 
         if appearanceChanged:
-            config.applyAppearance(self.gd.cfgGl.theme)
+            configgui.applyAppearance(self.gd.cfgGl.theme)
 
         self.gd.cfgGl.recalc()
         self.refreshGuiConfig()

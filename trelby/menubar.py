@@ -338,7 +338,7 @@ class _MenuKeys:
 
 
 # give the items of 'menu' and its submenus the colors of the theme in the
-# given config.ConfigGui, like the menu bar's, which on Windows makes wx draw
+# given configgui.ConfigGui, like the menu bar's, which on Windows makes wx draw
 # them itself, instead of the system in its own light or dark colors.
 # _MenuPainter then takes care of the parts wx doesn't draw.
 def themeMenu(menu, cfgGui):

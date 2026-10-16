@@ -462,7 +462,7 @@ class OutlinePanel(wx.Panel):
     def getCtrl(self):
         return self.scriptPanel.ctrl
 
-    # use the colors of the theme in the given config.ConfigGui: the header
+    # use the colors of the theme in the given configgui.ConfigGui: the header
     # like the tab bar, and the list like the page
     def applyTheme(self, cfgGui):
         self.SetBackgroundColour(cfgGui.tabBarBgColor)

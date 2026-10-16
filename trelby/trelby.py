@@ -10,6 +10,7 @@ import wx
 
 import trelby
 import trelby.config as config
+import trelby.configgui as configgui
 import trelby.gutil as gutil
 import trelby.mcpapp as mcpapp
 import trelby.misc as misc
@@ -126,7 +127,7 @@ class MyApp(wx.App):
             print("Skipped theme file", err, file=sys.stderr)
 
         # wx wants this done before any windows are created
-        config.applyAppearance(cfgGl.theme)
+        configgui.applyAppearance(cfgGl.theme)
 
         # cfgGl.scriptDir is the directory used on startup, while
         # misc.scriptDir is updated every time the user opens something in
@@ -144,7 +145,7 @@ class MyApp(wx.App):
         gd.setViewMode(gd.viewMode)
 
         # refreshGuiConfig()
-        gd.cfgGui = config.ConfigGui(gd.cfgGl, gd.zoom)
+        gd.cfgGui = configgui.ConfigGui(gd.cfgGl, gd.zoom)
 
         if util.fileExists(gd.scDictFilename):
             s = util.loadFile(gd.scDictFilename, None)

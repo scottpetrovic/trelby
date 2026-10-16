@@ -28,7 +28,7 @@ class TextString:
         self.x = x
         self.y = y
 
-        # text and its config.FontInfo and underline status
+        # text and its configgui.FontInfo and underline status
         self.text = text
         self.fi = fi
         self.isUnderlined = isUnderlined
