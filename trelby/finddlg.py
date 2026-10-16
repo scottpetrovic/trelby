@@ -289,14 +289,15 @@ class FindDlg(wx.Dialog):
         line, col = ed.line, ed.column
 
         # the cursor is still at the start of the last match, so going
-        # down, start one character past it, so as not to find it again.
-        # (going up, a match must end at or before the cursor anyway.)
+        # down, start one character past it (which can be on the next
+        # line), so as not to find it again. (going up, a match must end
+        # at or before the cursor anyway.)
         if (
             self.match
             and not opts.up
             and ((line, col) == (self.match.line, self.match.col))
         ):
-            col += 1
+            line, col = search.advance(sp, line, col, 1)
 
         # a search from the very start (or end, going up) covers the whole
         # script
@@ -332,7 +333,10 @@ class FindDlg(wx.Dialog):
         if self.match:
             m = self.match
             ed.gotoPos(m.line, m.col)
-            ed.setMark(m.line, m.col + m.length - 1)
+
+            # selections are inclusive, so the mark is on the match's last
+            # character, which can be on a later line
+            ed.setMark(*search.advance(sp, m.line, m.col, m.length - 1))
 
             self.ctrl.makeLineVisible(m.line)
         else:
