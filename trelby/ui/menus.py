@@ -739,11 +739,12 @@ def makeTable():
                 dots=True,
             ),
             Action(
-                "FindNextError",
-                ID_SCRIPT_FIND_ERROR,
-                _("Find next error"),
+                "CheckFormatting",
+                ID_TOOLS_CHECK_FORMATTING,
+                _("Check formatting errors"),
                 "F",
-                OnScript(scriptactions.findNextError),
+                OnScript(scriptactions.checkFormatting),
+                dots=True,
             ),
             SEP,
             Action(
@@ -967,12 +968,12 @@ def fillLanguageMenu(menu, gd, onLanguage):
 # MyPanel.showBeatBoard), and their menu items and buttons are greyed out,
 # so that e.g. CTRL-X on the board doesn't cut text from the hidden script.
 SCRIPT_ONLY = {
+    "CheckFormatting",
     "Copy",
     "Cut",
     "DeleteElements",
     "DualDialogue",
     "FindAndReplaceDlg",
-    "FindNextError",
     "GotoPage",
     "GotoScene",
     "InsertNbsp",

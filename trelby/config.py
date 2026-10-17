@@ -709,7 +709,7 @@ class ConfigGlobal:
         # scripts (0 = disabled)
         v.addInt("autosaveInterval", 2, "AutosaveInterval", 0, 60)
 
-        # whether to check script for errors before export / print
+        # whether to check script for formatting errors before export / compare
         v.addBool("checkOnExport", True, "CheckScriptForErrors")
 
         # whether to auto-capitalize start of sentences
@@ -770,6 +770,13 @@ class ConfigGlobal:
 
             if 0 <= n < len(_oldAppearances):
                 vals["Theme"] = _oldAppearances[n]
+
+        # 'Find next error' became 'Check formatting errors': keep its keys
+        old, new = "Command/FindNextError/", "Command/CheckFormatting/"
+
+        if not any(k.startswith(new) for k in vals):
+            for k in [k for k in vals if k.startswith(old)]:
+                vals[new + k[len(old) :]] = vals[k]
 
         self.cvars.load(vals, "", self)
 

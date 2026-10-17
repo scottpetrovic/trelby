@@ -176,6 +176,12 @@ def defaultCommands():
             isMenu=True,
         ),
         Command(
+            "CheckFormatting",
+            _("Check the current script for formatting errors."),
+            [keys.Key(5, ctrl=True).toInt()],
+            isMenu=True,
+        ),
+        Command(
             "CloseScript",
             _("Close the current script."),
             [keys.Key(23, ctrl=True).toInt()],
@@ -239,12 +245,6 @@ def defaultCommands():
             _("Open the 'Find & Replace' dialog."),
             [keys.Key(6, ctrl=True).toInt()],
             isFixed=True,
-            isMenu=True,
-        ),
-        Command(
-            "FindNextError",
-            _("Find next error in the current script."),
-            [keys.Key(5, ctrl=True).toInt()],
             isMenu=True,
         ),
         Command(

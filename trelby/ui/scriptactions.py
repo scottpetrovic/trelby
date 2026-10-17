@@ -17,6 +17,7 @@ import trelby.dialogs.checkboxdlg as checkboxdlg
 import trelby.checkboxitem as checkboxitem
 import trelby.config as config
 import trelby.dialogs.finddlg as finddlg
+import trelby.dialogs.formattingerrorsdlg as formattingerrorsdlg
 import trelby.dialogs.headersdlg as headersdlg
 import trelby.keys as keys
 import trelby.dialogs.locationsdlg as locationsdlg
@@ -276,7 +277,7 @@ def getExportable(frame, ctrl, action):
 
 # check the script before 'action' ("export" or "compare") is done to
 # it. if it's empty or has an error, ask whether to continue anyway,
-# offering to show the error. returns True if we should continue.
+# offering to show the errors. returns True if we should continue.
 def confirmExportable(frame, ctrl, action):
     anyway = {"export": _("Export Anyway"), "compare": _("Compare Anyway")}[
         action
@@ -296,21 +297,30 @@ def confirmExportable(frame, ctrl, action):
 
         return ret == wx.ID_OK
 
-    line, msg = proofing.findError(ctrl.sp, 0)
+    errors = proofing.findErrors(ctrl.sp)
 
-    if line == -1:
+    if not errors:
         return True
+
+    first = errors[0]
+
+    if len(errors) == 1:
+        s = _("\"{}\" has a formatting error on page {}.").format(
+            ctrl.fileNameDisplay, ctrl.sp.line2pageLabel(first.line)
+        )
+    else:
+        s = _("\"{}\" has {} formatting errors, the first on page {}.").format(
+            ctrl.fileNameDisplay, len(errors), ctrl.sp.line2pageLabel(first.line)
+        )
 
     dlg = wx.MessageDialog(
         frame,
-        _("\"{}\" has a problem on page {}.").format(
-            ctrl.fileNameDisplay, ctrl.sp.line2pageLabel(line)
-        ),
-        _("Script Problem"),
+        s,
+        _("Formatting Errors"),
         wx.YES_NO | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_WARNING,
     )
-    dlg.SetExtendedMessage(msg)
-    dlg.SetYesNoCancelLabels(anyway, _("Go to Problem"), wx.ID_CANCEL)
+    dlg.SetExtendedMessage(first.msg)
+    dlg.SetYesNoCancelLabels(anyway, _("Show Errors"), wx.ID_CANCEL)
     ret = dlg.ShowModal()
     dlg.Destroy()
 
@@ -320,10 +330,7 @@ def confirmExportable(frame, ctrl, action):
             frame.tabCtrl.selectPage(page)
 
         ctrl.clearAutoComp()
-        ctrl.ed.line = line
-        ctrl.ed.column = 0
-        ctrl.makeLineVisible(line)
-        ctrl.updateScreen()
+        showFormattingErrors(frame, ctrl, errors)
 
     return ret == wx.ID_YES
 
@@ -539,22 +546,27 @@ def toggleCentered(frame, ctrl):
         ctrl.updateScreen()
 
 
-def findNextError(frame, ctrl):
+def checkFormatting(frame, ctrl):
     ctrl.clearAutoComp()
 
-    line, msg = proofing.findError(ctrl.sp, ctrl.ed.line)
+    # an empty script's one empty line isn't worth reporting
+    errors = [] if ctrl.sp.isEmpty() else proofing.findErrors(ctrl.sp)
 
-    if line != -1:
-        ctrl.ed.line = line
-        ctrl.ed.column = 0
+    if not errors:
+        wx.MessageBox(
+            _("No formatting errors found."), _("Check Formatting"), wx.OK, frame
+        )
 
-        ctrl.makeLineVisible(ctrl.ed.line)
-        ctrl.updateScreen()
+        return
 
-    else:
-        msg = _("No errors found.")
+    showFormattingErrors(frame, ctrl, errors)
 
-    wx.MessageBox(msg, _("Results"), wx.OK, frame)
+
+# show the dialog listing the script's formatting errors
+def showFormattingErrors(frame, ctrl, errors):
+    dlg = formattingerrorsdlg.FormattingErrorsDlg(frame, ctrl, errors)
+    dlg.ShowModal()
+    dlg.Destroy()
 
 
 def find(frame, ctrl):

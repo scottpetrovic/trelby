@@ -925,19 +925,18 @@
 	</sect1>
 
 	<sect1>
-	  <title>Tools/Find next error</title>
+	  <title>Tools/Check formatting errors</title>
 
-	  <para>'Find next error' searches through the script, starting from
-	  the cursor position, looking for errors. This means that to search
-	  the entire script for errors you should first position the cursor at
-	  the beginning of the script.</para>
+	  <para>'Check formatting errors' checks the whole script for
+	  formatting errors and lists every one it finds in a dialog, with
+	  the page it's on, the element type, what's wrong and the line's
+	  text.</para>
 
-	  <para>If it finds any errors, it positions the cursor on the line
-	  containing the error and displays a message detailing the error. You
-	  should fix the error, back up a few lines, and activate the command
-	  again to search for more errors. Alternatively, if you don't want to
-	  fix the error right now, move the cursor down one line if you want
-	  to search for more errors.</para>
+	  <para>Selecting an error in the list shows it in the script behind
+	  the dialog. 'Go To' (or double-clicking the error) closes the
+	  dialog with the cursor on that error, so you can fix it; 'Close'
+	  puts the cursor back where it was. Run the command again after
+	  fixing errors to see what's left.</para>
 
 	  <para>It can detect the following errors:</para>
 
@@ -1351,9 +1350,9 @@
         removed and replaced with the character entered whenever a key is
         pressed and there's an active selection.</para>
 
-		<para>'Check script for errors before export or compare',
-		if checked, causes the program to run 'Tools/Find next error' for
-		the entire script automatically before export/compare
+		<para>'Check script for formatting errors before export or compare',
+		if checked, causes the program to run 'Tools/Check formatting errors'
+		automatically before export/compare
 		operations. This is to avoid printing 100 pages and then finding
 		there's an error on one of them, fixing of which causes
 		repagination of the entire script, and having to print all the 100

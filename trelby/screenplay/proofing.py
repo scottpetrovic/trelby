@@ -1,5 +1,7 @@
-# the script checker (Script -> Check script): finds common formatting
-# mistakes.
+# the formatting checker (Tools -> Check formatting errors, and the check
+# before export / compare): finds common formatting mistakes.
+
+from dataclasses import dataclass
 
 import trelby.textutil as textutil
 from trelby.screenplay.constants import (
@@ -11,91 +13,89 @@ from trelby.screenplay.constants import (
 )
 
 
-# find next error in screenplay, starting at given line. returns
-# (line, msg) tuple, where line is -1 if no error was found and the
-# line number otherwise where the error is, and msg is a description
-# of the error
-def findError(sp, line):
-    ls = sp.lines
-    cfg = sp.cfg
+# a formatting error: the line it's on and a description of it
+@dataclass
+class FormattingError:
+    line: int
+    msg: str
+
+
+# return a list of the formatting errors in the screenplay, in script order,
+# at most one per line (the first problem found on it)
+def findErrors(sp):
+    errors = []
 
     # type of previous line, or None when a new element starts
     prevType = None
 
-    msg = None
-    while 1:
-        if line >= len(ls):
-            break
+    for line, ln in enumerate(sp.lines):
+        msg = _lineError(sp, line, prevType)
 
-        ln = ls[line]
-        tcfg = cfg.getType(ln.lt)
-
-        isFirst = sp.isFirstLineOfElem(line)
-        isLast = sp.isLastLineOfElem(line)
-        isOnly = isFirst and isLast
-
-        prev = sp.getTypeOfPrevElem(line)
-        next = sp.getTypeOfNextElem(line)
-
-        # notes are allowed to contain empty lines, because a) they do
-        # not appear in the final product b) they're basically
-        # free-format text anyway, and people may want to format them
-        # however they want
-
-        if (len(ln.text) == 0) and (ln.lt != NOTE):
-            msg = _("Empty line.")
-            break
-
-        if (len(ln.text.strip("  ")) == 0) and (ln.lt != NOTE):
-            msg = _("Empty line (contains only spaces).")
-            break
-
-        if (ln.lt == PAREN) and isOnly and (ln.text == "()"):
-            msg = _("Empty parenthetical.")
-            break
-
-        if ln.text != textutil.toInputStr(ln.text):
-            msg = _("Line contains invalid characters (BUG).")
-            break
-
-        if len(ln.text.rstrip(" ")) > (tcfg.width // cfg.getCharWidth()):
-            msg = _("Line is too long (BUG).")
-            break
-
-        if ln.lt == CHARACTER:
-            if isLast and next and next not in (PAREN, DIALOGUE):
-                msg = _("Element type '{}' can not follow type '{}'.").format(
-                    cfg.getType(next).ti.name, tcfg.ti.name
-                )
-                break
-
-        if ln.lt == PAREN:
-            if isFirst and prev and prev not in (CHARACTER, DIALOGUE):
-                msg = _("Element type '{}' can not follow type '{}'.").format(
-                    tcfg.ti.name, cfg.getType(prev).ti.name
-                )
-                break
-
-        if ln.lt == DIALOGUE:
-            if isFirst and prev and prev not in (CHARACTER, PAREN):
-                msg = _("Element type '{}' can not follow type '{}'.").format(
-                    tcfg.ti.name, cfg.getType(prev).ti.name
-                )
-                break
-
-        if prevType:
-            if ln.lt != prevType:
-                msg = _("Element contains lines with different line types (BUG).")
-                break
+        if msg:
+            errors.append(FormattingError(line, msg))
 
         if ln.lb == LB_LAST:
             prevType = None
         else:
             prevType = ln.lt
 
-        line += 1
+    return errors
 
-    if not msg:
-        line = -1
 
-    return (line, msg)
+# the description of the first problem with the given line, or None.
+# 'prevType' is the type of the line before it in the same element, or None
+# if it starts an element.
+def _lineError(sp, line, prevType):
+    cfg = sp.cfg
+    ln = sp.lines[line]
+    tcfg = cfg.getType(ln.lt)
+
+    isFirst = sp.isFirstLineOfElem(line)
+    isLast = sp.isLastLineOfElem(line)
+    isOnly = isFirst and isLast
+
+    prev = sp.getTypeOfPrevElem(line)
+    next = sp.getTypeOfNextElem(line)
+
+    # notes are allowed to contain empty lines, because a) they do
+    # not appear in the final product b) they're basically
+    # free-format text anyway, and people may want to format them
+    # however they want
+
+    if (len(ln.text) == 0) and (ln.lt != NOTE):
+        return _("Empty line.")
+
+    if (len(ln.text.strip("  ")) == 0) and (ln.lt != NOTE):
+        return _("Empty line (contains only spaces).")
+
+    if (ln.lt == PAREN) and isOnly and (ln.text == "()"):
+        return _("Empty parenthetical.")
+
+    if ln.text != textutil.toInputStr(ln.text):
+        return _("Line contains invalid characters (BUG).")
+
+    if len(ln.text.rstrip(" ")) > (tcfg.width // cfg.getCharWidth()):
+        return _("Line is too long (BUG).")
+
+    if ln.lt == CHARACTER:
+        if isLast and next and next not in (PAREN, DIALOGUE):
+            return _("Element type '{}' can not follow type '{}'.").format(
+                cfg.getType(next).ti.name, tcfg.ti.name
+            )
+
+    if ln.lt == PAREN:
+        if isFirst and prev and prev not in (CHARACTER, DIALOGUE):
+            return _("Element type '{}' can not follow type '{}'.").format(
+                tcfg.ti.name, cfg.getType(prev).ti.name
+            )
+
+    if ln.lt == DIALOGUE:
+        if isFirst and prev and prev not in (CHARACTER, PAREN):
+            return _("Element type '{}' can not follow type '{}'.").format(
+                tcfg.ti.name, cfg.getType(prev).ti.name
+            )
+
+    if prevType and (ln.lt != prevType):
+        return _("Element contains lines with different line types (BUG).")
+
+    return None
