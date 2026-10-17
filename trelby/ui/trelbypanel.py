@@ -1,5 +1,6 @@
 import wx
 
+import trelby.ui.gutil as gutil
 from trelby.ui.beatboardview import BeatBoardView
 from trelby.ui.outline import OutlinePanel
 from trelby.ui.scrollbar import ScrollBar
@@ -44,6 +45,11 @@ class MyPanel(wx.Panel):
         self.outline = OutlinePanel(self.splitter, self)
 
         self.editor = wx.Panel(self.splitter, -1, style=wx.WANTS_CHARS | wx.NO_BORDER)
+
+        # the script and its scroll bar stay left to right in a
+        # right-to-left interface. before they're created, so they take it
+        # from here.
+        gutil.keepLeftToRight(self.editor)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 

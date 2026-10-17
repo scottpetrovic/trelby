@@ -242,6 +242,9 @@ class PageView(wx.Window):
     def __init__(self, parent):
         wx.Window.__init__(self, parent, -1)
 
+        # a page, which is left to right in a right-to-left interface too
+        gutil.keepLeftToRight(self)
+
         self.doc = None
         self.message = ""
 

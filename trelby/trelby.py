@@ -115,7 +115,12 @@ class MyApp(wx.App):
             _ = translations.trelby_translations_load(cfgGl.language)
             cfgGl = loadGlobalCfg(s)
 
-        gutil.loadWxTranslations(translations.getLanguage(cfgGl.language))
+        language = translations.getLanguage(cfgGl.language)
+        gutil.loadWxTranslations(language)
+
+        # right-to-left for Hebrew. before any windows are created, since
+        # they take it from their parent.
+        gutil.setLanguageDirection(language)
 
         gd.cfgGl = cfgGl
 

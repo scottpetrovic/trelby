@@ -2,6 +2,7 @@ import wx
 
 import trelby.pdf.pml as pml
 import trelby.screenplay as screenplay
+import trelby.ui.gutil as gutil
 import trelby.util as util
 from trelby.dialogs.titlespreview import BASELINE, FACE_NAMES
 
@@ -27,6 +28,9 @@ SAMPLE_LINES = [
 class HeadersPreview(wx.Window):
     def __init__(self, parent, ctrl, cfg):
         wx.Window.__init__(self, parent, -1, style=wx.FULL_REPAINT_ON_RESIZE)
+
+        # a page, which is left to right in a right-to-left interface too
+        gutil.keepLeftToRight(self)
 
         self.cfg = cfg
         self.ctrl = ctrl

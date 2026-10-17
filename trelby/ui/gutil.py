@@ -221,6 +221,77 @@ def spaceSizer(sizer, factor=SPACING):
         sizer.Insert(i, 0, MIN_GAP)
 
 
+# the direction the interface is laid out in, wx.Layout_RightToLeft for
+# right-to-left languages like Hebrew. set by setLanguageDirection at
+# startup.
+layoutDirection = wx.Layout_LeftToRight
+
+
+# return the direction the language 'language' (e.g. "he_IL") is written
+# in, as wx.Layout_LeftToRight or wx.Layout_RightToLeft. gettext doesn't
+# know, so this comes from wx's table of languages.
+def languageDirection(language):
+    info = wx.Locale.FindLanguageInfo(language)
+
+    if info and (info.LayoutDirection == wx.Layout_RightToLeft):
+        return wx.Layout_RightToLeft
+
+    return wx.Layout_LeftToRight
+
+
+# lay the interface out in the direction of 'language', the one Trelby's
+# own strings are shown in. windows take it from their parent when they're
+# created, so this is needed before the main window is.
+def setLanguageDirection(language):
+    global layoutDirection
+
+    layoutDirection = languageDirection(language)
+
+    if isRightToLeft():
+        # on Windows, every text a wx.GraphicsContext draws is laid out in
+        # the direction of the first one it draws. if that's in a
+        # right-to-left window, the pages in the title, header and footer
+        # previews and the dialogue chart come out right-to-left too, so
+        # draw some left to right first. (in right-to-left windows, the
+        # labels theming draws are drawn on a wx.DC.)
+        bmp = wx.Bitmap(8, 8)
+        dc = wx.MemoryDC(bmp)
+        gc = wx.GraphicsContext.Create(dc)
+        gc.SetFont(wx.NORMAL_FONT, wx.BLACK)
+        gc.DrawText("x", 0, 0)
+
+
+def isRightToLeft():
+    return layoutDirection == wx.Layout_RightToLeft
+
+
+# keep window 'win' laid out left to right whatever the interface's
+# direction, for windows that show the script or a page of it, which stay
+# left to right, and whose drawing uses x coordinates from the left, which
+# a right-to-left window would mirror. applyLayoutDirection leaves it and
+# the windows in it alone.
+def keepLeftToRight(win):
+    win.keepLeftToRight = True
+    win.SetLayoutDirection(wx.Layout_LeftToRight)
+
+
+# lay window 'win' and the windows in it out in the interface's direction.
+# windows created in a right-to-left window are right-to-left already, so
+# this is for the top-level windows that have no parent to take it from.
+def applyLayoutDirection(win):
+    if (layoutDirection == wx.Layout_LeftToRight) or getattr(
+        win, "keepLeftToRight", False
+    ):
+        return
+
+    if win.GetLayoutDirection() != layoutDirection:
+        win.SetLayoutDirection(layoutDirection)
+
+    for c in win.GetChildren():
+        if not c.IsTopLevel():
+            applyLayoutDirection(c)
+
+
 # create pad sizer for given window whose controls are in topSizer, with
 # 'pad' pixels of padding on each side, resize window to correct size, and
 # optionally center it. the spacing inside topSizer is widened by SPACING.
@@ -228,6 +299,7 @@ def finishWindow(window, topSizer, pad=20, center=False):
     # dialogs and other top-level windows are shown in the theme's colors.
     # before the layout, since it pads the buttons.
     if window.IsTopLevel():
+        applyLayoutDirection(window)
         theming.themeWindow(window)
 
     spaceSizer(topSizer)

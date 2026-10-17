@@ -60,6 +60,11 @@ class FindDlg(wx.Dialog):
             wx.StaticText(self, -1, _("Replace with:")), 0, wx.ALIGN_CENTER_VERTICAL
         )
         self.replaceEntry = wx.TextCtrl(self, -1, style=wx.TE_PROCESS_ENTER)
+
+        # the script's text, which is left to right in a right-to-left
+        # interface too
+        for entry in (self.findEntry, self.replaceEntry):
+            gutil.keepLeftToRight(entry)
         gsizer.Add(self.replaceEntry, 0, wx.EXPAND)
 
         vsizer.Add(gsizer, 0, wx.EXPAND | wx.BOTTOM, 10)

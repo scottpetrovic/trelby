@@ -2,6 +2,7 @@ import wx
 from wx.lib.wordwrap import wordwrap
 
 import trelby.screenplay as screenplay
+import trelby.ui.gutil as gutil
 import trelby.ui.icons as icons
 import trelby.ui.widgets as widgets
 from trelby.ui.theming import blendColors
@@ -419,6 +420,11 @@ class OutlinePanel(wx.Panel):
         # the list has one, it's sized to put it just past the right edge of
         # listHolder, out of sight, and scrollBar stands in for it
         self.listHolder = wx.Window(self, -1, style=wx.BORDER_NONE)
+
+        # the scenes are the script's text, which is left to right in a
+        # right-to-left interface too
+        gutil.keepLeftToRight(self.listHolder)
+
         self.list = OutlineList(self.listHolder)
         self.scrollBar = ScrollBar(self, self.list)
 

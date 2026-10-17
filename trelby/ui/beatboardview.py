@@ -14,6 +14,7 @@ import wx
 from wx.lib.wordwrap import wordwrap
 
 import trelby.screenplay.beatboard as beatboard
+import trelby.ui.gutil as gutil
 import trelby.ui.theming as theming
 from trelby.ui.outline import getSceneColors, luminance, str2color, swatchBitmap
 
@@ -34,6 +35,10 @@ class BeatBoardView(wx.ScrolledWindow):
         wx.ScrolledWindow.__init__(
             self, parent, -1, style=wx.BORDER_NONE | wx.WANTS_CHARS
         )
+
+        # the cards' x coordinates are from the left, and a right-to-left
+        # window would mirror them
+        gutil.keepLeftToRight(self)
 
         self.panel = panel
 

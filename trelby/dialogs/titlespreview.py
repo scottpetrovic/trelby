@@ -1,6 +1,7 @@
 import wx
 
 import trelby.pdf.pml as pml
+import trelby.ui.gutil as gutil
 import trelby.util as util
 from trelby.ui.textedit import TextEdit
 
@@ -49,6 +50,9 @@ class TitlesPreview(wx.Window):
         wx.Window.__init__(
             self, parent, -1, style=wx.FULL_REPAINT_ON_RESIZE | wx.WANTS_CHARS
         )
+
+        # a page, which is left to right in a right-to-left interface too
+        gutil.keepLeftToRight(self)
 
         self.cfg = cfg
         self.ctrl = ctrl

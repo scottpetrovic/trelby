@@ -41,6 +41,10 @@ class FooterDlg(wx.Dialog):
             gsizer.Add(wx.StaticText(self, -1, label), 0, wx.ALIGN_CENTER_VERTICAL)
 
             entry = wx.TextCtrl(self, -1, getattr(footer, attr))
+
+            # text on the page, which is left to right in a right-to-left
+            # interface too
+            gutil.keepLeftToRight(entry)
             entry.SetMinSize(self.FromDIP(wx.Size(260, -1)))
             self.Bind(wx.EVT_TEXT, self.OnMisc, id=entry.GetId())
             entry.Bind(wx.EVT_SET_FOCUS, self.OnEntryFocus)
@@ -173,6 +177,9 @@ def showVariablesMenu(dlg, btn, getEntry):
 class FooterPreview(wx.Window):
     def __init__(self, parent, dlg, cfg):
         wx.Window.__init__(self, parent, -1, style=wx.FULL_REPAINT_ON_RESIZE)
+
+        # a page, which is left to right in a right-to-left interface too
+        gutil.keepLeftToRight(self)
 
         self.cfg = cfg
         self.dlg = dlg

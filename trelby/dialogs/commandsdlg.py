@@ -5,6 +5,7 @@ import wx.html
 
 import trelby.keys as keys
 import trelby.ui.fileio as fileio
+import trelby.ui.gutil as gutil
 
 
 class CommandsDlg(wx.Frame):
@@ -12,6 +13,9 @@ class CommandsDlg(wx.Frame):
         wx.Frame.__init__(
             self, None, -1, _("Commands"), size=(650, 600), style=wx.DEFAULT_FRAME_STYLE
         )
+
+        # it has no parent to take the direction from
+        self.SetLayoutDirection(gutil.layoutDirection)
 
         # self.Center()
 

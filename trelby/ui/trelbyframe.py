@@ -41,6 +41,10 @@ class MyFrame(wx.Frame):
     def __init__(self, parent, id, title, gd, myApp):
         wx.Frame.__init__(self, parent, id, title, name="Trelby")
 
+        # first, so that everything created in it, the dialogs included,
+        # is laid out in the same direction
+        self.SetLayoutDirection(gutil.layoutDirection)
+
         if misc.isUnix:
             # automatically reaps zombies
             signal.signal(signal.SIGCHLD, signal.SIG_IGN)

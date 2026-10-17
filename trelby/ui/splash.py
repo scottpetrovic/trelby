@@ -31,6 +31,10 @@ class SplashWindow(wx.Frame):
             self, parent, -1, _("Splash"), style=wx.FRAME_FLOAT_ON_PARENT | wx.NO_BORDER
         )
 
+        # the text goes at fixed places on the picture, and the quotes are
+        # in English
+        gutil.keepLeftToRight(self)
+
         if not SplashWindow.inited:
             SplashWindow.inited = True
             wx.Image.AddHandler(wx.JPEGHandler())

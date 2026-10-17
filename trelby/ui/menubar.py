@@ -297,7 +297,9 @@ class MyMenuBar(wx.Control):
 # while a menu is open, intercept the Left / Right keys to switch to the
 # previous / next menu, as with a native menu bar. that's only done while
 # no submenu is open, and for Right, when the highlighted item doesn't
-# open a submenu (which is what Right does then). Windows only.
+# open a submenu (which is what Right does then). in a right-to-left
+# interface the menus run from right to left, and submenus open to the
+# left, so the keys swap places. Windows only.
 class _MenuKeys:
     def __init__(self, bar):
         self.bar = bar
@@ -326,7 +328,12 @@ class _MenuKeys:
         if len(menus) != 1:
             return False
 
-        if vk == w32.VK_LEFT:
+        if self.bar.GetLayoutDirection() == wx.Layout_RightToLeft:
+            back = w32.VK_RIGHT
+        else:
+            back = w32.VK_LEFT
+
+        if vk == back:
             self.bar.switchTo(self.bar.open - 1, True)
         elif w32.isSubMenuHighlighted(menus[0]):
             return False

@@ -132,8 +132,10 @@ class MyTabCtrl(wx.Window):
     def setPageSizes(self):
         size = self.ctrl2.GetClientSize()
 
+        # with the position, since in a right-to-left window a size alone
+        # keeps the page's distance from the left edge, not the right
         for p in self.pages:
-            p[0].SetClientSize(size.width, size.height)
+            p[0].SetSize(0, 0, size.width, size.height)
 
     # select given page
     def selectPage(self, page):
@@ -303,6 +305,11 @@ class MyTabCtrl(wx.Window):
 
         maxTab = self.getLastVisibleTab()
 
+        # the tabs' names, as (name, x, y), drawn once gc is gone: in a
+        # right-to-left window, what's drawn on dc while there's a
+        # GraphicsContext on it isn't mirrored
+        names = []
+
         for i in range(self.firstTab, maxTab + 1):
             p = self.pages[i]
             selected = i == self.selected
@@ -334,15 +341,7 @@ class MyTabCtrl(wx.Window):
             gc.StrokePath(path)
 
             textY = tabY + (h - tabY - textH) // 2
-
-            # clip the text to fit within the tab, leaving room for the
-            # close button
-            dc.SetClippingRegion(
-                xpos + self.paddingX, tabY, self.closeX - self.paddingX * 2, h - tabY
-            )
-            dc.SetTextForeground(cfgGui.tabTextColor)
-            dc.DrawText(p[1], xpos + self.paddingX, textY)
-            dc.DestroyClippingRegion()
+            names.append((p[1], xpos, tabY, textY))
 
             # close button; OnLeftDown takes clicks from paddingX left of
             # its center to the end of the tab
@@ -360,6 +359,17 @@ class MyTabCtrl(wx.Window):
             xpos += self.tabWidth
 
         del gc
+
+        dc.SetTextForeground(cfgGui.tabTextColor)
+
+        for name, x, tabY, textY in names:
+            # clip the text to fit within the tab, leaving room for the
+            # close button
+            dc.SetClippingRegion(
+                x + self.paddingX, tabY, self.closeX - self.paddingX * 2, h - tabY
+            )
+            dc.DrawText(name, x + self.paddingX, textY)
+            dc.DestroyClippingRegion()
 
         # start of right arrow
         rx = w - 1 - self.paddingX - self.arrowWidth + 1

@@ -14,6 +14,7 @@ import trelby.dialogs.finddlg as finddlg
 import trelby.formats as formats
 import trelby.keys as keys
 import trelby.ui.fileio as fileio
+import trelby.ui.gutil as gutil
 import trelby.ui.menus as menus
 import trelby.misc as misc
 import trelby.ui.myimport as myimport
@@ -111,6 +112,10 @@ class MyCtrl(wx.Control):
     def __init__(self, parent, id, gd, panel):
         style = wx.WANTS_CHARS | wx.FULL_REPAINT_ON_RESIZE | wx.NO_BORDER
         wx.Control.__init__(self, parent, id, style=style)
+
+        # the script is laid out left to right even when the interface
+        # isn't, and the drawing and the mouse handling need it to be
+        gutil.keepLeftToRight(self)
 
         self.panel = panel
         self.gd = gd
@@ -375,7 +380,7 @@ class MyCtrl(wx.Control):
         if fileName:
             self.setDisplayName(os.path.basename(fileName))
         else:
-            self.setDisplayName("untitled")
+            self.setDisplayName(_("untitled"))
 
         self.setTabText()
 

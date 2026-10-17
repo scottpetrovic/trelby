@@ -418,6 +418,7 @@ def _initWin():
         (gdi32.CreateSolidBrush, wintypes.HBRUSH, [wintypes.DWORD]),
         (gdi32.DeleteObject, wintypes.BOOL, [wintypes.HGDIOBJ]),
         (gdi32.GetPixel, wintypes.DWORD, [wintypes.HDC, ctypes.c_int, ctypes.c_int]),
+        (gdi32.GetLayout, wintypes.DWORD, [wintypes.HDC]),
     ):
         f.restype = res
         f.argtypes = args
@@ -653,8 +654,12 @@ _HDF_JUSTIFYMASK = 0x3
 _HDF_RIGHT = 0x1
 _HDF_CENTER = 0x2
 
-# BitBlt's plain copy
+# BitBlt's plain copy, and its flag for not mirroring the bitmap when the
+# target is mirrored (a right-to-left window's), and GetLayout's flag for
+# that
 _SRCCOPY = 0xCC0020
+_NOMIRRORBITMAP = 0x80000000
+_LAYOUT_RTL = 0x1
 
 # the list control headers _themeListHeader has done, by native window, as
 # SimpleNamespaces: w, the wx.ListCtrl, and bg and fg, the colors.
@@ -687,7 +692,10 @@ def _themeListHeader(w, cfgGui):
 
 # paint native list control header hwnd, for its WM_PAINT: the column
 # labels on h.bg, lighter or darker under the mouse if the columns can be
-# clicked, with lines between the columns and below them
+# clicked, with lines between the columns and below them. it's drawn into
+# a bitmap and copied to the header. a right-to-left header's dc is
+# mirrored, which would mirror the text too, so there the bitmap is drawn
+# with the columns where they appear on screen, and copied unmirrored.
 def _paintListHeader(hwnd, h):
     wt = _win.wintypes
     u = _win.user32
@@ -705,6 +713,8 @@ def _paintListHeader(hwnd, h):
 
         if width <= 0 or height <= 0:
             return
+
+        rtl = bool(_win.gdi32.GetLayout(hdc) & _LAYOUT_RTL)
 
         # the column under the mouse, or -1
         info = (ctypes.c_int * 4)()
@@ -744,6 +754,9 @@ def _paintListHeader(hwnd, h):
             sendMessage(hwnd, _HDM_GETITEMW, i, ctypes.addressof(item))
             rect = wx.Rect(r.left, r.top, r.right - r.left, r.bottom - r.top)
 
+            if rtl:
+                rect.x = width - rect.x - rect.width
+
             if i == hot:
                 dc.SetPen(wx.TRANSPARENT_PEN)
                 dc.SetBrush(
@@ -751,10 +764,17 @@ def _paintListHeader(hwnd, h):
                 )
                 dc.DrawRectangle(rect)
 
+            # the alignment is from the start of the column, which in a
+            # right-to-left one is its right
+            if rtl:
+                start, end = wx.ALIGN_RIGHT, wx.ALIGN_LEFT
+            else:
+                start, end = wx.ALIGN_LEFT, wx.ALIGN_RIGHT
+
             align = {
-                _HDF_RIGHT: wx.ALIGN_RIGHT,
+                _HDF_RIGHT: end,
                 _HDF_CENTER: wx.ALIGN_CENTER_HORIZONTAL,
-            }.get(item.fmt & _HDF_JUSTIFYMASK, wx.ALIGN_LEFT)
+            }.get(item.fmt & _HDF_JUSTIFYMASK, start)
             label = wx.Control.Ellipsize(
                 text.value, dc, wx.ELLIPSIZE_END, rect.width - 2 * pad
             )
@@ -764,15 +784,16 @@ def _paintListHeader(hwnd, h):
                 align | wx.ALIGN_CENTER_VERTICAL,
             )
 
+            # the line after the column
+            x = rect.x - 1 if rtl else rect.right
             dc.SetPen(line)
-            dc.DrawLine(rect.right, rect.top, rect.right, rect.bottom + 1)
+            dc.DrawLine(x, rect.top, x, rect.bottom + 1)
 
         dc.SetPen(line)
         dc.DrawLine(0, height - 1, width, height - 1)
 
-        _win.gdi32.BitBlt(
-            hdc, 0, 0, width, height, int(dc.GetHandle()), 0, 0, _SRCCOPY
-        )
+        rop = _SRCCOPY | (_NOMIRRORBITMAP if rtl else 0)
+        _win.gdi32.BitBlt(hdc, 0, 0, width, height, int(dc.GetHandle()), 0, 0, rop)
         dc.SelectObject(wx.NullBitmap)
     finally:
         u.EndPaint(hwnd, ps)
@@ -873,13 +894,34 @@ def _onButtonPaint(event):
 
     width, height = w.GetClientSize()
     label = w.GetLabelText()
-    tw, th = gc.GetTextExtent(label)
-    gc.DrawText(label, (width - tw) / 2, (height - th) / 2)
 
-    # the drawing reaches the buffer when gc goes, and the buffer the
-    # screen when dc goes, so gc must go first
-    del gc
+    if w.GetLayoutDirection() == wx.Layout_RightToLeft:
+        # see _prepareLabel
+        del gc
+        tw, th = _prepareLabel(w, dc, label, fg)
+        dc.DrawText(label, (width - tw) // 2, (height - th) // 2)
+    else:
+        tw, th = gc.GetTextExtent(label)
+        gc.DrawText(label, (width - tw) / 2, (height - th) / 2)
+
+        # the drawing reaches the buffer when gc goes, and the buffer the
+        # screen when dc goes, so gc must go first
+        del gc
+
     del dc
+
+
+# get dc ready for drawing label 'label' of right-to-left window w in
+# color fg, and return the label's size. it's drawn on dc rather than a
+# GraphicsContext, whose text is left to right (see
+# gutil.setLanguageDirection), which would put punctuation at the wrong
+# end. call this only once the GraphicsContext on dc is gone: until then,
+# what's drawn on dc isn't mirrored.
+def _prepareLabel(w, dc, label, fg):
+    dc.SetFont(w.GetFont())
+    dc.SetTextForeground(fg)
+
+    return dc.GetTextExtent(label)
 
 
 # CB_GETDROPPEDSTATE: whether a combo box's list is open. CB_SETITEMHEIGHT
@@ -992,12 +1034,22 @@ def _onChoicePaint(event):
     gc.SetPen(gc.CreatePen(wx.GraphicsPenInfo(fg).Width(w.FromDIP(3) / 2)))
     gc.StrokeLines([(ax, ay), (ax + arrowW / 2, ay + arrowW / 2), (ax + arrowW, ay)])
 
-    gc.Clip(pad, 0, ax - w.FromDIP(4) - pad, height)
     label = w.GetStringSelection()
-    th = gc.GetTextExtent(label)[1]
-    gc.DrawText(label, pad, (height - th) / 2)
+    clip = (pad, 0, ax - w.FromDIP(4) - pad, height)
 
-    del gc
+    if w.GetLayoutDirection() == wx.Layout_RightToLeft:
+        del gc
+        th = _prepareLabel(w, dc, label, fg)[1]
+        dc.SetClippingRegion(*clip)
+        dc.DrawText(label, pad, (height - th) // 2)
+        dc.DestroyClippingRegion()
+    else:
+        gc.Clip(*clip)
+        th = gc.GetTextExtent(label)[1]
+        gc.DrawText(label, pad, (height - th) / 2)
+
+        del gc
+
     del dc
 
 
@@ -1012,7 +1064,9 @@ def _choiceListState(hwnd):
 # paint the list of a drop-down list, native list box hwnd: for its
 # WM_PAINT, or into hdc for WM_PRINTCLIENT. the items are drawn in the
 # drop-down list's colors, with the same margin as its text
-# (_onChoicePaint), and the selected one on lst.selectionBg.
+# (_onChoicePaint), and the selected one on lst.selectionBg. in a
+# right-to-left list the items are aligned right, and the bitmap they're
+# drawn into is copied without mirroring.
 def _paintChoiceList(hwnd, lst, hdc):
     wt = _win.wintypes
     u = _win.user32
@@ -1033,6 +1087,8 @@ def _paintChoiceList(hwnd, lst, hdc):
 
         if width <= 0 or height <= 0:
             return
+
+        rtl = bool(_win.gdi32.GetLayout(hdc) & _LAYOUT_RTL)
 
         w = lst.w
         bg = w.GetBackgroundColour()
@@ -1069,12 +1125,11 @@ def _paintChoiceList(hwnd, lst, hdc):
             dc.DrawLabel(
                 label,
                 wx.Rect(rect).Deflate(pad, 0),
-                wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL,
+                (wx.ALIGN_RIGHT if rtl else wx.ALIGN_LEFT) | wx.ALIGN_CENTER_VERTICAL,
             )
 
-        _win.gdi32.BitBlt(
-            hdc, 0, 0, width, height, int(dc.GetHandle()), 0, 0, _SRCCOPY
-        )
+        rop = _SRCCOPY | (_NOMIRRORBITMAP if rtl else 0)
+        _win.gdi32.BitBlt(hdc, 0, 0, width, height, int(dc.GetHandle()), 0, 0, rop)
         dc.SelectObject(wx.NullBitmap)
     finally:
         if ps:

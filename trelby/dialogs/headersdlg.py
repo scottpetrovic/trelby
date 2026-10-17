@@ -79,6 +79,10 @@ class HeadersDlg(wx.Dialog):
         hsizer.Add(wx.StaticText(self, -1, _("Text:")), 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.textEntry = wx.TextCtrl(self, -1)
+
+        # text on the page, which is left to right in a right-to-left
+        # interface too
+        gutil.keepLeftToRight(self.textEntry)
         hsizer.Add(self.textEntry, 1, wx.LEFT, 10)
         self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.textEntry.GetId())
 
