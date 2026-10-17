@@ -51,7 +51,6 @@ EDITOR_COMMANDS = {
     "ChangeToAction": "toActionCmd",
     "ChangeToCharacter": "toCharacterCmd",
     "ChangeToDialogue": "toDialogueCmd",
-    "ChangeToNote": "toNoteCmd",
     "ChangeToParenthetical": "toParenCmd",
     "ChangeToScene": "toSceneCmd",
     "ChangeToShot": "toShotCmd",
@@ -146,6 +145,10 @@ class MyCtrl(wx.Control):
         # wx.Rect of the "Title pages" link above the first page, or None
         # if it's not on screen. set by OnPaint.
         self.titleButtonRect = None
+
+        # the note markers in the margin, as a list of (wx.Rect, line of
+        # the paragraph whose notes it marks). set by OnPaint.
+        self.noteMarkers = []
 
         # the right-click menu's items for a misspelled word: its
         # suggested replacements, and adding it to the user's or the
@@ -478,6 +481,7 @@ class MyCtrl(wx.Control):
     def updateCommon(self):
         self.gd.mainFrame.showScriptState(self)
         self.panel.outline.scheduleRefresh()
+        self.panel.notes.scheduleRefresh()
 
     # if text has wide characters (Chinese, Japanese, Korean) and the
     # script doesn't use double-width characters, offer to switch to them,
@@ -558,6 +562,17 @@ class MyCtrl(wx.Control):
     def OnLeftDown(self, event, mark=False):
         if not mark and self.isOverTitleButton(event.GetPosition()):
             scriptactions.titlesDlg(self.gd.mainFrame, self)
+
+            return
+
+        noteLine = None if mark else self.noteMarkerAt(event.GetPosition())
+
+        if noteLine is not None:
+            if not self.gd.showNotes:
+                self.gd.mainFrame.setShowNotes(True)
+
+            self.showLine(noteLine)
+            self.panel.notes.showNotesOf(noteLine)
 
             return
 
@@ -648,13 +663,23 @@ class MyCtrl(wx.Control):
         if event.LeftIsDown() and not self.clickSelectActive:
             self.OnLeftDown(event, mark=True)
 
-        if self.isOverTitleButton(event.GetPosition()):
+        pos = event.GetPosition()
+
+        if self.isOverTitleButton(pos) or (self.noteMarkerAt(pos) is not None):
             self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
         else:
             self.SetCursor(wx.NullCursor)
 
     def isOverTitleButton(self, pos):
         return bool(self.titleButtonRect) and self.titleButtonRect.Contains(pos)
+
+    # the line of the paragraph whose note marker is at pos, or None
+    def noteMarkerAt(self, pos):
+        for rect, line in self.noteMarkers:
+            if rect.Contains(pos):
+                return line
+
+        return None
 
     def OnRightDown(self, event):
         pos = event.GetPosition()
@@ -948,6 +973,35 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
+    # put the cursor at the start of the given line, scrolling only if it
+    # isn't on screen. used by the notes sidebar.
+    def showLine(self, line):
+        self.clearAutoComp()
+        self.ed.clearMark()
+        self.ed.gotoPos(line, 0)
+        self.makeLineVisible(line)
+        self.updateScreen()
+
+    # the notes sidebar's edits, see Editor.addNote etc. addNote returns
+    # (first line of the paragraph, index of the new note in its notes).
+    def addNote(self, line, text):
+        self.clearAutoComp()
+        index = self.ed.addNote(line, text)
+        self.updateScreen()
+
+        return (self.sp.getParaFirstIndexFromLine(line), index)
+
+    def setNote(self, line, index, note):
+        self.clearAutoComp()
+
+        if self.ed.setNote(line, index, note):
+            self.updateScreen()
+
+    def deleteNote(self, line, index):
+        self.clearAutoComp()
+        self.ed.deleteNote(line, index)
+        self.updateScreen()
+
     # set the outline color of the scene containing the given line, or
     # remove it if color is None. used by the outline view.
     def setSceneColor(self, line, color):
@@ -1149,5 +1203,7 @@ class MyCtrl(wx.Control):
             self.gd.cfgGl,
             self.gd.showFormatting,
             self.gd.scDict if self.gd.cfgGl.checkSpelling else None,
+            self.panel.notes.getHighlightLine(),
         )
         self.titleButtonRect = painter.paint(dc)
+        self.noteMarkers = painter.noteMarkers

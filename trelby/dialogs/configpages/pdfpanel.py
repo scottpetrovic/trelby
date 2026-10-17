@@ -22,12 +22,6 @@ class PDFPanel(wx.Panel):
             _("Show table of contents on PDF open"), vsizer, pad
         )
 
-        self.removeNotesCb = self.addCb(_("Omit Note elements"), vsizer, pad)
-
-        self.outlineNotesCb = self.addCb(
-            _("  Draw rectangles around Note elements"), vsizer, pad
-        )
-
         self.marginsCb = self.addCb(_("Show margins (debug)"), vsizer, pad)
 
         self.cfg2gui()
@@ -44,15 +38,9 @@ class PDFPanel(wx.Panel):
     def OnMisc(self, event=None):
         self.cfg.pdfIncludeTOC = self.includeTOCCb.GetValue()
         self.cfg.pdfShowTOC = self.showTOCCb.GetValue()
-        self.cfg.pdfRemoveNotes = self.removeNotesCb.GetValue()
-        self.cfg.pdfOutlineNotes = self.outlineNotesCb.GetValue()
         self.cfg.pdfShowMargins = self.marginsCb.GetValue()
-
-        self.outlineNotesCb.Enable(not self.cfg.pdfRemoveNotes)
 
     def cfg2gui(self):
         self.includeTOCCb.SetValue(self.cfg.pdfIncludeTOC)
         self.showTOCCb.SetValue(self.cfg.pdfShowTOC)
-        self.removeNotesCb.SetValue(self.cfg.pdfRemoveNotes)
-        self.outlineNotesCb.SetValue(self.cfg.pdfOutlineNotes)
         self.marginsCb.SetValue(self.cfg.pdfShowMargins)

@@ -41,8 +41,10 @@ def testLoadedTypes():
         scr.DIALOGUE,
         scr.DIALOGUE,
         scr.ACTION,
-        scr.NOTE,
     ]
+
+    # the note element is a note on the action before it
+    assert [n.text for n in ed.sp.lines[6].notes] == ["Note"]
 
 
 def testGetCharacterAt():
@@ -55,7 +57,6 @@ def testGetCharacterAt():
         "Bob",
         "Bob",
         "Bob",
-        None,
         None,
     ]
 

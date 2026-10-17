@@ -1,6 +1,7 @@
 import tests.u as u
 import trelby.screenplay.pagelock as pagelock
 import trelby.screenplay as scr
+import trelby.screenplay.notes as notes
 import trelby.screenplay.render as render
 import trelby.translations as translations
 from trelby.screenplay.line import Line
@@ -414,19 +415,21 @@ def testDeepcopyKeepsLocks():
     assert [ln.pageLock for ln in ed2.sp.lines] == [ln.pageLock for ln in ed.sp.lines]
 
 
-def testRemoveNotesKeepsLocks():
+def testAbsorbedNotesKeepLocks():
     ed = makeScript()
+    ls = ed.sp.lines
 
-    # a page starting with a note starts with the line after it once
-    # notes are removed (as is done when printing without notes)
-    note = [i for i, ln in enumerate(ed.sp.lines) if ln.lt == scr.NOTE][2]
-    nextText = ed.sp.lines[note + 1].text
+    # in an old script, a page starting with a note element starts with
+    # the line after it once the note is a note on the paragraph before
+    note = ed.sp.getOutlineStarts()[2]
+    nextText = ls[note].text
+    ls.insert(note, Line(scr.LB_LAST, scr.NOTE, "A note.", pageLock="2"))
+    ls[0].pageLock = "1"
 
-    ed.sp.lines[0].pageLock = "1"
-    ed.sp.lines[note].pageLock = "2"
-
-    ed.removeElementTypes({scr.NOTE: None}, False)
+    notes.absorbNoteElements(ls)
     ed.sp.paginate()
+
+    assert ls[ed.sp.getParaFirstIndexFromLine(note - 1)].notes[-1].text == "A note."
 
     assert "2" in ed.sp.getPageNumbers()
     assert firstText(ed, "2") == nextText

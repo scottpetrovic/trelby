@@ -1,7 +1,6 @@
 import tests.u as u
 import trelby.config as config
 import trelby.keys as keys
-import trelby.screenplay as screenplay
 import trelby.screenplay.proofing as proofing
 import trelby.translations as translations
 
@@ -44,12 +43,15 @@ def testFindsEveryError():
     ]
 
 
-def testEmptyLinesInNotesAreAllowed():
+def testOldNoteElementsAreNotes():
     sp, errs = errors()
 
-    notes = [i for i, ln in enumerate(sp.lines) if ln.lt == screenplay.NOTE]
-    assert "" in [sp.lines[i].text for i in notes]
-    assert not [e for e in errs if e.line in notes]
+    # its three note elements (one of them empty) are notes on the
+    # paragraph before them, which aren't checked
+    assert [note.text for line, k, note in sp.getAllNotes()] == [
+        "Check whether the parking lot scene",
+        "needs a second camera angle.",
+    ]
 
 
 def testSampleScriptHasNoErrors():

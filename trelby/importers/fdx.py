@@ -31,6 +31,12 @@ STYLES = (
 )
 
 
+# add a note element with the text s to lines, if s isn't empty
+def addNote(lines, s):
+    if s:
+        addElem(lines, screenplay.NOTE, s.split("\n"))
+
+
 def parse(data, options=None):
     checkNotEmpty(data)
 
@@ -41,28 +47,27 @@ def parse(data, options=None):
     lines = []
 
     for para in root.xpath("Content//Paragraph"):
-        addedNote = False
         et = para.get("Type")
 
         # Check for script notes
-        s = ""
+        note = ""
         for notes in para.xpath("ScriptNote/Paragraph/Text"):
             if notes.text:
-                s += notes.text
+                note += notes.text
 
             # FD has AdornmentStyle set to "0" on notes with newline.
             if notes.get("AdornmentStyle") == "0":
-                s += "\n"
+                note += "\n"
 
-        if s:
-            addElem(lines, screenplay.NOTE, s.split("\n"))
-            addedNote = True
+        addedNote = bool(note)
 
         # "General" has embedded Dual Dialogue paragraphs inside it;
         # nothing to do for the General element itself.
         #
         # If no type is defined (like inside scriptnote), skip.
         if (et == "General") or (et is None):
+            addNote(lines, note)
+
             continue
 
         s = ""
@@ -101,6 +106,10 @@ def parse(data, options=None):
                 and (parent.xpath("Paragraph[@Type='Character']")[0] is not para)
             ):
                 lines[firstLine].dual = True
+
+        # after the paragraph it's in, so that it becomes a note on that
+        # paragraph (see ImportResult)
+        addNote(lines, note)
 
     checkLines(lines)
 

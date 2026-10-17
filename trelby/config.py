@@ -388,14 +388,6 @@ class Config:
         t.export.isUnderlined = True
         self.types[t.lt] = t
 
-        t = Type(screenplay.NOTE)
-        t.beforeSpacing = 10
-        t.indent = 5
-        t.width = 55
-        t.screen.isItalic = True
-        t.export.isItalic = True
-        self.types[t.lt] = t
-
         # pdf font configs, key = PDF_FONT_*, value = PdfFontInfo
         self.pdfFonts = {}
 
@@ -460,12 +452,6 @@ class Config:
         v.addBool("pdfShowTOC", True, "ShowTOC")
 
         # whether to open PDF document on current page
-
-        # whether to remove Note elements in PDF output
-        v.addBool("pdfRemoveNotes", False, "RemoveNotes")
-
-        # whether to draw rectangles around the outlines of Note elements
-        v.addBool("pdfOutlineNotes", True, "OutlineNotes")
 
         # whether to draw rectangle showing margins
         v.addBool("pdfShowMargins", False, "ShowMargins")
@@ -667,13 +653,6 @@ class ConfigGlobal:
         t.newTypeTab = screenplay.ACTION
         t.nextTypeTab = screenplay.SCENE
         t.prevTypeTab = screenplay.SCENE
-        self.types[t.lt] = t
-
-        t = TypeGlobal(screenplay.NOTE)
-        t.newTypeEnter = screenplay.ACTION
-        t.newTypeTab = screenplay.CHARACTER
-        t.nextTypeTab = screenplay.ACTION
-        t.prevTypeTab = screenplay.CHARACTER
         self.types[t.lt] = t
 
         # keyboard commands
@@ -929,7 +908,6 @@ def _init():
         (screenplay.TRANSITION, "/", "Transition"),
         (screenplay.SHOT, "=", "Shot"),
         (screenplay.ACTBREAK, "@", "Act break"),
-        (screenplay.NOTE, "%", "Note"),
     ):
 
         ti = TypeInfo(lt, char, name)

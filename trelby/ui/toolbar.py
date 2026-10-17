@@ -426,11 +426,13 @@ class MainToolBar:
         self.iconPad = pad
         self.boardIconShown = None
         addTB(ids.ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
+        addTB(ids.ID_VIEW_SHOW_NOTES, "notes.svg", _("Notes"), wx.ITEM_CHECK)
 
         tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         tb.Realize()
 
         tb.ToggleTool(ids.ID_VIEW_SHOW_OUTLINE, self.gd.showOutline)
+        tb.ToggleTool(ids.ID_VIEW_SHOW_NOTES, self.gd.showNotes)
         self.setBoardShown(self.gd.showBeatBoard)
 
     # redraw the toolbar in the current theme's colors

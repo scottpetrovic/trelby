@@ -106,6 +106,10 @@ class GlobalData:
         v.addBool("showOutline", False, "ShowOutline")
         v.addInt("outlineWidth", 240, "OutlineWidth", 120, 2000)
 
+        # the notes sidebar, and its height when it's below the outline
+        v.addBool("showNotes", False, "ShowNotes")
+        v.addInt("notesHeight", 300, "NotesHeight", 80, 2000)
+
         v.addList("files", [], "Files", mypickle.StrUnicodeVar("", "", ""))
 
         v.makeDicts()

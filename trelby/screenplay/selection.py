@@ -133,6 +133,7 @@ class SelectionMixin:
                     centered=self.sp.hasCenteredFlag(i) and (c1 == 0),
                     fmt=ln.sliceFmt(c1, c2 + 1),
                     sceneLock=self.sp.getSceneLock(i) if (c1 == 0) else None,
+                    notes=ln.notes if (c1 == 0) else (),
                 )
             )
 
@@ -215,6 +216,7 @@ class SelectionMixin:
 
         if del2 != -1:
             self.sp.movePageLocksForward(del1, del2)
+            self.sp.moveNotesForward(del1, del2)
 
         del ls[del1 : del2 + 1]
 
@@ -275,6 +277,7 @@ class SelectionMixin:
                 i += 1
 
                 newLine.text += ln.text
+                newLine.notes += ln.notes
                 parts.append((ln.text, ln.fmt))
 
                 if ln.lb in (LB_LAST, LB_FORCED):
@@ -326,6 +329,10 @@ class SelectionMixin:
             ln.text = ln.text[: self.column] + inLines[0].text + ln.text[self.column :]
 
         self.column += len(inLines[0].text)
+
+        # the first pasted paragraph joins the one pasted into, notes and
+        # all
+        ln.notes += inLines[0].notes
 
         if len(inLines) != 1:
 

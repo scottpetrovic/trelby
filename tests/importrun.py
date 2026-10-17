@@ -122,6 +122,9 @@ def dumpLines(lines):
         if ln.dual:
             s += " dual"
 
+        if ln.notes:
+            s += " notes=%r" % [n.text for n in ln.notes]
+
         ret.append(s)
 
     return ret

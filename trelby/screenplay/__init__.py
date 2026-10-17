@@ -12,6 +12,7 @@
 #   pagination    page breaks and page labels
 #   locks*        locked pages and scene numbers
 #   sceneoutline* the outline, scene colors, moving scenes
+#   notes*        notes on paragraphs, shown in the notes sidebar
 #
 # Editor:
 #   editing       type changes, joining / splitting, whole-script edits

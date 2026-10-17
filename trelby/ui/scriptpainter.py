@@ -1,6 +1,6 @@
 # drawing a script on screen: the page backgrounds, the text with its
-# selection, cursor and formatting marks, the lock icons, the title page
-# button and the auto-completion list. MyCtrl.OnPaint uses this, with a
+# selection, cursor and formatting marks, the lock icons, the note markers,
+# the title page button and the auto-completion list. MyCtrl.OnPaint uses this, with a
 # Viewport describing what's shown, laid out by the current view mode
 # (viewmode.py).
 
@@ -9,11 +9,11 @@ import wx
 import trelby.config as config
 import trelby.ui.gutil as gutil
 import trelby.pdf.pml as pml
-import trelby.screenplay as screenplay
 import trelby.spellcheck as spellcheck
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.util as util
+from trelby.ui.theming import blendColors
 
 
 # what's shown in an editor window: the script and its Editor (for the
@@ -72,8 +72,10 @@ class ScriptPainter:
     # config, and showFormatting whether to show the margins and line
     # break types (View / Show formatting). misspelled words are
     # underlined if scDict, the user's global spell checker dictionary,
-    # is given and the main dictionary is loaded.
-    def __init__(self, vp, vm, cfgGl, showFormatting, scDict=None):
+    # is given and the main dictionary is loaded. noteLine is the first
+    # line of a paragraph to highlight as the one whose note is selected in
+    # the notes sidebar, or None.
+    def __init__(self, vp, vm, cfgGl, showFormatting, scDict=None, noteLine=None):
         self.vp = vp
         self.vm = vm
         self.cfgGl = cfgGl
@@ -87,6 +89,17 @@ class ScriptPainter:
 
         # wx.Rect of the title page button, set by paint
         self.titleButtonRect = None
+
+        # the lines of the paragraph to highlight
+        self.noteLines = range(0)
+
+        if (noteLine is not None) and (noteLine < len(vp.sp.lines)):
+            self.noteLines = range(
+                noteLine, vp.sp.getParaLastIndexFromLine(noteLine) + 1
+            )
+
+        # the note markers drawn, as (wx.Rect, line) tuples, set by paint
+        self.noteMarkers = []
 
     # draw the script on dc. returns the wx.Rect of the "Manage title
     # page" button above the first page, or None if it's not on screen.
@@ -174,27 +187,15 @@ class ScriptPainter:
             if i != -1:
                 l = ls[i]
 
-                if l.lt == screenplay.NOTE:
+                if i in self.noteLines:
                     dc.SetPen(self.cfgGui.notePen)
                     dc.SetBrush(self.cfgGui.noteBrush)
 
-                    # element widths are in columns, fx pixels each,
-                    # while positions in the text are in characters, cfx
-                    # pixels each
-                    nx = t.x - 5
-                    nw = vp.sp.cfg.getType(l.lt).width * fx + 10
+                    # element widths are in columns, fx pixels each
+                    nx = int(t.x - vp.sp.getCenterOffset(i) * fx) - 4
+                    nw = vp.sp.cfg.getType(l.lt).width * fx + 8
 
                     dc.DrawRectangle(nx, y, nw, lineh)
-
-                    dc.SetPen(self.cfgGui.textPen)
-                    gutil.drawLine(dc, nx - 1, y, 0, lineh)
-                    gutil.drawLine(dc, nx + nw, y, 0, lineh)
-
-                    if vp.sp.isFirstLineOfElem(i):
-                        gutil.drawLine(dc, nx - 1, y - 1, nw + 2, 0)
-
-                    if vp.sp.isLastLineOfElem(i):
-                        gutil.drawLine(dc, nx - 1, y + lineh, nw + 2, 0)
 
                 if marked and vp.ed.isLineMarked(i, marked):
                     c1, c2 = vp.ed.getMarkedColumns(i, marked)
@@ -338,6 +339,7 @@ class ScriptPainter:
                 self.drawSquiggle(dc, x, y, w)
 
         self.drawLocks(dc, strings, dpages, size)
+        self.drawNoteMarkers(dc, strings, dpages, size)
 
         if vp.ed.acItems and (cursorY > 0):
             self.drawAutoComp(dc, posX, cursorY, acFi)
@@ -429,6 +431,75 @@ class ScriptPainter:
 
             if sceneLocked:
                 self.drawLock(dc, x + sceneX, t.y, h, w)
+
+    # mark each paragraph that has notes with a note icon in the left
+    # margin, on its first line, and remember where they are for clicks.
+    # they're in a column of their own, left of the scene numbers and
+    # their lock icons (see drawLocks).
+    def drawNoteMarkers(self, dc, strings, dpages, size):
+        vp = self.vp
+        cfg = vp.sp.cfg
+        ls = vp.sp.lines
+
+        h = max(6, self.cfgGui.fonts[pml.NORMAL].fy)
+        w = h + h // 4
+        gap = h // 3
+
+        # x offset (pixels) of the icon from the left edge of the page
+        lockX = int((cfg.marginLeft - 6 * vp.chX) * vp.mm2p) - gap - h * 3 // 4
+        pageX = max(gap, lockX - gap - w)
+
+        draftX = util.clamp((size.width - vp.pageW) // 2, 0)
+
+        for t in strings:
+            i = t.line
+
+            if (i == -1) or not ls[i].notes:
+                continue
+
+            x = draftX
+
+            for dp in dpages:
+                if dp.x1 <= t.x <= dp.x2:
+                    x = dp.x1
+
+            x += pageX
+
+            self.drawNoteMarker(dc, x, t.y, w, h, all(n.resolved for n in ls[i].notes))
+            self.noteMarkers.append((wx.Rect(x, t.y, w, h), i))
+
+    # draw a speech bubble w pixels wide and h high, its top left corner at
+    # (x, y), faded if 'faded' (all the notes are resolved)
+    def drawNoteMarker(self, dc, x, y, w, h, faded):
+        fill = self.cfgGui.noteMarkerColor
+        border = self.cfgGui.noteMarkerBorderColor
+
+        if faded:
+            fill = blendColors(fill, self.cfgGui.textBgColor, 0.6)
+            border = blendColors(border, self.cfgGui.textBgColor, 0.6)
+
+        bh = h * 3 // 4
+        tail = max(2, h // 4)
+
+        dc.SetPen(wx.Pen(border))
+        dc.SetBrush(wx.Brush(fill))
+        dc.DrawPolygon(
+            [
+                wx.Point(x + w // 4, y + bh - 1),
+                wx.Point(x + w // 4, y + bh + tail),
+                wx.Point(x + w // 4 + tail + 1, y + bh - 1),
+            ]
+        )
+        dc.DrawRoundedRectangle(x, y, w, bh, max(1, h // 6))
+
+        # the "text" in it, two lines
+        dc.SetPen(wx.Pen(border, max(1, h // 12)))
+        lx = x + w // 4
+        lw = w - w // 2
+
+        for k in (1, 2):
+            ly = y + bh * k // 3
+            gutil.drawLine(dc, lx, ly, lw, 0)
 
     # draw a padlock w pixels wide and h pixels high, with its top left
     # corner at (x, y)

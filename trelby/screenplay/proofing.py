@@ -8,7 +8,6 @@ from trelby.screenplay.constants import (
     CHARACTER,
     DIALOGUE,
     LB_LAST,
-    NOTE,
     PAREN,
 )
 
@@ -57,15 +56,10 @@ def _lineError(sp, line, prevType):
     prev = sp.getTypeOfPrevElem(line)
     next = sp.getTypeOfNextElem(line)
 
-    # notes are allowed to contain empty lines, because a) they do
-    # not appear in the final product b) they're basically
-    # free-format text anyway, and people may want to format them
-    # however they want
-
-    if (len(ln.text) == 0) and (ln.lt != NOTE):
+    if len(ln.text) == 0:
         return _("Empty line.")
 
-    if (len(ln.text.strip("  ")) == 0) and (ln.lt != NOTE):
+    if len(ln.text.strip("  ")) == 0:
         return _("Empty line (contains only spaces).")
 
     if (ln.lt == PAREN) and isOnly and (ln.text == "()"):

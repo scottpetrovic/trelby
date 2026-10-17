@@ -20,7 +20,6 @@ _lt2themeElem = {
     screenplay.TRANSITION: "transition",
     screenplay.SHOT: "shot",
     screenplay.ACTBREAK: "actBreak",
-    screenplay.NOTE: "noteText",
 }
 
 
@@ -118,6 +117,12 @@ class ConfigGui:
 
         self.noteBrush = wx.Brush(self.noteColor)
         self.notePen = wx.Pen(self.noteColor)
+
+        # the note markers in the script's margin and the bars on the notes
+        # sidebar's cards: a sticky note's yellow, which shows on light and
+        # dark pages alike
+        self.noteMarkerColor = wx.Colour(242, 178, 56)
+        self.noteMarkerBorderColor = wx.Colour(176, 116, 20)
 
         # the theme's accent color, for the selected item in lists and
         # toolbars we draw ourselves: the system's highlight color, unless

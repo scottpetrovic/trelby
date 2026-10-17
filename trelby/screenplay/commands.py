@@ -7,7 +7,6 @@ from trelby.screenplay.constants import (
     ACTION,
     CHARACTER,
     DIALOGUE,
-    NOTE,
     PAREN,
     SCENE,
     SHOT,
@@ -271,9 +270,6 @@ class CommandsMixin:
 
     def toActBreakCmd(self, cs):
         self.convertTypeTo(ACTBREAK, True)
-
-    def toNoteCmd(self, cs):
-        self.convertTypeTo(NOTE, True)
 
     def undoCmd(self, cs):
         if self.undoHistory.undo(self):

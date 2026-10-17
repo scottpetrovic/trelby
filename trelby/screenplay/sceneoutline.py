@@ -6,7 +6,6 @@ import trelby.undo as undo
 from trelby.screenplay.constants import (
     ACTBREAK,
     ACTION,
-    NOTE,
     SCENE,
 )
 from trelby.screenplay.datatypes import OutlineItem
@@ -59,20 +58,23 @@ class OutlineMixin:
 
             sceneNr = sceneNrs.get(start, "")
 
+            # the summary is the scene's first unresolved note, or its
+            # first action
             note = None
             action = None
 
-            i = start + 1
+            for i in range(start, end + 1):
+                note = next((n.text for n in ls[i].notes if not n.resolved), None)
 
-            while i <= end:
-                if self.isFirstLineOfElem(i):
-                    if (ls[i].lt == NOTE) and (note is None):
-                        note = self.getElemText(i)
-                        break
-                    elif (ls[i].lt == ACTION) and (action is None):
-                        action = self.getElemText(i)
+                if note is not None:
+                    break
 
-                i += 1
+                if (
+                    (action is None)
+                    and (ls[i].lt == ACTION)
+                    and self.isFirstLineOfElem(i)
+                ):
+                    action = self.getElemText(i)
 
             summary = note if note is not None else (action or "")
 

@@ -76,7 +76,7 @@ def testToPrevTypeTab():
 
 def testConvert():
     ed = u.loadEditor()
-    ed.cmd("toNote")
+    ed.cmd("toShot")
     assert ed.sp.isModified()
 
 

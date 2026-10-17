@@ -73,33 +73,35 @@ def parse(data, options=None):
     lines = []
 
     for para in root.xpath("paragraphs/para"):
-        # check for notes/synopsis, import as Note.
-        if para.get("note"):
-            addElem(lines, screenplay.NOTE, sanitizeStr(para.get("note")))
-
-        if para.get("synopsis"):
-            addElem(lines, screenplay.NOTE, sanitizeStr(para.get("synopsis")))
-
         # look for the <style> and <text> tags. Bail if no <text> found.
         styl = para.xpath("style")
         txt = para.xpath("text")
 
-        if not txt:
-            continue
+        if txt:
+            addPara(lines, styl, txt)
 
-        if styl:
-            lt = ELEM_MAP.get(styl[0].get("basestylename"), screenplay.ACTION)
-        else:
-            lt = screenplay.ACTION
-
-        items = sanitizeStr(txt[0].text)
-
-        if (lt == screenplay.PAREN) and items and (items[0][0] != "("):
-            items[0] = "(" + items[0]
-            items[-1] = items[-1] + ")"
-
-        addElem(lines, lt, items)
+        # notes and synopses become notes on the paragraph (see
+        # ImportResult)
+        for attr in ("note", "synopsis"):
+            if para.get(attr):
+                addElem(lines, screenplay.NOTE, sanitizeStr(para.get(attr)))
 
     checkLines(lines)
 
     return ImportResult(lines)
+
+
+# add the paragraph with the given <style> and <text> tags to lines
+def addPara(lines, styl, txt):
+    if styl:
+        lt = ELEM_MAP.get(styl[0].get("basestylename"), screenplay.ACTION)
+    else:
+        lt = screenplay.ACTION
+
+    items = sanitizeStr(txt[0].text)
+
+    if (lt == screenplay.PAREN) and items and (items[0][0] != "("):
+        items[0] = "(" + items[0]
+        items[-1] = items[-1] + ")"
+
+    addElem(lines, lt, items)

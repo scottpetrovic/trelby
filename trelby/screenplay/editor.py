@@ -22,6 +22,7 @@ from trelby.screenplay.dualdialogue import DualDialogueEditMixin
 from trelby.screenplay.editing import EditingMixin
 from trelby.screenplay.formatting import FormattingMixin
 from trelby.screenplay.locks import LocksEditMixin
+from trelby.screenplay.notes import NotesEditMixin
 from trelby.screenplay.sceneoutline import OutlineEditMixin
 from trelby.screenplay.search import SearchEditMixin
 from trelby.screenplay.selection import SelectionMixin
@@ -35,6 +36,7 @@ class Editor(
     LocksEditMixin,
     OutlineEditMixin,
     BeatBoardEditMixin,
+    NotesEditMixin,
     EditingMixin,
     FormattingMixin,
     SearchEditMixin,

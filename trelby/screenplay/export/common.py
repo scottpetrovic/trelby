@@ -9,6 +9,14 @@ from trelby.screenplay.constants import (
 )
 
 
+# return the notes (see screenplay/notes.py) on the element starting at
+# line 'first'
+def getElemNotes(sp, first):
+    last = sp.getElemLastIndexFromLine(first)
+
+    return sum((sp.lines[i].notes for i in range(first, last + 1)), ())
+
+
 # Return screenplay as list of tuples of the form (elType, elText,
 # firstLine, fmt), where firstLine is the index of the element's first
 # line and fmt is the format string for elText (see textfmt), or None.

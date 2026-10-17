@@ -124,7 +124,6 @@ def testElemTypesCoverAllTypes():
         screenplay.TRANSITION,
         screenplay.SHOT,
         screenplay.ACTBREAK,
-        screenplay.NOTE,
     }
 
     for lt, id, label, mnemonic, cmdName in types:

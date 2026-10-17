@@ -9,12 +9,12 @@ from trelby.screenplay.constants import (
     ACTION,
     CHARACTER,
     DIALOGUE,
-    NOTE,
+    PAREN,
     SCENE,
     SHOT,
     TRANSITION,
 )
-from trelby.screenplay.export.common import getElementsAsList
+from trelby.screenplay.export.common import getElemNotes, getElementsAsList
 
 
 # generate Fountain and return it as a string.
@@ -82,7 +82,28 @@ def generateFountain(sp):
             else:
                 generateTitleString("Contact:", titleLine.items, 0, "", "")
 
+    # notes of the elements written since the last place a blank line
+    # could go (see flushNotes)
+    notes = []
+
+    # add the pending notes as [[notes]], each a paragraph of its own. a
+    # note can't be in the middle of a speech, as the blank line before it
+    # would end the speech, so the notes of a speech's elements wait until
+    # the next element starting with a blank line. they're imported as
+    # notes on the element before them.
+    def flushNotes():
+        for note in notes:
+            if flines and flines[-1] != "":
+                flines.append("")
+
+            flines.append("[[" + " ".join(note.text.split()) + "]]")
+
+        notes.clear()
+
     for typ, txt, first, fmt in eleList:
+        if typ not in (DIALOGUE, PAREN):
+            flushNotes()
+
         # formatting as markup, a line at a time, since it can't span
         # lines
         pos = 0
@@ -102,8 +123,7 @@ def generateFountain(sp):
             TRANSITION,
             SHOT,
             ACTBREAK,
-            NOTE,
-        ):
+                ):
             if flines and flines[-1] != "":
                 flines.append("")
 
@@ -139,9 +159,6 @@ def generateFountain(sp):
                     tmp.append(ln)
             txt = "\n".join(tmp)
 
-        elif typ == NOTE:
-            txt = "[[" + txt + "]]"
-
         elif typ == ACTBREAK:
             txt = "\n".join(">" + ln + "<" for ln in lns)
 
@@ -153,5 +170,8 @@ def generateFountain(sp):
                 txt += " ^"
 
         flines.append(txt)
+        notes.extend(getElemNotes(sp, first))
+
+    flushNotes()
 
     return textutil.toUTF8("\n".join(flines))

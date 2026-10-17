@@ -109,6 +109,9 @@ class EditingMixin:
         ln.appendLine(ls[line + 1])
         ln.lb = ls[line + 1].lb
 
+        # rewrapPara moves them to the paragraph's first line
+        ln.notes += ls[line + 1].notes
+
         # the joined line's page lock now points into the middle of this
         # line. rewrapPara uses pageLockCol to put it back on the right
         # line.

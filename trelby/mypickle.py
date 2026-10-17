@@ -233,7 +233,8 @@ class ElementNameVar(ConfVar):
         return "%s:%s\n" % (prefix, config.lt2ti(val).name)
 
     def fromStr(self, vals, val, prefix):
-        ti = config.name2ti(val)
+        # e.g. "Note", which isn't an element type anymore
+        ti = config.name2ti(val, False)
 
         if ti:
             return ti.lt

@@ -234,8 +234,10 @@ def testOutlineSample():
         scr.TRANSITION,
         scr.SHOT,
         scr.ACTBREAK,
-        scr.NOTE,
     }
+
+    # its note elements are notes now
+    assert ed.sp.hasNotes()
 
     items = ed.sp.getOutline()
 

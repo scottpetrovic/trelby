@@ -22,7 +22,6 @@ def testChangeOneElem():
         "toDialogue": scr.DIALOGUE,
         "toParen": scr.PAREN,
         "toShot": scr.SHOT,
-        "toNote": scr.NOTE,
         "toTransition": scr.TRANSITION,
     }
 

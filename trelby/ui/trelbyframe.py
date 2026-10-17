@@ -136,6 +136,7 @@ class MyFrame(wx.Frame):
         )
         self.menuBar.Check(ID_SHOW_HIDE_TOOLBAR, True)
         self.menuBar.Check(ID_VIEW_SHOW_OUTLINE, gd.showOutline)
+        self.menuBar.Check(ID_VIEW_SHOW_NOTES, gd.showNotes)
         self.menuBar.Check(ID_VIEW_BEAT_BOARD, gd.showBeatBoard)
 
         self.Bind(
@@ -587,6 +588,20 @@ class MyFrame(wx.Frame):
 
         for i in range(self.tabCtrl.getPageCount()):
             self.tabCtrl.getPage(i).showOutline(show)
+
+    # from the View menu item or the toolbar button, which share an id, or
+    # the keyboard command
+    def OnToggleNotes(self):
+        self.setShowNotes(not self.gd.showNotes)
+
+    # show or hide the notes in all tabs, like setShowOutline
+    def setShowNotes(self, show):
+        self.gd.showNotes = show
+        self.menuBar.Check(ID_VIEW_SHOW_NOTES, show)
+        self.toolBar.ToggleTool(ID_VIEW_SHOW_NOTES, show)
+
+        for i in range(self.tabCtrl.getPageCount()):
+            self.tabCtrl.getPage(i).showNotes(show)
 
     # from the View menu item or the toolbar button, which share an id, or
     # the keyboard command

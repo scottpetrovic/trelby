@@ -10,7 +10,6 @@ import trelby.textutil as textutil
 import trelby.util as util
 from trelby.screenplay.constants import (
     ACTBREAK,
-    NOTE,
     SCENE,
 )
 
@@ -212,40 +211,6 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
         )
 
         pg.add(to)
-
-        if forPDF and (tcfg.lt == NOTE) and cfg.pdfOutlineNotes:
-            offset = chX / 2.0
-            nx = cfg.marginLeft + tcfg.indent * chX
-            ny = cfg.marginTop + (y / 10.0) * chY
-            nw = tcfg.width * chX
-            lw = 0.25
-
-            pg.add(pml.genLine(nx - offset, ny, 0.0, chY, lw))
-            pg.add(pml.genLine(nx + nw + offset, ny, 0.0, chY, lw))
-
-            if sp.isFirstLineOfElem(i):
-                pg.add(pml.QuarterCircleOp(nx, ny, offset, lw))
-                pg.add(pml.genLine(nx, ny - offset, nw, 0.0, lw))
-                pg.add(pml.QuarterCircleOp(nx + nw, ny, offset, lw, True))
-
-                pg.add(
-                    pml.TextOp(
-                        "Note",
-                        (nx + nx + nw) / 2.0,
-                        ny - offset,
-                        6,
-                        pml.ITALIC,
-                        util.ALIGN_CENTER,
-                        util.VALIGN_BOTTOM,
-                    )
-                )
-
-            if sp.isLastLineOfElem(i):
-                pg.add(pml.QuarterCircleOp(nx, ny + chY, offset, lw, False, True))
-                pg.add(pml.genLine(nx, ny + chY + offset, nw, 0.0, lw))
-                pg.add(
-                    pml.QuarterCircleOp(nx + nw, ny + chY, offset, lw, True, True)
-                )
 
         if doExtra and (tcfg.lt == ACTBREAK) and sp.isFirstLineOfElem(i):
             pager.sceneContNr = 0

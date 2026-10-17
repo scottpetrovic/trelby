@@ -28,6 +28,7 @@ import trelby.translations as translations
 import trelby.undo as undo
 import trelby.util as util
 from trelby.screenplay.line import Line
+from trelby.screenplay.notes import Note
 from trelby.screenplay import (
     ACTBREAK,
     ACTION,
@@ -75,6 +76,12 @@ def typeFromName(name):
     if key == "paren":
         key = "parenthetical"
 
+    if key == "note":
+        raise ToolError(
+            "There's no note element type: notes go in the 'notes' of the "
+            "element they're about."
+        )
+
     for ti in config.getTIs():
         if ti.name.lower().replace(" ", "") == key:
             return ti.lt
@@ -106,7 +113,7 @@ def revisionOf(data):
 # report it, never change it.
 def linesRevision(sp):
     s = "\n".join(
-        "%s|%s|%s|%s|%s|%s|%s"
+        "%s|%s|%s|%s|%s|%s|%s|%s"
         % (
             ln,
             ln.pageLock or "",
@@ -115,6 +122,7 @@ def linesRevision(sp):
             ln.fmt or "",
             int(ln.centered),
             ln.sceneLock or "",
+            repr(ln.notes) if ln.notes else "",
         )
         for ln in sp.lines
     )
@@ -342,7 +350,9 @@ def partOfLine(sp, line):
 # break back into what the user typed: the space(s) a word wrap replaced
 # (" ", "  " or ""), or "\n" for a forced break. text formatting
 # (Line.fmt) and scene locks are not returned, and buildLines doesn't take
-# them, so replacing a scene drops its bold / italic / underline.
+# them, so replacing a scene drops its bold / italic / underline. the notes
+# on the element's paragraphs (screenplay/notes.py) are returned as the
+# element's, and buildLines puts them on its first paragraph.
 def getElements(sp, first, last):
     ls = sp.lines
     ret = []
@@ -351,9 +361,11 @@ def getElements(sp, first, last):
     while i <= last:
         start = i
         text = ""
+        notes = ()
 
         while 1:
             text += ls[i].text
+            notes += ls[i].notes
 
             if ls[i].lb == LB_LAST:
                 break
@@ -373,6 +385,11 @@ def getElements(sp, first, last):
         if sp.hasCenteredFlag(start):
             elem["centered"] = True
 
+        if notes:
+            elem["notes"] = [
+                {"text": n.text, "resolved": n.resolved} for n in notes
+            ]
+
         ret.append(elem)
         i += 1
 
@@ -391,9 +408,35 @@ def parseColor(color):
     return s
 
 
+# return the notes in an element dict's "notes" (a list of {"text",
+# optional "resolved"}, or of strings) as a tuple of Notes. n is the
+# element's number, for errors.
+def parseNotes(elem, n):
+    items = elem.get("notes") or []
+
+    if not isinstance(items, list):
+        raise ToolError("Element %d's notes are not a list." % n)
+
+    ret = ()
+
+    for item in items:
+        if isinstance(item, str):
+            item = {"text": item}
+
+        if not isinstance(item, dict) or not isinstance(item.get("text"), str):
+            raise ToolError("Element %d has a note without text." % n)
+
+        text = textutil.fixNL(item["text"]).strip()
+
+        if text:
+            ret += (Note(text, bool(item.get("resolved"))),)
+
+    return ret
+
+
 # convert a list of element dicts ({"type", "text", optional "color",
-# "dual" and "centered"}) to unwrapped lines. if needHeading is True, the first element
-# must be a scene heading or act break.
+# "dual", "centered" and "notes"}) to unwrapped lines. if needHeading is
+# True, the first element must be a scene heading or act break.
 def buildLines(elements, needHeading):
     if not isinstance(elements, list) or not elements:
         raise ToolError("At least one element is needed.")
@@ -431,6 +474,8 @@ def buildLines(elements, needHeading):
         if centered and (lt != ACTION):
             raise ToolError("Only action elements can be centered.")
 
+        notes = parseNotes(elem, n)
+
         parts = textutil.fixNL(text).replace("\t", " ").split("\n")
 
         # one Line per forced-break segment, not yet word wrapped (the
@@ -448,6 +493,7 @@ def buildLines(elements, needHeading):
                     dual=dual and isFirst,
                     color=color if isFirst else None,
                     centered=centered and isFirst,
+                    notes=notes if isFirst else (),
                 )
             )
 
@@ -515,6 +561,7 @@ def getInfo(doc):
             "characters": len(characters),
             "character_profiles": len(sp.characterProfiles.profiles),
             "has_world_building": bool(sp.worldBuilding.text.strip()),
+            "notes": len(sp.getAllNotes()),
         }
     )
 

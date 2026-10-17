@@ -32,6 +32,7 @@ from trelby.screenplay.constants import (
 )
 from trelby.screenplay.dualdialogue import DualDialogueMixin
 from trelby.screenplay.locks import LocksMixin
+from trelby.screenplay.notes import NotesMixin
 from trelby.screenplay.pagination import PaginationMixin
 from trelby.screenplay.sceneoutline import OutlineMixin
 from trelby.screenplay.structure import StructureMixin
@@ -46,6 +47,7 @@ class Screenplay(
     PaginationMixin,
     LocksMixin,
     OutlineMixin,
+    NotesMixin,
 ):
     def __init__(self, cfgGl):
         self.autoCompletion = autocompletion.AutoCompletion()

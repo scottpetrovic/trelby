@@ -20,6 +20,7 @@ class Line:
         fmt=None,
         centered=False,
         sceneLock=None,
+        notes=(),
     ):
 
         # line break type: what separates this line from the next one
@@ -65,8 +66,13 @@ class Line:
         # Screenplay.getSceneLabels.
         self.sceneLock = sceneLock
 
+        # the notes (a tuple of screenplay.notes.Note) on the paragraph
+        # this line starts. only on a paragraph's first line, apart from
+        # in the middle of an edit; see notes.py.
+        self.notes = notes
+
     # return a copy of this line, including its page lock, dual flag,
-    # color, formatting, centered flag and scene lock
+    # color, formatting, centered flag, scene lock and notes
     def copy(self):
         return Line(
             self.lb,
@@ -78,6 +84,7 @@ class Line:
             self.fmt,
             self.centered,
             self.sceneLock,
+            self.notes,
         )
 
     # return the format string, exactly as long as the text
@@ -162,6 +169,7 @@ class Line:
             or (textfmt.compact(self.fmt) != textfmt.compact(other.fmt))
             or (self.centered != other.centered)
             or (self.sceneLock != other.sceneLock)
+            or (self.notes != other.notes)
         )
 
     def __eq__(self, other):

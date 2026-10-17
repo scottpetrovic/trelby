@@ -160,7 +160,6 @@ def elemTypes():
             "b",
             "ChangeToActBreak",
         ),
-        (screenplay.NOTE, ID_ELEM_TO_NOTE, _("Note"), "N", "ChangeToNote"),
     ]
 
 
@@ -435,6 +434,15 @@ def makeTable():
             ),
             SEP,
             Action(
+                "AddNote",
+                ID_EDIT_ADD_NOTE,
+                _("Add note"),
+                None,
+                OnScript(scriptactions.addNote),
+                "ALT-N",
+                True,
+            ),
+            Action(
                 "InsertNbsp",
                 ID_EDIT_INSERT_NBSP,
                 _("Insert non-breaking space"),
@@ -516,6 +524,14 @@ def makeTable():
                 _("Outline"),
                 "O",
                 OnFrame("OnToggleOutline"),
+                kind=wx.ITEM_CHECK,
+            ),
+            Action(
+                "ToggleNotes",
+                ID_VIEW_SHOW_NOTES,
+                _("Notes"),
+                "N",
+                OnFrame("OnToggleNotes"),
                 kind=wx.ITEM_CHECK,
             ),
             Action(
@@ -976,6 +992,7 @@ def fillLanguageMenu(menu, gd, onLanguage):
 # MyPanel.showBeatBoard), and their menu items and buttons are greyed out,
 # so that e.g. CTRL-X on the board doesn't cut text from the hidden script.
 SCRIPT_ONLY = {
+    "AddNote",
     "CheckFormatting",
     "Copy",
     "Cut",
@@ -995,6 +1012,7 @@ SCRIPT_ONLY = {
     "ToggleBold",
     "ToggleCentered",
     "ToggleItalic",
+    "ToggleNotes",
     "ToggleOutline",
     "ToggleShowFormatting",
     "ToggleUnderline",
@@ -1116,6 +1134,7 @@ def makeRightClickMenu(
         append(m, "ToggleCentered", wx.ITEM_CHECK).Check(centeredState)
 
     m.AppendSeparator()
+    append(m, "AddNote")
     append(m, "SelectScene")
     m.AppendSeparator()
 

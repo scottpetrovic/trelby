@@ -65,18 +65,17 @@ def testFadein():
     assert titlePages is None
     assert dumpLines(lines) == [
         "LAST SCENE 'INT. BARN - NIGHT'",
-        "FORCED NOTE 'A bold note'",
-        "LAST NOTE 'on two lines'",
-        "LAST NOTE 'The storm arrives.'",
-        "FORCED ACTION 'Rain hammers the roof.'",
+        # the paragraph's note and synopsis
+        "FORCED ACTION 'Rain hammers the roof.'"
+        " notes=['A bold note\\non two lines', 'The storm arrives.']",
         "LAST ACTION 'Thunder.'",
         "LAST CHARACTER 'TOM'",
         "FORCED PAREN '(whispering'",
         "LAST PAREN 'softly)'",
         "LAST DIALOGUE 'Hello there.'",
         "LAST PAREN '(already wrapped)'",
-        "LAST DIALOGUE 'Underlined'",
-        "LAST NOTE 'Note without text'",
+        # a paragraph with a note and no text
+        "LAST DIALOGUE 'Underlined' notes=['Note without text']",
         "LAST TRANSITION 'FADE OUT.'",
         "LAST ACTION 'No style means action.'",
         "LAST ACTION 'Unknown style.'",
@@ -117,10 +116,8 @@ def testFDX():
         "FORCED ACTION 'First line'",
         "FORCED ACTION 'second line'",
         "LAST ACTION 'third line'",
-        "FORCED NOTE 'Note one'",
-        "LAST NOTE 'Note two'",
-        "LAST ACTION 'Has a note.'",
-        "LAST NOTE 'Only a note'",
+        # its own note, and the next paragraph's, which has no text
+        "LAST ACTION 'Has a note.' notes=['Note one\\nNote two', 'Only a note']",
         "LAST ACTION ''",
         "LAST CHARACTER 'JOE'",
         "LAST PAREN '(beat)'",
@@ -403,8 +400,7 @@ FOUNTAIN_SCRIPT = [
     "LAST CHARACTER 'BEN' dual",
     "LAST DIALOGUE 'What?'",
     "LAST TRANSITION 'CUT TO:'",
-    "LAST SCENE 'FLASHBACK'",
-    "LAST NOTE 'Remember the pot.'",
+    "LAST SCENE 'FLASHBACK' notes=['Remember the pot.']",
     "LAST ACTION 'SMASH CUT' centered",
     "FORCED ACTION 'THE END' centered",
     "LAST ACTION 'REALLY'",
@@ -414,10 +410,9 @@ FOUNTAIN_SCRIPT = [
     "LAST ACTION 'Last line.'",
 ]
 
-FOUNTAIN_SECTIONS = [
-    "LAST NOTE 'Act One'",
-    "LAST NOTE 'The kitchen wakes up.'",
-]
+# the sections and synopses at the start, which are notes on the start of
+# the element before them, or on the first line
+FOUNTAIN_SECTIONS = " notes=['Act One', 'The kitchen wakes up.']"
 
 FOUNTAIN_TITLE_LINES = [
     "FORCED ACTION 'Title: The Pot' fmt=00000001111111",
@@ -453,7 +448,7 @@ def testFountain():
     )
 
     assert dumpLines(lines) == (
-        ["LAST ACTION 'Not a keyword line'"] + FOUNTAIN_SECTIONS + FOUNTAIN_SCRIPT
+        ["LAST ACTION 'Not a keyword line'" + FOUNTAIN_SECTIONS] + FOUNTAIN_SCRIPT
     )
     assert dumpTitles(titlePages) == FOUNTAIN_TITLES
 
@@ -467,7 +462,9 @@ def testFountainTitlesToBoth():
     )
 
     assert dumpLines(lines) == (
-        FOUNTAIN_TITLE_LINES + FOUNTAIN_SECTIONS + FOUNTAIN_SCRIPT
+        [FOUNTAIN_TITLE_LINES[0] + FOUNTAIN_SECTIONS]
+        + FOUNTAIN_TITLE_LINES[1:]
+        + FOUNTAIN_SCRIPT
     )
     assert dumpTitles(titlePages) == FOUNTAIN_TITLES
 
@@ -482,7 +479,9 @@ def testFountainTitlesAsActionOnly():
     )
 
     assert dumpLines(lines) == (
-        FOUNTAIN_TITLE_LINES + FOUNTAIN_SECTIONS + FOUNTAIN_SCRIPT
+        [FOUNTAIN_TITLE_LINES[0] + FOUNTAIN_SECTIONS]
+        + FOUNTAIN_TITLE_LINES[1:]
+        + FOUNTAIN_SCRIPT
     )
     assert dumpTitles(titlePages) == dumpTitles(defaultTitlePages())
 
@@ -495,7 +494,9 @@ def testFountainTitlesDropped():
         titlePage=False,
     )
 
-    assert dumpLines(lines) == FOUNTAIN_SECTIONS + FOUNTAIN_SCRIPT
+    assert dumpLines(lines) == (
+        [FOUNTAIN_SCRIPT[0] + FOUNTAIN_SECTIONS] + FOUNTAIN_SCRIPT[1:]
+    )
     assert dumpTitles(titlePages) == dumpTitles(defaultTitlePages())
 
 

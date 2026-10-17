@@ -3,12 +3,12 @@
 from lxml import etree
 
 import trelby.textfmt as textfmt
+import trelby.textutil as textutil
 from trelby.screenplay.constants import (
     ACTBREAK,
     ACTION,
     CHARACTER,
     DIALOGUE,
-    NOTE,
     PAREN,
     SCENE,
     SHOT,
@@ -17,8 +17,22 @@ from trelby.screenplay.constants import (
 from trelby.screenplay.export.text import getDualTextRows
 
 
+# add the given notes to the HTML (an etree element) as note paragraphs,
+# after a blank line, wrapped to the width of action
+def addNotes(content, notes):
+    for note in notes:
+        para = etree.SubElement(content, "pre")
+        para.set("class", "nt")
+        para.text = " "
+
+        for s in textutil.wrapText(note.text, 50, len).split("\n"):
+            para = etree.SubElement(content, "pre")
+            para.set("class", "nt")
+            para.text = " " * 10 + (s or " ")
+
+
 # generate HTML output and return it as a string, optionally including
-# notes.
+# the notes (screenplay/notes.py).
 def generateHtml(sp, includeNotes=True):
     ls = sp.lines
 
@@ -31,7 +45,6 @@ def generateHtml(sp, includeNotes=True):
         SCENE: "sc",
         SHOT: "sh",
         TRANSITION: "tr",
-        NOTE: "nt",
         ACTBREAK: "ab",
     }
 
@@ -77,12 +90,20 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
     dualLines = sp.getDualLines(0, len(ls) - 1)
 
+    # notes of the element(s) being written, added after them
+    notes = []
+
     for i in range(len(ls)):
         line = ls[i]
         dual = dualLines.get(i)
 
-        if not includeNotes and (line.lt == NOTE):
-            continue
+        # the notes of the elements before go after them
+        if notes and sp.isFirstLineOfElem(i) and not (dual and (i != dual[1])):
+            addNotes(content, notes)
+            notes = []
+
+        if includeNotes:
+            notes.extend(line.notes)
 
         # dual dialogues are output whole at their first line
         if dual and (i != dual[1]):
@@ -147,6 +168,8 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
         if not text:
             para.text = ""
+
+    addNotes(content, notes)
 
     bodyText = etree.tostring(content, encoding="UTF-8", pretty_print=True).decode()
 

@@ -67,11 +67,6 @@ The following config sections exists and appear in the file in this order:
   OpenOnCurrentPage (boolean): If True, display current page in the PDF
   file when opening it.
 
-  RemoveNotes (boolean): Whether to remove Note elements from PDF output.
-
-  OutlineNotes (boolean): Whether to draw a rectangle around Note elements
-  in PDF output.
-
   Cursor/(Line|Column) (integer): Cursor position.
 
   String/(MoreDialogue|ContinuedPageEnd|ContinuedPageStart|
@@ -85,7 +80,7 @@ The following config sections exists and appear in the file in this order:
 
   In addition, there are element-type specific config directives, which
   are named "Element/x/y", where x is (Scene|Action|Character|Dialogue|
-  Parenthetical|Transition|Shot|Note|Act break) and y is one of:
+  Parenthetical|Transition|Shot|Act break) and y is one of:
 
    BeforeSpacing (integer): How many lines to leave empty above a block,
    in units of line * 10, i.e. a value of 15 would mean 1.5 lines.
@@ -274,9 +269,11 @@ Line types:
 
 '=' - Shot
 
-'%' - Note
-
 '@' - Act break
+
+'%' - Note. No longer written: notes are now kept with the lines they're
+about (see "Note" below). Note elements in older files are made notes on
+the element before them when the file is loaded.
 
 More line types are probably going to be added in the future without
 increasing the fileformat version number, so unknown line types should be
@@ -324,5 +321,11 @@ and flags is any combination of "b", "i" and "u": those characters of the
 next line are bold / italic / underlined, on top of their element type's
 own style. Example: "4-8:b,15-21:iu". Invalid items, and the parts of
 items past the end of the line, are ignored.
+
+"Note" and "Note-Resolved". Value: the note's text, escaped like the
+character profile notes (newlines as \n). A note on the paragraph that
+starts at the next line, shown in the notes sidebar and never printed;
+"Note-Resolved" is one marked as dealt with. There can be several before
+a line, in the order they're shown. Empty ones are ignored.
 
 See sample.trelby for an example screenplay.

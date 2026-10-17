@@ -34,7 +34,9 @@ COLORS = [
 # "accent" and "accentText", for the selected item in lists and toolbars
 # we draw ourselves, default to the system's highlight colors.
 # "spellError", the underline of misspelled words, defaults to a red that
-# suits the theme's background (see spellErrorColor).
+# suits the theme's background (see spellErrorColor). "noteText" was the
+# color of note elements, which are now notes in the sidebar; it's still
+# accepted so that custom themes that have it keep loading.
 ELEMENTS = [
     "scene",
     "action",
@@ -44,9 +46,8 @@ ELEMENTS = [
     "transition",
     "shot",
     "actBreak",
-    "noteText",
 ]
-OPTIONAL = ELEMENTS + ["accent", "accentText", "spellError"]
+OPTIONAL = ELEMENTS + ["accent", "accentText", "spellError", "noteText"]
 
 
 class Theme:

@@ -27,7 +27,6 @@ import trelby.misc as misc
 import trelby.dialogs.namesdlg as namesdlg
 import trelby.screenplay.pagelock as pagelock
 import trelby.pdf.writer as pdf
-import trelby.screenplay as screenplay
 import trelby.screenplay.compare as compare
 import trelby.screenplay.plaintext as plaintext
 import trelby.screenplay.proofing as proofing
@@ -290,10 +289,6 @@ def getExportable(frame, ctrl, action):
         return None
 
     sp = ctrl.sp
-    if sp.cfg.pdfRemoveNotes:
-        sp = copy.deepcopy(ctrl.sp)
-        screenplay.Editor(sp).removeElementTypes({screenplay.NOTE: None}, False)
-
     sp.paginate()
 
     return sp
@@ -524,6 +519,17 @@ def gotoPage(frame, ctrl):
     # might have changed
     ctrl.makeLineVisible(ctrl.ed.line)
     ctrl.updateScreen()
+
+
+# start writing a note on the paragraph at the cursor, in the notes
+# sidebar, showing it if needed
+def addNote(frame, ctrl):
+    ctrl.clearAutoComp()
+
+    if not frame.gd.showNotes:
+        frame.setShowNotes(True)
+
+    ctrl.panel.notes.addNote()
 
 
 def insertNbsp(frame, ctrl):

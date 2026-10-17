@@ -33,6 +33,8 @@ from trelby.screenplay.line import Line
 # (MCP) world building   WorldBuildingText
 # (MCP) char. profiles   CharacterProfiles
 # beat board             BeatBoard
+# addNote / setNote /    SinglePara
+#   deleteNote
 # renameCharacters       RenameCharacters (a FullCopy)
 
 
@@ -83,6 +85,9 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[8]: dict of {index: sceneLock} for the lines that have a scene
 #   lock, or None if none do
 #
+#   tuple[9]: dict of {index: notes} for the lines that have notes, or
+#   None if none do. the notes are immutable, so they're shared.
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
@@ -93,6 +98,7 @@ def lines2storage(lines):
     fmts = {i: ln.fmt for i, ln in enumerate(lines) if ln.fmt} or None
     centers = tuple(i for i, ln in enumerate(lines) if ln.centered) or None
     sceneLocks = {i: ln.sceneLock for i, ln in enumerate(lines) if ln.sceneLock}
+    notes = {i: ln.notes for i, ln in enumerate(lines) if ln.notes} or None
 
     # str(ln) only holds the line break, type and text, which is all
     # Line.fromStr can restore, so every other Line attribute travels in
@@ -122,6 +128,7 @@ def lines2storage(lines):
         fmts,
         centers,
         sceneLocks or None,
+        notes,
     )
 
 
@@ -160,6 +167,10 @@ def storage2lines(storage):
     if storage[8]:
         for i, label in storage[8].items():
             lines[i].sceneLock = label
+
+    if storage[9]:
+        for i, notes in storage[9].items():
+            lines[i].notes = notes
 
     return lines
 

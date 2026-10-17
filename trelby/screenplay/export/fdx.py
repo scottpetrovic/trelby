@@ -8,13 +8,12 @@ from trelby.screenplay.constants import (
     ACTION,
     CHARACTER,
     DIALOGUE,
-    NOTE,
     PAREN,
     SCENE,
     SHOT,
     TRANSITION,
 )
-from trelby.screenplay.export.common import getElementsAsList
+from trelby.screenplay.export.common import getElemNotes, getElementsAsList
 
 
 # Generate a Final Draft XML file and return as string.
@@ -34,7 +33,6 @@ def generateFDX(sp):
         SCENE: "Scene Heading",
         SHOT: "Shot",
         TRANSITION: "Transition",
-        NOTE: "Action",
         ACTBREAK: "New Act",
     }
 
@@ -42,6 +40,9 @@ def generateFDX(sp):
     # of the dual dialogue we're in, which ends at line dualEnd
     parent = content
     dualEnd = -1
+
+    # the last ScriptNote's ID
+    noteId = 0
 
     for typ, txt, first, fmt in eleList:
         if typ == CHARACTER:
@@ -53,18 +54,11 @@ def generateFDX(sp):
                 parent = etree.SubElement(general, "DualDialogue")
                 dualEnd = block[2]
 
-        if typ == NOTE:
-            dummyPara = etree.SubElement(content, "Paragraph")
-            dummyPara.set("Type", xmlMap[typ])
-            scriptnote = etree.SubElement(dummyPara, "ScriptNote")
-            scriptnote.set("ID", "1")
-            para = etree.SubElement(scriptnote, "Paragraph")
-        else:
-            para = etree.SubElement(parent, "Paragraph")
-            para.set("Type", xmlMap[typ])
+        para = etree.SubElement(parent, "Paragraph")
+        para.set("Type", xmlMap[typ])
 
-            if (typ == ACTION) and sp.hasCenteredFlag(first):
-                para.set("Alignment", "Center")
+        if (typ == ACTION) and sp.hasCenteredFlag(first):
+            para.set("Alignment", "Center")
 
         # a Text element for each run of differently formatted text
         for a, b, style in textfmt.runs(fmt, len(txt)) or [(0, 0, 0)]:
@@ -83,6 +77,14 @@ def generateFDX(sp):
 
             if flags:
                 paratxt.set("Style", "+".join(flags))
+
+        # the element's notes, as script notes in its paragraph
+        for note in getElemNotes(sp, first):
+            noteId += 1
+            scriptnote = etree.SubElement(para, "ScriptNote")
+            scriptnote.set("ID", str(noteId))
+            notePara = etree.SubElement(scriptnote, "Paragraph")
+            etree.SubElement(notePara, "Text").text = note.text
 
         if sp.getElemLastIndexFromLine(first) >= dualEnd:
             parent = content

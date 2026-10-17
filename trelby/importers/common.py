@@ -4,14 +4,21 @@
 from lxml import etree
 
 import trelby.screenplay as screenplay
+import trelby.screenplay.notes as notes
 import trelby.textutil as textutil
 from trelby.screenplay.line import Line
 
 
 # a successful import: the script's lines (at least one), and title pages
 # to replace the script's with, or None to leave them as they are.
+#
+# the importers add the formats' notes as note elements (screenplay.NOTE)
+# after what they're about, which become notes on the paragraph before each
+# here (see screenplay/notes.py).
 class ImportResult:
     def __init__(self, lines, titlePages=None):
+        notes.absorbNoteElements(lines)
+
         self.lines = lines
         self.titlePages = titlePages
 

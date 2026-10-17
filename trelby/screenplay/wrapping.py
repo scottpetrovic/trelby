@@ -233,6 +233,10 @@ class WrappingMixin:
         wrappedLines[0].centered = ls[line1].centered and firstOfElem
         wrappedLines[0].sceneLock = ls[line1].sceneLock if firstOfElem else None
 
+        # the notes of all the paragraph's lines go on its first line (see
+        # notes.py)
+        wrappedLines[0].notes = sum((ls[i].notes for i in range(line1, line2 + 1)), ())
+
         ls[line1 : line2 + 1] = wrappedLines
 
         # put the page locks back on the lines that now contain the text

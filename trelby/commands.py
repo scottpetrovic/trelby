@@ -124,6 +124,13 @@ def defaultCommands():
         ),
         Command("About", _("Show the about dialog."), isMenu=True),
         Command(
+            "AddNote",
+            _("Add a note to the current paragraph, in the notes sidebar."),
+            [keys.Key(ord("N"), alt=True).toInt()],
+            isFixed=True,
+            isMenu=True,
+        ),
+        Command(
             "AutoCompletionDlg",
             _("Open the auto-completion dialog."),
             isMenu=True,
@@ -147,11 +154,6 @@ def defaultCommands():
             "ChangeToDialogue",
             _("Change current element's style to dialogue."),
             [keys.Key(ord("D"), alt=True).toInt()],
-        ),
-        Command(
-            "ChangeToNote",
-            _("Change current element's style to note."),
-            [keys.Key(ord("N"), alt=True).toInt()],
         ),
         Command(
             "ChangeToParenthetical",
@@ -563,6 +565,11 @@ def defaultCommands():
             # CTRL+I comes in as the same key code as CTRL+Tab, so
             # it's only a menu accelerator (see MyFrame), which
             # sees the two apart
+            isMenu=True,
+        ),
+        Command(
+            "ToggleNotes",
+            _("Show or hide the notes sidebar."),
             isMenu=True,
         ),
         Command(

@@ -37,7 +37,13 @@ A script is divided into numbered parts: index 0 is anything before the first
 scene heading (e.g. FADE IN:), possibly empty, and index 1, 2, ... are the
 scenes and act breaks in order, as returned by list_scenes. A part is a list
 of elements, each with a type (scene, action, character, dialogue,
-parenthetical, transition, shot, note, act break) and text.
+parenthetical, transition, shot, act break) and text.
+
+An element can have notes: the writer's (or a reader's) notes about it,
+shown in Trelby's notes sidebar and never printed, each with a text and
+whether it's resolved. read_scenes returns them with the elements. When
+replacing a scene, give each element the notes it had, unless asked to
+change them; an element left without notes loses them.
 
 Every result includes the script's revision. Every edit must be given the
 revision it is based on, and is refused if the script has changed since, so
@@ -91,6 +97,13 @@ Index = Annotated[int, Field(description="Index of the scene, as in list_scenes.
 Result = dict[str, Any]
 
 
+class ElementNote(BaseModel):
+    text: str = Field(description="The note's text.")
+    resolved: bool = Field(
+        False, description="Whether the note has been dealt with."
+    )
+
+
 class Element(BaseModel):
     type: Literal[
         "scene",
@@ -100,7 +113,6 @@ class Element(BaseModel):
         "parenthetical",
         "transition",
         "shot",
-        "note",
         "act break",
     ]
     text: str = Field(
@@ -121,6 +133,11 @@ class Element(BaseModel):
         False,
         description="On an action: it's centered on the page, e.g. THE END "
         "or a title card.",
+    )
+    notes: list[ElementNote] = Field(
+        [],
+        description="Notes about this element, shown in the notes sidebar "
+        "and never printed.",
     )
 
 

@@ -7,6 +7,8 @@ from typing import Tuple
 
 import trelby.config as config
 import trelby.error as error
+import trelby.screenplay.characterprofiles as characterprofiles
+import trelby.screenplay.notes as notes
 import trelby.screenplay.headers as headers
 import trelby.screenplay.pagelock as pagelock
 import trelby.textfmt as textfmt
@@ -18,6 +20,7 @@ from trelby.screenplay.constants import (
     ACTION,
     LB_LAST,
     LB_SPACE,
+    NOTE,
 )
 from trelby.screenplay.datatypes import Mark, isValidColor
 
@@ -107,6 +110,12 @@ def save(sp) -> bytes:
 
         if ln.fmt:
             output += "#Format %s\n" % textfmt.encode(ln.getFmt())
+
+        for note in ln.notes:
+            output += "#%s %s\n" % (
+                "Note-Resolved" if note.resolved else "Note",
+                characterprofiles.escapeText(note.text),
+            )
 
         output += str(ln) + "\n"
 
@@ -220,6 +229,9 @@ def load(s: str, cfgGl):
     # whether to set the centered flag on the next script line
     centered = False
 
+    # notes to put on the next script line
+    lineNotes = ()
+
     for i in range(index, len(lines)):
         s = lines[i]
 
@@ -278,6 +290,12 @@ def load(s: str, cfgGl):
             elif (key == "Centered") and startSeen:
                 centered = True
 
+            elif (key in ("Note", "Note-Resolved")) and startSeen:
+                text = textutil.fixNL(characterprofiles.unescapeText(val))
+
+                if text.strip():
+                    lineNotes += (notes.Note(text, key == "Note-Resolved"),)
+
             else:
                 unknownConfigs = True
 
@@ -299,6 +317,11 @@ def load(s: str, cfgGl):
                 lt = ACTION
                 centered = centered or not prevType
 
+            # notes used to be an element type, which absorbNoteElements
+            # turns into notes below
+            elif s[1] == "%":
+                lt = NOTE
+
             # convert unknown lb types into LB_SPACE
             if lb == None:
                 lb = LB_SPACE
@@ -317,6 +340,7 @@ def load(s: str, cfgGl):
             line = Line(lb, lt, text, pageLock, dual, color)
             line.centered = centered
             line.sceneLock = sceneLock
+            line.notes = lineNotes
 
             if fmt:
                 line.fmt = textfmt.decode(fmt, len(text))
@@ -328,6 +352,7 @@ def load(s: str, cfgGl):
             sceneLock = None
             fmt = None
             centered = False
+            lineNotes = ()
 
             if lb != LB_LAST:
                 prevType = lt
@@ -350,6 +375,8 @@ def load(s: str, cfgGl):
         cursor.line, cursor.column = sp.clampPos(
             sp.cfg.cursorLine, sp.cfg.cursorColumn
         )
+
+    notes.absorbNoteElements(sp.lines, cursor)
 
     # lines are stored already wrapped, but they're rewrapped with the
     # current rules anyway, which also converts old LB_SPACE2 breaks

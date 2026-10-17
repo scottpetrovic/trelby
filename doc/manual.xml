@@ -126,17 +126,6 @@
 		  </listitem>
 		</varlistentry>
 
-		<varlistentry>
-		  <term>Note</term>
-		  <listitem>
-
-			<para>Note style is used to insert notes to yourself or to
-			others about that part of the script. Example: "Should Bobby
-			shoot first?".</para>
-
-		  </listitem>
-		</varlistentry>
-
 	  </variablelist>
 
 	</sect1>
@@ -570,10 +559,21 @@
 	  <para>'Remove elements' opens a dialog allowing you to select one or
 	  more element styles to completely remove from the script.</para>
 
-	  <para>You can use this for e.g. removing notes before sending out
-	  copies of the script, or if you want a version of the script with
+	  <para>You can use this if you want a version of the script with
 	  only the dialog, only the action, or only the scene headers, or
 	  whatever else you can come up with.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Edit/Add note</title>
+
+	  <para>This adds a note to the paragraph the cursor is in, and shows
+	  it in the notes sidebar (see View/Notes) for you to write. Notes are
+	  for reminders to yourself, or the notes you get from producers and
+	  readers. Example: "Should Bobby shoot first?". They're never
+	  printed. The shortcut is Alt+N, and it's also in the script's
+	  right-click menu.</para>
 
 	</sect1>
 
@@ -596,8 +596,8 @@
 	  <para>This toggles the outline view, a panel to the left of the
 	  script listing every scene and act break with its scene number,
 	  the page it starts on, and a short summary. The summary is the text
-	  of the first note in the scene, or if there are none, the first
-	  action element. The current scene is highlighted as you move
+	  of the first note in the scene that isn't resolved, or if there are
+	  none, the first action element. The current scene is highlighted as you move
 	  around in the script, and you can drag the divider to make the
 	  panel wider or narrower.</para>
 
@@ -613,6 +613,34 @@
 	  Either way, everything in the scene moves along with it. Anything
 	  before the first scene heading, such as 'FADE IN:', stays where it
 	  is. Moving scenes can be undone like any other edit.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>View/Notes</title>
+
+	  <para>This toggles the notes sidebar, which lists the script's notes
+	  in script order, below the outline when both are shown. Each note
+	  shows the page and scene it's in and the start of the paragraph
+	  it's about. A note stays with its paragraph as you edit the script,
+	  moves with it when you cut and paste it, and is deleted along with
+	  all of the paragraph's text. In the script, paragraphs with notes
+	  have a note icon in the left margin; click it to see their
+	  notes.</para>
+
+	  <para>Click a note to go to its paragraph, which is highlighted while
+	  the list has the focus. Double-click it, or press Enter or F2, to
+	  edit it; Ctrl+Enter or clicking elsewhere finishes, and Escape
+	  cancels. Space marks the note as resolved, or not, and Delete
+	  deletes it; the right-click menu has these too, and can hide the
+	  resolved notes. Every change to the notes can be undone like any
+	  other edit.</para>
+
+	  <para>Notes are saved in the script, exported as notes to Fountain
+	  and Final Draft files, and optionally included in HTML exports.
+	  Scripts made with older versions of &trelby; had Note elements in
+	  the script instead; those become notes on the element before them
+	  when the script is opened.</para>
 
 	</sect1>
 
@@ -1278,13 +1306,14 @@
 			  These colors are required: text, textHdr (page headers),
 			  textBg (the page), workspace (around the pages), pageBorder,
 			  pageShadow, selected, cursor, autoCompFg and autoCompBg (the
-			  auto-completion list), note (the background of notes),
+			  auto-completion list), note (the background of the
+			  paragraph whose note is selected),
 			  pagebreak, pagebreakNoAdjust, tabText, tabBorder, tabBarBg and
 			  tabNonActiveBg.</para>
 
 			  <para>These are optional: the text colors of scene, action,
 			  character, dialogue, parenthetical, transition, shot,
-			  actBreak and noteText, which default to text; and accent and
+			  and actBreak, which default to text; and accent and
 			  accentText, for the selected item in lists, which go
 			  together and default to the operating system's highlight
 			  colors; and spellError, the underline of misspelled words,
@@ -1531,13 +1560,6 @@
 		<para>'Show table of contents on PDF open', if on, will cause the
 		table of contents to be shown by default when opening the PDF
 		file.</para>
-
-		<para>'Omit Note elements', if on, will cause all Note elements to
-		be omitted from the PDF output.</para>
-
-		<para>'Draw rectangles around Note elements', if on, will cause
-		rounded rectangles to be drawn around Note elements in the PDF
-		output to make them stand out more.</para>
 
 		<para>'Show margins' draws a rectangle on each page showing the
 		margin settings. It can be considered a debug option as it has no
