@@ -160,14 +160,77 @@ def drawText(dc, text, x, y, align=util.ALIGN_LEFT, valign=util.VALIGN_TOP):
     return (w, h)
 
 
+# how much finishWindow widens the borders and grid gaps the windows'
+# layouts give, which were picked for a denser look.
+SPACING = 1.5
+
+# the gap finishWindow puts between items stacked on top of each other
+# that have none, like a label and the control under it.
+MIN_GAP = 5
+
+
+# multiply the borders of the items in sizer and its child sizers, and the
+# gaps of grid sizers, by factor, and put MIN_GAP between the items of
+# vertical box sizers that have no gap between them. each sizer is only
+# done once, so laying a window out again doesn't keep widening it.
+def spaceSizer(sizer, factor=SPACING):
+    if getattr(sizer, "_trelbySpaced", False):
+        return
+
+    sizer._trelbySpaced = True
+
+    if isinstance(sizer, wx.GridSizer):
+        sizer.SetVGap(round(sizer.GetVGap() * factor))
+        sizer.SetHGap(round(sizer.GetHGap() * factor))
+
+    vertical = (
+        isinstance(sizer, wx.BoxSizer) and sizer.GetOrientation() == wx.VERTICAL
+    )
+
+    # indexes of the items that need a MIN_GAP spacer before them. a
+    # spacer, since giving an item a top border would change its other
+    # borders too.
+    gaps = []
+    prev = None
+
+    for i, item in enumerate(sizer.GetChildren()):
+        item.SetBorder(round(item.GetBorder() * factor))
+
+        if (
+            vertical
+            and prev
+            and not prev.IsSpacer()
+            and not item.IsSpacer()
+            and not (prev.GetFlag() & wx.BOTTOM and prev.GetBorder())
+            and not (item.GetFlag() & wx.TOP and item.GetBorder())
+        ):
+            gaps.append(i)
+
+        prev = item
+
+        if item.IsSizer():
+            spaceSizer(item.GetSizer(), factor)
+        elif item.IsSpacer():
+            # fixed gaps; the (1, 1) stretch spacers are left alone.
+            w, h = item.GetSpacer()
+            item.AssignSpacer(
+                wx.Size(*(round(n * factor) if n > 1 else n for n in (w, h)))
+            )
+
+    for i in reversed(gaps):
+        sizer.Insert(i, 0, MIN_GAP)
+
+
 # create pad sizer for given window whose controls are in topSizer, with
 # 'pad' pixels of padding on each side, resize window to correct size, and
-# optionally center it.
+# optionally center it. the spacing inside topSizer is widened by SPACING.
 def finishWindow(window, topSizer, pad=20, center=False):
     # dialogs and other top-level windows are shown in the theme's colors.
     # before the layout, since it pads the buttons.
     if window.IsTopLevel():
         theming.themeWindow(window)
+
+    spaceSizer(topSizer)
 
     padSizer = wx.BoxSizer(wx.VERTICAL)
     padSizer.Add(topSizer, 1, wx.EXPAND | wx.ALL, pad)

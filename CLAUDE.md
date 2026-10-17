@@ -120,5 +120,6 @@ Tests: `tests/test_menus.py` checks that every menu item and keyboard command ha
 - Version string is duplicated in `pyproject.toml`, `trelby/misc.py`, `doc/version.xml`, and `choco/`; bump all of them together.
 - Packaging metadata and dependency bounds live in `pyproject.toml`; `requirements.txt` is the dev install (same bounds plus pytest). Keep them in sync.
 - Menu/control IDs: use `wx.NewIdRef()` (not the deprecated `wx.NewId()`). `WindowIDRef` works as a dict key and in `Bind`/`Append`, but doesn't support arithmetic; convert with `int()` when you need it (see `mrufiles.MRUFiles`). Submenus use `AppendSubMenu`.
+- Spacing: `gutil.finishWindow` widens every border, grid gap and fixed spacer in the layout by `gutil.SPACING` (1.5) and puts `MIN_GAP` between stacked items of vertical sizers that have none (`spaceSizer`), so write borders at the old, denser sizes (5 / 10 / 20). Layouts that don't go through `finishWindow` call `gutil.spaceSizer` themselves before `SetSizer` (the character profile form, the report windows).
 - Font constants: use `wx.FONTFAMILY_*` / `wx.FONTSTYLE_*` / `wx.FONTWEIGHT_*`, not the old `wx.NORMAL` / `wx.BOLD` / `wx.MODERN`.
 - To catch new deprecations, run the app with `.venv/Scripts/python -X dev -W always trelby.py --test`; startup should print no warnings.

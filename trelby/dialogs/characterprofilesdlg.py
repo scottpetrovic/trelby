@@ -417,6 +417,7 @@ class CharacterProfilesDlg(wx.Dialog):
         self.ctrls["notes"] = notes.text
         formSizer.Add(notes, 1, wx.EXPAND | wx.TOP, 3)
 
+        gutil.spaceSizer(formSizer)
         self.form.SetSizer(formSizer)
 
         hsizer.Add(self.form, 1, wx.EXPAND | wx.LEFT, 15)

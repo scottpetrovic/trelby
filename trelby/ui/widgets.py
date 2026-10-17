@@ -222,7 +222,8 @@ class WrappedText(wx.StaticText):
             w.Layout()
 
 
-# a list box in the theme's colors, with the selection in its accent color.
+# a list box in the theme's colors, with the selection tinted with its accent
+# color.
 # it has the parts of wx.ListBox's interface we use, and with checkable set,
 # those of wx.CheckListBox. it sends the same events with the control's id:
 # EVT_LISTBOX when the user changes the selection, EVT_LISTBOX_DCLICK, and
@@ -313,6 +314,7 @@ class ThemedListBox(wx.Panel):
         self.list.SetForegroundColour(fg)
         self.list.accent = accent
         self.list.accentText = accentText
+        self.list.selectionBg = theming.blendColors(bg, accent, 0.3)
         self.scrollBar.setColors(bg, fg)
 
         self.Refresh()
@@ -534,6 +536,10 @@ class _ListBoxImpl(wx.VListBox):
         self.accent = None
         self.accentText = None
 
+        # a selected item's background: the background with a tint of the
+        # accent color, under the normal text color
+        self.selectionBg = None
+
         self.pad = self.FromDIP(6)
         self.lineHeight = self.GetCharHeight()
         self.boxSize = self.FromDIP(14) if owner.checkable else 0
@@ -557,7 +563,7 @@ class _ListBoxImpl(wx.VListBox):
     def OnDrawBackground(self, dc, rect, n):
         if self.IsSelected(n):
             dc.SetPen(wx.TRANSPARENT_PEN)
-            dc.SetBrush(wx.Brush(self.accent))
+            dc.SetBrush(wx.Brush(self.selectionBg))
             dc.DrawRectangle(rect)
 
         # in a multiple-selection list, the item the keyboard is at
@@ -569,10 +575,12 @@ class _ListBoxImpl(wx.VListBox):
     def OnDrawItem(self, dc, rect, n):
         text, data, checked, dimmed = self.owner.items[n]
 
+        fg = self.GetForegroundColour()
+
         if self.IsSelected(n):
-            bg, fg = self.accent, self.accentText
+            bg = self.selectionBg
         else:
-            bg, fg = self.GetBackgroundColour(), self.GetForegroundColour()
+            bg = self.GetBackgroundColour()
 
         if dimmed or not self.IsEnabled():
             fg = theming.blendColors(fg, bg, 0.5)
@@ -589,23 +597,18 @@ class _ListBoxImpl(wx.VListBox):
         )
 
     # draw a check box in rect r, on background color bg, with fg the text
-    # color: filled with the accent color (or on a selected item, which has
-    # the accent color as its background, with fg) when checked, and an
-    # outline when not
+    # color: filled with the accent color when checked, and an outline when
+    # not
     def drawCheckBox(self, dc, r, checked, bg, fg):
         gc = wx.GraphicsContext.Create(dc)
         radius = self.FromDIP(2)
 
         if checked:
-            onAccent = bg == self.accent
-            fill = fg if onAccent else self.accent
-            mark = self.accent if onAccent else self.accentText
-
             gc.SetPen(wx.TRANSPARENT_PEN)
-            gc.SetBrush(wx.Brush(fill))
+            gc.SetBrush(wx.Brush(self.accent))
             gc.DrawRoundedRectangle(r.x, r.y, r.width, r.height, radius)
 
-            gc.SetPen(wx.Pen(mark, self.FromDIP(2)))
+            gc.SetPen(wx.Pen(self.accentText, self.FromDIP(2)))
             gc.StrokeLines(
                 [
                     (r.x + r.width * 0.22, r.y + r.height * 0.52),
@@ -729,7 +732,7 @@ class ThemedTextCtrl(wx.Panel):
 
         # space between the border and the text, at the left and the top
         # (the text's own margin is at the right)
-        self.pad = self.FromDIP(6)
+        self.pad = self.FromDIP(8)
 
         # which native scrollbars the text has
         self.hasVBar = not (style & wx.TE_NO_VSCROLL)

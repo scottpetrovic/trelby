@@ -139,32 +139,43 @@ def _padButton(w):
 
 
 # give text field w (a wx.TextCtrl or a spin control) more room around its
-# text than the native field: margins at the sides, and for a single-line
-# wx.TextCtrl, more height, half of it above the text. (a spin control's
-# native field draws its border inside its client area, so on Windows its
-# text can't be moved down from the border.) returns whether its minimum
-# size changed.
+# text than the native field, about as much as Windows 11's own text
+# fields have: margins at the sides, and unless it has several lines, more
+# height, half of it above the text. a spin control gets wider by its
+# margins, since its native width only just fits its widest number.
+# returns whether its minimum size changed.
 def _padTextField(w):
-    pad = w.FromDIP(5)
+    pad = w.FromDIP(8)
     setTextMargins(w, pad, pad)
 
-    if not isinstance(w, wx.TextCtrl) or w.IsMultiLine():
+    if isinstance(w, wx.TextCtrl) and w.IsMultiLine():
         return False
 
-    vPad = w.FromDIP(3)
+    vPad = w.FromDIP(4)
+    isSpin = not isinstance(w, wx.TextCtrl)
 
-    # the best size includes the minimum size, so clear its height first
+    # the minimum size its own code gave it, before ours
+    if not hasattr(w, "ownMinSize"):
+        w.ownMinSize = w.GetMinSize()
+
+    own = w.ownMinSize
     old = w.GetMinSize()
-    w.SetMinSize(wx.Size(old.width, -1))
+
+    # the best size includes the minimum size, so clear that first
+    w.SetMinSize(own)
     w.InvalidateBestSize()
-    size = wx.Size(old.width, max(old.height, w.GetBestSize().height + 2 * vPad))
+    best = w.GetBestSize()
+    size = wx.Size(
+        best.width + 2 * pad if (isSpin and own.width == -1) else own.width,
+        max(own.height, best.height + 2 * vPad),
+    )
 
     w.SetMinSize(size)
 
     # Windows keeps a single-line field's text at the top, so all the extra
     # height would be below it
     if misc.isWindows:
-        _centerEditText(w, vPad)
+        _centerEditText(w, vPad, isSpin)
 
     return size != old
 
@@ -181,6 +192,7 @@ def _editHwnd(w):
 
 
 # window messages, hit test results and SetWindowPos flags
+_WM_PAINT = 0xF
 _WM_NCDESTROY = 0x82
 _WM_NCCALCSIZE = 0x83
 _WM_NCHITTEST = 0x84
@@ -193,25 +205,39 @@ _SWP_FRAME = 0x1 | 0x2 | 0x4 | 0x10 | 0x20
 # the Win32 functions _centerEditText uses, set up on first use
 _win = None
 
-# the fields _centerEditText has done, by native window: (the wx window,
-# the pixels taken off the client area at the top and at the bottom)
+# the fields _centerEditText has done, by native window, as
+# SimpleNamespaces: w, the wx window; pad, the pixels taken off the client
+# area at the top and at the bottom; ownBorder, whether we draw its border
+# (see _centerEditText); and borderColor, that border's color as a
+# COLORREF, or None until the field has drawn it.
 _centered = {}
 
 
-# move the text of single-line wx.TextCtrl w down by pad pixels, so that
-# with pad pixels more height than the native field, the text is as far
-# from the top as from the bottom: the client area, where the native field
-# draws, gets pad pixels smaller at the top and at the bottom, and those
-# strips are drawn in its background color. clicks in them go to the
-# field. Windows only.
-def _centerEditText(w, pad):
+# move the text of single-line text field w (a wx.TextCtrl or a spin
+# control) down by pad pixels, so that with pad pixels more height than the
+# native field, the text is as far from the top as from the bottom: the
+# client area of its native field, where the field draws, gets pad pixels
+# smaller at the top and at the bottom, and those strips are drawn in its
+# background color. clicks in them go to the field.
+#
+# a wx.TextCtrl's border is outside the client area (wx draws it), but a
+# spin control's field draws its own, 1 pixel wide, at the edges of the
+# client area, which would leave the strips outside it. so with ownBorder,
+# its top and bottom lines are covered up after the field draws, and the
+# border is drawn again around the whole field, in the color the field
+# used. Windows only.
+def _centerEditText(w, pad, ownBorder=False):
     _initWin()
-    hwnd = w.GetHandle()
+    hwnd = _editHwnd(w)
 
     if hwnd not in _centered:
         _win.SetWindowSubclass(hwnd, _win.proc, 1, 0)
+        _centered[hwnd] = types.SimpleNamespace(borderColor=None)
 
-    _centered[hwnd] = (w, pad)
+    f = _centered[hwnd]
+    f.w = w
+    f.pad = pad
+    f.ownBorder = ownBorder
 
     # makes Windows ask for the client area again, and redraw the frame
     _win.user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, _SWP_FRAME)
@@ -286,29 +312,32 @@ def _initWin():
         ),
         (gdi32.CreateSolidBrush, wintypes.HBRUSH, [wintypes.DWORD]),
         (gdi32.DeleteObject, wintypes.BOOL, [wintypes.HGDIOBJ]),
+        (gdi32.GetPixel, wintypes.DWORD, [wintypes.HDC, ctypes.c_int, ctypes.c_int]),
     ):
         f.restype = res
         f.argtypes = args
 
     def proc(hwnd, msg, wParam, lParam, idSubclass, refData):
         res = comctl32.DefSubclassProc(hwnd, msg, wParam, lParam)
-        w, pad = _centered.get(hwnd, (None, 0))
+        f = _centered.get(hwnd)
 
         if msg == _WM_NCDESTROY:
             comctl32.RemoveWindowSubclass(hwnd, _win.proc, 1)
             _centered.pop(hwnd, None)
-        elif not w:
+        elif not f:
             pass
         elif msg == _WM_NCCALCSIZE:
             # the new client area is the first rectangle lParam points to,
             # whatever wParam says
             rc = wintypes.RECT.from_address(lParam)
 
-            if rc.bottom - rc.top > 2 * pad:
-                rc.top += pad
-                rc.bottom -= pad
+            if rc.bottom - rc.top > 2 * f.pad:
+                rc.top += f.pad
+                rc.bottom -= f.pad
         elif msg == _WM_NCPAINT:
-            _paintStrips(hwnd, w, pad)
+            _paintPadding(hwnd, f, False)
+        elif msg == _WM_PAINT and f.ownBorder:
+            _paintPadding(hwnd, f, True)
         elif msg == _WM_NCHITTEST and res in (_HTNOWHERE, _HTBORDER):
             res = _HTCLIENT
 
@@ -325,32 +354,71 @@ def _initWin():
 
 
 # draw the strips _centerEditText took off native window hwnd's client
-# area, in the background color of w, the wx window it belongs to
-def _paintStrips(hwnd, w, pad):
+# area, in the background color of its wx window, and with f.ownBorder, the
+# border around them. afterPaint is whether the field has just drawn its
+# client area, and with it the border we cover up and take the color of.
+def _paintPadding(hwnd, f, afterPaint):
     wt = _win.wintypes
     u = _win.user32
+    gdi = _win.gdi32
+    byref = _win.ctypes.byref
 
     wr = wt.RECT()
     cr = wt.RECT()
     pt = wt.POINT(0, 0)
-    u.GetWindowRect(hwnd, _win.ctypes.byref(wr))
-    u.GetClientRect(hwnd, _win.ctypes.byref(cr))
-    u.ClientToScreen(hwnd, _win.ctypes.byref(pt))
+    u.GetWindowRect(hwnd, byref(wr))
+    u.GetClientRect(hwnd, byref(cr))
+    u.ClientToScreen(hwnd, byref(pt))
 
-    # the client area in window coordinates
+    # the window's size, and its client area's position in it
+    ww = wr.right - wr.left
+    wh = wr.bottom - wr.top
     x = pt.x - wr.left
     y = pt.y - wr.top
 
-    c = w.GetBackgroundColour()
-    brush = _win.gdi32.CreateSolidBrush(c.Red() | (c.Green() << 8) | (c.Blue() << 16))
+    def fill(hdc, brush, *rects):
+        for left, top, right, bottom in rects:
+            u.FillRect(hdc, byref(wt.RECT(left, top, right, bottom)), brush)
+
+    c = f.w.GetBackgroundColour()
+    bg = gdi.CreateSolidBrush(c.Red() | (c.Green() << 8) | (c.Blue() << 16))
     hdc = u.GetWindowDC(hwnd)
 
-    for top in (y - pad, y + cr.bottom):
-        r = wt.RECT(x, top, x + cr.right, top + pad)
-        u.FillRect(hdc, _win.ctypes.byref(r), brush)
+    fill(
+        hdc,
+        bg,
+        (x, y - f.pad, x + cr.right, y),
+        (x, y + cr.bottom, x + cr.right, y + cr.bottom + f.pad),
+    )
+
+    if f.ownBorder:
+        if afterPaint and cr.bottom > 2:
+            # the field's border's left side, halfway down
+            f.borderColor = gdi.GetPixel(hdc, x, y + cr.bottom // 2)
+
+            # its top and bottom
+            fill(
+                hdc,
+                bg,
+                (x + 1, y, x + cr.right - 1, y + 1),
+                (x + 1, y + cr.bottom - 1, x + cr.right - 1, y + cr.bottom),
+            )
+
+        # 0xFFFFFFFF: GetPixel's "no color"
+        if f.borderColor not in (None, 0xFFFFFFFF):
+            border = gdi.CreateSolidBrush(f.borderColor)
+            fill(
+                hdc,
+                border,
+                (0, 0, ww, 1),
+                (0, wh - 1, ww, wh),
+                (0, 0, 1, wh),
+                (ww - 1, 0, ww, wh),
+            )
+            gdi.DeleteObject(border)
 
     u.ReleaseDC(hwnd, hdc)
-    _win.gdi32.DeleteObject(brush)
+    gdi.DeleteObject(bg)
 
 
 # EM_SETMARGINS, and its flags for the left and right margins

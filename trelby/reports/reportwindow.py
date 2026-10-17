@@ -13,6 +13,7 @@ import wx.html
 import trelby.misc as misc
 import trelby.pdf.pml as pml
 import trelby.ui.fileio as fileio
+import trelby.ui.gutil as gutil
 import trelby.ui.theming as theming
 import trelby.util as util
 
@@ -91,6 +92,7 @@ class ReportFrame(wx.Frame):
         self.updateControls()
         self.update()
 
+        gutil.spaceSizer(vsizer)
         panel.SetSizer(vsizer)
         theming.themeWindow(self)
 
