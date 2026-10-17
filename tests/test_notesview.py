@@ -232,6 +232,7 @@ def noteCtrl():
     ctrl.clearAutoComp = lambda: None
     ctrl.ed.addNote(0, "One")
     ctrl.ed.addNote(0, "Two")
+    ctrl.noteChecks = []
 
     return ctrl
 
@@ -381,6 +382,32 @@ def testInlineEditFollowsCard(editCtrl):
     assert editCtrl.sp.getParaNotes(0) == (Note("One"), Note("New"))
 
 
+class ClickEvent:
+    def __init__(self, pos):
+        self.pos = pos
+
+    def GetPosition(self):
+        return self.pos
+
+
+# clicking a note card's checkbox marks the note resolved or not, and so
+# does each click of a double click on it
+def testNoteCheckBox(app):
+    ctrl = noteCtrl()
+    sp = ctrl.sp
+    ctrl.noteChecks = [(wx.Rect(10, 10, 20, 20), 0, 1)]
+
+    assert not ctrl.toggleNoteCheckAt(wx.Point(5, 5))
+    assert ctrl.toggleNoteCheckAt(wx.Point(15, 15))
+    assert sp.getParaNotes(0) == (Note("One"), Note("Two", resolved=True))
+
+    ctrl.OnLeftDClick(ClickEvent(wx.Point(15, 15)))
+    assert sp.getParaNotes(0) == (Note("One"), Note("Two"))
+
+    ctrl.ed.cmd("undo")
+    assert sp.getParaNotes(0) == (Note("One"), Note("Two", resolved=True))
+
+
 # a double click on a note beside the page edits the note the first click
 # was on, even if it has moved since; an icon edits a paragraph's only
 # note, and there's nothing to edit for one with more
@@ -391,7 +418,7 @@ def testNoteDClick(app):
     ctrl.lastDClick = None
     ctrl.lastNoteClick = (time.monotonic(), (0, 1))
 
-    ctrl.OnLeftDClick(None)
+    ctrl.OnLeftDClick(ClickEvent(wx.Point(0, 0)))
     assert edited == [(0, 1)]
     assert ctrl.lastNoteClick is None
 

@@ -162,6 +162,10 @@ class MyCtrl(wx.Control):
         # (see ScriptPainter.drawNoteMarkers). set by OnPaint.
         self.noteMarkers = []
 
+        # the "resolved" checkboxes on the cards, likewise
+        # (ScriptPainter.noteChecks)
+        self.noteChecks = []
+
         # the tooltip shown, a note's text while the mouse is over its card
         self.noteTip = None
 
@@ -603,6 +607,9 @@ class MyCtrl(wx.Control):
 
             return
 
+        if not mark and self.toggleNoteCheckAt(event.GetPosition()):
+            return
+
         marker = None if mark else self.noteMarkerAt(event.GetPosition())
 
         if marker is not None:
@@ -634,6 +641,10 @@ class MyCtrl(wx.Control):
             self.updateScreen()
 
     def OnLeftDClick(self, event):
+        # the second click of a double click on a checkbox toggles it back
+        if self.toggleNoteCheckAt(event.GetPosition()):
+            return
+
         marker = None
 
         if self.lastNoteClick:
@@ -722,6 +733,12 @@ class MyCtrl(wx.Control):
             if marker[1] < len(notes):
                 tip = notes[marker[1]].text
 
+                if self.noteCheckAt(pos):
+                    if notes[marker[1]].resolved:
+                        tip = _("Mark as not resolved")
+                    else:
+                        tip = _("Mark as resolved")
+
         if tip != self.noteTip:
             self.noteTip = tip
             self.SetToolTip(tip)
@@ -739,6 +756,32 @@ class MyCtrl(wx.Control):
                 return line, index
 
         return None
+
+    # (line, index) of the note whose "resolved" checkbox is at pos, like
+    # noteMarkerAt's, or None
+    def noteCheckAt(self, pos):
+        for rect, line, index in self.noteChecks:
+            if rect.Contains(pos):
+                return line, index
+
+        return None
+
+    # if pos is on a note's "resolved" checkbox, mark the note resolved or
+    # not and return True
+    def toggleNoteCheckAt(self, pos):
+        check = self.noteCheckAt(pos)
+
+        if check is None:
+            return False
+
+        line, index = check
+        notes = self.sp.getParaNotes(line)
+
+        if index < len(notes):
+            note = notes[index]
+            self.setNote(line, index, note.replace(resolved=not note.resolved))
+
+        return True
 
     # put the cursor on the paragraph starting at line, and select its note
     # at index in the notes sidebar, or its first one if index is None, if
@@ -1405,6 +1448,7 @@ class MyCtrl(wx.Control):
         )
         self.titleButtonRect = painter.paint(dc)
         self.noteMarkers = painter.noteMarkers
+        self.noteChecks = painter.noteChecks
 
         if self.noteEditor:
             self.noteEditor.update(self.noteMarkers)

@@ -183,12 +183,22 @@ def testPaintNoteMarkers(app, vm, cards):
         assert r.width == scriptpainter.NOTE_WIDTH
 
     # the long note shows NOTE_LINES lines, the others one
-    assert rects[0].height > 2 * rects[1].height
+    # (with 8 pixels of padding above and below the text)
+    assert rects[0].height - 16 == 3 * (rects[1].height - 16)
     assert rects[2].height == rects[1].height
 
     assert rects[0].y == t1.y
     assert rects[1].y > rects[0].GetBottom()
     assert rects[2].y == max(t5.y, rects[1].GetBottom() + 1 + 4)
+
+    # each card has a checkbox at the right of its first line
+    checks = painter.noteChecks
+    assert [(l, index) for rect, l, index in checks] == [(1, 0), (1, 1), (5, 0)]
+
+    for (check, l, index), card in zip(checks, rects):
+        assert card.Contains(check.GetTopLeft() + wx.Point(4, 4))
+        assert check.GetRight() - 4 > card.x + card.width * 3 // 4
+        assert check.y - 4 < card.y + card.height // 2
 
 
 # a paragraph a new note is being written on gets a blank card after its
@@ -211,3 +221,7 @@ def testPaintNewNoteCard(app, line, notes):
 
     keys = [(l, index) for rect, l, index in painter.noteMarkers]
     assert keys == [(line, k) for k in range(len(notes) + 1)]
+
+    # the blank card has no checkbox
+    keys = [(l, index) for rect, l, index in painter.noteChecks]
+    assert keys == [(line, k) for k in range(len(notes))]

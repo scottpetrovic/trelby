@@ -101,8 +101,14 @@ class ScriptPainter:
         # wx.Rect of the title page button, set by paint
         self.titleButtonRect = None
 
-        # the note markers drawn, as (wx.Rect, line) tuples, set by paint
+        # the note markers drawn, as (wx.Rect, line, index) tuples, set by
+        # paint (see drawNoteMarkers)
         self.noteMarkers = []
+
+        # the "resolved" checkboxes on the note cards, as (wx.Rect, line,
+        # index) tuples like noteMarkers', the rect a bit bigger than the
+        # box to make it easier to click
+        self.noteChecks = []
 
     # draw the script on dc. returns the wx.Rect of the "Manage title
     # page" button above the first page, or None if it's not on screen.
@@ -432,8 +438,9 @@ class ScriptPainter:
     # mode or in a narrow window, a note icon marks the paragraph instead.
     # remembers where they are for clicks, as (wx.Rect, line, index)
     # tuples in noteMarkers, index being the note's among the paragraph's
-    # notes, or None for an icon. the blank card for a new note (see
-    # newNoteLine) has the index the note will have.
+    # notes, or None for an icon, and their "resolved" checkboxes in
+    # noteChecks. the blank card for a new note (see newNoteLine) has the
+    # index the note will have, and no checkbox.
     def drawNoteMarkers(self, dc, strings, dpages, size):
         vp = self.vp
         ls = vp.sp.lines
@@ -494,8 +501,15 @@ class ScriptPainter:
             dc.DrawLine(right + 1, t.y + lineH // 2, x, y + lineH // 2)
 
             for index, note in enumerate(notes):
-                h = self.drawNoteCard(dc, x, y, w, lineH, note)
+                # the blank card for a new note has nothing to resolve
+                isNew = index == len(ls[i].notes)
+
+                h, check = self.drawNoteCard(dc, x, y, w, lineH, note, not isNew)
                 self.noteMarkers.append((wx.Rect(x, y, w, h), i, index))
+
+                if check:
+                    self.noteChecks.append((check, i, index))
+
                 y += h + vp.dip(4)
 
             bottoms[right] = y
@@ -525,13 +539,19 @@ class ScriptPainter:
 
     # draw a card w pixels wide for note, its top left corner at (x, y),
     # with the start of its text: NOTE_LINES lines of lineH pixels, or one
-    # for a resolved note. returns its height.
-    def drawNoteCard(self, dc, x, y, w, lineH, note):
+    # for a resolved note, and if 'check', a checkbox at the right of its
+    # first line that marks it resolved. returns (its height, the wx.Rect
+    # to click for the checkbox, or None).
+    def drawNoteCard(self, dc, x, y, w, lineH, note, check=True):
         vp = self.vp
         fill, border, text, bar = self.noteColors(note.resolved)
-        padX = vp.dip(8)
-        padY = vp.dip(4)
+        padX = vp.dip(12)
+        padY = vp.dip(8)
+        box = vp.dip(13)
         tw = w - 2 * padX
+
+        if check:
+            tw -= box + padX // 2
 
         lines = []
 
@@ -539,7 +559,7 @@ class ScriptPainter:
             lines += wordwrap(para, tw, dc).split("\n")
 
         if note.resolved:
-            lines = ["✓ " + " ".join(note.text.split())]
+            lines = [" ".join(note.text.split())]
 
         maxLines = 1 if note.resolved else NOTE_LINES
 
@@ -565,7 +585,37 @@ class ScriptPainter:
         for k, s in enumerate(lines):
             dc.DrawText(s, x + padX, y + padY + k * lineH)
 
-        return h
+        if not check:
+            return h, None
+
+        bx = x + w - padX - box
+        by = y + padY + (lineH - box) // 2
+        self.drawCheckBox(dc, bx, by, box, note.resolved, fill, text, bar)
+
+        hit = wx.Rect(bx, by, box, box)
+        hit.Inflate(vp.dip(4), vp.dip(4))
+
+        return h, hit
+
+    # draw a checkbox 'size' pixels square, its top left corner at (x, y),
+    # on a card filled with 'fill': a box in the card's text color, or
+    # filled with 'bar' (the accent color) and ticked if 'checked'
+    def drawCheckBox(self, dc, x, y, size, checked, fill, text, bar):
+        vp = self.vp
+
+        dc.SetPen(wx.Pen(bar if checked else text))
+        dc.SetBrush(wx.Brush(bar if checked else fill))
+        dc.DrawRoundedRectangle(x, y, size, size, vp.dip(2))
+
+        if checked:
+            dc.SetPen(wx.Pen(fill, max(1, vp.dip(2))))
+            dc.DrawLines(
+                [
+                    wx.Point(x + size * 3 // 13, y + size * 7 // 13),
+                    wx.Point(x + size * 5 // 13, y + size * 9 // 13),
+                    wx.Point(x + size * 10 // 13, y + size * 4 // 13),
+                ]
+            )
 
     # mark the paragraph starting at line i, whose first line is at y on
     # a page whose right edge is at x 'right', with a note icon just

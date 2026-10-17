@@ -39,6 +39,7 @@ class NoteEditor:
         self.text.SetBackgroundColour(cfgGui.textBgColor)
         self.text.SetForegroundColour(cfgGui.textColor)
         self.text.SetFont(wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT))
+        self.text.SetMargins(self.text.FromDIP(8), -1)
         self.text.SetToolTip(
             _("Ctrl+Enter or click elsewhere to finish, Esc to cancel")
         )
