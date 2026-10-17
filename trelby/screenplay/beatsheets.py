@@ -1,7 +1,7 @@
 # beat sheets: templates the outline's add scene button can insert, a
 # scene per beat. a beat's scene heading is its name, its description is a
-# note on the heading (so the outline shows it as the scene's summary), and
-# its color says which act it's in.
+# note on the heading (so it isn't printed), and its color says which act
+# it's in.
 #
 # the texts are made when asked for (BeatSheet.name / beats), as the
 # sheets are defined before the translations are loaded.

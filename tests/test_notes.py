@@ -256,12 +256,9 @@ def testOldNoteElementsBecomeNotes():
     assert "#Note First line\\nsecond line\n" in s
 
 
-def testOutlineSummaryIsFirstUnresolvedNote():
+def testOutlineSummaryIgnoresNotes():
     ed = load()
 
-    assert ed.sp.getOutline()[0].summary == "Remember the salt."
-
-    ed.setNote(1, 0, Note("Remember the salt.", True))
     assert ed.sp.getOutline()[0].summary.startswith("Mary cooks")
 
 

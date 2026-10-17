@@ -12,6 +12,10 @@ from trelby.screenplay.constants import (
 from trelby.screenplay.datatypes import OutlineItem
 from trelby.screenplay.line import Line
 
+# how much of a scene's action its outline summary has, in characters,
+# at least
+SUMMARY_LENGTH = 200
+
 
 class OutlineMixin:
     # return the first line of every scene heading and act break element,
@@ -60,25 +64,7 @@ class OutlineMixin:
 
             sceneNr = sceneNrs.get(start, "")
 
-            # the summary is the scene's first unresolved note, or its
-            # first action
-            note = None
-            action = None
-
-            for i in range(start, end + 1):
-                note = next((n.text for n in ls[i].notes if not n.resolved), None)
-
-                if note is not None:
-                    break
-
-                if (
-                    (action is None)
-                    and (ls[i].lt == ACTION)
-                    and self.isFirstLineOfElem(i)
-                ):
-                    action = self.getElemText(i)
-
-            summary = note if note is not None else (action or "")
+            summary = self.getSceneSummary(start, end)
 
             ret.append(
                 OutlineItem(
@@ -94,6 +80,28 @@ class OutlineMixin:
             )
 
         return ret
+
+    # return the start of the action in lines start - end, a scene, as one
+    # string: its action paragraphs joined until there's at least
+    # SUMMARY_LENGTH characters, which is more than the outline shows.
+    # notes aren't used, they have their own sidebar.
+    def getSceneSummary(self, start, end):
+        ls = self.lines
+        parts = []
+        length = 0
+
+        for i in range(start, end + 1):
+            if length >= SUMMARY_LENGTH:
+                break
+
+            if (ls[i].lt == ACTION) and self.isFirstLineOfElem(i):
+                text = " ".join(self.getElemText(i).split())
+
+                if text:
+                    parts.append(text)
+                    length += len(text) + 1
+
+        return " ".join(parts)
 
     # return the index in starts (as returned by getOutlineStarts) of the
     # scene / act break containing the given line, or -1 if the line is

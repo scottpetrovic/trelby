@@ -131,7 +131,10 @@ def testInsertBeatSheet():
         "EXT. GARDEN - NIGHT",
     ]
     items = ed.sp.getOutline()
-    assert items[1].summary.startswith("The protagonist, their world")
+    assert items[1].summary == ""
+    assert ed.sp.lines[items[1].startLine].notes[0].text.startswith(
+        "The protagonist, their world"
+    )
     assert items[1].color == beatsheets.ACT_ONE
     assert items[4].color == beatsheets.ACT_TWO
     assert ed.line == items[1].startLine

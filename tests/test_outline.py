@@ -47,8 +47,8 @@ def testGetOutline():
         "INT. CAR - DAY",
     ]
 
-    # notes win over action for the summary
-    assert items[0].summary == "Ingredients matter here."
+    # the summary is the action, not the notes
+    assert items[0].summary == "Mary cooks."
     assert items[1].summary == "John waits."
     assert items[3].summary == ""
 
@@ -244,3 +244,30 @@ def testOutlineSample():
     assert len([it for it in items if it.lt == scr.ACTBREAK]) == 3
     assert len([it for it in items if it.lt == scr.SCENE]) == 11
     assert items[0].startLine > 0
+
+
+def testSummaryJoinsActionParagraphs():
+    ed = u.loadStringEditor(
+        "\n".join(
+            [
+                "#Version 3",
+                "#Start-Script ",
+                ".\\int. kitchen - day",
+                "..Later.",
+                "._MARY",
+                ".:Hello.",
+                "..Mary cooks.",
+                ".\\ext. garden - night",
+                "..A" + " very long sentence" * 20,
+                "..Not reached.",
+            ]
+        )
+    )
+    items = ed.sp.getOutline()
+
+    # action only, dialogue left out
+    assert items[0].summary == "Later. Mary cooks."
+
+    # stops once it has enough
+    assert items[1].summary.startswith("A very long sentence")
+    assert "Not reached" not in items[1].summary
