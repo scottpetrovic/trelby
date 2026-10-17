@@ -133,6 +133,14 @@ class ConfigGui:
         self.accentBrush = wx.Brush(self.accentColor)
         self.accentPen = wx.Pen(self.accentColor)
 
+        # the selected item in the toolbar's controls: the toolbar's
+        # background tinted with the accent color, under the normal text
+        self.toolbarSelColor = theming.blendColors(
+            self.tabBarBgColor, self.accentColor, theming.ACCENT_TINT
+        )
+        self.toolbarSelBrush = wx.Brush(self.toolbarSelColor)
+        self.toolbarSelPen = wx.Pen(self.toolbarSelColor)
+
         self.autoCompBrush = wx.Brush(self.autoCompBgColor)
 
         # border and scroll bar, a third of the way from the background to

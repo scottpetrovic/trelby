@@ -140,10 +140,10 @@ class MyElemTypeBar(wx.Control):
             fillRect = wx.Rect(rect).Deflate(inset)
 
             if self.isSelected(i):
-                dc.SetBrush(cfgGui.accentBrush)
-                dc.SetPen(cfgGui.accentPen)
+                dc.SetBrush(cfgGui.toolbarSelBrush)
+                dc.SetPen(cfgGui.toolbarSelPen)
                 dc.DrawRoundedRectangle(fillRect, radius - 1)
-                dc.SetTextForeground(cfgGui.accentTextColor)
+                dc.SetTextForeground(cfgGui.tabTextColor)
                 dc.SetFont(self.itemFont(i, True))
             else:
                 if (i == self.hover) and not self.disabled:

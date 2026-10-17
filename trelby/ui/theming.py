@@ -26,6 +26,12 @@ def isDarkAppearance():
     return wx.SystemSettings.GetAppearance().IsDark()
 
 
+# how much of the accent color is mixed into the background of a selected
+# item in the lists and toolbar controls we draw ourselves, whose text keeps
+# its normal color
+ACCENT_TINT = 0.15
+
+
 # return color c1 mixed with c2, with a being the fraction of c2
 def blendColors(c1, c2, a):
     return wx.Colour(

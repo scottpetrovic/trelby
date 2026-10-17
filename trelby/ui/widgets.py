@@ -314,7 +314,7 @@ class ThemedListBox(wx.Panel):
         self.list.SetForegroundColour(fg)
         self.list.accent = accent
         self.list.accentText = accentText
-        self.list.selectionBg = theming.blendColors(bg, accent, 0.3)
+        self.list.selectionBg = theming.blendColors(bg, accent, theming.ACCENT_TINT)
         self.scrollBar.setColors(bg, fg)
 
         self.Refresh()
