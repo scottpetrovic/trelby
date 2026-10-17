@@ -1,7 +1,8 @@
 # beat sheets: templates the outline's add scene button can insert, a
-# scene per beat. a beat's scene heading is its name, its description is a
-# note on the heading (so it isn't printed), and its color says which act
-# it's in.
+# scene per beat. a beat's scene heading is its name, with its name again
+# as a note (so the cards beside the page say which beat is which once the
+# heading is rewritten) and its color saying which act it's in, and its
+# description is the scene's action, to be written over.
 #
 # the texts are made when asked for (BeatSheet.name / beats), as the
 # sheets are defined before the translations are loaded.
@@ -9,7 +10,7 @@
 from collections import namedtuple
 
 import trelby.textutil as textutil
-from trelby.screenplay.constants import LB_LAST, SCENE
+from trelby.screenplay.constants import ACTION, LB_LAST, SCENE
 from trelby.screenplay.line import Line
 from trelby.screenplay.notes import Note
 
@@ -41,18 +42,24 @@ class BeatSheet:
     def beats(self):
         return self._beats()
 
-    # return the sheet as Lines: a scene heading per beat
+    # return the sheet as Lines: a scene heading and an action line per
+    # beat, not yet word wrapped
     def lines(self):
-        return [
-            Line(
-                LB_LAST,
-                SCENE,
-                textutil.upper(b.name),
-                color=b.color,
-                notes=(Note(b.description),),
+        ret = []
+
+        for b in self.beats():
+            ret.append(
+                Line(
+                    LB_LAST,
+                    SCENE,
+                    textutil.upper(b.name),
+                    color=b.color,
+                    notes=(Note(b.name),),
+                )
             )
-            for b in self.beats()
-        ]
+            ret.append(Line(LB_LAST, ACTION, b.description))
+
+        return ret
 
 
 def saveTheCat():

@@ -5,6 +5,7 @@ import wx
 
 import tests.u as u
 import trelby.screenplay as scr
+from trelby.screenplay.notes import Note
 import trelby.translations as translations
 import trelby.ui.gutil as gutil
 
@@ -53,7 +54,8 @@ def testSheets():
 def testLines():
     lines = beatsheets.get("storycircle").lines()
 
-    assert [ln.text for ln in lines] == [
+    # a heading and an action line per beat
+    assert [ln.text for ln in lines[::2]] == [
         "YOU",
         "NEED",
         "GO",
@@ -63,10 +65,16 @@ def testLines():
         "RETURN",
         "CHANGE",
     ]
-    assert all((ln.lt == scr.SCENE) and (ln.lb == scr.LB_LAST) for ln in lines)
-    assert lines[0].notes[0].text == "1. A character is in a zone of comfort."
+    assert all(ln.lt == scr.SCENE for ln in lines[::2])
+    assert all(ln.lt == scr.ACTION for ln in lines[1::2])
+    assert all(ln.lb == scr.LB_LAST for ln in lines)
+
+    assert lines[0].notes == (Note("You"),)
+    assert lines[1].text == "1. A character is in a zone of comfort."
+    assert not lines[1].notes
     assert lines[0].color == beatsheets.ORDINARY_WORLD
-    assert lines[2].color == beatsheets.UNFAMILIAR_WORLD
+    assert lines[4].color == beatsheets.UNFAMILIAR_WORLD
+    assert lines[1].color is None
 
 
 def testAddSceneAfterCursorsScene():
@@ -131,10 +139,8 @@ def testInsertBeatSheet():
         "EXT. GARDEN - NIGHT",
     ]
     items = ed.sp.getOutline()
-    assert items[1].summary == ""
-    assert ed.sp.lines[items[1].startLine].notes[0].text.startswith(
-        "The protagonist, their world"
-    )
+    assert items[1].summary.startswith("The protagonist, their world")
+    assert ed.sp.lines[items[1].startLine].notes == (Note("Setup"),)
     assert items[1].color == beatsheets.ACT_ONE
     assert items[4].color == beatsheets.ACT_TWO
     assert ed.line == items[1].startLine
@@ -151,7 +157,10 @@ def testBeatSheetReplacesEmptyScript():
 
     assert len(headings(ed)) == 15
     assert headings(ed)[0] == "OPENING IMAGE"
-    assert len(ed.sp.lines) == 15
+
+    # nothing left of the empty script, and the descriptions wrapped
+    assert ed.sp.lines[0].lt == scr.SCENE
+    assert ed.sp.lines[-1].text == "change has happened."
     ed._validate()
 
 
