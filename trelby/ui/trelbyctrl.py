@@ -18,6 +18,7 @@ import trelby.ui.gutil as gutil
 import trelby.ui.menus as menus
 import trelby.misc as misc
 import trelby.ui.myimport as myimport
+import trelby.ui.noteeditor as noteeditor
 import trelby.opts as opts
 import trelby.screenplay as screenplay
 import trelby.spellcheck as spellcheck
@@ -99,6 +100,17 @@ def loadThesaurus(frame):
     return thesaurus.gThesaurus
 
 
+# (ms, dx, dy): how soon and how close (pixels) a click must follow the
+# one before it to make a double click
+def dclickLimits():
+    ms = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_MSEC)
+    dx = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_X)
+    dy = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_Y)
+
+    # metrics are -1 if the platform doesn't report them
+    return (ms if ms > 0 else 500, dx if dx > 0 else 4, dy if dy > 0 else 4)
+
+
 # the editor for one open script, one per tab. it owns the Screenplay
 # (self.sp) and the Editor on it (self.ed), draws it the way the current
 # view mode (gd.vm) lays it out, and turns keys, mouse clicks and menu
@@ -153,6 +165,9 @@ class MyCtrl(wx.Control):
         # the tooltip shown, a note's text while the mouse is over its card
         self.noteTip = None
 
+        # the noteeditor.NoteEditor editing a note on its card, or None
+        self.noteEditor = None
+
         # the right-click menu's items for a misspelled word: its
         # suggested replacements, and adding it to the user's or the
         # script's dictionary
@@ -202,6 +217,16 @@ class MyCtrl(wx.Control):
         # (time, position) of the last double click, to detect triple
         # clicks, which wx has no event for
         self.lastDClick = None
+
+        # (time, (line, index)) of the last click on a note beside the
+        # page, so that a double click edits the note clicked on even if
+        # the first click moved it (by opening the notes sidebar, or
+        # scrolling to its paragraph)
+        self.lastNoteClick = None
+
+        # a note being edited is in the old script
+        if getattr(self, "noteEditor", None):
+            self.noteEditor.finish(False)
 
         # what the find dialog was left showing
         self.findState = finddlg.FindState()
@@ -577,6 +602,7 @@ class MyCtrl(wx.Control):
         marker = None if mark else self.noteMarkerAt(event.GetPosition())
 
         if marker is not None:
+            self.lastNoteClick = (time.monotonic(), marker)
             self.showNote(*marker)
 
             return
@@ -604,6 +630,20 @@ class MyCtrl(wx.Control):
             self.updateScreen()
 
     def OnLeftDClick(self, event):
+        marker = None
+
+        if self.lastNoteClick:
+            t, marker = self.lastNoteClick
+            self.lastNoteClick = None
+
+            if (time.monotonic() - t) * 1000 > dclickLimits()[0]:
+                marker = None
+
+        if marker is not None:
+            self.noteDClick(*marker)
+
+            return
+
         self.lastDClick = (time.monotonic(), event.GetPosition())
         self.selectByClick(event, True)
 
@@ -614,15 +654,7 @@ class MyCtrl(wx.Control):
             return False
 
         t, dpos = self.lastDClick
-
-        ms = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_MSEC)
-        dx = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_X)
-        dy = wx.SystemSettings.GetMetric(wx.SYS_DCLICK_Y)
-
-        # metrics are -1 if the platform doesn't report them
-        ms = ms if ms > 0 else 500
-        dx = dx if dx > 0 else 4
-        dy = dy if dy > 0 else 4
+        ms, dx, dy = dclickLimits()
 
         return (
             ((time.monotonic() - t) * 1000 <= ms)
@@ -714,6 +746,46 @@ class MyCtrl(wx.Control):
         self.showLine(line)
         self.panel.notes.showNotesOf(line, index)
 
+    # a double click on the note at (line, index) beside the page (see
+    # noteMarkerAt), which edits it. a note icon for more than one note
+    # has nothing to edit: the first click showed them in the sidebar.
+    def noteDClick(self, line, index):
+        if index is None:
+            if len(self.sp.getParaNotes(line)) != 1:
+                return
+
+            index = 0
+
+        self.editNote(line, index)
+
+    # edit the note at index among the notes of the paragraph starting at
+    # line on its card beside the page, or in the notes sidebar if it has
+    # no card (there's only a note icon for it)
+    def editNote(self, line, index):
+        self.finishNoteEdit(True)
+
+        # the cards are where the last drawing put them, and the click
+        # that got us here may have moved them
+        self.Update()
+
+        rect = next(
+            (r for r, l, i in self.noteMarkers if (l, i) == (line, index)), None
+        )
+
+        if rect is None:
+            self.showNote(line, index)
+            self.panel.notes.startEdit(self.panel.notes.list.GetSelection())
+
+            return
+
+        self.noteEditor = noteeditor.NoteEditor(self, line, index, rect)
+
+    # stop editing a note on its card, if one is, keeping the new text or
+    # not
+    def finishNoteEdit(self, keep):
+        if self.noteEditor:
+            self.noteEditor.finish(keep)
+
     # the right-click menu of the note at (line, index) beside the page,
     # at pos: edit it, mark it resolved or not, or delete it. a note icon
     # for more than one note shows them in the sidebar instead.
@@ -753,8 +825,7 @@ class MyCtrl(wx.Control):
             menu.Destroy()
 
         if sel == int(editId):
-            self.showNote(line, index)
-            self.panel.notes.startEdit(self.panel.notes.list.GetSelection())
+            self.editNote(line, index)
         elif sel == int(resolveId):
             self.setNote(line, index, note.replace(resolved=not note.resolved))
         elif sel == int(deleteId):
@@ -1292,3 +1363,6 @@ class MyCtrl(wx.Control):
         )
         self.titleButtonRect = painter.paint(dc)
         self.noteMarkers = painter.noteMarkers
+
+        if self.noteEditor:
+            self.noteEditor.update(self.noteMarkers)

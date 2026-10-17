@@ -1,3 +1,6 @@
+import time
+from types import SimpleNamespace
+
 import pytest
 import wx
 
@@ -11,6 +14,7 @@ from trelby.screenplay.notes import Note
 
 _ = translations.trelby_translations_load()
 
+import trelby.ui.noteeditor as noteeditor  # noqa: E402
 import trelby.ui.notesview as notesview  # noqa: E402
 
 # the notes sidebar (ui/notesview.py): the × on each card that deletes its
@@ -258,3 +262,138 @@ def testNoteMenuResolveAndDelete(app):
     answerMenu(ctrl, _("Delete"))
     ctrl.noteMenu(0, None, wx.Point(0, 0))
     assert sp.getParaNotes(0) == ()
+
+
+# editing a note on its card beside the page (ui/noteeditor.py), on a
+# stand-in for the MyCtrl that's a real window, so the text field has a
+# parent
+class EditCtrl(wx.Panel):
+    def __init__(self, parent, ed):
+        wx.Panel.__init__(self, parent)
+        self.ed = ed
+        self.sp = ed.sp
+        self.noteEditor = None
+
+    def getCfgGui(self):
+        return SimpleNamespace(textBgColor=wx.WHITE, textColor=wx.BLACK)
+
+    def setNote(self, line, index, note):
+        self.ed.setNote(line, index, note)
+
+    def deleteNote(self, line, index):
+        self.ed.deleteNote(line, index)
+
+
+@pytest.fixture
+def editCtrl(app):
+    ed = u.newEditor()
+    ed.sp.lines[0].text = "Hello"
+    ed.addNote(0, "One")
+    ed.addNote(0, "Two")
+
+    frame = wx.Frame(None, size=wx.Size(600, 400))
+    ctrl = EditCtrl(frame, ed)
+
+    yield ctrl
+
+    frame.Destroy()
+
+
+def startEdit(ctrl, index, rect=wx.Rect(10, 20, 200, 30)):
+    ctrl.noteEditor = noteeditor.NoteEditor(ctrl, 0, index, rect)
+
+    return ctrl.noteEditor
+
+
+def testInlineEditKeeps(editCtrl):
+    e = startEdit(editCtrl, 1)
+    assert e.text.GetValue() == "Two"
+
+    # at least EDIT_LINES high, over the card
+    r = e.text.GetRect()
+    assert (r.x, r.y, r.width) == (10, 20, 200)
+    assert r.height >= e.text.GetCharHeight() * noteeditor.EDIT_LINES
+
+    e.text.SetValue("Two\nlines ")
+    e.finish(True)
+
+    assert editCtrl.noteEditor is None
+    assert editCtrl.sp.getParaNotes(0) == (Note("One"), Note("Two\nlines"))
+
+    # it's done once
+    e.text.SetValue("Again")
+    e.finish(True)
+    assert editCtrl.sp.getParaNotes(0) == (Note("One"), Note("Two\nlines"))
+
+
+def testInlineEditCancels(editCtrl):
+    e = startEdit(editCtrl, 0)
+    e.text.SetValue("Changed")
+    e.finish(False)
+
+    assert editCtrl.sp.getParaNotes(0) == (Note("One"), Note("Two"))
+
+
+def testInlineEditEmptiedDeletes(editCtrl):
+    e = startEdit(editCtrl, 0)
+    e.text.SetValue("  ")
+    e.finish(True)
+
+    assert editCtrl.sp.getParaNotes(0) == (Note("Two"),)
+
+
+# a note that moved among its paragraph's notes while it was edited is
+# still the one changed, and one that's gone isn't brought back
+def testInlineEditFindsMovedNote(editCtrl):
+    e = startEdit(editCtrl, 1)
+    editCtrl.ed.deleteNote(0, 0)
+    e.text.SetValue("Moved")
+    e.finish(True)
+
+    assert editCtrl.sp.getParaNotes(0) == (Note("Moved"),)
+
+    e = startEdit(editCtrl, 0)
+    editCtrl.ed.deleteNote(0, 0)
+    e.text.SetValue("Gone")
+    e.finish(True)
+
+    assert editCtrl.sp.getParaNotes(0) == ()
+
+
+# the text field follows its card when the script is drawn again, and
+# the editing ends when the card is gone
+def testInlineEditFollowsCard(editCtrl):
+    e = startEdit(editCtrl, 1)
+    e.text.SetValue("New")
+
+    e.update([(wx.Rect(0, 0, 100, 10), 0, 0), (wx.Rect(30, 70, 150, 30), 0, 1)])
+    assert e.text.GetRect().GetPosition() == wx.Point(30, 70)
+    assert editCtrl.noteEditor is e
+
+    e.update([(wx.Rect(0, 0, 100, 10), 0, 0)])
+    wx.Yield()
+
+    assert editCtrl.noteEditor is None
+    assert editCtrl.sp.getParaNotes(0) == (Note("One"), Note("New"))
+
+
+# a double click on a note beside the page edits the note the first click
+# was on, even if it has moved since; an icon edits a paragraph's only
+# note, and there's nothing to edit for one with more
+def testNoteDClick(app):
+    ctrl = noteCtrl()
+    edited = []
+    ctrl.editNote = lambda line, index: edited.append((line, index))
+    ctrl.lastDClick = None
+    ctrl.lastNoteClick = (time.monotonic(), (0, 1))
+
+    ctrl.OnLeftDClick(None)
+    assert edited == [(0, 1)]
+    assert ctrl.lastNoteClick is None
+
+    ctrl.noteDClick(0, None)
+    assert edited == [(0, 1)]
+
+    ctrl.ed.deleteNote(0, 0)
+    ctrl.noteDClick(0, None)
+    assert edited == [(0, 1), (0, 0)]
