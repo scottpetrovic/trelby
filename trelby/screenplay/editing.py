@@ -133,8 +133,11 @@ class EditingMixin:
         self.line = line
         self.column = pos
 
-    # split current line at current column position.
-    def splitLine(self):
+    # split current line at current column position. splitting at the
+    # start of a paragraph moves its text down, so its notes (which only
+    # a paragraph's first line has) go with it, unless 'moveNotes' is
+    # False.
+    def splitLine(self, moveNotes=True):
         ln = self.sp.lines[self.line]
 
         s = ln.text
@@ -142,6 +145,11 @@ class EditingMixin:
         postStr = s[self.column :]
         newLine = Line(ln.lb, ln.lt, postStr, fmt=ln.sliceFmt(self.column))
         ln.setText(preStr, ln.sliceFmt(0, self.column))
+
+        if moveNotes and not preStr and postStr:
+            newLine.notes = ln.notes
+            ln.notes = ()
+
         ln.lb = LB_FORCED
         self.sp.lines.insert(self.line + 1, newLine)
 

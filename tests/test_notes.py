@@ -139,6 +139,49 @@ def testSplittingLeavesNoteOnFirstPart():
     ed._validate()
 
 
+# a new paragraph made before one with notes, by splitting it at its start
+# or pasting there, pushes its text down, and the notes go with it
+@pytest.mark.parametrize("command", ["splitElement", "insertForcedLineBreak"])
+def testSplittingAtStartMovesNoteWithText(command):
+    ed = load()
+    ed.line, ed.column = 1, 0
+
+    ed.cmd(command)
+
+    assert ed.sp.lines[2].text.startswith("Mary cooks")
+    assert not ed.sp.lines[1].notes
+    assert ed.sp.lines[2].notes == (Note("Remember the salt."),)
+    ed._validate()
+
+    ed.cmd("undo")
+    assert ed.sp.lines[1].notes == (Note("Remember the salt."),)
+    ed._validate()
+
+
+def testPastingAtStartMovesNoteWithText():
+    ed = load()
+    john = lineOf(ed, "John waits.")
+
+    ed.selectElementAt(john)
+    cd = ed.getSelectedAsCD(False)
+    ed.clearMark()
+
+    # two paragraphs, the first with its own note
+    lines = cd.lines + [ln.copy() for ln in cd.lines]
+    lines[0].lb = scr.LB_LAST
+    lines[1].notes = ()
+
+    ed.line, ed.column = 1, 0
+    ed.paste(lines)
+
+    mary = next(i for i, ln in enumerate(ed.sp.lines) if ln.text.startswith("Mary"))
+    assert mary == 3
+    assert ed.sp.lines[1].text == "John waits."
+    assert ed.sp.lines[1].notes == (Note("Done.", True),)
+    assert ed.sp.lines[mary].notes == (Note("Remember the salt."),)
+    ed._validate()
+
+
 def testCutAndPasteMoveNotes():
     ed = load()
 

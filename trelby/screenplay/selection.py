@@ -308,9 +308,14 @@ class SelectionMixin:
         # before it, so its locked number has to move with its text
         movedLock = None
 
+        # and the notes of the paragraph pasted into go with its text
+        movedNotes = ()
+
         if (self.column == 0) and (len(inLines) != 1) and not atEnd:
             movedLock = ln.sceneLock
             ln.sceneLock = inLines[0].sceneLock
+            movedNotes = ln.notes
+            ln.notes = ()
 
         if (len(ln.text) == 0) and self.sp.isOnlyLineOfElem(self.line):
             ln.lt = inLines[0].lt
@@ -337,8 +342,9 @@ class SelectionMixin:
         if len(inLines) != 1:
 
             if not atEnd:
-                self.splitLine()
+                self.splitLine(moveNotes=False)
                 ls[self.line].sceneLock = movedLock
+                ls[self.line].notes = movedNotes
                 ls[self.line - 1].lb = inLines[0].lb
                 ls[self.line : self.line] = inLines[1:]
                 self.line += len(inLines) - 2
