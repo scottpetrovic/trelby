@@ -151,37 +151,51 @@ def _padButton(w):
     return size != old
 
 
+# the drop-down lists _padChoice has done, by native window, as
+# SimpleNamespaces: ownMinSize, the minimum size their own code gave them,
+# and fieldHeight, the height of the field showing the selected item. kept
+# here rather than on the wx windows, since wxPython can drop a window's
+# Python object, and what was stored on it, while the window lives on.
+_choiceFields = {}
+
+# the height wx adds to a drop-down list's field for the whole control
+# (wxMSW's COMBO_HEIGHT_ADJ, which isn't scaled by the DPI)
+_COMBO_HEIGHT_ADJ = 6
+
+
 # give drop-down list w (one _drawChoiceThemed draws) more room around its
 # text than the native size: more height, like the text fields, and more
 # width for _onChoicePaint's margins, unless its own code set a width.
 # returns whether its minimum size changed. Windows only.
 def _padChoice(w):
     hwnd = w.GetHandle()
+    f = _choiceFields.get(hwnd)
 
-    # the minimum size its own code gave it, and the native height of the
-    # field the selected item is shown in, before ours
-    if not hasattr(w, "ownMinSize"):
-        w.ownMinSize = w.GetMinSize()
-        w.nativeFieldHeight = sendMessage(hwnd, _CB_GETITEMHEIGHT, -1, 0)
+    if not f:
+        f = _choiceFields[hwnd] = types.SimpleNamespace(ownMinSize=w.GetMinSize())
         w.Bind(wx.EVT_SIZE, _onChoiceSize)
+        w.Bind(wx.EVT_WINDOW_DESTROY, _onChoiceDestroy)
 
-    own = w.ownMinSize
+    own = f.ownMinSize
     old = w.GetMinSize()
+
+    # the best size includes the minimum size, so clear that first. wx
+    # works it out from the font, so it's the native size even when the
+    # native control hasn't got its size yet (on a page not shown).
+    w.SetMinSize(own)
+    w.InvalidateBestSize()
+    best = w.GetBestSize()
+    height = best.height + w.FromDIP(8)
+    size = wx.Size(
+        best.width + w.FromDIP(8) if own.width == -1 else own.width,
+        max(own.height, height),
+    )
 
     # the height is set on the native control: wx gives it its native
     # height again whenever it's resized to its best height, which
     # includes the minimum size, so _onChoiceSize sets it back
-    w.fieldHeight = w.nativeFieldHeight + w.FromDIP(8)
-    sendMessage(hwnd, _CB_SETITEMHEIGHT, -1, w.fieldHeight)
-
-    # the best size includes the minimum size, so clear that first
-    w.SetMinSize(own)
-    w.InvalidateBestSize()
-    best = w.GetBestSize()
-    size = wx.Size(
-        best.width + w.FromDIP(8) if own.width == -1 else own.width,
-        max(own.height, w.GetSize().height),
-    )
+    f.fieldHeight = height - _COMBO_HEIGHT_ADJ
+    sendMessage(hwnd, _CB_SETITEMHEIGHT, -1, f.fieldHeight)
 
     w.SetMinSize(size)
 
@@ -190,10 +204,16 @@ def _padChoice(w):
 
 def _onChoiceSize(event):
     event.Skip()
-    w = event.GetEventObject()
+    hwnd = event.GetEventObject().GetHandle()
+    f = _choiceFields.get(hwnd)
 
-    if sendMessage(w.GetHandle(), _CB_GETITEMHEIGHT, -1, 0) != w.fieldHeight:
-        sendMessage(w.GetHandle(), _CB_SETITEMHEIGHT, -1, w.fieldHeight)
+    if f and sendMessage(hwnd, _CB_GETITEMHEIGHT, -1, 0) != f.fieldHeight:
+        sendMessage(hwnd, _CB_SETITEMHEIGHT, -1, f.fieldHeight)
+
+
+def _onChoiceDestroy(event):
+    event.Skip()
+    _choiceFields.pop(event.GetWindow().GetHandle(), None)
 
 
 # give text field w (a wx.TextCtrl or a spin control) more room around its
