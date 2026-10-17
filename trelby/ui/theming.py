@@ -78,6 +78,20 @@ def themeWindow(win, cfgGui=None):
     win.Refresh()
 
 
+# give the windows inside win the theme's colors, the way themeWindow does
+# a top-level window's, for a window that themes itself (applyTheme) and
+# holds native controls, like drop-down lists
+def themeChildren(win, cfgGui):
+    grown = set()
+
+    for c in win.GetChildren():
+        if not c.IsTopLevel():
+            _themeTree(c, cfgGui, grown)
+
+    for w in grown:
+        w.Layout()
+
+
 # theme the open windows that have been themed before in the current theme
 def themeAllWindows():
     for w in wx.GetTopLevelWindows():

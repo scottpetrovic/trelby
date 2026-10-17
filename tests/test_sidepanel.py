@@ -14,9 +14,9 @@ _ = translations.trelby_translations_load()
 import trelby.ui.sidepanel as sidepanel  # noqa: E402
 from trelby.ui.globaldata import GlobalData  # noqa: E402
 
-# the side panel (ui/sidepanel.py) with the outline and the notes as tabs,
-# on a stand-in for the MyPanel and the main frame, with a real Editor on a
-# script
+# the side panel (ui/sidepanel.py) with the outline, the notes and the
+# read aloud controls as tabs, on a stand-in for the MyPanel and the main
+# frame, with a real Editor on a script
 
 
 @pytest.fixture(scope="module")
@@ -46,6 +46,7 @@ def side(app):
             mainFrame=SimpleNamespace(
                 showSideTab=lambda tab: calls.append(("tab", tab)),
                 setShowSidePanel=lambda show: calls.append(("show", show)),
+                reader=None,
             )
         ),
     )
@@ -61,14 +62,15 @@ def side(app):
 
 def shown(p):
     return [
-        (page.IsShown(), page.tools.IsShown()) for page in (p.outline, p.notes)
+        (page.IsShown(), page.tools.IsShown())
+        for page in (p.outline, p.notes, p.readAloud)
     ]
 
 
 def testStartsAtOutline(side):
     assert side.tab == GlobalData.SIDE_OUTLINE
     assert side.tabs.selected == GlobalData.SIDE_OUTLINE
-    assert shown(side) == [(True, True), (False, False)]
+    assert shown(side) == [(True, True), (False, False), (False, False)]
 
 
 # switching tabs shows only that page and its buttons, up to date
@@ -76,12 +78,12 @@ def testSetTab(side):
     side.setTab(GlobalData.SIDE_NOTES)
 
     assert side.tabs.selected == GlobalData.SIDE_NOTES
-    assert shown(side) == [(False, False), (True, True)]
+    assert shown(side) == [(False, False), (True, True), (False, False)]
     assert [it.note.text for it in side.notes.items] == ["First"]
 
     side.setTab(GlobalData.SIDE_OUTLINE)
 
-    assert shown(side) == [(True, True), (False, False)]
+    assert shown(side) == [(True, True), (False, False), (False, False)]
     assert side.outline.items
 
 
@@ -90,7 +92,11 @@ def testSetTab(side):
 def testClicks(side):
     tabs = side.tabs
     rects = tabs.getRects(wx.ClientDC(tabs))
-    assert len(rects) == 2
+    assert len(rects) == 3
+
+    # the read aloud tab is an icon with a tooltip
+    assert isinstance(tabs.labels[2], sidepanel.IconLabel)
+    assert rects[2].width < rects[1].width
 
     for i, r in enumerate(rects):
         e = wx.MouseEvent(wx.wxEVT_LEFT_DOWN)
@@ -102,6 +108,7 @@ def testClicks(side):
     assert side.calls == [
         ("tab", GlobalData.SIDE_OUTLINE),
         ("tab", GlobalData.SIDE_NOTES),
+        ("tab", GlobalData.SIDE_READ_ALOUD),
         ("show", False),
     ]
 

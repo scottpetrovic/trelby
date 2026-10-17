@@ -15,8 +15,9 @@
 #    different one where possible, matching the character's gender where
 #    it's known and voices of both genders exist (see guessGender), then
 #    the same voices again at other rates. the same script and voices
-#    always get the same cast. choices passed in as overrides (e.g. ones
-#    stored with the script, later) win.
+#    always get the same cast. choices passed in as overrides win: the
+#    ones made by hand in the side panel's Read aloud tab, kept in the
+#    script as its VoiceSettings (sp.readAloud).
 
 import re
 from collections import Counter
@@ -24,7 +25,10 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 import trelby.config as config
+import trelby.mypickle as mypickle
+import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.screenplay.speeches as speeches
+import trelby.util as util
 from trelby.screenplay.constants import (
     ACTBREAK,
     ACTION,
@@ -184,6 +188,31 @@ def indexAt(utts: List[Utterance], line: int) -> Optional[int]:
     return None
 
 
+# a sample of what speaker (None for the narrator) says in utts, to hear
+# their voice by: the first sentences of their first utterance, at least
+# minLen characters of them if there are, cut at a word to at most maxLen.
+# None if they say nothing.
+def sampleText(
+    utts: List[Utterance], speaker: Optional[str], minLen=30, maxLen=150
+):
+    for u in utts:
+        if u.speaker == speaker:
+            s = ""
+
+            for sentence in re.split(r"(?<=[.!?])\s+", u.text):
+                s = (s + " " + sentence).strip()
+
+                if len(s) >= minLen:
+                    break
+
+            if len(s) > maxLen:
+                s = s[: maxLen + 1].rsplit(" ", 1)[0].rstrip(",;:") + "..."
+
+            return s
+
+    return None
+
+
 # the characters in sp, the ones with the most speeches first, then in the
 # order they first speak
 def characters(sp) -> List[str]:
@@ -264,10 +293,31 @@ def assignVoices(
 
     narrator = overrides.get(NARRATOR) or VoiceChoice(voices[0].id, rate(0))
 
+    # the (voice index, rate round) of a VoiceChoice, the round with the
+    # nearest rate, or None if its voice isn't one of voices
+    def slotOf(choice):
+        for i, v in enumerate(voices):
+            if v.id == choice.voiceId:
+                k = min(
+                    range(len(RATE_FACTORS)), key=lambda k: abs(rate(k) - choice.rate)
+                )
+
+                return (i, k)
+
+        return None
+
     # (voice index, rate round) -> how many have it. the narrator's counts
-    # double, so that it's the last one shared.
+    # double, so that it's the last one shared, and the ones chosen by
+    # hand are taken before the rest are given out.
     used = Counter()
-    used[(0, 0)] = 2
+    used[slotOf(narrator) or (0, 0)] += 2
+
+    for name in names:
+        if name in overrides:
+            slot = slotOf(overrides[name])
+
+            if slot:
+                used[slot] += 1
 
     cast = {}
 
@@ -368,3 +418,64 @@ def guessGender(name, nameGenders=None) -> Optional[str]:
             return None
 
     return None
+
+
+# the voices chosen by hand for a script's table read (sp.readAloud,
+# saved in the file's Read-Aloud section): speaker name (NARRATOR for the
+# narrator) -> VoiceChoice, passed to assignVoices as its overrides. a
+# choice whose voice isn't installed is kept, but not used (see
+# usableChoices).
+class VoiceSettings:
+    def __init__(self):
+        self.choices: Dict[str, VoiceChoice] = {}
+
+    def __eq__(self, other):
+        return isinstance(other, VoiceSettings) and (self.choices == other.choices)
+
+    # whether there's anything worth saving
+    def hasInfo(self):
+        return bool(self.choices)
+
+    # the choices whose voice is one of voices (speech.Voices), or the
+    # engine's default voice if it has no voices to choose from
+    def usableChoices(self, voices) -> Dict[str, VoiceChoice]:
+        ids = {v.id for v in voices} or {None}
+
+        return {n: c for n, c in self.choices.items() if c.voiceId in ids}
+
+    # save to a string and return that
+    def save(self):
+        s = "Voices:%d\n" % len(self.choices)
+
+        for i, name in enumerate(sorted(self.choices)):
+            c = self.choices[name]
+            prefix = "Voice/%d" % (i + 1)
+            s += "%s/Name:%s\n" % (prefix, characterprofiles.escapeText(name))
+            s += "%s/Id:%s\n" % (
+                prefix,
+                characterprofiles.escapeText(c.voiceId or ""),
+            )
+            s += "%s/Rate:%d\n" % (prefix, c.rate)
+
+        return s
+
+    # load from string s. doesn't throw any exceptions, and silently
+    # ignores any errors.
+    def load(self, s):
+        vals = mypickle.Vars.makeVals(s)
+        count = util.str2int(vals.get("Voices", "0"), 0, 0, 100000)
+
+        self.choices = {}
+
+        for i in range(1, count + 1):
+            prefix = "Voice/%d" % i
+            name = vals.get(prefix + "/Name")
+            rate = util.str2int(vals.get(prefix + "/Rate", "0"), 0, 0, 10000)
+
+            if (name is None) or not rate:
+                continue
+
+            voiceId = characterprofiles.unescapeText(vals.get(prefix + "/Id", ""))
+            self.choices[characterprofiles.unescapeText(name)] = VoiceChoice(
+                voiceId or None, rate
+            )

@@ -60,7 +60,7 @@ class GlobalData:
     ) = list(range(3))
 
     # the side panel's tabs (see sidepanel.SidePanel)
-    SIDE_OUTLINE, SIDE_NOTES = list(range(2))
+    SIDE_OUTLINE, SIDE_NOTES, SIDE_READ_ALOUD = list(range(3))
 
     # available zoom levels, in percent
     ZOOM_LEVELS = [50, 67, 75, 90, 100, 125, 150, 175, 200, 250, 300]
@@ -106,11 +106,16 @@ class GlobalData:
 
         v.addInt("zoom", 100, "Zoom", self.ZOOM_LEVELS[0], self.ZOOM_LEVELS[-1])
 
-        # the side panel with the outline and the notes: whether it's
-        # shown, which of them it shows, and its width
+        # the side panel with the outline, the notes and the table read's
+        # controls: whether it's shown, which of them it shows, and its
+        # width
         v.addBool("showSidePanel", False, "ShowSidePanel")
         v.addInt(
-            "sideTab", self.SIDE_OUTLINE, "SideTab", self.SIDE_OUTLINE, self.SIDE_NOTES
+            "sideTab",
+            self.SIDE_OUTLINE,
+            "SideTab",
+            self.SIDE_OUTLINE,
+            self.SIDE_READ_ALOUD,
         )
         v.addInt("sideWidth", 240, "SideWidth", 120, 2000)
 

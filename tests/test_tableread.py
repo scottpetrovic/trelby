@@ -153,6 +153,20 @@ def testIndexAt():
     assert tableread.indexAt([], 0) is None
 
 
+def testSampleText():
+    utts = tableread.utterances(load())
+
+    # sentences up to minLen
+    assert tableread.sampleText(utts, "ANN") == (
+        "Bob? Are you up? It's three in the morning."
+    )
+    assert tableread.sampleText(utts, "ANN", minLen=4) == "Bob?"
+    # a short utterance is all there is
+    assert tableread.sampleText(utts, None) == "Fade in."
+    assert tableread.sampleText(utts, "BOB", maxLen=8) == "Not..."
+    assert tableread.sampleText(utts, "NOBODY") is None
+
+
 def testCharacters():
     # BOB speaks twice, ANN once
     assert tableread.characters(load()) == ["BOB", "ANN"]
@@ -260,7 +274,49 @@ def testAssignVoicesOverrides():
 
     assert cast.narrator == VoiceChoice("zira", 150)
     assert cast.characters["BOB"] == VoiceChoice("zira", 170)
+
+    # the voice no one has been given
+    assert cast.characters["ANN"] == VoiceChoice("david", 160)
+
+    # a choice of a voice that isn't there takes no slot
+    cast = tableread.assignVoices(
+        [DAVID, ZIRA],
+        ["BOB", "ANN"],
+        baseRate=160,
+        overrides={"BOB": VoiceChoice("gone", 160)},
+    )
+
     assert cast.characters["ANN"] == VoiceChoice("zira", 160)
+
+
+# the voices chosen by hand are saved with the script
+def testVoiceSettings():
+    sp = load()
+
+    assert not sp.readAloud.hasInfo()
+    assert "Read-Aloud" not in sp.save().decode("utf-8")
+
+    zira = r"HKEY\Voices\Zira"
+    sp.readAloud.choices = {
+        tableread.NARRATOR: VoiceChoice(zira, 150),
+        "ANN (V.O.)": VoiceChoice(None, 200),
+    }
+
+    sp2 = u.loadString(sp.save().decode("utf-8").lstrip("﻿"))
+
+    assert sp2.readAloud == sp.readAloud
+    assert sp2.readAloud.usableChoices([DAVID, Voice(zira)]) == {
+        tableread.NARRATOR: VoiceChoice(zira, 150)
+    }
+
+    # damaged entries are left out
+    vs = tableread.VoiceSettings()
+    vs.load(
+        "Voices:3\nVoice/1/Name:A\nVoice/1/Rate:x\nVoice/2/Rate:100\n"
+        "Voice/3/Name:C\nVoice/3/Id:v\nVoice/3/Rate:120\n"
+    )
+
+    assert vs.choices == {"C": VoiceChoice("v", 120)}
 
 
 NAMES = """# comment

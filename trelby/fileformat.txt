@@ -157,6 +157,21 @@ The following config sections exists and appear in the file in this order:
   Unknown Beat/N/... values are kept as-is when saving.
 
 
+ Read-Aloud (optional, only present if voices have been chosen):
+
+  Voices (integer): Number of speakers whose voice for reading the script
+  aloud has been chosen by hand.
+
+  Voice/N/Name (string): Speaker N's (1-based) name, as the reports list
+  the characters, escaped like the character profile notes. Empty for the
+  narrator.
+
+  Voice/N/Id (string): The system's id for the voice, escaped likewise.
+  Empty for the speech engine's default voice.
+
+  Voice/N/Rate (integer): The speaking rate, in words per minute.
+
+
 After this (in version 1 files after "#Version 1") there is more
 configuration, but in a different syntax, that is mostly due to historical
 accidents.

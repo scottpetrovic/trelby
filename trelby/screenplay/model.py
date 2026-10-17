@@ -16,6 +16,7 @@ import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.config as config
 import trelby.screenplay.headers as headers
 import trelby.screenplay.locations as locations
+import trelby.screenplay.tableread as tableread
 import trelby.screenplay.fileformat as fileformat
 import trelby.spellcheck as spellcheck
 import trelby.textfmt as textfmt
@@ -59,6 +60,9 @@ class Screenplay(
         self.characterProfiles = characterprofiles.CharacterProfiles()
         self.worldBuilding = worldbuilding.WorldBuilding()
         self.beatBoard = beatboard.BeatBoard()
+
+        # the voices chosen by hand for reading the script aloud
+        self.readAloud = tableread.VoiceSettings()
 
         self.lines = [Line(LB_LAST, SCENE)]
 
@@ -114,6 +118,7 @@ class Screenplay(
         sp.characterProfiles = copy.deepcopy(self.characterProfiles)
         sp.worldBuilding = copy.deepcopy(self.worldBuilding)
         sp.beatBoard = copy.deepcopy(self.beatBoard)
+        sp.readAloud = copy.deepcopy(self.readAloud)
 
         sp.lines = [ln.copy() for ln in self.lines]
 

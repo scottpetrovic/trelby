@@ -583,8 +583,8 @@ class MyFrame(wx.Frame):
     def OnToggleSidePanel(self):
         self.setShowSidePanel(not self.gd.showSidePanel)
 
-    # from View / Outline or Notes, or their keyboard commands: show the
-    # side panel at that tab (GlobalData.SIDE_*), or hide it if it's
+    # from View / Outline, Notes or Read aloud, or their keyboard commands:
+    # show the side panel at that tab (GlobalData.SIDE_*), or hide it if it's
     # already showing it
     def OnToggleSideTab(self, tab):
         if self.gd.showSidePanel and (self.gd.sideTab == tab):
@@ -620,6 +620,16 @@ class MyFrame(wx.Frame):
             gd.showSidePanel and (gd.sideTab == gd.SIDE_OUTLINE),
         )
         self.menuBar.Check(ID_VIEW_SHOW_NOTES, gd.notesShown())
+        self.menuBar.Check(
+            ID_VIEW_SHOW_READ_ALOUD,
+            gd.showSidePanel and (gd.sideTab == gd.SIDE_READ_ALOUD),
+        )
+
+    # the table read (self.reader) started, stopped, paused or went on to
+    # another element: show it in the Read aloud tabs
+    def readerChanged(self):
+        for i in range(self.tabCtrl.getPageCount()):
+            self.tabCtrl.getPage(i).side.readAloud.updateState()
 
     # from the View menu item or the toolbar button, which share an id, or
     # the keyboard command

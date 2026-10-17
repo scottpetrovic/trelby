@@ -610,6 +610,14 @@ def defaultCommands():
             isMenu=True,
         ),
         Command(
+            "ToggleReadAloud",
+            _(
+                "Show the read aloud controls and voices in the side panel, or"
+                " hide the side panel if it's showing them."
+            ),
+            isMenu=True,
+        ),
+        Command(
             "ToggleShowFormatting",
             _("Toggle 'Show formatting' display."),
             isMenu=True,

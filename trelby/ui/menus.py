@@ -543,6 +543,14 @@ def makeTable():
                 kind=wx.ITEM_CHECK,
             ),
             Action(
+                "ToggleReadAloud",
+                ID_VIEW_SHOW_READ_ALOUD,
+                _("Read aloud"),
+                "A",
+                OnFrame("OnToggleSideTab", GlobalData.SIDE_READ_ALOUD),
+                kind=wx.ITEM_CHECK,
+            ),
+            Action(
                 "ToggleBeatBoard",
                 ID_VIEW_BEAT_BOARD,
                 _("Beat board"),

@@ -66,6 +66,11 @@ def save(sp) -> bytes:
         output += sp.beatBoard.save()
         output += "#End-Beat-Board \n"
 
+    if sp.readAloud.hasInfo():
+        output += "#Begin-Read-Aloud \n"
+        output += sp.readAloud.save()
+        output += "#End-Read-Aloud \n"
+
     pgs = sp.titles.pages
     for pg in range(len(pgs)):
         if pg != 0:
@@ -192,6 +197,10 @@ def load(s: str, cfgGl):
     s, index = getConfigPart(lines, "Beat-Board", index)
     if s:
         sp.beatBoard.load(s)
+
+    s, index = getConfigPart(lines, "Read-Aloud", index)
+    if s:
+        sp.readAloud.load(s)
 
     # used to keep track that element type only changes after a
     # LB_LAST line.

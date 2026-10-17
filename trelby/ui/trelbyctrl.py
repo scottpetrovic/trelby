@@ -528,6 +528,7 @@ class MyCtrl(wx.Control):
         self.gd.mainFrame.showScriptState(self)
         self.panel.outline.scheduleRefresh()
         self.panel.notes.scheduleRefresh()
+        self.panel.side.readAloud.scheduleRefresh()
 
     # if text has wide characters (Chinese, Japanese, Korean) and the
     # script doesn't use double-width characters, offer to switch to them,

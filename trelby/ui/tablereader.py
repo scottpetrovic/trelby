@@ -11,6 +11,12 @@
 # edited (MyCtrl.updateScreen calls checkScript), when another tab is
 # selected, and on Escape. pausing stops the element being read, and
 # resuming reads it again from its start.
+#
+# the voices are the ones assignVoices picks, apart from the ones chosen
+# by hand in the side panel's Read aloud tab (readaloudview.py), which are
+# kept in the script (sp.readAloud). that tab also plays a sample of a
+# voice (preview), and shows what's being read: every change of state or
+# element is passed on to frame.readerChanged.
 
 import wx
 
@@ -40,6 +46,13 @@ class TableReader:
 
         self.state = STOPPED
 
+        # the backend's voices (speech.Voices), asked for the first time
+        # they're needed
+        self.voiceList = None
+
+        # whether a voice's sample is being played (see preview)
+        self.previewing = False
+
         # the MyCtrl being read, what's read (tableread.Utterances), the
         # index of the one being read, and the voices (tableread.Cast)
         self.ctrl = None
@@ -61,16 +74,44 @@ class TableReader:
     def isReading(self):
         return self.state == READING
 
-    # the backend, or None after telling the user why there's none
-    def getBackend(self):
+    # the backend, or None if there's none (see noBackendReason)
+    def ensureBackend(self):
         if not self.triedBackend:
             self.triedBackend = True
             self.backend, self.noBackendReason = speech.systemBackend()
 
-        if not self.backend:
+        return self.backend
+
+    # the backend, or None after telling the user why there's none
+    def getBackend(self):
+        if not self.ensureBackend():
             self.showError(self.noBackendReason)
 
         return self.backend
+
+    # the backend's voices. raises what the backend raises.
+    def getVoices(self):
+        if self.voiceList is None:
+            self.voiceList = self.backend.voices()
+
+        return self.voiceList
+
+    # the voices for reading sp (a tableread.Cast): the ones chosen in it,
+    # and assignVoices' for the rest. needs the backend; raises what
+    # getVoices raises.
+    def makeCast(self, sp):
+        voices = self.getVoices()
+        names = tableread.characters(sp)
+        nameGenders = self.getNameGenders()
+        genders = {n: tableread.guessGender(n, nameGenders) for n in names}
+
+        return tableread.assignVoices(
+            voices,
+            names,
+            genders,
+            self.backend.defaultRate,
+            sp.readAloud.usableChoices(voices),
+        )
 
     def showError(self, msg):
         wx.MessageBox(
@@ -89,14 +130,15 @@ class TableReader:
         if not backend:
             return
 
+        sp = ctrl.sp
+
         try:
-            voices = backend.voices()
+            cast = self.makeCast(sp)
         except Exception as e:
             self.showError(str(e) or e.__class__.__name__)
 
             return
 
-        sp = ctrl.sp
         utts = tableread.utterances(sp)
         index = tableread.indexAt(utts, ctrl.ed.line)
 
@@ -110,11 +152,7 @@ class TableReader:
 
             return
 
-        names = tableread.characters(sp)
-        nameGenders = self.getNameGenders()
-        genders = {n: tableread.guessGender(n, nameGenders) for n in names}
-
-        self.cast = tableread.assignVoices(voices, names, genders, backend.defaultRate)
+        self.cast = cast
         self.ctrl = ctrl
         self.utts = utts
         self.index = index
@@ -144,12 +182,15 @@ class TableReader:
             self.state = PAUSED
             self.token += 1
             self.backend.stop()
+            self.notify()
         elif self.state == PAUSED:
             if self.checkScript(self.ctrl):
                 self.state = READING
                 self.speakCurrent()
 
     def stop(self):
+        self.stopPreview()
+
         if self.state == STOPPED:
             return
 
@@ -167,6 +208,73 @@ class TableReader:
         if ctrl:
             ctrl.readingLines = None
             ctrl.Refresh(False)
+
+        self.notify()
+
+    # the speaker of the element being read (None for the narrator), or
+    # False if nothing's being read
+    def currentSpeaker(self):
+        if self.state == STOPPED:
+            return False
+
+        return self.utts[self.index].speaker
+
+    # if reading ctrl's script, read the rest in its voices as they are
+    # now, after a change to the ones chosen in it
+    def recast(self, ctrl):
+        if (self.state == STOPPED) or (ctrl is not self.ctrl):
+            return
+
+        try:
+            self.cast = self.makeCast(ctrl.sp)
+        except Exception:
+            # the voices worked a moment ago; keep the old ones
+            pass
+
+    # say text in the given tableread.VoiceChoice, as a sample of the
+    # voice, stopping any reading
+    def preview(self, text, choice):
+        self.stop()
+
+        backend = self.getBackend()
+
+        if not backend:
+            return
+
+        self.token += 1
+        token = self.token
+        self.previewing = True
+
+        def onDone(completed, error):
+            try:
+                wx.CallAfter(self.onPreviewDone, token, error)
+            except Exception:
+                # the app is closing
+                pass
+
+        backend.speak(text, choice.voiceId, choice.rate, onDone)
+
+    def onPreviewDone(self, token, error):
+        if (token != self.token) or not self.previewing:
+            return
+
+        self.previewing = False
+
+        if error:
+            self.showError(error)
+
+    def stopPreview(self):
+        if self.previewing:
+            self.previewing = False
+            self.token += 1
+            self.backend.stop()
+
+    # tell the frame that the state or the element being read changed
+    def notify(self):
+        f = getattr(self.frame, "readerChanged", None)
+
+        if f:
+            f()
 
     # go to the next (step 1) or previous (-1) element, reading it if
     # reading, only showing it if paused
@@ -208,6 +316,7 @@ class TableReader:
         ctrl.makeLineVisible(u.end)
         ctrl.makeLineVisible(u.start)
         ctrl.updateScreen()
+        self.notify()
 
     def speakCurrent(self):
         self.showCurrent()

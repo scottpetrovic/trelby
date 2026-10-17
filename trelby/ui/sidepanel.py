@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import wx
 
 import trelby.ui.icons as icons
@@ -5,9 +7,11 @@ import trelby.ui.widgets as widgets
 from trelby.ui.globaldata import GlobalData
 from trelby.ui.notesview import NotesPanel
 from trelby.ui.outline import OutlinePanel
+from trelby.ui.readaloudview import ReadAloudPanel
 from trelby.ui.theming import blendColors
 
-# the panel beside the script, with the outline and the notes as tabs.
+# the panel beside the script, with the outline, the notes and the table
+# read's controls (Read aloud) as tabs.
 # its header has the tabs, the shown tab's buttons, and a button that hides
 # the panel. which tab is shown, and whether the panel is, is the same in
 # every script's tab (GlobalData.sideTab / showSidePanel), so the tabs and
@@ -15,8 +19,13 @@ from trelby.ui.theming import blendColors
 # setShowSidePanel).
 
 
+# a tab shown as an icon (an SVG in trelby/resources), with a tooltip
+IconLabel = namedtuple("IconLabel", "filename tip")
+
+
 # the tabs' labels side by side, the shown one bold and underlined in the
-# accent color. clicking one calls onSelect(index).
+# accent color. a label is a string, or an IconLabel. clicking one calls
+# onSelect(index).
 class SideTabs(wx.Window):
 
     # space around each label, in DIPs
@@ -25,6 +34,9 @@ class SideTabs(wx.Window):
 
     # the underline's thickness, in DIPs
     BAR = 2
+
+    # an icon's size, in DIPs
+    ICON = 14
 
     def __init__(self, parent, labels, onSelect):
         wx.Window.__init__(self, parent, -1, style=wx.BORDER_NONE)
@@ -40,6 +52,10 @@ class SideTabs(wx.Window):
         self.textColor = wx.BLACK
         self.accentColor = wx.BLUE
 
+        # the icons' wx.BitmapBundles by label index, as (normal, dimmed)
+        self.bitmaps = {}
+        self.makeBitmaps(self.textColor, self.textColor)
+
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
@@ -51,7 +67,20 @@ class SideTabs(wx.Window):
         self.SetBackgroundColour(cfgGui.tabBarBgColor)
         self.textColor = cfgGui.tabTextColor
         self.accentColor = cfgGui.accentColor
+        self.makeBitmaps(
+            self.textColor, blendColors(cfgGui.tabBarBgColor, self.textColor, 0.65)
+        )
         self.Refresh()
+
+    def makeBitmaps(self, color, dimColor):
+        size = wx.Size(self.ICON, self.ICON)
+
+        for i, label in enumerate(self.labels):
+            if isinstance(label, IconLabel):
+                self.bitmaps[i] = (
+                    icons.svgBitmap(label.filename, size, color=color),
+                    icons.svgBitmap(label.filename, size, color=dimColor),
+                )
 
     def AcceptsFocus(self):
         return False
@@ -68,9 +97,15 @@ class SideTabs(wx.Window):
         dc.SetFont(self.boldFont())
 
         return [
-            dc.GetTextExtent(label).width + 2 * self.FromDIP(self.PAD_X)
+            self.labelWidth(dc, label) + 2 * self.FromDIP(self.PAD_X)
             for label in self.labels
         ]
+
+    def labelWidth(self, dc, label):
+        if isinstance(label, IconLabel):
+            return self.FromDIP(self.ICON)
+
+        return dc.GetTextExtent(label).width
 
     # the tabs' wx.Rects
     def getRects(self, dc):
@@ -132,6 +167,14 @@ class SideTabs(wx.Window):
             self.SetCursor(
                 wx.Cursor(wx.CURSOR_HAND if idx != -1 else wx.CURSOR_ARROW)
             )
+
+            label = self.labels[idx] if idx != -1 else None
+
+            if isinstance(label, IconLabel):
+                self.SetToolTip(label.tip)
+            else:
+                self.UnsetToolTip()
+
             self.Refresh(False)
 
     def OnPaint(self, event):
@@ -147,17 +190,28 @@ class SideTabs(wx.Window):
 
         for i, r in enumerate(self.getRects(dc)):
             shown = i == self.selected
-            dc.SetFont(bold if shown else normal)
-            dc.SetTextForeground(
-                self.textColor if (shown or (i == self.hover)) else dimColor
-            )
+            lit = shown or (i == self.hover)
+            label = self.labels[i]
 
-            size = dc.GetTextExtent(self.labels[i])
-            dc.DrawText(
-                self.labels[i],
-                r.x + (r.width - size.width) // 2,
-                r.y + (r.height - bar - size.height) // 2,
-            )
+            if isinstance(label, IconLabel):
+                bmp = self.bitmaps[i][0 if lit else 1].GetBitmapFor(self)
+                size = bmp.GetSize()
+                dc.DrawBitmap(
+                    bmp,
+                    r.x + (r.width - size.width) // 2,
+                    r.y + (r.height - bar - size.height) // 2,
+                    True,
+                )
+            else:
+                dc.SetFont(bold if shown else normal)
+                dc.SetTextForeground(self.textColor if lit else dimColor)
+
+                size = dc.GetTextExtent(label)
+                dc.DrawText(
+                    label,
+                    r.x + (r.width - size.width) // 2,
+                    r.y + (r.height - bar - size.height) // 2,
+                )
 
             if shown:
                 dc.SetPen(wx.TRANSPARENT_PEN)
@@ -176,13 +230,22 @@ class SidePanel(wx.Panel):
         vsizer = wx.BoxSizer(wx.VERTICAL)
         hdr = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.tabs = SideTabs(self, [_("Outline"), _("Notes")], self.OnTabClicked)
+        self.tabs = SideTabs(
+            self,
+            [
+                _("Outline"),
+                _("Notes"),
+                IconLabel("play.svg", _("Read aloud")),
+            ],
+            self.OnTabClicked,
+        )
         hdr.Add(self.tabs, 1, wx.ALIGN_BOTTOM | wx.LEFT, self.FromDIP(2))
 
-        # GlobalData.SIDE_OUTLINE / SIDE_NOTES index this
+        # GlobalData.SIDE_OUTLINE / SIDE_NOTES / SIDE_READ_ALOUD index this
         self.outline = OutlinePanel(self, scriptPanel, self)
         self.notes = NotesPanel(self, scriptPanel, self)
-        self.pages = [self.outline, self.notes]
+        self.readAloud = ReadAloudPanel(self, scriptPanel, self)
+        self.pages = [self.outline, self.notes, self.readAloud]
 
         for page in self.pages:
             hdr.Add(page.tools, 0, wx.ALIGN_CENTER_VERTICAL)

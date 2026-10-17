@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- go forward: a triangle pointing right and a bar -->
+<svg
+   width="32"
+   height="32"
+   viewBox="0 0 32 32"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg"><path
+     style="fill:#000000;fill-opacity:1;stroke:none"
+     d="M 6,6 L 21,16 L 6,26 Z M 22,7 H 26 V 25 H 22 Z" /></svg>
