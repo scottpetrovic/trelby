@@ -105,8 +105,11 @@ def _themeTree(w, cfgGui, grown):
         # drop-down lists look like the buttons
         _setColors(w, cfgGui.buttonBgColor, cfgGui.tabTextColor)
 
-        if isinstance(w, wx.Choice) or w.HasFlag(wx.CB_READONLY):
-            _drawChoiceThemed(w)
+        if (isinstance(w, wx.Choice) or w.HasFlag(wx.CB_READONLY)) and misc.isWindows:
+            _drawChoiceThemed(w, cfgGui)
+
+            if _padChoice(w):
+                grown.add(w.GetParent())
     elif isinstance(
         w,
         (
@@ -146,6 +149,51 @@ def _padButton(w):
     w.SetMinSize(size)
 
     return size != old
+
+
+# give drop-down list w (one _drawChoiceThemed draws) more room around its
+# text than the native size: more height, like the text fields, and more
+# width for _onChoicePaint's margins, unless its own code set a width.
+# returns whether its minimum size changed. Windows only.
+def _padChoice(w):
+    hwnd = w.GetHandle()
+
+    # the minimum size its own code gave it, and the native height of the
+    # field the selected item is shown in, before ours
+    if not hasattr(w, "ownMinSize"):
+        w.ownMinSize = w.GetMinSize()
+        w.nativeFieldHeight = sendMessage(hwnd, _CB_GETITEMHEIGHT, -1, 0)
+        w.Bind(wx.EVT_SIZE, _onChoiceSize)
+
+    own = w.ownMinSize
+    old = w.GetMinSize()
+
+    # the height is set on the native control: wx gives it its native
+    # height again whenever it's resized to its best height, which
+    # includes the minimum size, so _onChoiceSize sets it back
+    w.fieldHeight = w.nativeFieldHeight + w.FromDIP(8)
+    sendMessage(hwnd, _CB_SETITEMHEIGHT, -1, w.fieldHeight)
+
+    # the best size includes the minimum size, so clear that first
+    w.SetMinSize(own)
+    w.InvalidateBestSize()
+    best = w.GetBestSize()
+    size = wx.Size(
+        best.width + w.FromDIP(8) if own.width == -1 else own.width,
+        max(own.height, w.GetSize().height),
+    )
+
+    w.SetMinSize(size)
+
+    return size != old
+
+
+def _onChoiceSize(event):
+    event.Skip()
+    w = event.GetEventObject()
+
+    if sendMessage(w.GetHandle(), _CB_GETITEMHEIGHT, -1, 0) != w.fieldHeight:
+        sendMessage(w.GetHandle(), _CB_SETITEMHEIGHT, -1, w.fieldHeight)
 
 
 # give text field w (a wx.TextCtrl or a spin control) more room around its
@@ -202,6 +250,7 @@ def _editHwnd(w):
 
 
 # window messages, hit test results and SetWindowPos flags
+_WM_SETREDRAW = 0xB
 _WM_PAINT = 0xF
 _WM_ERASEBKGND = 0x14
 _WM_NCDESTROY = 0x82
@@ -391,6 +440,78 @@ def _initWin():
 
         return comctl32.DefSubclassProc(hwnd, msg, wParam, lParam)
 
+    # the subclass procedure of the drop-down lists' lists that
+    # _drawChoiceThemed has done
+    def listProc(hwnd, msg, wParam, lParam, idSubclass, refData):
+        def default():
+            return comctl32.DefSubclassProc(hwnd, msg, wParam, lParam)
+
+        lst = _choiceLists.get(hwnd)
+
+        if msg == _WM_NCDESTROY:
+            comctl32.RemoveWindowSubclass(hwnd, _win.listProc, 3)
+            _choiceLists.pop(hwnd, None)
+        elif not lst:
+            pass
+        elif msg == _WM_PAINT:
+            _paintChoiceList(hwnd, lst, None)
+
+            return 0
+        elif msg == _WM_PRINTCLIENT:
+            _paintChoiceList(hwnd, lst, wParam)
+
+            return 0
+        elif msg == _WM_ERASEBKGND:
+            return 1
+        elif msg == _WM_NCPAINT:
+            res = default()
+            hdc = user32.GetWindowDC(hwnd)
+            _paintChoiceListBorder(hwnd, lst, hdc)
+            user32.ReleaseDC(hwnd, hdc)
+
+            return res
+        elif msg == _WM_PRINT:
+            # what the drop-down animation draws from
+            res = default()
+
+            if lParam & _PRF_NONCLIENT:
+                _paintChoiceListBorder(hwnd, lst, wParam)
+
+            return res
+        elif msg in _LIST_INPUT:
+            # the list draws the item under the mouse or the keyboard
+            # straight on the screen, not through WM_PAINT, unless its
+            # drawing is turned off. so it is, and the list is drawn again
+            # if that changed which item is selected or at the top.
+            before = _choiceListState(hwnd)
+            comctl32.DefSubclassProc(hwnd, _WM_SETREDRAW, 0, 0)
+
+            try:
+                res = default()
+            finally:
+                comctl32.DefSubclassProc(hwnd, _WM_SETREDRAW, 1, 0)
+
+            if _choiceListState(hwnd) != before:
+                user32.InvalidateRect(hwnd, None, False)
+
+            return res
+
+        return default()
+
+    class COMBOBOXINFO(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", wintypes.DWORD),
+            ("rcItem", wintypes.RECT),
+            ("rcButton", wintypes.RECT),
+            ("stateButton", wintypes.DWORD),
+            ("hwndCombo", wintypes.HWND),
+            ("hwndItem", wintypes.HWND),
+            ("hwndList", wintypes.HWND),
+        ]
+
+    user32.GetComboBoxInfo.restype = wintypes.BOOL
+    user32.GetComboBoxInfo.argtypes = [wintypes.HWND, ctypes.POINTER(COMBOBOXINFO)]
+
     class HDITEMW(ctypes.Structure):
         _fields_ = [
             ("mask", wintypes.UINT),
@@ -410,7 +531,9 @@ def _initWin():
     _win = types.SimpleNamespace(
         proc=SUBCLASSPROC(proc),
         headerProc=SUBCLASSPROC(headerProc),
+        listProc=SUBCLASSPROC(listProc),
         HDITEMW=HDITEMW,
+        COMBOBOXINFO=COMBOBOXINFO,
         SetWindowSubclass=comctl32.SetWindowSubclass,
         user32=user32,
         gdi32=gdi32,
@@ -734,18 +857,82 @@ def _onButtonPaint(event):
     del dc
 
 
-# CB_GETDROPPEDSTATE: whether a combo box's list is open
+# CB_GETDROPPEDSTATE: whether a combo box's list is open. CB_SETITEMHEIGHT
+# and CB_GETITEMHEIGHT: the height of its list's items (wParam 0), or of the
+# field showing the selected one (-1).
 _CB_GETDROPPEDSTATE = 0x157
+_CB_SETITEMHEIGHT = 0x153
+_CB_GETITEMHEIGHT = 0x154
+
+# list box messages: LB_GETCURSEL, the selected item (the one under the
+# mouse, in a drop-down list), LB_GETCOUNT, LB_GETTOPINDEX, the first item
+# shown, and LB_GETITEMRECT
+_LB_GETCURSEL = 0x188
+_LB_GETCOUNT = 0x18B
+_LB_GETTOPINDEX = 0x18E
+_LB_GETITEMRECT = 0x198
+
+# WM_PRINT, with its flag for drawing the frame, and WM_PRINTCLIENT
+_WM_PRINT = 0x317
+_WM_PRINTCLIENT = 0x318
+_PRF_NONCLIENT = 0x2
+
+# the messages after which a drop-down list's list may have to be drawn
+# again: the mouse, the keyboard, scrolling, the focus, and the combo box
+# setting the selection or the top item
+_LIST_INPUT = frozenset(
+    (
+        0x7,  # WM_SETFOCUS
+        0x8,  # WM_KILLFOCUS
+        0x100,  # WM_KEYDOWN
+        0x102,  # WM_CHAR
+        0x113,  # WM_TIMER
+        0x115,  # WM_VSCROLL
+        0x186,  # LB_SETCURSEL
+        0x197,  # LB_SETTOPINDEX
+        0x200,  # WM_MOUSEMOVE
+        0x201,  # WM_LBUTTONDOWN
+        0x202,  # WM_LBUTTONUP
+        0x203,  # WM_LBUTTONDBLCLK
+        0x20A,  # WM_MOUSEWHEEL
+        0x215,  # WM_CAPTURECHANGED
+    )
+)
+
+# the lists of the drop-down lists _drawChoiceThemed has done, by native
+# window, as SimpleNamespaces: w, the wx.Choice or wx.ComboBox, and
+# selectionBg, the background of the selected item.
+_choiceLists = {}
 
 
 # draw drop-down list w (a wx.Choice or a read-only wx.ComboBox) ourselves
-# from now on, like _drawButtonThemed's buttons, with an arrow at the right.
-# the list that drops down stays native. only on Windows, like the buttons.
-def _drawChoiceThemed(w):
-    if not misc.isWindows or getattr(w, "drawnThemed", False):
+# from now on, like _drawButtonThemed's buttons, with an arrow at the right,
+# and the list that drops down too (_paintChoiceList), in w's colors with
+# room around the items. only on Windows, like the buttons.
+def _drawChoiceThemed(w, cfgGui):
+    if not misc.isWindows:
+        return
+
+    _initWin()
+    hwnd = w.GetHandle()
+    info = _win.COMBOBOXINFO(cbSize=_win.ctypes.sizeof(_win.COMBOBOXINFO))
+
+    if _win.user32.GetComboBoxInfo(hwnd, _win.ctypes.byref(info)) and info.hwndList:
+        if info.hwndList not in _choiceLists:
+            _win.SetWindowSubclass(info.hwndList, _win.listProc, 3, 0)
+
+        _choiceLists[info.hwndList] = types.SimpleNamespace(
+            w=w,
+            selectionBg=blendColors(
+                cfgGui.buttonBgColor, cfgGui.accentColor, ACCENT_TINT
+            ),
+        )
+
+    if getattr(w, "drawnThemed", False):
         return
 
     w.drawnThemed = True
+    sendMessage(hwnd, _CB_SETITEMHEIGHT, 0, w.GetCharHeight() + w.FromDIP(10))
     w.SetBackgroundStyle(wx.BG_STYLE_PAINT)
     w.Bind(wx.EVT_PAINT, _onChoicePaint)
 
@@ -769,9 +956,9 @@ def _onChoicePaint(event):
 
     width, height = w.GetClientSize()
 
-    # the native size leaves 28 pixels beside the longest item, which this
-    # layout fits in
-    pad = w.FromDIP(6)
+    # the native size leaves 28 pixels beside the longest item, and
+    # _padChoice adds 8, which this layout fits in
+    pad = w.FromDIP(10)
 
     # the arrow: a chevron pointing down, at the right
     arrowW = w.FromDIP(8)
@@ -787,6 +974,107 @@ def _onChoicePaint(event):
 
     del gc
     del dc
+
+
+# the selected item and the first one shown of native list box hwnd
+def _choiceListState(hwnd):
+    return (
+        sendMessage(hwnd, _LB_GETCURSEL, 0, 0),
+        sendMessage(hwnd, _LB_GETTOPINDEX, 0, 0),
+    )
+
+
+# paint the list of a drop-down list, native list box hwnd: for its
+# WM_PAINT, or into hdc for WM_PRINTCLIENT. the items are drawn in the
+# drop-down list's colors, with the same margin as its text
+# (_onChoicePaint), and the selected one on lst.selectionBg.
+def _paintChoiceList(hwnd, lst, hdc):
+    wt = _win.wintypes
+    u = _win.user32
+    ctypes = _win.ctypes
+    byref = ctypes.byref
+
+    ps = None
+
+    if not hdc:
+        # a PAINTSTRUCT is 72 bytes on 64-bit Windows, 64 on 32-bit
+        ps = ctypes.create_string_buffer(72)
+        hdc = u.BeginPaint(hwnd, ps)
+
+    try:
+        cr = wt.RECT()
+        u.GetClientRect(hwnd, byref(cr))
+        width, height = cr.right, cr.bottom
+
+        if width <= 0 or height <= 0:
+            return
+
+        w = lst.w
+        bg = w.GetBackgroundColour()
+        fg = w.GetForegroundColour()
+
+        bmp = wx.Bitmap(width, height)
+        dc = wx.MemoryDC(bmp)
+        dc.SetBackground(wx.Brush(bg))
+        dc.Clear()
+        # the memory dc has the system's DPI, not w's
+        dc.SetFont(w.GetFont().Scaled(w.GetDPI().height / dc.GetPPI().height))
+        dc.SetTextForeground(fg)
+
+        pad = w.FromDIP(10)
+        sel, top = _choiceListState(hwnd)
+        r = wt.RECT()
+
+        for i in range(max(top, 0), sendMessage(hwnd, _LB_GETCOUNT, 0, 0)):
+            sendMessage(hwnd, _LB_GETITEMRECT, i, ctypes.addressof(r))
+
+            if r.top >= height:
+                break
+
+            rect = wx.Rect(r.left, r.top, r.right - r.left, r.bottom - r.top)
+
+            if i == sel:
+                dc.SetPen(wx.TRANSPARENT_PEN)
+                dc.SetBrush(wx.Brush(lst.selectionBg))
+                dc.DrawRectangle(rect)
+
+            label = wx.Control.Ellipsize(
+                w.GetString(i), dc, wx.ELLIPSIZE_END, rect.width - 2 * pad
+            )
+            dc.DrawLabel(
+                label,
+                wx.Rect(rect).Deflate(pad, 0),
+                wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL,
+            )
+
+        _win.gdi32.BitBlt(
+            hdc, 0, 0, width, height, int(dc.GetHandle()), 0, 0, _SRCCOPY
+        )
+        dc.SelectObject(wx.NullBitmap)
+    finally:
+        if ps:
+            u.EndPaint(hwnd, ps)
+
+
+# draw the 1-pixel border of a drop-down list's list, native list box hwnd,
+# in its text color, on hdc, a dc for the whole window
+def _paintChoiceListBorder(hwnd, lst, hdc):
+    wt = _win.wintypes
+    u = _win.user32
+    gdi = _win.gdi32
+
+    wr = wt.RECT()
+    u.GetWindowRect(hwnd, _win.ctypes.byref(wr))
+    ww = wr.right - wr.left
+    wh = wr.bottom - wr.top
+
+    c = lst.w.GetForegroundColour()
+    brush = gdi.CreateSolidBrush(c.Red() | (c.Green() << 8) | (c.Blue() << 16))
+
+    for rect in ((0, 0, ww, 1), (0, wh - 1, ww, wh), (0, 0, 1, wh), (ww - 1, 0, ww, wh)):
+        u.FillRect(hdc, _win.ctypes.byref(wt.RECT(*rect)), brush)
+
+    gdi.DeleteObject(brush)
 
 
 # fill the paint dc of a control we draw ourselves (w) with its parent's
