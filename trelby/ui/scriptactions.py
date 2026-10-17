@@ -210,6 +210,24 @@ def watermark(frame, ctrl):
     dlg.Destroy()
 
 
+# the table read (see tablereader.py): start reading from the cursor, or
+# pause / resume
+def readAloud(frame, ctrl):
+    frame.reader.toggle(ctrl)
+
+
+def stopReading(frame, ctrl):
+    frame.reader.stop()
+
+
+def readNext(frame, ctrl):
+    frame.reader.skip(1)
+
+
+def readPrevious(frame, ctrl):
+    frame.reader.skip(-1)
+
+
 # show a report on the script, made by gen, e.g. reports.genSceneReport
 def report(frame, ctrl, gen):
     ctrl.sp.paginate()

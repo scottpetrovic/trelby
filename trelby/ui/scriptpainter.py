@@ -82,9 +82,18 @@ class ScriptPainter:
     # underlined if scDict, the user's global spell checker dictionary,
     # is given and the main dictionary is loaded. newNoteLine is the first
     # line of a paragraph that gets a blank card after its notes, for a
-    # note being written there (see noteeditor.py), or None.
+    # note being written there (see noteeditor.py), or None. readingLines
+    # is (first line, last line) of the element being read aloud, which is
+    # highlighted, or None.
     def __init__(
-        self, vp, vm, cfgGl, showFormatting, scDict=None, newNoteLine=None
+        self,
+        vp,
+        vm,
+        cfgGl,
+        showFormatting,
+        scDict=None,
+        newNoteLine=None,
+        readingLines=None,
     ):
         self.vp = vp
         self.vm = vm
@@ -92,6 +101,7 @@ class ScriptPainter:
         self.cfgGui = vp.cfgGui
         self.showFormatting = showFormatting
         self.newNoteLine = newNoteLine
+        self.readingLines = readingLines
 
         self.spellChecker = None
 
@@ -195,6 +205,11 @@ class ScriptPainter:
 
             if i != -1:
                 l = ls[i]
+
+                if self.readingLines and (
+                    self.readingLines[0] <= i <= self.readingLines[1]
+                ):
+                    self.drawReadingLine(dc, t, i, y, lineh, fx)
 
                 if marked and vp.ed.isLineMarked(i, marked):
                     c1, c2 = vp.ed.getMarkedColumns(i, marked)
@@ -344,6 +359,23 @@ class ScriptPainter:
             self.drawAutoComp(dc, posX, cursorY, acFi)
 
         return self.titleButtonRect
+
+    # highlight line i, being read aloud, drawn at t.x, y: a band in a
+    # light version of the selection color the width of its element type,
+    # with a bar in the cursor color to its left
+    def drawReadingLine(self, dc, t, i, y, lineh, fx):
+        cfgGui = self.cfgGui
+        color = blendColors(cfgGui.selectedColor, cfgGui.textBgColor, 0.5)
+        lx = int(t.x - self.vp.sp.getCenterOffset(i) * fx)
+        w = self.vp.sp.cfg.getType(self.vp.sp.lines[i].lt).width * fx
+
+        dc.SetPen(wx.Pen(color))
+        dc.SetBrush(wx.Brush(color))
+        dc.DrawRectangle(lx, y, w, lineh)
+
+        dc.SetPen(cfgGui.cursorPen)
+        dc.SetBrush(cfgGui.cursorBrush)
+        dc.DrawRectangle(lx - fx, y, max(2, fx // 4), lineh)
 
     # draw a wavy line w pixels wide from x, its bottom at y
     def drawSquiggle(self, dc, x, y, w):

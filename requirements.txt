@@ -4,4 +4,5 @@ lxml>=4.9,<7
 reportlab>=4.0,<6
 mcp>=2.3,<3
 pypdf>=5,<7
+pyttsx3>=2.90,<3
 pytest>=7.0

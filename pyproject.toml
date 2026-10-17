@@ -26,6 +26,9 @@ dependencies = [
 mcp = ["mcp>=2.3,<3"]
 # for importing PDF files, see trelby/importers/pdf.py
 pdf = ["pypdf>=5,<7"]
+# for reading scripts aloud on Windows (and on Linux without the espeak-ng
+# command), see trelby/speech.py
+speech = ["pyttsx3>=2.90,<3"]
 
 [project.urls]
 Homepage = "https://www.trelby.org"

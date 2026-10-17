@@ -1125,6 +1125,52 @@
 	</sect1>
 
 	<sect1>
+	  <title>Tools/Read aloud</title>
+
+	  <para>'Read aloud' gives your script a table read: &trelby; reads it
+	  aloud from the cursor using your computer's own text-to-speech
+	  voices, with a narrator reading the scene headings, action,
+	  transitions and shots, and each character speaking their dialogue in
+	  a voice of their own. Character names and parentheticals aren't read;
+	  the voice tells you who's speaking. The element being read is
+	  highlighted, and the cursor follows it.</para>
+
+	  <para>The voices are given out automatically: the narrator gets the
+	  system's default voice, and the characters with the most lines get
+	  the other voices first. Where a character's gender can be told from
+	  their name (from the name database, or words like "Mrs." or
+	  "Waitress"), they get a voice of that gender. As most computers only
+	  have two or three voices, characters beyond that share voices,
+	  speaking faster or slower to tell them apart.</para>
+
+	  <itemizedlist>
+	    <listitem><para><literal>F5</literal>: 'Read from cursor / pause'
+	    starts reading at the element the cursor is in, and while reading
+	    pauses or resumes. Resuming reads the paused element again from
+	    its start.</para></listitem>
+
+	    <listitem><para><literal>F6</literal> and
+	    <literal>Shift+F6</literal>: 'Next element' and 'Previous element'
+	    skip forward or back.</para></listitem>
+
+	    <listitem><para><literal>Shift+F5</literal> or
+	    <literal>Escape</literal>: 'Stop reading'.</para></listitem>
+	  </itemizedlist>
+
+	  <para>Editing the script, or switching to another script, stops the
+	  reading.</para>
+
+	  <para>The voices come from the operating system: on Windows its
+	  speech voices (Settings / Time &amp; language / Speech), which need
+	  the pyttsx3 package when running &trelby; from source
+	  (<literal>pip install trelby[speech]</literal>); on macOS those of
+	  the <literal>say</literal> command (System Settings / Accessibility /
+	  Spoken Content); and on Linux those of espeak-ng, which you may need
+	  to install with your package manager.</para>
+
+	</sect1>
+
+	<sect1>
 	  <title>Tools/Compare scripts</title>
 
 	  <para>You need two different versions of the same script open to use

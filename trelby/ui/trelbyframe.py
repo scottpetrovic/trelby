@@ -27,6 +27,7 @@ import trelby.dialogs.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.dialogs.spellcheckdlg as spellcheckdlg
 import trelby.ui.splash as splash
 import trelby.ui.statusbar as statusbar
+import trelby.ui.tablereader as tablereader
 import trelby.ui.tabctrl as tabctrl
 import trelby.ui.theming as theming
 import trelby.ui.toolbar as toolbar
@@ -51,6 +52,9 @@ class MyFrame(wx.Frame):
 
         self.gd = gd
         self.myApp = myApp
+
+        # reads the current script aloud (Tools / Read aloud)
+        self.reader = tablereader.TableReader(self)
 
         self.SetSizeHints(gd.cvars.getMin("width"), gd.cvars.getMin("height"))
 
@@ -348,6 +352,7 @@ class MyFrame(wx.Frame):
         pass
 
     def OnPageChange(self, page):
+        self.reader.stop()
         self.panel = self.tabCtrl.getPage(page)
         self.panel.ctrl.SetFocus()
         self.panel.ctrl.updateCommon()
@@ -612,6 +617,7 @@ class MyFrame(wx.Frame):
     # outline, or the other way around, keeping the View menu item and the
     # toolbar in sync
     def setShowBeatBoard(self, show):
+        self.reader.stop()
         self.gd.showBeatBoard = show
         self.menuBar.Check(ID_VIEW_BEAT_BOARD, show)
         self.tools.setBoardShown(show)
@@ -781,6 +787,7 @@ class MyFrame(wx.Frame):
 
         if doExit:
             self.autosaveTimer.Stop()
+            self.reader.close()
 
             # for the restart to open them again
             self.myApp.restartFiles = [

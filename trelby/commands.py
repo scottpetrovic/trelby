@@ -431,6 +431,32 @@ def defaultCommands():
             isMenu=True,
         ),
         Command(
+            "ReadAloud",
+            _(
+                "Read the script aloud from the cursor, or pause / resume reading."
+            ),
+            [keys.Key(keys.WXK_F5).toInt()],
+            isMenu=True,
+        ),
+        Command(
+            "ReadAloudNext",
+            _("While reading aloud, go to the next element."),
+            [keys.Key(keys.WXK_F6).toInt()],
+            isMenu=True,
+        ),
+        Command(
+            "ReadAloudPrev",
+            _("While reading aloud, go back to the previous element."),
+            [keys.Key(keys.WXK_F6, shift=True).toInt()],
+            isMenu=True,
+        ),
+        Command(
+            "ReadAloudStop",
+            _("Stop reading aloud."),
+            [keys.Key(keys.WXK_F5, shift=True).toInt()],
+            isMenu=True,
+        ),
+        Command(
             "Redo",
             _("Redo a change that was reverted through undo."),
             [keys.Key(25, ctrl=True).toInt()],

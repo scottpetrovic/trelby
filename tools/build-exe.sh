@@ -25,6 +25,13 @@ $PY -c "import mcp.server.mcpserver, uvicorn" 2>/dev/null || $PY -m pip install 
 # running from source, but always bundled in the exe.
 $PY -c "import pypdf" 2>/dev/null || $PY -m pip install "pypdf>=5,<7"
 
+# pyttsx3, for reading scripts aloud with the SAPI voices (trelby/speech.py).
+# optional when running from source, but always bundled in the exe. it
+# imports its driver by name, and that makes comtypes generate SAPI's
+# wrapper (comtypes.gen.SpeechLib), which the build includes once it exists.
+$PY -c "import pyttsx3" 2>/dev/null || $PY -m pip install "pyttsx3>=2.90,<3"
+$PY -c "import pyttsx3; pyttsx3.Engine()"
+
 # packaged copies of the data files (see CLAUDE.md; don't commit these)
 gzip -c trelby/names.txt > trelby/names.txt.gz
 gzip -c trelby/dict_en.dat > trelby/dict_en.dat.gz
@@ -54,6 +61,8 @@ $PY -m PyInstaller --noconfirm --windowed --name Trelby $WXDATA \
     --add-data "trelby/sample.trelby;trelby" \
     --add-data "trelby/fileformat.txt;trelby" \
     --add-binary ".venv/Lib/site-packages/wx/WebView2Loader.dll;wx" \
+    --hidden-import pyttsx3.drivers.sapi5 \
+    --collect-submodules comtypes.gen \
     trelby.py
 
 # modules the MCP server needs that are only imported lazily or by name
@@ -69,5 +78,12 @@ if ! grep -q "'pypdf'" build/Trelby/PYZ-00.toc; then
     echo "pypdf is missing from the build; importing PDF files won't work." >&2
     exit 1
 fi
+
+for m in pyttsx3.drivers.sapi5 comtypes.gen.SpeechLib; do
+    if ! grep -q "'$m'" build/Trelby/PYZ-00.toc; then
+        echo "$m is missing from the build; reading aloud won't work." >&2
+        exit 1
+    fi
+done
 
 echo "Built $(pwd)/dist/Trelby/Trelby.exe"

@@ -176,6 +176,10 @@ class MyCtrl(wx.Control):
         # which gets a blank card for it beside the page, or None
         self.newNoteLine = None
 
+        # (first line, last line) of the element being read aloud, which
+        # is highlighted, or None (see tablereader.py)
+        self.readingLines = None
+
         # the right-click menu's items for a misspelled word: its
         # suggested replacements, and adding it to the user's or the
         # script's dictionary
@@ -504,6 +508,12 @@ class MyCtrl(wx.Control):
             return True
 
     def updateScreen(self, redraw=True, setCommon=True):
+        # an edit stops reading the script aloud
+        reader = getattr(self.gd.mainFrame, "reader", None)
+
+        if reader:
+            reader.checkScript(self)
+
         self.adjustScrollBar()
         self.updateModifiedMark()
 
@@ -1384,6 +1394,13 @@ class MyCtrl(wx.Control):
             # updating the screen to the code below.
             scrollDirection = cmd.scrollDirection
 
+            # Escape stops reading aloud too
+            if cmd.name == "Abort":
+                reader = getattr(self.gd.mainFrame, "reader", None)
+
+                if reader:
+                    reader.stop()
+
             if cmd.isMenu:
                 self.gd.mainFrame.runAction(cmd.name)
 
@@ -1445,6 +1462,7 @@ class MyCtrl(wx.Control):
             self.gd.showFormatting,
             self.gd.scDict if self.gd.cfgGl.checkSpelling else None,
             self.newNoteLine,
+            self.readingLines,
         )
         self.titleButtonRect = painter.paint(dc)
         self.noteMarkers = painter.noteMarkers

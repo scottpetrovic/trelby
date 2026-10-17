@@ -34,6 +34,7 @@
 #   plaintext     lines as plain text and back, for the system clipboard
 #   proofing      the script checker
 #   speeches      who speaks where (iterSpeeches), for the reports
+#   tableread     what reading aloud reads, and in which voice
 #
 # the parts of a script that a Screenplay holds:
 #
