@@ -1,6 +1,7 @@
-# the notes sidebar: the script's notes (see screenplay/notes.py), one card
-# each, in script order. a card shows where its note is (the page and the
-# scene, and the start of the paragraph it's on) above the note's text.
+# the notes sidebar, a tab of the side panel (see sidepanel.py): the
+# script's notes (see screenplay/notes.py), one card each, in script order.
+# a card shows where its note is (the page and the scene, and the start of
+# the paragraph it's on) above the note's text.
 #
 # selecting a card puts the cursor on the note's paragraph. double-click,
 # Enter or F2 edits a note in place (Ctrl+Enter or clicking elsewhere,
@@ -20,7 +21,6 @@ import trelby.config as config
 import trelby.textutil as textutil
 import trelby.ui.gutil as gutil
 import trelby.ui.icons as icons
-import trelby.ui.widgets as widgets
 from trelby.screenplay.notes import Note
 from trelby.screenplay.constants import LB_FORCED, LB_LAST
 from trelby.ui.scrollbar import ScrollBar
@@ -397,7 +397,9 @@ class NotesPanel(wx.Panel):
     # how long to wait after the last change before refreshing, in ms
     REFRESH_DELAY = 300
 
-    def __init__(self, parent, scriptPanel):
+    # the add button (in self.tools) is made in toolParent, as in the
+    # outline (see outline.OutlinePanel)
+    def __init__(self, parent, scriptPanel, toolParent=None):
         wx.Panel.__init__(self, parent, -1)
 
         # trelbypanel.MyPanel whose script we show
@@ -418,29 +420,19 @@ class NotesPanel(wx.Panel):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
+        self.tools = wx.Panel(toolParent or self, -1)
         hdr = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.title = wx.StaticText(self, -1, _("Notes"))
-        self.title.SetFont(self.title.GetFont().Bold())
-        hdr.Add(self.title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, self.FromDIP(6))
-
-        def addBtn(iconFilename, toolTip):
-            bitmap = icons.svgBitmap(iconFilename, wx.Size(16, 16))
-            btn = wx.BitmapButton(self, -1, bitmap, style=wx.BORDER_NONE)
-            btn.SetToolTip(toolTip)
-            hdr.Add(btn, 0, wx.ALL, self.FromDIP(2))
-
-            return btn
-
-        self.addBtn = addBtn(
-            "addnote.svg", _("Add a note to the paragraph at the cursor (Alt+N)")
+        bitmap = icons.svgBitmap("addnote.svg", wx.Size(16, 16))
+        self.addBtn = wx.BitmapButton(self.tools, -1, bitmap, style=wx.BORDER_NONE)
+        self.addBtn.SetToolTip(
+            _("Add a note to the paragraph at the cursor (Alt+N)")
         )
-        hdr.AddSpacer(self.FromDIP(6))
-        self.closeBtn = addBtn("closepanel.svg", _("Hide the notes"))
+        hdr.Add(self.addBtn, 0, wx.ALL, self.FromDIP(2))
+        self.tools.SetSizer(hdr)
 
-        vsizer.Add(hdr, 0, wx.EXPAND)
-        self.separator = widgets.Separator(self)
-        vsizer.Add(self.separator, 0, wx.EXPAND)
+        if toolParent is None:
+            vsizer.Add(self.tools, 0, wx.ALIGN_RIGHT)
 
         # as in the outline, the list's native scrollbar is hidden past the
         # right edge of listHolder, and scrollBar stands in for it
@@ -483,24 +475,25 @@ class NotesPanel(wx.Panel):
         self.list.Bind(wx.EVT_LEFT_DOWN, self.OnListLeftDown)
         self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnListLeftDClick)
         self.addBtn.Bind(wx.EVT_BUTTON, self.OnAddBtn)
-        self.closeBtn.Bind(wx.EVT_BUTTON, self.OnClose)
 
+        # hidden first, or showEmptyText would think it's already done
+        self.emptyText.Hide()
         self.showEmptyText()
 
     def getCtrl(self):
         return self.scriptPanel.ctrl
 
     # use the colors of the theme in the given configgui.ConfigGui, like
-    # the outline: the header like the tab bar, and the list like the page
+    # the outline: the button like the tab bar, and the list like the page
     def applyTheme(self, cfgGui):
         self.SetBackgroundColour(cfgGui.tabBarBgColor)
         self.SetForegroundColour(cfgGui.tabTextColor)
 
-        for w in (self.title, self.addBtn, self.closeBtn, self.emptyText):
+        for w in (self.tools, self.addBtn, self.emptyText):
             w.SetBackgroundColour(cfgGui.tabBarBgColor)
             w.SetForegroundColour(cfgGui.tabTextColor)
 
-        self.separator.applyTheme(cfgGui)
+        self.tools.Refresh()
 
         self.list.SetBackgroundColour(cfgGui.textBgColor)
         self.list.SetForegroundColour(cfgGui.textColor)
@@ -963,7 +956,3 @@ class NotesPanel(wx.Panel):
 
     def OnAddBtn(self, event):
         self.addNote()
-
-    def OnClose(self, event):
-        self.finishEdit(True)
-        self.scriptPanel.gd.mainFrame.setShowNotes(False)

@@ -519,11 +519,19 @@ def makeTable():
                 kind=wx.ITEM_CHECK,
             ),
             Action(
+                "ToggleSidePanel",
+                ID_VIEW_SIDE_PANEL,
+                _("Side panel"),
+                "d",
+                OnFrame("OnToggleSidePanel"),
+                kind=wx.ITEM_CHECK,
+            ),
+            Action(
                 "ToggleOutline",
                 ID_VIEW_SHOW_OUTLINE,
                 _("Outline"),
                 "O",
-                OnFrame("OnToggleOutline"),
+                OnFrame("OnToggleSideTab", GlobalData.SIDE_OUTLINE),
                 kind=wx.ITEM_CHECK,
             ),
             Action(
@@ -531,7 +539,7 @@ def makeTable():
                 ID_VIEW_SHOW_NOTES,
                 _("Notes"),
                 "N",
-                OnFrame("OnToggleNotes"),
+                OnFrame("OnToggleSideTab", GlobalData.SIDE_NOTES),
                 kind=wx.ITEM_CHECK,
             ),
             Action(
@@ -1054,6 +1062,7 @@ SCRIPT_ONLY = {
     "ToggleNotes",
     "ToggleOutline",
     "ToggleShowFormatting",
+    "ToggleSidePanel",
     "ToggleUnderline",
     "ToolbarViews",
     "ViewModeDraft",

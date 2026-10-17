@@ -16,6 +16,7 @@ _ = translations.trelby_translations_load()
 
 import trelby.ui.noteeditor as noteeditor  # noqa: E402
 import trelby.ui.notesview as notesview  # noqa: E402
+from trelby.ui.globaldata import GlobalData  # noqa: E402
 
 # the notes sidebar (ui/notesview.py): the × on each card that deletes its
 # note, driven with made-up mouse events on a stand-in for the MyPanel and
@@ -456,20 +457,24 @@ def testInlineNewNote(editCtrl, keep, text, added):
 
 
 # clicking a note's card beside the page puts the cursor on its paragraph
-# and selects the note in the notes sidebar if it's shown, but doesn't
-# show the sidebar; a note icon does, since its notes can't be read
+# and selects the note in the side panel's notes if they're shown, but
+# doesn't show them; a note icon does, since its notes can't be read
 # anywhere else
 def testNoteClickOpensSidebarOnlyForIcons(app):
     ctrl = noteCtrl()
     shown = []
     selected = []
 
-    def setShowNotes(show):
-        shown.append(show)
-        ctrl.gd.showNotes = show
+    def showSideTab(tab):
+        shown.append(tab)
+        gd.showSidePanel = True
+        gd.sideTab = tab
 
-    ctrl.gd.showNotes = False
-    ctrl.gd.mainFrame = SimpleNamespace(setShowNotes=setShowNotes)
+    gd = GlobalData.__new__(GlobalData)
+    gd.showSidePanel = True
+    gd.sideTab = GlobalData.SIDE_OUTLINE
+    gd.mainFrame = SimpleNamespace(showSideTab=showSideTab)
+    ctrl.gd = gd
     ctrl.panel = SimpleNamespace(
         notes=SimpleNamespace(showNotesOf=lambda *args: selected.append(args))
     )
@@ -478,8 +483,9 @@ def testNoteClickOpensSidebarOnlyForIcons(app):
     ctrl.showNote(0, 1)
     assert (shown, selected) == ([], [])
 
+    # the side panel showing the outline doesn't count
     ctrl.showNote(0, None, True)
-    assert (shown, selected) == ([True], [(0, None)])
+    assert (shown, selected) == ([GlobalData.SIDE_NOTES], [(0, None)])
 
     ctrl.showNote(0, 1)
-    assert (shown, selected) == ([True], [(0, None), (0, 1)])
+    assert (shown, selected) == ([GlobalData.SIDE_NOTES], [(0, None), (0, 1)])

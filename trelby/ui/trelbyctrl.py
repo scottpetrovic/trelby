@@ -794,16 +794,16 @@ class MyCtrl(wx.Control):
         return True
 
     # put the cursor on the paragraph starting at line, and select its note
-    # at index in the notes sidebar, or its first one if index is None, if
-    # the sidebar is shown or 'openSidebar' is True. (only a note icon
-    # opens it, since its notes can't be read anywhere else.)
+    # at index in the side panel's notes, or its first one if index is
+    # None, if they're shown or 'openSidebar' is True. (only a note icon
+    # opens them, since its notes can't be read anywhere else.)
     def showNote(self, line, index, openSidebar=False):
-        if openSidebar and not self.gd.showNotes:
-            self.gd.mainFrame.setShowNotes(True)
+        if openSidebar and not self.gd.notesShown():
+            self.gd.mainFrame.showSideTab(self.gd.SIDE_NOTES)
 
         self.showLine(line)
 
-        if self.gd.showNotes:
+        if self.gd.notesShown():
             self.panel.notes.showNotesOf(line, index)
 
     # a double click on the note at (line, index) beside the page (see
@@ -858,8 +858,8 @@ class MyCtrl(wx.Control):
             self.newNoteLine = None
             self.Refresh(False)
 
-            if not self.gd.showNotes:
-                self.gd.mainFrame.setShowNotes(True)
+            if not self.gd.notesShown():
+                self.gd.mainFrame.showSideTab(self.gd.SIDE_NOTES)
 
             self.panel.notes.addNote()
 

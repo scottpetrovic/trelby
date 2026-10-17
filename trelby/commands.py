@@ -125,7 +125,7 @@ def defaultCommands():
         Command("About", _("Show the about dialog."), isMenu=True),
         Command(
             "AddNote",
-            _("Add a note to the current paragraph, in the notes sidebar."),
+            _("Add a note to the current paragraph."),
             [keys.Key(ord("N"), alt=True).toInt()],
             isFixed=True,
             isMenu=True,
@@ -595,17 +595,28 @@ def defaultCommands():
         ),
         Command(
             "ToggleNotes",
-            _("Show or hide the notes sidebar."),
+            _(
+                "Show the notes in the side panel, or hide the side panel"
+                " if it's showing them."
+            ),
             isMenu=True,
         ),
         Command(
             "ToggleOutline",
-            _("Show or hide the outline view."),
+            _(
+                "Show the outline in the side panel, or hide the side panel"
+                " if it's showing it."
+            ),
             isMenu=True,
         ),
         Command(
             "ToggleShowFormatting",
             _("Toggle 'Show formatting' display."),
+            isMenu=True,
+        ),
+        Command(
+            "ToggleSidePanel",
+            _("Show or hide the side panel with the outline and the notes."),
             isMenu=True,
         ),
         Command(

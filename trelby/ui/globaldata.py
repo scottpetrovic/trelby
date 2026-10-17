@@ -59,6 +59,9 @@ class GlobalData:
         VIEWMODE_SIDE_BY_SIDE,
     ) = list(range(3))
 
+    # the side panel's tabs (see sidepanel.SidePanel)
+    SIDE_OUTLINE, SIDE_NOTES = list(range(2))
+
     # available zoom levels, in percent
     ZOOM_LEVELS = [50, 67, 75, 90, 100, 125, 150, 175, 200, 250, 300]
 
@@ -103,12 +106,13 @@ class GlobalData:
 
         v.addInt("zoom", 100, "Zoom", self.ZOOM_LEVELS[0], self.ZOOM_LEVELS[-1])
 
-        v.addBool("showOutline", False, "ShowOutline")
-        v.addInt("outlineWidth", 240, "OutlineWidth", 120, 2000)
-
-        # the notes sidebar, and its height when it's below the outline
-        v.addBool("showNotes", False, "ShowNotes")
-        v.addInt("notesHeight", 300, "NotesHeight", 80, 2000)
+        # the side panel with the outline and the notes: whether it's
+        # shown, which of them it shows, and its width
+        v.addBool("showSidePanel", False, "ShowSidePanel")
+        v.addInt(
+            "sideTab", self.SIDE_OUTLINE, "SideTab", self.SIDE_OUTLINE, self.SIDE_NOTES
+        )
+        v.addInt("sideWidth", 240, "SideWidth", 120, 2000)
 
         v.addList("files", [], "Files", mypickle.StrUnicodeVar("", "", ""))
 
@@ -160,6 +164,10 @@ class GlobalData:
             self.vm = self.vmSideBySide
         else:
             self.vm = self.vmDraft
+
+    # whether the side panel is shown at the notes
+    def notesShown(self):
+        return self.showSidePanel and (self.sideTab == self.SIDE_NOTES)
 
     # return the zoom level 'step' levels away from the current one (1 =
     # next larger, -1 = next smaller). the current zoom need not be one of

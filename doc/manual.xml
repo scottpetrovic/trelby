@@ -591,15 +591,26 @@
 	</sect1>
 
 	<sect1>
+	  <title>View/Side panel</title>
+
+	  <para>This shows or hides the side panel, to the right of the
+	  script, which has two tabs: the outline and the notes. Click a tab
+	  at the top of the panel to switch between them, and drag the divider
+	  to make the panel wider or narrower. The toolbar's button at the far
+	  right does the same, and the &#215; at the panel's top right hides
+	  it.</para>
+
+	</sect1>
+
+	<sect1>
 	  <title>View/Outline</title>
 
-	  <para>This toggles the outline view, a panel to the left of the
-	  script listing every scene and act break with its scene number,
+	  <para>This shows the outline in the side panel, or hides the side
+	  panel if it's already showing it. The outline lists every scene and act break with its scene number,
 	  the page it starts on, and a short summary. The summary is the text
 	  of the first note in the scene that isn't resolved, or if there are
 	  none, the first action element. The current scene is highlighted as you move
-	  around in the script, and you can drag the divider to make the
-	  panel wider or narrower.</para>
+	  around in the script.</para>
 
 	  <para>Click a scene to jump to it, or press Enter or double-click to
 	  jump to it and continue editing there.</para>
@@ -619,8 +630,9 @@
 	<sect1>
 	  <title>View/Notes</title>
 
-	  <para>This toggles the notes sidebar, which lists the script's notes
-	  in script order, below the outline when both are shown. Each note
+	  <para>This shows the notes in the side panel, or hides the side
+	  panel if it's already showing them. The notes sidebar lists the
+	  script's notes in script order. Each note
 	  shows the page and scene it's in and the start of the paragraph
 	  it's about. A note stays with its paragraph as you edit the script,
 	  moves with it when you cut and paste it, and is deleted along with

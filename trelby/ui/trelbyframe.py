@@ -139,8 +139,7 @@ class MyFrame(wx.Frame):
             True,
         )
         self.menuBar.Check(ID_SHOW_HIDE_TOOLBAR, True)
-        self.menuBar.Check(ID_VIEW_SHOW_OUTLINE, gd.showOutline)
-        self.menuBar.Check(ID_VIEW_SHOW_NOTES, gd.showNotes)
+        self.checkSideItems()
         self.menuBar.Check(ID_VIEW_BEAT_BOARD, gd.showBeatBoard)
 
         self.Bind(
@@ -581,32 +580,46 @@ class MyFrame(wx.Frame):
 
     # from the View menu item or the toolbar button, which share an id, or
     # the keyboard command
-    def OnToggleOutline(self):
-        self.setShowOutline(not self.gd.showOutline)
+    def OnToggleSidePanel(self):
+        self.setShowSidePanel(not self.gd.showSidePanel)
 
-    # show or hide the outline view in all tabs, keeping the View menu item
+    # from View / Outline or Notes, or their keyboard commands: show the
+    # side panel at that tab (GlobalData.SIDE_*), or hide it if it's
+    # already showing it
+    def OnToggleSideTab(self, tab):
+        if self.gd.showSidePanel and (self.gd.sideTab == tab):
+            self.setShowSidePanel(False)
+        else:
+            self.showSideTab(tab)
+
+    # show the side panel at the given tab in all tabs
+    def showSideTab(self, tab):
+        self.gd.sideTab = tab
+
+        for i in range(self.tabCtrl.getPageCount()):
+            self.tabCtrl.getPage(i).showSideTab(tab)
+
+        self.setShowSidePanel(True)
+
+    # show or hide the side panel in all tabs, keeping the View menu items
     # and the toolbar button in sync
-    def setShowOutline(self, show):
-        self.gd.showOutline = show
-        self.menuBar.Check(ID_VIEW_SHOW_OUTLINE, show)
-        self.toolBar.ToggleTool(ID_VIEW_SHOW_OUTLINE, show)
+    def setShowSidePanel(self, show):
+        self.gd.showSidePanel = show
 
         for i in range(self.tabCtrl.getPageCount()):
-            self.tabCtrl.getPage(i).showOutline(show)
+            self.tabCtrl.getPage(i).showSide(show)
 
-    # from the View menu item or the toolbar button, which share an id, or
-    # the keyboard command
-    def OnToggleNotes(self):
-        self.setShowNotes(not self.gd.showNotes)
+        self.checkSideItems()
+        self.toolBar.ToggleTool(ID_VIEW_SIDE_PANEL, show)
 
-    # show or hide the notes in all tabs, like setShowOutline
-    def setShowNotes(self, show):
-        self.gd.showNotes = show
-        self.menuBar.Check(ID_VIEW_SHOW_NOTES, show)
-        self.toolBar.ToggleTool(ID_VIEW_SHOW_NOTES, show)
-
-        for i in range(self.tabCtrl.getPageCount()):
-            self.tabCtrl.getPage(i).showNotes(show)
+    def checkSideItems(self):
+        gd = self.gd
+        self.menuBar.Check(ID_VIEW_SIDE_PANEL, gd.showSidePanel)
+        self.menuBar.Check(
+            ID_VIEW_SHOW_OUTLINE,
+            gd.showSidePanel and (gd.sideTab == gd.SIDE_OUTLINE),
+        )
+        self.menuBar.Check(ID_VIEW_SHOW_NOTES, gd.notesShown())
 
     # from the View menu item or the toolbar button, which share an id, or
     # the keyboard command

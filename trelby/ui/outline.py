@@ -4,7 +4,6 @@ from wx.lib.wordwrap import wordwrap
 import trelby.screenplay as screenplay
 import trelby.ui.gutil as gutil
 import trelby.ui.icons as icons
-import trelby.ui.widgets as widgets
 from trelby.ui.theming import blendColors
 from trelby.ui.scrollbar import ScrollBar
 
@@ -360,7 +359,10 @@ class OutlinePanel(wx.Panel):
     # how often to check whether to auto-scroll while dragging, in ms
     DRAG_SCROLL_INTERVAL = 80
 
-    def __init__(self, parent, scriptPanel):
+    # the buttons for the selected scene (self.tools) are made in
+    # toolParent, the side panel's header (see sidepanel.SidePanel), or
+    # above the list if it's None
+    def __init__(self, parent, scriptPanel, toolParent=None):
         wx.Panel.__init__(self, parent, -1)
 
         # trelbypanel.MyPanel whose script we show
@@ -385,17 +387,13 @@ class OutlinePanel(wx.Panel):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        # header: the panel's title, buttons to move the selected scene,
-        # and a button to close the panel
+        # buttons to move the selected scene and set its color
+        self.tools = wx.Panel(toolParent or self, -1)
         hdr = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.title = wx.StaticText(self, -1, _("Outline"))
-        self.title.SetFont(self.title.GetFont().Bold())
-        hdr.Add(self.title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, self.FromDIP(6))
 
         def addBtn(iconFilename, toolTip):
             bitmap = icons.svgBitmap(iconFilename, wx.Size(16, 16))
-            btn = wx.BitmapButton(self, -1, bitmap, style=wx.BORDER_NONE)
+            btn = wx.BitmapButton(self.tools, -1, bitmap, style=wx.BORDER_NONE)
             btn.SetToolTip(toolTip)
             hdr.Add(btn, 0, wx.ALL, self.FromDIP(2))
 
@@ -409,12 +407,10 @@ class OutlinePanel(wx.Panel):
             "scenecolor.svg",
             _("Set the selected scene's color (or right-click a scene)"),
         )
-        hdr.AddSpacer(self.FromDIP(6))
-        self.closeBtn = addBtn("closepanel.svg", _("Hide the outline"))
+        self.tools.SetSizer(hdr)
 
-        vsizer.Add(hdr, 0, wx.EXPAND)
-        self.separator = widgets.Separator(self)
-        vsizer.Add(self.separator, 0, wx.EXPAND)
+        if toolParent is None:
+            vsizer.Add(self.tools, 0, wx.ALIGN_RIGHT)
 
         # the list's native scrollbar ignores the theme's colors, so when
         # the list has one, it's sized to put it just past the right edge of
@@ -462,24 +458,23 @@ class OutlinePanel(wx.Panel):
         self.upBtn.Bind(wx.EVT_BUTTON, self.OnMoveUp)
         self.downBtn.Bind(wx.EVT_BUTTON, self.OnMoveDown)
         self.colorBtn.Bind(wx.EVT_BUTTON, self.OnColorBtn)
-        self.closeBtn.Bind(wx.EVT_BUTTON, self.OnClose)
 
         self.updateButtons()
 
     def getCtrl(self):
         return self.scriptPanel.ctrl
 
-    # use the colors of the theme in the given configgui.ConfigGui: the header
-    # like the tab bar, and the list like the page
+    # use the colors of the theme in the given configgui.ConfigGui: the
+    # buttons like the tab bar, and the list like the page
     def applyTheme(self, cfgGui):
         self.SetBackgroundColour(cfgGui.tabBarBgColor)
         self.SetForegroundColour(cfgGui.tabTextColor)
 
-        for w in (self.title, self.upBtn, self.downBtn, self.colorBtn, self.closeBtn):
+        for w in (self.tools, self.upBtn, self.downBtn, self.colorBtn):
             w.SetBackgroundColour(cfgGui.tabBarBgColor)
             w.SetForegroundColour(cfgGui.tabTextColor)
 
-        self.separator.applyTheme(cfgGui)
+        self.tools.Refresh()
 
         self.list.SetBackgroundColour(cfgGui.textBgColor)
         self.list.SetForegroundColour(cfgGui.textColor)
@@ -924,6 +919,3 @@ class OutlinePanel(wx.Panel):
 
     def OnMoveDown(self, event):
         self.moveScene(1)
-
-    def OnClose(self, event):
-        self.scriptPanel.gd.mainFrame.setShowOutline(False)

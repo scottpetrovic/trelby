@@ -2,9 +2,8 @@ import wx
 
 import trelby.ui.gutil as gutil
 from trelby.ui.beatboardview import BeatBoardView
-from trelby.ui.notesview import NotesPanel
-from trelby.ui.outline import OutlinePanel
 from trelby.ui.scrollbar import ScrollBar
+from trelby.ui.sidepanel import SidePanel
 
 # temporary until we can find out a way to separate MyCtrl
 from trelby.ui.trelbyctrl import MyCtrl
@@ -42,22 +41,12 @@ class MyPanel(wx.Panel):
         # window is resized
         self.splitter.SetSashGravity(1.0)
 
-        # the side panel: the outline above the notes, each shown or not
-        self.side = wx.SplitterWindow(
-            self.splitter, -1, style=wx.SP_LIVE_UPDATE | wx.SP_NOBORDER
-        )
-        self.side.SetMinimumPaneSize(80)
-        self.side.SetSashGravity(0.5)
-
-        # created before MyCtrl, which refreshes them during its own init
-        self.outline = OutlinePanel(self.side, self)
-        self.notes = NotesPanel(self.side, self)
-        self.notes.Hide()
-        self.side.Initialize(self.outline)
-
-        # what's shown in the side panel (see showOutline, showNotes)
-        self.outlineShown = False
-        self.notesShown = False
+        # the side panel, with the outline and the notes as tabs. created
+        # before MyCtrl, which refreshes them during its own init.
+        self.side = SidePanel(self.splitter, self)
+        self.side.Hide()
+        self.outline = self.side.outline
+        self.notes = self.side.notes
 
         self.editor = wx.Panel(self.splitter, -1, style=wx.WANTS_CHARS | wx.NO_BORDER)
 
@@ -82,7 +71,7 @@ class MyPanel(wx.Panel):
         self.scrollBar.Bind(wx.EVT_SET_FOCUS, self.OnScrollbarFocus)
 
         self.splitter.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.OnSashChanged)
-        self.side.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.OnSideSashChanged)
+        self.splitter.Initialize(self.editor)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.splitter, 1, wx.EXPAND)
@@ -91,9 +80,8 @@ class MyPanel(wx.Panel):
 
         self.applyTheme(gd.cfgGui)
 
-        self.outlineShown = gd.showOutline
-        self.notesShown = gd.showNotes
-        self.layoutSide()
+        self.side.setTab(gd.sideTab)
+        self.showSide(gd.showSidePanel)
         self.showBeatBoard(gd.showBeatBoard)
 
     # use the colors of the theme in the given configgui.ConfigGui for the
@@ -103,9 +91,7 @@ class MyPanel(wx.Panel):
         self.splitter.SetBackgroundColour(cfgGui.tabBorderColor)
         self.editor.SetBackgroundColour(cfgGui.workspaceColor)
         self.scrollBar.setColors(cfgGui.workspaceColor, cfgGui.textColor)
-        self.side.SetBackgroundColour(cfgGui.tabBorderColor)
-        self.outline.applyTheme(cfgGui)
-        self.notes.applyTheme(cfgGui)
+        self.side.applyTheme(cfgGui)
         self.board.applyTheme(cfgGui)
         self.splitter.Refresh()
 
@@ -130,83 +116,34 @@ class MyPanel(wx.Panel):
         if show:
             self.board.updateVirtualSize()
 
-    # show or hide the outline view
-    def showOutline(self, show):
-        self.outlineShown = show
-        self.layoutSide()
-
-    # show or hide the notes
-    def showNotes(self, show):
-        if not show:
-            self.notes.finishEdit(True)
-
-        self.notesShown = show
-        self.layoutSide()
-
-    # show the side panel with the outline and / or the notes, or hide it
-    # if neither is shown
-    def layoutSide(self):
-        outline, notes = self.outlineShown, self.notesShown
-        side = self.side
-
-        if outline and notes:
-            if not side.IsSplit():
-                if side.GetWindow1() is not self.outline:
-                    side.ReplaceWindow(side.GetWindow1(), self.outline)
-
-                self.outline.Show()
-                self.notes.Show()
-
-                # a negative sash position is the bottom pane's height
-                side.SplitHorizontally(self.outline, self.notes, -self.gd.notesHeight)
-
-        elif outline or notes:
-            if outline:
-                win, other = self.outline, self.notes
-            else:
-                win, other = self.notes, self.outline
-
-            if side.IsSplit():
-                side.Unsplit(other)
-            elif side.GetWindow1() is not win:
-                side.ReplaceWindow(side.GetWindow1(), win)
-
-            other.Hide()
-            win.Show()
-
-        if outline or notes:
+    # show or hide the side panel
+    def showSide(self, show):
+        if show:
             if not self.splitter.IsSplit():
                 self.side.Show()
 
                 # a negative sash position is the right pane's width
                 self.splitter.SplitVertically(
-                    self.editor, self.side, -self.gd.outlineWidth
+                    self.editor, self.side, -self.gd.sideWidth
                 )
+
+            self.side.refresh()
+
         else:
+            self.notes.finishEdit(True)
+
             if self.splitter.IsSplit():
                 self.splitter.Unsplit(self.side)
-            else:
-                self.splitter.Initialize(self.editor)
-                self.side.Hide()
 
-        if outline:
-            self.outline.refresh()
+    # show the side panel's tab at index tab (GlobalData.SIDE_*)
+    def showSideTab(self, tab):
+        self.side.setTab(tab)
 
-        if notes:
-            self.notes.refresh()
-
-    # outlineWidth is what layoutSide passes to SplitVertically, so it
-    # includes the sash
+    # sideWidth is what showSide passes to SplitVertically, so it includes
+    # the sash
     def OnSashChanged(self, event):
-        self.gd.outlineWidth = (
+        self.gd.sideWidth = (
             self.splitter.GetClientSize().width - event.GetSashPosition()
-        )
-        event.Skip()
-
-    # likewise notesHeight, when the notes are below the outline
-    def OnSideSashChanged(self, event):
-        self.gd.notesHeight = (
-            self.side.GetClientSize().height - event.GetSashPosition()
         )
         event.Skip()
 

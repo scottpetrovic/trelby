@@ -415,9 +415,9 @@ class MainToolBar:
         )
         tb.AddControl(self.alignBar)
 
-        # at the far right, next to where the outline view appears: the
-        # beat board, which replaces the script and the outline, and the
-        # outline
+        # at the far right, next to where the side panel appears: the beat
+        # board, which replaces the script and the side panel, and the side
+        # panel with the outline and the notes
         tb.AddStretchableSpace()
 
         # its icon is changed by setBoardShown
@@ -425,14 +425,17 @@ class MainToolBar:
         self.iconSize = size
         self.iconPad = pad
         self.boardIconShown = None
-        addTB(ids.ID_VIEW_SHOW_OUTLINE, "outline.svg", _("Outline"), wx.ITEM_CHECK)
-        addTB(ids.ID_VIEW_SHOW_NOTES, "notes.svg", _("Notes"), wx.ITEM_CHECK)
+        addTB(
+            ids.ID_VIEW_SIDE_PANEL,
+            "sidepanel.svg",
+            _("Outline and notes"),
+            wx.ITEM_CHECK,
+        )
 
         tb.SetBackgroundColour(self.gd.cfgGui.tabBarBgColor)
         tb.Realize()
 
-        tb.ToggleTool(ids.ID_VIEW_SHOW_OUTLINE, self.gd.showOutline)
-        tb.ToggleTool(ids.ID_VIEW_SHOW_NOTES, self.gd.showNotes)
+        tb.ToggleTool(ids.ID_VIEW_SIDE_PANEL, self.gd.showSidePanel)
         self.setBoardShown(self.gd.showBeatBoard)
 
     # redraw the toolbar in the current theme's colors
