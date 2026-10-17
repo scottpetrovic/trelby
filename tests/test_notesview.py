@@ -102,11 +102,13 @@ def testCloseHitTest(panel):
     for n in range(3):
         assert lc.closeHitTest(closePos(panel, n)) == n
 
-    # the card's text, and left of the ×
+    # the whole column is the button, but not the card's text left of it
     rect = lc.GetItemRect(1)
+    cr = lc.getCloseRect(rect)
+    assert lc.closeHitTest(wx.Point(cr.x + 1, rect.y + 1)) == 1
+    assert lc.closeHitTest(wx.Point(cr.GetRight(), rect.y + rect.height - 2)) == 1
     assert lc.closeHitTest(centre(rect)) is None
-    pos = closePos(panel, 1)
-    assert lc.closeHitTest(wx.Point(pos.x - lc.smallHeight, pos.y)) is None
+    assert lc.closeHitTest(wx.Point(cr.x - 1, cr.y + 1)) is None
 
 
 def testClickingCloseDeletes(panel):
@@ -149,3 +151,58 @@ def testCloseWhileEditingEmptiedNote(panel):
     # the emptied note is deleted when the edit ends, and the one clicked
     # on is still found though its index changed
     assert texts(panel) == ["Third"]
+
+
+# the scroll bar is only there when the list can scroll, so it doesn't
+# take room from the cards
+def testScrollBarOnlyWhenNeeded(panel):
+    panel.layoutList()
+    assert not panel.scrollBar.IsShown()
+
+    ed = panel.getCtrl().ed
+
+    for i in range(30):
+        ed.addNote(8, "Note %d" % i)
+
+    panel.refresh()
+    panel.layoutList()
+    assert panel.scrollBar.IsShown()
+
+
+# a new note left empty, on a script with no other notes, goes away when
+# the editing ends, and the panel says there are no notes
+@pytest.mark.parametrize("keep", [True, False])
+def testEmptyNewNoteOnScriptWithoutNotes(app, keep):
+    ed = u.newEditor()
+
+    frame = wx.Frame(None, size=wx.Size(400, 700))
+    p = notesview.NotesPanel(frame, Panel(ed))
+    frame.Layout()
+
+    try:
+        p.refresh()
+        assert p.emptyText.IsShown()
+
+        p.addNote()
+        assert p.editing
+        assert p.list.GetItemCount() == 1
+
+        p.finishEdit(keep)
+
+        assert p.items == []
+        assert p.list.GetItemCount() == 0
+        assert p.emptyText.IsShown()
+        assert texts(p) == []
+
+        # a note added after that can be edited
+        p.addNote()
+        p.editing[1].SetValue("Hello")
+        p.finishEdit(True)
+        assert texts(p) == ["Hello"]
+        assert p.list.GetItemCount() == 1
+
+        p.startEdit(0)
+        assert p.editing
+        p.finishEdit(False)
+    finally:
+        frame.Destroy()

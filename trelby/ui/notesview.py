@@ -5,7 +5,7 @@
 # selecting a card puts the cursor on the note's paragraph. double-click,
 # Enter or F2 edits a note in place (Ctrl+Enter or clicking elsewhere,
 # the script included, finishes, Esc cancels), Space marks it resolved or
-# not, and Delete or the × at the card's top right deletes it.
+# not, and Delete or the × in a column at the card's right deletes it.
 # Edit / Add note (Alt+N) adds one to the paragraph at the cursor. every
 # change is an undoable edit of the script, done through MyCtrl.
 
@@ -143,6 +143,11 @@ class NotesList(wx.VListBox):
 
         self.pad = self.FromDIP(wx.Size(8, 7))
         self.barWidth = self.FromDIP(3)
+
+        # the width of the column at the right of each card with the
+        # delete button, and the size of the × in it
+        self.closeWidth = self.FromDIP(28)
+        self.closeSize = self.FromDIP(10)
         self.lineHeight = self.GetFullTextExtent("Ag", self.normalFont)[1]
         self.smallHeight = self.GetFullTextExtent("Ag", self.smallFont)[1]
 
@@ -168,14 +173,18 @@ class NotesList(wx.VListBox):
     def getTextArea(self):
         x = self.barWidth + self.pad.x
 
-        return x, self.GetClientSize().width - x - self.pad.x
+        return x, self.GetClientSize().width - x - self.pad.x - self.closeWidth
 
-    # the delete button of the card in row rect 'rect', at the right of its
-    # first line, in the same coordinates as rect
+    # the delete button of the card in row rect 'rect': a column of its
+    # own at the right, the card's full height but for the separator below
+    # it, in the same coordinates as rect
     def getCloseRect(self, rect):
-        size = self.smallHeight
-
-        return wx.Rect(rect.GetRight() - self.pad.x - size, rect.y + self.pad.y, size, size)
+        return wx.Rect(
+            rect.GetRight() + 1 - self.closeWidth,
+            rect.y,
+            self.closeWidth,
+            rect.height - 1,
+        )
 
     # the index of the card whose delete button is at pos (client
     # coordinates), or None. the card being edited has none.
@@ -279,6 +288,20 @@ class NotesList(wx.VListBox):
         dc.SetBrush(wx.Brush(bar))
         dc.DrawRectangle(rect.x, rect.y, self.barWidth, rect.height)
 
+        # the delete button's column, shaded under the mouse, with a line
+        # left of it
+        if n != self.editRow:
+            fg = self.GetForegroundColour()
+            cr = self.getCloseRect(rect)
+
+            if n == self.hoverClose:
+                dc.SetPen(wx.TRANSPARENT_PEN)
+                dc.SetBrush(wx.Brush(blendColors(fill, fg, 0.08)))
+                dc.DrawRectangle(cr)
+
+            dc.SetPen(wx.Pen(blendColors(fill, fg, 0.08)))
+            dc.DrawLine(cr.x, cr.y, cr.x, cr.GetBottom() + 1)
+
         # separator between rows
         dc.SetPen(wx.Pen(blendColors(bg, self.GetForegroundColour(), 0.12)))
         y = rect.GetBottom()
@@ -299,28 +322,26 @@ class NotesList(wx.VListBox):
         dc.SetFont(self.smallFont)
         dc.SetTextForeground(dim)
 
-        # the right end of the first line's text: left of the delete
-        # button, an × that turns the text color under the mouse
-        right = width
-
+        # the delete button, an × in the middle of its column that turns
+        # the text color under the mouse
         if n != self.editRow:
             cr = self.getCloseRect(rect)
-            inset = max(2, cr.width // 4)
-            x1, y1 = cr.x + inset, cr.y + inset
-            x2, y2 = cr.GetRight() - inset, cr.GetBottom() - inset
+            half = self.closeSize // 2
+            cx = cr.x + cr.width // 2
+            cy = cr.y + cr.height // 2
 
-            dc.SetPen(wx.Pen(fg if n == self.hoverClose else dim, self.FromDIP(1)))
-            dc.DrawLine(x1, y1, x2 + 1, y2 + 1)
-            dc.DrawLine(x1, y2, x2 + 1, y1 - 1)
+            pen = wx.Pen(fg if n == self.hoverClose else dim, max(1, self.FromDIP(3) // 2))
+            pen.SetCap(wx.CAP_ROUND)
+            dc.SetPen(pen)
+            dc.DrawLine(cx - half, cy - half, cx + half + 1, cy + half + 1)
+            dc.DrawLine(cx - half, cy + half, cx + half + 1, cy - half - 1)
 
-            right -= cr.width + self.pad.x // 2
-
-        contextW = right
+        contextW = width
 
         if it.note.resolved:
             mark = "✓ " + _("Resolved")
             markW = dc.GetTextExtent(mark).width
-            dc.DrawText(mark, x + right - markW, y)
+            dc.DrawText(mark, x + width - markW, y)
             contextW -= markW + self.pad.x
 
         if contextW > 0:
@@ -497,7 +518,11 @@ class NotesPanel(wx.Panel):
 
         self.emptyText.Show(empty)
         self.listHolder.Show(not empty)
-        self.scrollBar.Show(not empty)
+
+        # updateScrollBar shows it again if the list can scroll
+        if empty:
+            self.scrollBar.Hide()
+
         self.Layout()
 
         if empty:
@@ -530,6 +555,9 @@ class NotesPanel(wx.Panel):
 
         self.updateScrollBar()
 
+    # make scrollBar match the list's native scrollbar, and show it only
+    # when the list can scroll. that resizes the list, which would end
+    # editing a note, so it waits until the editing is done.
     def updateScrollBar(self):
         lc = self.list
         thumb = lc.GetScrollThumb(wx.VERTICAL)
@@ -537,6 +565,12 @@ class NotesPanel(wx.Panel):
         self.scrollBar.SetScrollbar(
             lc.GetScrollPos(wx.VERTICAL), thumb, lc.GetScrollRange(wx.VERTICAL), thumb
         )
+
+        show = self.listHolder.IsShown() and self.scrollBar.canScroll()
+
+        if (show != self.scrollBar.IsShown()) and not self.editing:
+            self.scrollBar.Show(show)
+            self.Layout()
 
     def OnListHolderSize(self, event):
         self.layoutList()
@@ -565,8 +599,9 @@ class NotesPanel(wx.Panel):
         if self.IsShown():
             self.timer.StartOnce(self.REFRESH_DELAY)
 
-    # refresh the list right away
-    def refresh(self):
+    # refresh the list right away. 'force' redoes it even if the notes
+    # haven't changed.
+    def refresh(self, force=False):
         self.timer.Stop()
 
         if not self.IsShown():
@@ -577,12 +612,13 @@ class NotesPanel(wx.Panel):
         if self.editing:
             return
 
-        self.setItems(getItems(self.getCtrl().sp, self.showResolved))
+        self.setItems(getItems(self.getCtrl().sp, self.showResolved), force)
         self.selectCurrent()
 
-    # show 'items', keeping the selected note selected
-    def setItems(self, items):
-        if items == self.items:
+    # show 'items', keeping the selected note selected. unless 'force' is
+    # True, nothing is done if they're the ones shown.
+    def setItems(self, items, force=False):
+        if (items == self.items) and not force:
             return
 
         sel = self.getSelected()
@@ -736,10 +772,9 @@ class NotesPanel(wx.Panel):
             else:
                 sc.deleteNote(item.line, item.index)
 
-        # a cancelled new note, and a refill that changed nothing, need
-        # the list redone by hand
-        self.items = []
-        self.refresh()
+        # the list still shows the edited card, at its editing height, or
+        # a cancelled new note, which the notes don't have
+        self.refresh(True)
         self.select(key)
 
         if refocus:

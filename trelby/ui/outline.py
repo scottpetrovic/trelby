@@ -502,7 +502,8 @@ class OutlinePanel(wx.Panel):
 
         self.updateScrollBar()
 
-    # make scrollBar match the list's native scrollbar
+    # make scrollBar match the list's native scrollbar, and show it only
+    # when the list can scroll
     def updateScrollBar(self):
         lc = self.list
         thumb = lc.GetScrollThumb(wx.VERTICAL)
@@ -510,6 +511,12 @@ class OutlinePanel(wx.Panel):
         self.scrollBar.SetScrollbar(
             lc.GetScrollPos(wx.VERTICAL), thumb, lc.GetScrollRange(wx.VERTICAL), thumb
         )
+
+        show = self.scrollBar.canScroll()
+
+        if show != self.scrollBar.IsShown():
+            self.scrollBar.Show(show)
+            self.Layout()
 
     def OnListHolderSize(self, event):
         self.layoutList()

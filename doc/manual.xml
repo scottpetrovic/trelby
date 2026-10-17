@@ -632,7 +632,7 @@
 	  press Enter or F2, to edit it; Ctrl+Enter or clicking elsewhere,
 	  in the script too, finishes, and Escape cancels. Space marks the
 	  note as resolved, or not, and Delete or the &#215; at the note's
-	  top right deletes it; the right-click menu has these too, and can
+	  right deletes it; the right-click menu has these too, and can
 	  hide the
 	  resolved notes. Every change to the notes can be undone like any
 	  other edit.</para>
