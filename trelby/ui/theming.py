@@ -32,6 +32,11 @@ def isDarkAppearance():
 # its normal color
 ACCENT_TINT = 0.15
 
+# how much of the text color is mixed into the background for the borders
+# of the buttons and drop-down lists we draw ourselves, so that they don't
+# stand out as much as the text
+BORDER_STRENGTH = 0.5
+
 
 # return color c1 mixed with c2, with a being the fraction of c2
 def blendColors(c1, c2, a):
@@ -807,7 +812,7 @@ _BST_FOCUS = 0x8
 
 
 # draw push button w ourselves from now on, in its background and
-# foreground colors: a rounded rectangle with a border in the text's color.
+# foreground colors: a rounded rectangle with a border (see _paintFrame).
 # only on Windows, where the native button's border can't be colored; other
 # systems keep it, with the colors.
 def _drawButtonThemed(w):
@@ -1077,7 +1082,8 @@ def _paintChoiceList(hwnd, lst, hdc):
 
 
 # draw the 1-pixel border of a drop-down list's list, native list box hwnd,
-# in its text color, on hdc, a dc for the whole window
+# halfway between its colors (BORDER_STRENGTH), on hdc, a dc for the whole
+# window
 def _paintChoiceListBorder(hwnd, lst, hdc):
     wt = _win.wintypes
     u = _win.user32
@@ -1088,7 +1094,9 @@ def _paintChoiceListBorder(hwnd, lst, hdc):
     ww = wr.right - wr.left
     wh = wr.bottom - wr.top
 
-    c = lst.w.GetForegroundColour()
+    c = blendColors(
+        lst.w.GetBackgroundColour(), lst.w.GetForegroundColour(), BORDER_STRENGTH
+    )
     brush = gdi.CreateSolidBrush(c.Red() | (c.Green() << 8) | (c.Blue() << 16))
 
     for rect in ((0, 0, ww, 1), (0, wh - 1, ww, wh), (0, 0, 1, wh), (ww - 1, 0, ww, wh)):
@@ -1099,8 +1107,9 @@ def _paintChoiceListBorder(hwnd, lst, hdc):
 
 # fill the paint dc of a control we draw ourselves (w) with its parent's
 # background, and draw w's frame on it: a rounded rectangle in w's colors,
-# lighter or darker when the mouse is over it or it's pushed, with a thicker
-# border when it has the focus. returns a GraphicsContext on dc, with w's
+# lighter or darker when the mouse is over it or it's pushed, with a border
+# halfway between its colors, or a thicker one in the text color when it has
+# the focus. returns a GraphicsContext on dc, with w's
 # font set, and the text color.
 def _paintFrame(w, dc, pushed, focused):
     dc.SetBackground(wx.Brush(w.GetParent().GetBackgroundColour()))
@@ -1113,16 +1122,20 @@ def _paintFrame(w, dc, pushed, focused):
 
     if not w.IsEnabled():
         fg = blendColors(fg, bg, 0.6)
-    elif pushed:
+
+    # the focus border keeps the full text color, to show the focus
+    border = fg if focused else blendColors(bg, fg, BORDER_STRENGTH)
+
+    if w.IsEnabled() and pushed:
         bg = blendColors(bg, fg, 0.25)
-    elif hover:
+    elif w.IsEnabled() and hover:
         bg = blendColors(bg, fg, 0.12)
 
     width, height = w.GetClientSize()
     penW = w.FromDIP(2 if focused else 1)
 
     gc = wx.GraphicsContext.Create(dc)
-    gc.SetPen(gc.CreatePen(wx.GraphicsPenInfo(fg).Width(penW)))
+    gc.SetPen(gc.CreatePen(wx.GraphicsPenInfo(border).Width(penW)))
     gc.SetBrush(wx.Brush(bg))
     gc.DrawRoundedRectangle(
         penW / 2, penW / 2, width - penW, height - penW, w.FromDIP(5)
