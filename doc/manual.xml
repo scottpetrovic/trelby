@@ -644,7 +644,7 @@
 
 	</sect1>
 
-	<sect1>
+	<sect1 id="script_settings">
 	  <title>Script/Script settings</title>
 
 	  <para>This edits the script format settings (see
@@ -655,7 +655,7 @@
 
 	</sect1>
 
-	<sect1>
+	<sect1 id="titles_dlg">
 	  <title>Script/Title pages</title>
 
 	  <para>'Title pages' allows you to edit your script's title pages.
@@ -744,14 +744,65 @@
 	  string to start 2 characters before the left margin, select
 	  'Alignment: Left' and 'X offset: -2'.</para>
 
-	  <para>Any occurrences of '${PAGE}' in the text string will be
-	  replaced by the page number in the actual headers.</para>
+	  <para>The text can contain variables, which are filled in on each
+	  page: '${PAGE}' is the page number. 'Insert variable' lists them
+	  all; see <link linkend="footer_dlg">Script/Page footer</link> for
+	  what they are.</para>
 
-	  <para>Finally there are 'Preview' and 'Apply' buttons that you can
-	  use to preview your changes. 'Preview' opens up a sample page in
-	  your PDF viewer program, while 'Apply' applies the new headers to
-	  the open script, so you can e.g. see how the page count of the
-	  script would change.</para>
+	  <para>The preview on the right shows the top of a page with your
+	  headers. 'Apply' applies the new headers to the open script, so you
+	  can e.g. see how the page count of the script would change.</para>
+
+	</sect1>
+
+	<sect1 id="footer_dlg">
+	  <title>Script/Page footer</title>
+
+	  <para>'Page footer' sets a line of text printed at the bottom of
+	  each page of the script, in the middle of the bottom margin. It has
+	  three parts: one aligned to the left margin, one centered and one
+	  aligned to the right margin. Leave all three empty for no footer.
+	  The footer is not printed on the title pages, and you can leave it
+	  off the first page of the script with 'Print on the first
+	  page'.</para>
+
+	  <para>Since the footer is in the margin, it doesn't change how much
+	  fits on a page. If the bottom margin is too small for it (see
+	  <link linkend="script_settings">Script/Script settings</link>), it is
+	  printed at the very bottom of the page instead.</para>
+
+	  <para>The parts can contain these variables, which 'Insert
+	  variable' puts at the cursor:</para>
+
+	  <itemizedlist>
+		<listitem>
+		  <para>'${PAGE}': the page number, e.g. '12' or, for locked
+		  pages, '12A'.</para>
+		</listitem>
+		<listitem>
+		  <para>'${PAGES}': the number of the last page.</para>
+		</listitem>
+		<listitem>
+		  <para>'${TITLE}': the title from the title page.</para>
+		</listitem>
+		<listitem>
+		  <para>'${AUTHOR}': the author from the title page, or if it
+		  has none, the names below the "by" of the byline.</para>
+		</listitem>
+		<listitem>
+		  <para>'${DRAFT}': the draft string from the title page, on one
+		  line, e.g. 'Second Draft, May 3, 2026'.</para>
+		</listitem>
+		<listitem>
+		  <para>'${DRAFTDATE}': the line of the draft string with the
+		  date in it, e.g. 'May 3, 2026'.</para>
+		</listitem>
+	  </itemizedlist>
+
+	  <para>The title page values come from the strings of that kind in
+	  <link linkend="titles_dlg">Script/Title pages</link>, so changing
+	  them there changes the footer too. The same variables work in the
+	  page headers.</para>
 
 	</sect1>
 

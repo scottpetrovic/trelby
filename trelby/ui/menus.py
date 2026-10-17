@@ -605,6 +605,14 @@ def makeTable():
                 OnScript(scriptactions.headersDlg),
                 dots=True,
             ),
+            Action(
+                "FooterDlg",
+                ID_SCRIPT_FOOTER,
+                _("Page footer"),
+                "F",
+                OnScript(scriptactions.footerDlg),
+                dots=True,
+            ),
             SEP,
             Action(
                 "CharacterProfilesDlg",

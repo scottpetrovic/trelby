@@ -247,6 +247,7 @@ def defaultCommands():
             isFixed=True,
             isMenu=True,
         ),
+        Command("FooterDlg", _("Open the page footer dialog."), isMenu=True),
         Command(
             "ForcedLineBreak",
             _("Insert a forced line break."),

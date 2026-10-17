@@ -76,6 +76,9 @@ def save(sp) -> bytes:
 
     output += "#Header-Empty-Lines %d\n" % sp.headers.emptyLinesAfter
 
+    # only written when there's a footer
+    output += sp.footer.save()
+
     output += "#Start-Script \n"
 
     # a line's attributes are written as config lines just before it,
@@ -248,6 +251,9 @@ def load(s: str, cfgGl):
 
             elif key == "Header-Empty-Lines":
                 sp.headers.emptyLinesAfter = util.str2int(val, 1, 0, 5)
+
+            elif sp.footer.load(key, val):
+                pass
 
             elif key == "Start-Script":
                 startSeen = True

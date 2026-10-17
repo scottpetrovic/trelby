@@ -1,10 +1,11 @@
 # lays the script out as pml pages: what's printed on each page (script
-# lines, headers, CONTINUED / (MORE) / (cont'd), scene numbers, notes),
-# and where. used for PDF export and by the editor's page view modes. the
-# page breaks themselves are decided by pagination.
+# lines, headers, the footer, CONTINUED / (MORE) / (cont'd), scene
+# numbers, notes), and where. used for PDF export and by the editor's
+# page view modes. the page breaks themselves are decided by pagination.
 
 import trelby.pdf.mypager as mypager
 import trelby.pdf.pml as pml
+import trelby.screenplay.headers as headers
 import trelby.textutil as textutil
 import trelby.util as util
 from trelby.screenplay.constants import (
@@ -87,6 +88,15 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
     # margin, units = line / 10
     y = 0
 
+    # the footer is in the bottom margin, so it doesn't move anything.
+    # it goes before the script lines, since the page views take the last
+    # text on a page as the bottom of the script's lines.
+    if doExtra:
+        pvars = headers.pageVars(sp, pageNr)
+
+        if sp.footer.isOnPage(pageNr):
+            sp.footer.generatePML(pg, pvars, cfg)
+
     # the first page has no header and never continues anything. on
     # the others, the header, a "CONTINUED:" plus a blank line when the
     # page starts mid-scene, and "NAME (cont'd)" when it starts
@@ -95,7 +105,7 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
     # previous pages, so pages must be generated in order, 1 to n.
     if pageNr != 1:
         if doExtra:
-            sp.headers.generatePML(pg, sp.getPageLabel(pageNr), cfg)
+            sp.headers.generatePML(pg, pvars, cfg)
         y += sp.headers.getNrOfLines() * 10
 
         if cfg.sceneContinueds and not sp.isFirstLineOfScene(start):

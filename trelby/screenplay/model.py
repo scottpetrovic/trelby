@@ -50,6 +50,7 @@ class Screenplay(
     def __init__(self, cfgGl):
         self.autoCompletion = autocompletion.AutoCompletion()
         self.headers = headers.Headers()
+        self.footer = headers.Footer()
         self.locations = locations.Locations()
         self.titles = titles.Titles()
         self.scDict = spellcheck.Dict()
@@ -104,6 +105,7 @@ class Screenplay(
 
         sp.autoCompletion = copy.deepcopy(self.autoCompletion)
         sp.headers = copy.deepcopy(self.headers)
+        sp.footer = copy.deepcopy(self.footer)
         sp.locations = copy.deepcopy(self.locations)
         sp.titles = copy.deepcopy(self.titles)
         sp.scDict = copy.deepcopy(self.scDict)

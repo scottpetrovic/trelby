@@ -1,5 +1,6 @@
 import wx
 
+import trelby.dialogs.footerdlg as footerdlg
 import trelby.ui.gutil as gutil
 import trelby.screenplay.headers as headers
 import trelby.misc as misc
@@ -9,7 +10,9 @@ from trelby.dialogs.headerspreview import HeadersPreview
 
 
 class HeadersDlg(wx.Dialog):
-    def __init__(self, parent, headers, cfg, cfgGl, applyFunc):
+    # 'pvars' are the variables to show in the preview (see
+    # headers.pageVars)
+    def __init__(self, parent, headers, cfg, cfgGl, applyFunc, pvars):
         wx.Dialog.__init__(
             self,
             parent,
@@ -22,6 +25,7 @@ class HeadersDlg(wx.Dialog):
         self.cfg = cfg
         self.cfgGl = cfgGl
         self.applyFunc = applyFunc
+        self.pvars = pvars
 
         # whether some events are blocked
         self.block = False
@@ -80,14 +84,15 @@ class HeadersDlg(wx.Dialog):
 
         vsizer.Add(hsizer, 0, wx.EXPAND | wx.TOP, 20)
 
-        vsizer.Add(
-            wx.StaticText(
-                self, -1, _("'${PAGE}' will be replaced by the page number.")
+        self.varBtn = gutil.createStockButton(self, _("Insert variable"))
+        self.Bind(
+            wx.EVT_BUTTON,
+            lambda ev: footerdlg.showVariablesMenu(
+                self, self.varBtn, lambda: self.textEntry
             ),
-            0,
-            wx.ALIGN_CENTER | wx.TOP,
-            5,
+            id=self.varBtn.GetId(),
         )
+        vsizer.Add(self.varBtn, 0, wx.ALIGN_RIGHT | wx.TOP, 5)
 
         hsizerTop = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -174,6 +179,7 @@ class HeadersDlg(wx.Dialog):
         # list of widgets that are specific to editing the selected string
         self.widList = [
             self.textEntry,
+            self.varBtn,
             self.xoffEntry,
             self.lineEntry,
             self.boldBtn,

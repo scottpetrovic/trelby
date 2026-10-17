@@ -8,9 +8,6 @@ from trelby.dialogs.titlespreview import BASELINE, FACE_NAMES
 # gap around the page, in pixels
 MARGIN = 12
 
-# page number shown in the preview
-PAGE_NR = "2"
-
 # sample script text shown below the headers, as (element type, text),
 # with None for an empty line
 SAMPLE_LINES = [
@@ -163,7 +160,7 @@ class HeadersPreview(wx.Window):
 
         gc.SetFont(gc.CreateFont(fontPx, FACE_NAMES[pml.COURIER], flags, wx.BLACK))
 
-        text = hs.getText(PAGE_NR)
+        text = hs.getText(self.ctrl.pvars)
         x, y = hs.getPos(self.cfg)
 
         tw = gc.GetTextExtent(text)[0]

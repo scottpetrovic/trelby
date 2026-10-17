@@ -38,7 +38,7 @@
 #
 #   line          one line of the script (Line)
 #   titles        the title pages
-#   headers       the page headers
+#   headers       the page headers and footer
 #   characterprofiles  notes about each character
 #   locations     scene headings grouped into locations
 #   worldbuilding notes about the story's world

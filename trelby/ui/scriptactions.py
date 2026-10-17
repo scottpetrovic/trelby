@@ -18,7 +18,9 @@ import trelby.checkboxitem as checkboxitem
 import trelby.config as config
 import trelby.dialogs.finddlg as finddlg
 import trelby.dialogs.formattingerrorsdlg as formattingerrorsdlg
+import trelby.dialogs.footerdlg as footerdlg
 import trelby.dialogs.headersdlg as headersdlg
+import trelby.screenplay.headers as headers
 import trelby.keys as keys
 import trelby.dialogs.locationsdlg as locationsdlg
 import trelby.misc as misc
@@ -108,10 +110,32 @@ def headersDlg(frame, ctrl):
         ctrl.sp.cfg,
         ctrl.gd.cfgGl,
         partial(applyHeaders, ctrl),
+        headers.pageVars(ctrl.sp, 2),
     )
 
     if dlg.ShowModal() == wx.ID_OK:
         applyHeaders(ctrl, dlg.headers)
+
+    dlg.Destroy()
+
+
+def applyFooter(ctrl, newFooter):
+    if newFooter != ctrl.sp.footer:
+        ctrl.sp.footer = copy.deepcopy(newFooter)
+        ctrl.sp.markChanged()
+        ctrl.updateScreen()
+
+
+def footerDlg(frame, ctrl):
+    dlg = footerdlg.FooterDlg(
+        frame,
+        copy.deepcopy(ctrl.sp.footer),
+        ctrl.sp,
+        partial(applyFooter, ctrl),
+    )
+
+    if dlg.ShowModal() == wx.ID_OK:
+        applyFooter(ctrl, dlg.footer)
 
     dlg.Destroy()
 
