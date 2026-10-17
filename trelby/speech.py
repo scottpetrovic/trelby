@@ -14,7 +14,8 @@
 # systemBackend() picks the platform's backend:
 #
 #  - Windows: SAPI 5, through pyttsx3 (an optional extra, pip install
-#    trelby[speech]).
+#    trelby[speech]), with the voices Windows' Settings installs too
+#    (ONECORE_VOICES).
 #  - macOS: the "say" command.
 #  - Linux and others: the espeak-ng (or espeak) command, or pyttsx3
 #    (which uses the espeak library) if neither is installed.
@@ -219,6 +220,19 @@ def _comInit():
         pythoncom.CoInitialize()
 
 
+# the registry key of the voices installed by Windows' Settings (Time &
+# language > Speech), which SAPI 5 doesn't list (it only lists the older
+# desktop voices, under Speech\Voices) but can speak with when given one
+ONECORE_VOICES = r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices"
+
+
+# a voice's name without "Desktop", which Windows' desktop voices have and
+# the same voices from Settings don't: "Microsoft David Desktop - English
+# (United States)" and "Microsoft David - English (United States)"
+def _sameVoiceName(name):
+    return (name or "").replace(" Desktop", "").lower()
+
+
 # SAPI 5 on Windows, or espeak / NSSpeechSynthesizer elsewhere, through
 # pyttsx3. a new pyttsx3.Engine is made for each utterance (it takes a few
 # milliseconds): pyttsx3 2.99's SAPI driver cuts every utterance after the
@@ -247,28 +261,73 @@ class Pyttsx3Backend(ThreadedBackend):
             ret = []
 
             for v in engine.getProperty("voices"):
-                langs = getattr(v, "languages", None) or [""]
-
-                voice = Voice(
-                    str(v.id),
-                    str(v.name or v.id),
-                    normalizeLanguage(langs[0]),
-                    normalizeGender(getattr(v, "gender", None)),
-                )
+                voice = toVoice(v)
 
                 if v.id == default:
                     ret.insert(0, voice)
                 else:
                     ret.append(voice)
 
+            # the voices from Settings that aren't the desktop ones again
+            names = {_sameVoiceName(v.name) for v in ret}
+
+            for v in self.extraVoices(engine):
+                voice = toVoice(v)
+
+                if _sameVoiceName(voice.name) not in names:
+                    names.add(_sameVoiceName(voice.name))
+                    ret.append(voice)
+
             self._voices = ret
 
         return self._voices
 
+    # the voices SAPI 5 doesn't list (see ONECORE_VOICES), as pyttsx3
+    # voices, or [] if they can't be found
+    def extraVoices(self, engine):
+        if sys.platform != "win32":
+            return []
+
+        try:
+            import comtypes.client
+
+            driver = engine.proxy._driver
+            cat = comtypes.client.CreateObject("SAPI.SpObjectTokenCategory")
+            cat.SetId(ONECORE_VOICES, False)
+
+            tokens = list(cat.EnumerateTokens())
+        except Exception:
+            return []
+
+        ret = []
+
+        for t in tokens:
+            try:
+                ret.append(driver._toVoice(t))
+            except Exception:
+                # e.g. no language; skip it rather than lose the others
+                pass
+
+        return ret
+
+    # whether voiceId is one of extraVoices', which pyttsx3 can't select
+    def isExtraVoice(self, voiceId):
+        return voiceId.lower().startswith(ONECORE_VOICES.lower() + "\\")
+
+    # make engine speak in extra voice voiceId, behind pyttsx3's back
+    def selectExtraVoice(self, engine, voiceId):
+        import comtypes.client
+
+        token = comtypes.client.CreateObject("SAPI.SpObjectToken")
+        token.SetId(voiceId, "", False)
+        engine.proxy._driver._tts.Voice = token
+
     def _run(self, job):
         engine = self.pyttsx3.Engine()
 
-        if job.voiceId:
+        if job.voiceId and self.isExtraVoice(job.voiceId):
+            self.selectExtraVoice(engine, job.voiceId)
+        elif job.voiceId:
             engine.setProperty("voice", job.voiceId)
 
         engine.setProperty("rate", job.rate)
@@ -306,6 +365,18 @@ class Pyttsx3Backend(ThreadedBackend):
     def _interrupt(self):
         if self._engine:
             self._engine.stop()
+
+
+# our Voice for pyttsx3 voice v
+def toVoice(v):
+    langs = getattr(v, "languages", None) or [""]
+
+    return Voice(
+        str(v.id),
+        str(v.name or v.id),
+        normalizeLanguage(langs[0]),
+        normalizeGender(getattr(v, "gender", None)),
+    )
 
 
 # a backend that runs a command for each utterance, giving it the text on

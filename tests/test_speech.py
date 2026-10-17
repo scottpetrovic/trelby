@@ -258,6 +258,60 @@ def testPyttsx3Speak(pyttsx3):
     b.close()
 
 
+ONECORE = speech.ONECORE_VOICES + r"\Tokens\MSTTS_V110_enUS_"
+
+
+# a backend with the voices from Windows' Settings that SAPI doesn't list:
+# the same David and Zira as the desktop ones, and Mark
+class ExtraBackend(speech.Pyttsx3Backend):
+    def extraVoices(self, engine):
+        return [
+            types.SimpleNamespace(
+                id=ONECORE + name + "M",
+                name="Microsoft %s - English (United States)" % name,
+                languages=["en-US"],
+                gender=gender,
+            )
+            for name, gender in (("David", "Male"), ("Mark", "Male"))
+        ]
+
+    def selectExtraVoice(self, engine, voiceId):
+        engine.props["voice"] = "extra:" + voiceId
+
+
+def testPyttsx3ExtraVoices(pyttsx3, monkeypatch):
+    monkeypatch.setattr(
+        FakeEngine,
+        "voices",
+        [
+            types.SimpleNamespace(
+                id="david",
+                name="Microsoft David Desktop - English (United States)",
+                languages=["en-US"],
+                gender="Male",
+            )
+        ],
+    )
+    b = ExtraBackend(pyttsx3)
+
+    # David only once
+    assert [v.id for v in b.voices()] == ["david", ONECORE + "MarkM"]
+
+    done = Done()
+    b.speak("Hi.", ONECORE + "MarkM", 160, done)
+    assert done.wait() == (True, None)
+
+    b.speak("Bye.", "david", 160, done)
+    assert done.wait(2) == (True, None)
+
+    assert FakeEngine.spoken == [
+        ("Hi.", "extra:" + ONECORE + "MarkM", 160, False),
+        ("Bye.", "david", 160, False),
+    ]
+
+    b.close()
+
+
 # a stop() just as the engine starts, too early for it to do anything,
 # is acted on once it has started
 def testPyttsx3StopAtStart(pyttsx3):
