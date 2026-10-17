@@ -7,7 +7,8 @@ import trelby.misc as misc
 # the colors of dialogs and other windows besides the main one. those use
 # native controls, which wx draws in the system's light or dark colors.
 # themeWindow gives them the theme's colors where the native controls allow
-# it (including push buttons and drop-down lists), and the classes in
+# it (including push buttons, drop-down lists and list controls' column
+# headers), and the classes in
 # widgets stand in for the ones that don't: Separator for wx.StaticLine,
 # ThemedListBox for wx.ListBox and wx.CheckListBox, ThemedListbook for
 # wx.Treebook, and ThemedTextCtrl for a multiline wx.TextCtrl, whose
@@ -88,7 +89,10 @@ def _themeTree(w, cfgGui, grown):
     if isinstance(w, (wx.TextCtrl, wx.SpinCtrl, wx.SpinCtrlDouble, wx.ListCtrl)):
         _setColors(w, cfgGui.textBgColor, cfgGui.textColor)
 
-        if not isinstance(w, wx.ListCtrl) and _padTextField(w):
+        if isinstance(w, wx.ListCtrl):
+            if w.InReportView():
+                _themeListHeader(w, cfgGui)
+        elif _padTextField(w):
             grown.add(w.GetParent())
     elif isinstance(w, wx.Button) and not isinstance(w, wx.BitmapButton):
         # not toggle buttons, which are wx.AnyButtons but not wx.Buttons
@@ -199,6 +203,7 @@ def _editHwnd(w):
 
 # window messages, hit test results and SetWindowPos flags
 _WM_PAINT = 0xF
+_WM_ERASEBKGND = 0x14
 _WM_NCDESTROY = 0x82
 _WM_NCCALCSIZE = 0x83
 _WM_NCHITTEST = 0x84
@@ -316,6 +321,26 @@ def _initWin():
             wintypes.BOOL,
             [wintypes.HWND, wintypes.HWND] + [ctypes.c_int] * 4 + [wintypes.UINT],
         ),
+        (
+            user32.ScreenToClient,
+            wintypes.BOOL,
+            [wintypes.HWND, ctypes.POINTER(wintypes.POINT)],
+        ),
+        (user32.GetCursorPos, wintypes.BOOL, [ctypes.POINTER(wintypes.POINT)]),
+        (user32.GetCapture, wintypes.HWND, []),
+        (
+            user32.InvalidateRect,
+            wintypes.BOOL,
+            [wintypes.HWND, ctypes.c_void_p, wintypes.BOOL],
+        ),
+        (user32.BeginPaint, wintypes.HDC, [wintypes.HWND, ctypes.c_void_p]),
+        (user32.EndPaint, wintypes.BOOL, [wintypes.HWND, ctypes.c_void_p]),
+        (
+            gdi32.BitBlt,
+            wintypes.BOOL,
+            [wintypes.HDC] + [ctypes.c_int] * 4 + [wintypes.HDC]
+            + [ctypes.c_int] * 2 + [wintypes.DWORD],
+        ),
         (gdi32.CreateSolidBrush, wintypes.HBRUSH, [wintypes.DWORD]),
         (gdi32.DeleteObject, wintypes.BOOL, [wintypes.HGDIOBJ]),
         (gdi32.GetPixel, wintypes.DWORD, [wintypes.HDC, ctypes.c_int, ctypes.c_int]),
@@ -349,8 +374,43 @@ def _initWin():
 
         return res
 
+    # the subclass procedure of the list control headers _themeListHeader
+    # has done
+    def headerProc(hwnd, msg, wParam, lParam, idSubclass, refData):
+        h = _headers.get(hwnd)
+
+        if msg == _WM_NCDESTROY:
+            comctl32.RemoveWindowSubclass(hwnd, _win.headerProc, 2)
+            _headers.pop(hwnd, None)
+        elif h and h.w and msg == _WM_PAINT:
+            _paintListHeader(hwnd, h)
+
+            return 0
+        elif h and msg == _WM_ERASEBKGND:
+            return 1
+
+        return comctl32.DefSubclassProc(hwnd, msg, wParam, lParam)
+
+    class HDITEMW(ctypes.Structure):
+        _fields_ = [
+            ("mask", wintypes.UINT),
+            ("cxy", ctypes.c_int),
+            ("pszText", wintypes.LPWSTR),
+            ("hbm", wintypes.HBITMAP),
+            ("cchTextMax", ctypes.c_int),
+            ("fmt", ctypes.c_int),
+            ("lParam", wintypes.LPARAM),
+            ("iImage", ctypes.c_int),
+            ("iOrder", ctypes.c_int),
+            ("type", wintypes.UINT),
+            ("pvFilter", ctypes.c_void_p),
+            ("state", wintypes.UINT),
+        ]
+
     _win = types.SimpleNamespace(
         proc=SUBCLASSPROC(proc),
+        headerProc=SUBCLASSPROC(headerProc),
+        HDITEMW=HDITEMW,
         SetWindowSubclass=comctl32.SetWindowSubclass,
         user32=user32,
         gdi32=gdi32,
@@ -425,6 +485,149 @@ def _paintPadding(hwnd, f, afterPaint):
 
     u.ReleaseDC(hwnd, hdc)
     gdi.DeleteObject(bg)
+
+
+# LVM_GETHEADER: a list control's header. HDM_GETITEMCOUNT, HDM_GETITEMRECT
+# and HDM_HITTEST: a header's columns, and which one a point is on
+# (HHT_ONHEADER: on a column, not on the divider between two).
+_LVM_GETHEADER = 0x101F
+_HDM_GETITEMCOUNT = 0x1200
+_HDM_HITTEST = 0x1206
+_HDM_GETITEMRECT = 0x1207
+_HHT_ONHEADER = 0x2
+
+# HDM_GETITEMW: a header column's HDITEMW, with the parts in its mask: the
+# text and the format, whose justification bits say how the text is aligned
+_HDM_GETITEMW = 0x120B
+_HDI_TEXT = 0x2
+_HDI_FORMAT = 0x4
+_HDF_JUSTIFYMASK = 0x3
+_HDF_RIGHT = 0x1
+_HDF_CENTER = 0x2
+
+# BitBlt's plain copy
+_SRCCOPY = 0xCC0020
+
+# the list control headers _themeListHeader has done, by native window, as
+# SimpleNamespaces: w, the wx.ListCtrl, and bg and fg, the colors.
+_headers = {}
+
+
+# give the column headers of report-view list control w the push buttons'
+# colors. wx can only change the native header's text color, so on Windows
+# we draw the header ourselves (_paintListHeader).
+def _themeListHeader(w, cfgGui):
+    bg, fg = cfgGui.buttonBgColor, cfgGui.tabTextColor
+    w.SetHeaderAttr(wx.ItemAttr(fg, bg, wx.NullFont))
+
+    if not misc.isWindows:
+        return
+
+    hwnd = sendMessage(w.GetHandle(), _LVM_GETHEADER, 0, 0)
+
+    if not hwnd:
+        return
+
+    _initWin()
+
+    if hwnd not in _headers:
+        _win.SetWindowSubclass(hwnd, _win.headerProc, 2, 0)
+
+    _headers[hwnd] = types.SimpleNamespace(w=w, bg=bg, fg=fg)
+    _win.user32.InvalidateRect(hwnd, None, True)
+
+
+# paint native list control header hwnd, for its WM_PAINT: the column
+# labels on h.bg, lighter or darker under the mouse if the columns can be
+# clicked, with lines between the columns and below them
+def _paintListHeader(hwnd, h):
+    wt = _win.wintypes
+    u = _win.user32
+    ctypes = _win.ctypes
+    byref = ctypes.byref
+
+    # a PAINTSTRUCT is 72 bytes on 64-bit Windows, 64 on 32-bit
+    ps = ctypes.create_string_buffer(72)
+    hdc = u.BeginPaint(hwnd, ps)
+
+    try:
+        cr = wt.RECT()
+        u.GetClientRect(hwnd, byref(cr))
+        width, height = cr.right, cr.bottom
+
+        if width <= 0 or height <= 0:
+            return
+
+        # the column under the mouse, or -1
+        info = (ctypes.c_int * 4)()
+        pt = wt.POINT.from_buffer(info)
+        u.GetCursorPos(byref(pt))
+        u.ScreenToClient(hwnd, byref(pt))
+        sendMessage(hwnd, _HDM_HITTEST, 0, ctypes.addressof(info))
+        hot = info[3] if (info[2] & _HHT_ONHEADER) else -1
+
+        w = h.w
+
+        if w.HasFlag(wx.LC_NO_SORT_HEADER):
+            hot = -1
+
+        pressed = u.GetCapture() == hwnd
+
+        bmp = wx.Bitmap(width, height)
+        dc = wx.MemoryDC(bmp)
+        dc.SetBackground(wx.Brush(h.bg))
+        dc.Clear()
+        # the memory dc has the system's DPI, not w's
+        dc.SetFont(w.GetFont().Scaled(w.GetDPI().height / dc.GetPPI().height))
+        dc.SetTextForeground(h.fg)
+
+        line = wx.Pen(blendColors(h.bg, h.fg, 0.3))
+        pad = w.FromDIP(6)
+        r = wt.RECT()
+        text = ctypes.create_unicode_buffer(256)
+        item = _win.HDITEMW(
+            mask=_HDI_TEXT | _HDI_FORMAT,
+            pszText=ctypes.cast(text, wt.LPWSTR),
+            cchTextMax=len(text),
+        )
+
+        for i in range(sendMessage(hwnd, _HDM_GETITEMCOUNT, 0, 0)):
+            sendMessage(hwnd, _HDM_GETITEMRECT, i, ctypes.addressof(r))
+            sendMessage(hwnd, _HDM_GETITEMW, i, ctypes.addressof(item))
+            rect = wx.Rect(r.left, r.top, r.right - r.left, r.bottom - r.top)
+
+            if i == hot:
+                dc.SetPen(wx.TRANSPARENT_PEN)
+                dc.SetBrush(
+                    wx.Brush(blendColors(h.bg, h.fg, 0.25 if pressed else 0.12))
+                )
+                dc.DrawRectangle(rect)
+
+            align = {
+                _HDF_RIGHT: wx.ALIGN_RIGHT,
+                _HDF_CENTER: wx.ALIGN_CENTER_HORIZONTAL,
+            }.get(item.fmt & _HDF_JUSTIFYMASK, wx.ALIGN_LEFT)
+            label = wx.Control.Ellipsize(
+                text.value, dc, wx.ELLIPSIZE_END, rect.width - 2 * pad
+            )
+            dc.DrawLabel(
+                label,
+                wx.Rect(rect).Deflate(pad, 0),
+                align | wx.ALIGN_CENTER_VERTICAL,
+            )
+
+            dc.SetPen(line)
+            dc.DrawLine(rect.right, rect.top, rect.right, rect.bottom + 1)
+
+        dc.SetPen(line)
+        dc.DrawLine(0, height - 1, width, height - 1)
+
+        _win.gdi32.BitBlt(
+            hdc, 0, 0, width, height, int(dc.GetHandle()), 0, 0, _SRCCOPY
+        )
+        dc.SelectObject(wx.NullBitmap)
+    finally:
+        u.EndPaint(hwnd, ps)
 
 
 # EM_SETMARGINS, and its flags for the left and right margins
