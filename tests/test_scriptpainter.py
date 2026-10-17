@@ -125,19 +125,21 @@ def testPaintSpellingErrors(app, vm):
         assert countColor(bmp, red) > 0
 
 
-# the note markers go 20 pixels right of the page, or as far inside it
-# where the next page leaves no room (side by side)
+# the notes are cards 20 pixels right of the page, one per note, each
+# below the one before; where the next page leaves no room for them (side
+# by side), each paragraph with notes gets an icon as far inside the page
 @pytest.mark.parametrize(
-    "vm, inside",
+    "vm, cards",
     [
-        (viewmode.ViewModeDraft, False),
-        (viewmode.ViewModeLayout, False),
-        (viewmode.ViewModeSideBySide, True),
+        (viewmode.ViewModeDraft, True),
+        (viewmode.ViewModeLayout, True),
+        (viewmode.ViewModeSideBySide, False),
     ],
 )
-def testPaintNoteMarkers(app, vm, inside):
+def testPaintNoteMarkers(app, vm, cards):
     ed = loadSample()
-    ed.sp.lines[1].notes = (Note("Hi"),)
+    ed.sp.lines[1].notes = (Note("Hi " * 100), Note("There"))
+    ed.sp.lines[5].notes = (Note("Done", resolved=True),)
     vm = vm()
     size = wx.Size(1600, 600)
     cfgGui = configgui.ConfigGui(ed.sp.cfgGl, 100)
@@ -149,19 +151,41 @@ def testPaintNoteMarkers(app, vm, inside):
     dc.SelectObject(wx.NullBitmap)
 
     strings, dpages = vm.getScreen(vp, True, True)
-    t = next(t for t in strings if t.line == 1)
+    t1 = next(t for t in strings if t.line == 1)
+    t5 = next(t for t in strings if t.line == 5)
 
     if dpages:
-        right = next(dp.x2 for dp in dpages if dp.x1 <= t.x <= dp.x2)
+        right = next(dp.x2 for dp in dpages if dp.x1 <= t1.x <= dp.x2)
     else:
         right = (size.width - vp.pageW) // 2 + vp.pageW
 
-    assert len(painter.noteMarkers) == 1
-    rect, line = painter.noteMarkers[0]
-    assert line == 1
-    assert rect.y == t.y
+    markers = painter.noteMarkers
 
-    if inside:
-        assert rect.x + rect.width == right - 20
-    else:
-        assert rect.x == right + 20
+    if not cards:
+        assert [(line, index) for rect, line, index in markers] == [
+            (1, None),
+            (5, None),
+        ]
+        assert markers[0][0].y == t1.y
+        assert markers[0][0].GetRight() + 1 == right - 20
+
+        return
+
+    assert [(line, index) for rect, line, index in markers] == [
+        (1, 0),
+        (1, 1),
+        (5, 0),
+    ]
+    rects = [m[0] for m in markers]
+
+    for r in rects:
+        assert r.x == right + 20
+        assert r.width == scriptpainter.NOTE_WIDTH
+
+    # the long note shows NOTE_LINES lines, the others one
+    assert rects[0].height > 2 * rects[1].height
+    assert rects[2].height == rects[1].height
+
+    assert rects[0].y == t1.y
+    assert rects[1].y > rects[0].GetBottom()
+    assert rects[2].y == max(t5.y, rects[1].GetBottom() + 1 + 4)

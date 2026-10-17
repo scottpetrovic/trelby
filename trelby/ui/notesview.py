@@ -672,17 +672,18 @@ class NotesPanel(wx.Panel):
 
                 return
 
-    # show and focus the notes of the paragraph starting at line, for a
-    # click on its marker in the script
-    def showNotesOf(self, line):
+    # select and focus the note at 'index' among the notes of the
+    # paragraph starting at line, or its first one listed if index is None
+    # or that one isn't listed, for a click on it beside the page
+    def showNotesOf(self, line, index=None):
         self.refresh()
 
-        for it in self.items:
-            if it.line == line:
-                self.select(it.key())
-                self.list.SetFocus()
+        items = [it for it in self.items if it.line == line]
+        items.sort(key=lambda it: it.index != index)
 
-                return
+        if items:
+            self.select(items[0].key())
+            self.list.SetFocus()
 
     # start writing a new note on the paragraph at the cursor
     def addNote(self):

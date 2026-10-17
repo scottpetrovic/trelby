@@ -146,9 +146,12 @@ class MyCtrl(wx.Control):
         # if it's not on screen. set by OnPaint.
         self.titleButtonRect = None
 
-        # the note markers in the margin, as a list of (wx.Rect, line of
-        # the paragraph whose notes it marks). set by OnPaint.
+        # the notes beside the page, as a list of (wx.Rect, line, index)
+        # (see ScriptPainter.drawNoteMarkers). set by OnPaint.
         self.noteMarkers = []
+
+        # the tooltip shown, a note's text while the mouse is over its card
+        self.noteTip = None
 
         # the right-click menu's items for a misspelled word: its
         # suggested replacements, and adding it to the user's or the
@@ -571,14 +574,10 @@ class MyCtrl(wx.Control):
 
             return
 
-        noteLine = None if mark else self.noteMarkerAt(event.GetPosition())
+        marker = None if mark else self.noteMarkerAt(event.GetPosition())
 
-        if noteLine is not None:
-            if not self.gd.showNotes:
-                self.gd.mainFrame.setShowNotes(True)
-
-            self.showLine(noteLine)
-            self.panel.notes.showNotesOf(noteLine)
+        if marker is not None:
+            self.showNote(*marker)
 
             return
 
@@ -671,24 +670,105 @@ class MyCtrl(wx.Control):
 
         pos = event.GetPosition()
 
-        if self.isOverTitleButton(pos) or (self.noteMarkerAt(pos) is not None):
+        marker = self.noteMarkerAt(pos)
+
+        if self.isOverTitleButton(pos) or (marker is not None):
             self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
         else:
             self.SetCursor(wx.NullCursor)
 
+        # a note's whole text, which its card may cut off
+        tip = None
+
+        if marker and (marker[1] is not None):
+            notes = self.sp.getParaNotes(marker[0])
+
+            if marker[1] < len(notes):
+                tip = notes[marker[1]].text
+
+        if tip != self.noteTip:
+            self.noteTip = tip
+            self.SetToolTip(tip)
+
     def isOverTitleButton(self, pos):
         return bool(self.titleButtonRect) and self.titleButtonRect.Contains(pos)
 
-    # the line of the paragraph whose note marker is at pos, or None
+    # (line, index) of the note whose card beside the page is at pos:
+    # the first line of its paragraph, and its index among the paragraph's
+    # notes, which is None for a note icon (see ScriptPainter.drawNoteMarkers).
+    # None if there's none at pos.
     def noteMarkerAt(self, pos):
-        for rect, line in self.noteMarkers:
+        for rect, line, index in self.noteMarkers:
             if rect.Contains(pos):
-                return line
+                return line, index
 
         return None
 
+    # put the cursor on the paragraph starting at line, and show the notes
+    # sidebar with its note at index selected, or its first one if index
+    # is None
+    def showNote(self, line, index):
+        if not self.gd.showNotes:
+            self.gd.mainFrame.setShowNotes(True)
+
+        self.showLine(line)
+        self.panel.notes.showNotesOf(line, index)
+
+    # the right-click menu of the note at (line, index) beside the page,
+    # at pos: edit it, mark it resolved or not, or delete it. a note icon
+    # for more than one note shows them in the sidebar instead.
+    def noteMenu(self, line, index, pos):
+        notes = self.sp.getParaNotes(line)
+
+        if index is None:
+            if len(notes) != 1:
+                self.showNote(line, None)
+
+                return
+
+            index = 0
+
+        if index >= len(notes):
+            return
+
+        note = notes[index]
+
+        menu = wx.Menu()
+        editId = wx.NewIdRef()
+        resolveId = wx.NewIdRef()
+        deleteId = wx.NewIdRef()
+
+        menu.Append(editId, _("Edit"))
+
+        if note.resolved:
+            menu.Append(resolveId, _("Mark as not resolved"))
+        else:
+            menu.Append(resolveId, _("Mark as resolved"))
+
+        menu.Append(deleteId, _("Delete"))
+
+        try:
+            sel = self.GetPopupMenuSelectionFromUser(menu, pos)
+        finally:
+            menu.Destroy()
+
+        if sel == int(editId):
+            self.showNote(line, index)
+            self.panel.notes.startEdit(self.panel.notes.list.GetSelection())
+        elif sel == int(resolveId):
+            self.setNote(line, index, note.replace(resolved=not note.resolved))
+        elif sel == int(deleteId):
+            self.deleteNote(line, index)
+
     def OnRightDown(self, event):
         pos = event.GetPosition()
+        marker = self.noteMarkerAt(pos)
+
+        if marker is not None:
+            self.noteMenu(marker[0], marker[1], pos)
+
+            return
+
         line, col = self.gd.vm.pos2linecol(self, pos.x, pos.y)
 
         if not self.ed.mark and line is not None and (line != self.ed.line):

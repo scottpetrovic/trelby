@@ -624,9 +624,12 @@
 	  shows the page and scene it's in and the start of the paragraph
 	  it's about. A note stays with its paragraph as you edit the script,
 	  moves with it when you cut and paste it, and is deleted along with
-	  all of the paragraph's text. In the script, paragraphs with notes
-	  have a note icon just outside the right edge of the page; click it
-	  to see their notes.</para>
+	  all of the paragraph's text. In the script, each note is also shown
+	  beside the page, next to its paragraph, with the first few lines of
+	  its text (point at it to see all of it). Click it to see it in the
+	  notes sidebar, or right-click it to edit it, mark it as resolved, or
+	  delete it. Where there isn't room beside the page, as in side by
+	  side view, a note icon marks the paragraph instead.</para>
 
 	  <para>Click a note to go to its paragraph. Double-click it, or
 	  press Enter or F2, to edit it; Ctrl+Enter or clicking elsewhere,

@@ -1,10 +1,11 @@
 # drawing a script on screen: the page backgrounds, the text with its
-# selection, cursor and formatting marks, the lock icons, the note markers,
-# the title page button and the auto-completion list. MyCtrl.OnPaint uses this, with a
+# selection, cursor and formatting marks, the lock icons, the notes beside
+# the page, the title page button and the auto-completion list. MyCtrl.OnPaint uses this, with a
 # Viewport describing what's shown, laid out by the current view mode
 # (viewmode.py).
 
 import wx
+from wx.lib.wordwrap import wordwrap
 
 import trelby.config as config
 import trelby.ui.gutil as gutil
@@ -15,6 +16,12 @@ import trelby.textutil as textutil
 import trelby.util as util
 from trelby.ui.theming import blendColors
 
+# the notes beside the page: how wide their cards are at most, and at
+# least (in DIPs, with an icon instead where there's less room), and how
+# many lines of a note's text they show
+NOTE_WIDTH = 240
+NOTE_MIN_WIDTH = 120
+NOTE_LINES = 3
 
 # what's shown in an editor window: the script and its Editor (for the
 # cursor, selection and scroll position), the configgui.ConfigGui with the
@@ -412,21 +419,29 @@ class ScriptPainter:
             if sceneLocked:
                 self.drawLock(dc, x + sceneX, t.y, h, w)
 
-    # mark each paragraph that has notes with a note icon just outside the
-    # page's right edge, on its first line, and remember where they are for
-    # clicks.
+    # show each paragraph's notes just outside the page's right edge, from
+    # its first line down: each note as a card with the start of its text,
+    # pushed down below the card before it where they'd overlap. where
+    # there's no room for the cards, as between the pages in side by side
+    # mode or in a narrow window, a note icon marks the paragraph instead.
+    # remembers where they are for clicks, as (wx.Rect, line, index)
+    # tuples in noteMarkers, index being the note's among the paragraph's
+    # notes, or None for an icon.
     def drawNoteMarkers(self, dc, strings, dpages, size):
         vp = self.vp
         ls = vp.sp.lines
 
-        h = max(6, self.cfgGui.fonts[pml.NORMAL].fy)
-        w = h + h // 4
-
-        # x offset (pixels) of the icon from the page's right edge
+        # x offset (pixels) of the notes from the page's right edge
         gap = vp.dip(20)
 
         # in draft mode, the right edge of the infinite page (see paint)
         draftX = util.clamp((size.width - vp.pageW) // 2, 0) + vp.pageW
+
+        dc.SetFont(self.noteFont())
+        lineH = dc.GetTextExtent("Ag").height
+
+        # the bottom of the last card beside each page, by its right edge
+        bottoms = {}
 
         for t in strings:
             i = t.line
@@ -440,19 +455,122 @@ class ScriptPainter:
                 if dp.x1 <= t.x <= dp.x2:
                     right = dp.x2
 
+            # the room up to the next page beside this one, or the window's
+            # edge
+            end = size.width
+
+            for dp in dpages:
+                if (dp.x1 > right) and (dp.y1 <= t.y <= dp.y2):
+                    end = min(end, dp.x1)
+
             x = right + gap
+            w = min(vp.dip(NOTE_WIDTH), end - x - vp.dip(10))
 
-            # where there's no room for it outside, as between the pages in
-            # side by side mode, or at the window's edge, it goes as far
-            # inside the page instead
-            if (x + w > size.width) or any(
-                right < dp.x1 < x + w + gap and dp.y1 <= t.y <= dp.y2
-                for dp in dpages
-            ):
-                x = right - gap - w
+            if w < vp.dip(NOTE_MIN_WIDTH):
+                self.drawNoteIcon(dc, t.y, right, end, i)
 
-            self.drawNoteMarker(dc, x, t.y, w, h, all(n.resolved for n in ls[i].notes))
-            self.noteMarkers.append((wx.Rect(x, t.y, w, h), i))
+                continue
+
+            y = max(t.y, bottoms.get(right, t.y))
+
+            # a line from the paragraph to its first card, which may have
+            # been pushed down
+            dc.SetPen(wx.Pen(self.noteColors(False)[1]))
+            dc.DrawLine(right + 1, t.y + lineH // 2, x, y + lineH // 2)
+
+            for index, note in enumerate(ls[i].notes):
+                h = self.drawNoteCard(dc, x, y, w, lineH, note)
+                self.noteMarkers.append((wx.Rect(x, y, w, h), i, index))
+                y += h + vp.dip(4)
+
+            bottoms[right] = y
+
+    # the font of the notes' text beside the page
+    def noteFont(self):
+        return wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+
+    # the (fill, border, text, bar) colors of a note beside the page, in
+    # muted colors so that it stays in the background, faded further into
+    # the workspace around the pages if 'faded' (it's resolved)
+    def noteColors(self, faded):
+        cfgGui = self.cfgGui
+        bg = cfgGui.workspaceColor
+        fill = blendColors(bg, cfgGui.textBgColor, 0.6)
+        colors = [
+            fill,
+            blendColors(bg, cfgGui.textColor, 0.2),
+            blendColors(fill, cfgGui.textColor, 0.75),
+            blendColors(bg, cfgGui.accentColor, 0.5),
+        ]
+
+        if faded:
+            colors = [blendColors(c, bg, 0.5) for c in colors]
+
+        return colors
+
+    # draw a card w pixels wide for note, its top left corner at (x, y),
+    # with the start of its text: NOTE_LINES lines of lineH pixels, or one
+    # for a resolved note. returns its height.
+    def drawNoteCard(self, dc, x, y, w, lineH, note):
+        vp = self.vp
+        fill, border, text, bar = self.noteColors(note.resolved)
+        padX = vp.dip(8)
+        padY = vp.dip(4)
+        tw = w - 2 * padX
+
+        lines = []
+
+        for para in note.text.split("\n"):
+            lines += wordwrap(para, tw, dc).split("\n")
+
+        if note.resolved:
+            lines = ["✓ " + " ".join(note.text.split())]
+
+        maxLines = 1 if note.resolved else NOTE_LINES
+
+        # what doesn't fit is cut off with an ellipsis
+        if len(lines) > maxLines:
+            last = " ".join(lines[maxLines - 1 :])
+            lines = lines[: maxLines - 1] + [last]
+
+        lines[-1] = wx.Control.Ellipsize(lines[-1], dc, wx.ELLIPSIZE_END, tw)
+
+        h = len(lines) * lineH + 2 * padY
+
+        dc.SetPen(wx.Pen(border))
+        dc.SetBrush(wx.Brush(fill))
+        dc.DrawRoundedRectangle(x, y, w, h, vp.dip(3))
+
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.SetBrush(wx.Brush(bar))
+        dc.DrawRectangle(x + 1, y + 1, vp.dip(3), h - 2)
+
+        dc.SetTextForeground(text)
+
+        for k, s in enumerate(lines):
+            dc.DrawText(s, x + padX, y + padY + k * lineH)
+
+        return h
+
+    # mark the paragraph starting at line i, whose first line is at y on
+    # a page whose right edge is at x 'right', with a note icon just
+    # outside the page, or as far inside it if there's no room before x
+    # 'end' (the next page or the window's edge)
+    def drawNoteIcon(self, dc, y, right, end, i):
+        vp = self.vp
+        ls = vp.sp.lines
+
+        h = max(6, self.cfgGui.fonts[pml.NORMAL].fy)
+        w = h + h // 4
+        gap = vp.dip(20)
+
+        x = right + gap
+
+        if x + w + gap > end:
+            x = right - gap - w
+
+        self.drawNoteMarker(dc, x, y, w, h, all(n.resolved for n in ls[i].notes))
+        self.noteMarkers.append((wx.Rect(x, y, w, h), i, None))
 
     # draw a speech bubble w pixels wide and h high, its top left corner at
     # (x, y), in muted colors so that it stays in the background: a grey

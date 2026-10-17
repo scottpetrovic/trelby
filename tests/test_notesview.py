@@ -6,6 +6,8 @@ import trelby.config as config
 import trelby.screenplay as screenplay
 import trelby.translations as translations
 import trelby.ui.gutil as gutil
+from tests.test_keyinput import makeCtrl
+from trelby.screenplay.notes import Note
 
 _ = translations.trelby_translations_load()
 
@@ -206,3 +208,53 @@ def testEmptyNewNoteOnScriptWithoutNotes(app, keep):
         p.finishEdit(False)
     finally:
         frame.Destroy()
+
+
+# the right-click menu of a note beside the page in the script, with the
+# menu answered by its item's label
+def answerMenu(ctrl, label):
+    def popup(menu, pos):
+        ctrl.menuLabels = [it.GetItemLabelText() for it in menu.GetMenuItems()]
+
+        return menu.FindItem(label) if label else wx.ID_NONE
+
+    ctrl.GetPopupMenuSelectionFromUser = popup
+
+
+def noteCtrl():
+    sp = u.new()
+    sp.lines[0].text = "Hello"
+    ctrl = makeCtrl(sp)
+    ctrl.clearAutoComp = lambda: None
+    ctrl.ed.addNote(0, "One")
+    ctrl.ed.addNote(0, "Two")
+
+    return ctrl
+
+
+def testNoteMenuResolveAndDelete(app):
+    ctrl = noteCtrl()
+    sp = ctrl.sp
+
+    answerMenu(ctrl, _("Mark as resolved"))
+    ctrl.noteMenu(0, 1, wx.Point(0, 0))
+    assert ctrl.menuLabels == [_("Edit"), _("Mark as resolved"), _("Delete")]
+    assert sp.getParaNotes(0) == (Note("One"), Note("Two", resolved=True))
+
+    answerMenu(ctrl, _("Mark as not resolved"))
+    ctrl.noteMenu(0, 1, wx.Point(0, 0))
+    assert sp.getParaNotes(0) == (Note("One"), Note("Two"))
+
+    answerMenu(ctrl, _("Delete"))
+    ctrl.noteMenu(0, 0, wx.Point(0, 0))
+    assert sp.getParaNotes(0) == (Note("Two"),)
+
+    # cancelled
+    answerMenu(ctrl, None)
+    ctrl.noteMenu(0, 0, wx.Point(0, 0))
+    assert sp.getParaNotes(0) == (Note("Two"),)
+
+    # an icon for a paragraph's only note acts on it
+    answerMenu(ctrl, _("Delete"))
+    ctrl.noteMenu(0, None, wx.Point(0, 0))
+    assert sp.getParaNotes(0) == ()
