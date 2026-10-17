@@ -1,0 +1,3506 @@
+# Hebrew translation of Trelby.
+# Copyright (C) 2026 Gwyn Ciesla <gwync@protonmail.com>
+# This file is distributed under the same license as the trelby package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: trelby 2.4.16\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-17 09:04-0500\n"
+"PO-Revision-Date: 2026-10-17 09:04-0500\n"
+"Last-Translator: \n"
+"Language-Team: Hebrew\n"
+"Language: he_IL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: trelby/commands.py:121
+msgid "Abort something, e.g. selection, auto-completion, etc."
+msgstr "ביטול פעולה, למשל בחירה, השלמה אוטומטית וכו׳."
+
+#: trelby/commands.py:125
+msgid "Show the about dialog."
+msgstr "הצג את חלון האודות."
+
+#: trelby/commands.py:128
+msgid "Open the auto-completion dialog."
+msgstr "פתח את חלון ההשלמה האוטומטית."
+
+#: trelby/commands.py:133
+msgid "Change current element's style to act break."
+msgstr "שנה את סוג הרכיב הנוכחי לסוף מערכה."
+
+#: trelby/commands.py:138
+msgid "Change current element's style to action."
+msgstr "שנה את סוג הרכיב הנוכחי לתיאור."
+
+#: trelby/commands.py:143
+msgid "Change current element's style to character."
+msgstr "שנה את סוג הרכיב הנוכחי לדמות."
+
+#: trelby/commands.py:148
+msgid "Change current element's style to dialogue."
+msgstr "שנה את סוג הרכיב הנוכחי לדיאלוג."
+
+#: trelby/commands.py:153
+msgid "Change current element's style to note."
+msgstr "שנה את סוג הרכיב הנוכחי להערה."
+
+#: trelby/commands.py:158
+msgid "Change current element's style to parenthetical."
+msgstr "שנה את סוג הרכיב הנוכחי להוראת משחק."
+
+#: trelby/commands.py:163
+msgid "Change current element's style to scene."
+msgstr "שנה את סוג הרכיב הנוכחי לכותרת סצנה."
+
+#: trelby/commands.py:166
+msgid "Change current element's style to shot."
+msgstr "שנה את סוג הרכיב הנוכחי לשוט."
+
+#: trelby/commands.py:169
+msgid "Change current element's style to transition."
+msgstr "שנה את סוג הרכיב הנוכחי למעבר."
+
+#: trelby/commands.py:172
+msgid "Open the character map."
+msgstr "פתח את מפת התווים."
+
+#: trelby/commands.py:175
+msgid "Open the character profiles dialog."
+msgstr "פתח את חלון פרופילי הדמויות."
+
+#: trelby/commands.py:180
+msgid "Check the current script for formatting errors."
+msgstr "בדוק את התסריט הנוכחי לאיתור שגיאות עיצוב."
+
+#: trelby/commands.py:186
+msgid "Close the current script."
+msgstr "סגור את התסריט הנוכחי."
+
+#: trelby/commands.py:191
+msgid "Compare two scripts."
+msgstr "השווה בין שני תסריטים."
+
+#: trelby/commands.py:194
+msgid "Copy selected text to the internal clipboard."
+msgstr "העתק את הטקסט הנבחר ללוח הפנימי."
+
+#: trelby/commands.py:201
+msgid "Copy selected text to the system's clipboard, unformatted."
+msgstr "העתק את הטקסט הנבחר ללוח המערכת, ללא עיצוב."
+
+#: trelby/commands.py:206
+msgid "Copy selected text to the system's clipboard, formatted."
+msgstr "העתק את הטקסט הנבחר ללוח המערכת, עם עיצוב."
+
+#: trelby/commands.py:211
+msgid "Cut selected text to internal clipboard."
+msgstr "גזור את הטקסט הנבחר ללוח הפנימי."
+
+#: trelby/commands.py:218
+msgid "Delete the character under the cursor, or selected text."
+msgstr "מחק את התו שתחת הסמן, או את הטקסט הנבחר."
+
+#: trelby/commands.py:224
+msgid "Delete the character behind the cursor."
+msgstr "מחק את התו שלפני הסמן."
+
+#: trelby/commands.py:230
+msgid "Open the 'Delete elements' dialog."
+msgstr "פתח את החלון 'מחיקת רכיבים'."
+
+#: trelby/commands.py:236
+msgid ""
+"Turn dual dialogue on or off for the current speech and the one before it."
+msgstr "הפעל או בטל דיאלוג כפול עבור הדיבור הנוכחי והדיבור שלפניו."
+
+#: trelby/commands.py:242
+msgid "Export the current script."
+msgstr "ייצא את התסריט הנוכחי."
+
+#: trelby/commands.py:245
+msgid "Open the 'Find & Replace' dialog."
+msgstr "פתח את החלון 'חיפוש והחלפה'."
+
+#: trelby/commands.py:250
+msgid "Open the page footer dialog."
+msgstr "פתח את חלון הכותרת התחתונה."
+
+#: trelby/commands.py:253
+msgid "Insert a forced line break."
+msgstr "הוסף מעבר שורה כפוי."
+
+#: trelby/commands.py:264
+msgid "Toggle fullscreen."
+msgstr "הפעל או בטל מסך מלא."
+
+#: trelby/commands.py:271
+msgid "Goto to a given page."
+msgstr "עבור לעמוד מסוים."
+
+#: trelby/commands.py:278
+msgid "Goto to a given scene."
+msgstr "עבור לסצנה מסוימת."
+
+#: trelby/commands.py:283
+msgid "Open the headers dialog."
+msgstr "פתח את חלון הכותרות העליונות."
+
+#: trelby/commands.py:286
+msgid "Show list of commands and their key bindings."
+msgstr "הצג את רשימת הפקודות וקיצורי המקשים שלהן."
+
+#: trelby/commands.py:289
+msgid "Open the manual."
+msgstr "פתח את המדריך."
+
+#: trelby/commands.py:290
+msgid "Import a script."
+msgstr "ייבא תסריט."
+
+#: trelby/commands.py:293
+msgid "Insert non-breaking space."
+msgstr "הוסף רווח קשיח."
+
+#: trelby/commands.py:299
+msgid "Load script-specific settings."
+msgstr "טען הגדרות תסריט."
+
+#: trelby/commands.py:302
+msgid "Load global settings."
+msgstr "טען הגדרות כלליות."
+
+#: trelby/commands.py:303
+msgid "Open the locations dialog."
+msgstr "פתח את חלון המיקומים."
+
+#: trelby/commands.py:306
+msgid "Move down."
+msgstr "זוז למטה."
+
+#: trelby/commands.py:313
+msgid "Move to the end of the line or finish auto-completion."
+msgstr "זוז לסוף השורה או השלם את ההשלמה האוטומטית."
+
+#: trelby/commands.py:319
+msgid "Move to the end of the script."
+msgstr "זוז לסוף התסריט."
+
+#: trelby/commands.py:323
+msgid "Move left."
+msgstr "זוז שמאלה."
+
+#: trelby/commands.py:326
+msgid "Move to start of next word."
+msgstr "זוז לתחילת המילה הבאה."
+
+#: trelby/commands.py:333
+msgid "Move one page down."
+msgstr "זוז עמוד אחד למטה."
+
+#: trelby/commands.py:339
+msgid "Move one page up."
+msgstr "זוז עמוד אחד למעלה."
+
+#: trelby/commands.py:345
+msgid "Move to start of previous word."
+msgstr "זוז לתחילת המילה הקודמת."
+
+#: trelby/commands.py:350
+msgid "Move right."
+msgstr "זוז ימינה."
+
+#: trelby/commands.py:353
+msgid "Move one scene down."
+msgstr "זוז סצנה אחת למטה."
+
+#: trelby/commands.py:359
+msgid "Move one scene up."
+msgstr "זוז סצנה אחת למעלה."
+
+#: trelby/commands.py:365
+msgid "Move to the start of the line."
+msgstr "זוז לתחילת השורה."
+
+#: trelby/commands.py:371
+msgid "Move to the start of the script."
+msgstr "זוז לתחילת התסריט."
+
+#: trelby/commands.py:377
+msgid "Move up."
+msgstr "זוז למעלה."
+
+#: trelby/commands.py:383
+msgid "Open the character name database."
+msgstr "פתח את מאגר שמות הדמויות."
+
+#: trelby/commands.py:387
+msgid "Create a new element."
+msgstr "צור רכיב חדש."
+
+#: trelby/commands.py:393
+msgid "Create a new script."
+msgstr "צור תסריט חדש."
+
+#: trelby/commands.py:400
+msgid "Open a script."
+msgstr "פתח תסריט."
+
+#: trelby/commands.py:407
+msgid "Paste text from the internal clipboard."
+msgstr "הדבק טקסט מהלוח הפנימי."
+
+#: trelby/commands.py:414
+msgid "Paste text from the system's clipboard."
+msgstr "הדבק טקסט מלוח המערכת."
+
+#: trelby/commands.py:419
+msgid "Print current script."
+msgstr "הדפס את התסריט הנוכחי."
+
+#: trelby/commands.py:426
+msgid "Quit the program."
+msgstr "צא מהתוכנה."
+
+#: trelby/commands.py:433
+msgid "Redo a change that was reverted through undo."
+msgstr "בצע שוב שינוי שבוטל."
+
+#: trelby/commands.py:439
+msgid "Generate character report."
+msgstr "צור דוח דמויות."
+
+#: trelby/commands.py:443
+msgid "Generate dialogue chart report."
+msgstr "צור תרשים דיאלוגים."
+
+#: trelby/commands.py:446
+msgid "Generate location report."
+msgstr "צור דוח מיקומים."
+
+#: trelby/commands.py:447
+msgid "Generate scene report."
+msgstr "צור דוח סצנות."
+
+#: trelby/commands.py:448
+msgid "Generate script report."
+msgstr "צור דוח תסריט."
+
+#: trelby/commands.py:451
+msgid "Revert current script to the version on disk."
+msgstr "החזר את התסריט הנוכחי לגרסה השמורה בדיסק."
+
+#: trelby/commands.py:456
+msgid "Save the current script."
+msgstr "שמור את התסריט הנוכחי."
+
+#: trelby/commands.py:463
+msgid "Save the current script to a new file."
+msgstr "שמור את התסריט הנוכחי בקובץ חדש."
+
+#: trelby/commands.py:468
+msgid "Save script-specific settings to a new file."
+msgstr "שמור את הגדרות התסריט בקובץ חדש."
+
+#: trelby/commands.py:473
+msgid "Save global settings to a new file."
+msgstr "שמור את ההגדרות הכלליות בקובץ חדש."
+
+#: trelby/commands.py:478
+msgid "Change to next open script."
+msgstr "עבור לתסריט הפתוח הבא."
+
+#: trelby/commands.py:487
+msgid "Change to previous open script."
+msgstr "עבור לתסריט הפתוח הקודם."
+
+#: trelby/commands.py:495
+msgid "Change script-specific settings."
+msgstr "שנה את הגדרות התסריט."
+
+#: trelby/commands.py:497
+msgid "Select the entire script."
+msgstr "בחר את כל התסריט."
+
+#: trelby/commands.py:500
+msgid "Select the current scene."
+msgstr "בחר את הסצנה הנוכחית."
+
+#: trelby/commands.py:506
+msgid "Set mark at current cursor position."
+msgstr "הצב סימון במיקום הסמן הנוכחי."
+
+#: trelby/commands.py:509
+msgid "Change global settings."
+msgstr "שנה הגדרות כלליות."
+
+#: trelby/commands.py:512
+msgid "Open the global spell checker dictionary dialog."
+msgstr "פתח את חלון המילון הכללי של בודק האיות."
+
+#: trelby/commands.py:517
+msgid "Spell check the script."
+msgstr "בדוק איות בתסריט."
+
+#: trelby/commands.py:523
+msgid "Open the script-specific spell checker dictionary dialog."
+msgstr "פתח את חלון מילון התסריט של בודק האיות."
+
+#: trelby/commands.py:529
+msgid "Change current element to the next style or create a new element."
+msgstr "שנה את הרכיב הנוכחי לסוג הבא או צור רכיב חדש."
+
+#: trelby/commands.py:536
+msgid "Change current element to the previous style."
+msgstr "שנה את הרכיב הנוכחי לסוג הקודם."
+
+#: trelby/commands.py:540
+msgid "Open the titles dialog."
+msgstr "פתח את חלון דפי השער."
+
+#: trelby/commands.py:543
+msgid "Switch between the script and its beat board."
+msgstr "עבור בין התסריט ללוח הביטים שלו."
+
+#: trelby/commands.py:548
+msgid "Make the selected text, or the text typed next, bold or not."
+msgstr "הפעל או בטל הדגשה בטקסט הנבחר, או בטקסט שיוקלד בהמשך."
+
+#: trelby/commands.py:554
+msgid "Center the current action element, or stop centering it."
+msgstr "מרכז את רכיב התיאור הנוכחי, או הפסק למרכז אותו."
+
+#: trelby/commands.py:560
+msgid "Make the selected text, or the text typed next, italic or not."
+msgstr "הפעל או בטל הטיה בטקסט הנבחר, או בטקסט שיוקלד בהמשך."
+
+#: trelby/commands.py:570
+msgid "Show or hide the outline view."
+msgstr "הצג או הסתר את תצוגת המתווה."
+
+#: trelby/commands.py:575
+msgid "Toggle 'Show formatting' display."
+msgstr "הפעל או בטל את התצוגה 'הצג עיצוב'."
+
+#: trelby/commands.py:581
+msgid "Make the selected text, or the text typed next, underlined or not."
+msgstr "הוסף או הסר קו תחתון בטקסט הנבחר, או בטקסט שיוקלד בהמשך."
+
+#: trelby/commands.py:589
+msgid "Undo the last change."
+msgstr "בטל את השינוי האחרון."
+
+#: trelby/commands.py:595
+msgid "Change view mode to continuous."
+msgstr "שנה את מצב התצוגה לרציף."
+
+#: trelby/commands.py:598
+msgid "Change view mode to page."
+msgstr "שנה את מצב התצוגה לעמודים."
+
+#: trelby/commands.py:602
+msgid "Change view mode to side by side."
+msgstr "שנה את מצב התצוגה לזה לצד זה."
+
+#: trelby/commands.py:605
+msgid "Export the current script as watermarked PDFs."
+msgstr "ייצא את התסריט הנוכחי כקובצי PDF עם סימני מים."
+
+#: trelby/commands.py:608
+msgid "Open the world building dialog."
+msgstr "פתח את חלון בניית העולם."
+
+#: trelby/commands.py:613
+msgid "Zoom in."
+msgstr "הגדל תצוגה."
+
+#: trelby/commands.py:620
+msgid "Zoom out."
+msgstr "הקטן תצוגה."
+
+#: trelby/commands.py:627
+msgid "Reset zoom to 100%."
+msgstr "אפס את התצוגה ל־100%."
+
+#: trelby/commands.py:648
+msgid "Commands not listed in correct order"
+msgstr "הפקודות אינן רשומות בסדר הנכון"
+
+#: trelby/config.py:856
+msgid "Unknown platform"
+msgstr "פלטפורמה לא מוכרת"
+
+#: trelby/config.py:878
+#, python-brace-format
+msgid "key '{}' not found from '{}'"
+msgstr "המקש '{}' לא נמצא ב־'{}'"
+
+#: trelby/dialogs/autocompletiondlg.py:15 trelby/ui/menus.py:644
+msgid "Auto-completion"
+msgstr "השלמה אוטומטית"
+
+#: trelby/dialogs/autocompletiondlg.py:26
+#: trelby/dialogs/configpages/elementsglobalpanel.py:17
+#: trelby/dialogs/configpages/elementspanel.py:19
+msgid "Element:"
+msgstr "רכיב:"
+
+#: trelby/dialogs/autocompletiondlg.py:45
+msgid "Auto-completion enabled"
+msgstr "השלמה אוטומטית מופעלת"
+
+#: trelby/dialogs/autocompletiondlg.py:49
+msgid "Default items:"
+msgstr "פריטי ברירת מחדל:"
+
+#: trelby/dialogs/autocompletiondlg.py:60 trelby/dialogs/cfgdlg.py:190
+#: trelby/dialogs/characterprofilesdlg.py:211
+#: trelby/dialogs/characterprofilesdlg.py:431 trelby/dialogs/checkboxdlg.py:31
+#: trelby/dialogs/footerdlg.py:111 trelby/dialogs/headersdlg.py:163
+#: trelby/dialogs/importdlg.py:57 trelby/dialogs/locationsdlg.py:54
+#: trelby/dialogs/scriptchooserdlg.py:32 trelby/dialogs/spellcheckcfgdlg.py:37
+#: trelby/dialogs/textdlg.py:71 trelby/dialogs/titlesdlg.py:185
+#: trelby/dialogs/worldbuildingdlg.py:85 trelby/ui/gutil.py:280
+msgid "Cancel"
+msgstr "ביטול"
+
+#: trelby/dialogs/cfgdlg.py:36 trelby/dialogs/cfgdlg.py:88
+#: trelby/dialogs/commandsdlg.py:116 trelby/ui/scriptactions.py:710
+msgid "Filename to save as"
+msgstr "שם הקובץ לשמירה"
+
+#: trelby/dialogs/cfgdlg.py:39 trelby/dialogs/cfgdlg.py:91
+#: trelby/ui/trelbyframe.py:400
+msgid "File to open"
+msgstr "קובץ לפתיחה"
+
+#: trelby/dialogs/cfgdlg.py:47
+msgid "Setting"
+msgstr "הגדרות"
+
+#: trelby/dialogs/cfgdlg.py:49 trelby/dialogs/cfgdlg.py:102
+#: trelby/ui/trelbyframe.py:403
+msgid "files"
+msgstr "קבצים"
+
+#: trelby/dialogs/cfgdlg.py:51 trelby/dialogs/cfgdlg.py:104
+#: trelby/dialogs/characterprofilesdlg.py:619
+#: trelby/reports/reportwindow.py:149 trelby/ui/pdfviewer.py:106
+#: trelby/ui/trelbyframe.py:405 trelby/ui/trelbyframe.py:422
+msgid "All files"
+msgstr "כל הקבצים"
+
+#: trelby/dialogs/cfgdlg.py:98 trelby/ui/menus.py:581
+msgid "Script"
+msgstr "תסריט"
+
+#: trelby/dialogs/cfgdlg.py:100
+msgid "setting"
+msgstr "הגדרות"
+
+#: trelby/dialogs/cfgdlg.py:163 trelby/ui/menus.py:465
+msgid "Settings"
+msgstr "הגדרות"
+
+#: trelby/dialogs/cfgdlg.py:165 trelby/ui/menus.py:587
+msgid "Script settings"
+msgstr "הגדרות תסריט"
+
+#: trelby/dialogs/cfgdlg.py:175
+msgid "Load"
+msgstr "טען"
+
+#: trelby/dialogs/cfgdlg.py:176
+msgid "Load settings from a file"
+msgstr "טען הגדרות מקובץ"
+
+#: trelby/dialogs/cfgdlg.py:180 trelby/ui/toolbar.py:352
+msgid "Save as"
+msgstr "שמור בשם"
+
+#: trelby/dialogs/cfgdlg.py:181
+msgid "Save these settings to a file"
+msgstr "שמור הגדרות אלה בקובץ"
+
+#: trelby/dialogs/cfgdlg.py:187 trelby/dialogs/footerdlg.py:108
+#: trelby/dialogs/headersdlg.py:160 trelby/ui/gutil.py:281
+msgid "Apply"
+msgstr "החל"
+
+#: trelby/dialogs/cfgdlg.py:207
+msgid "Theme"
+msgstr "ערכת נושא"
+
+#: trelby/dialogs/cfgdlg.py:208 trelby/dialogs/cfgdlg.py:218
+#: trelby/ui/menus.py:811
+msgid "About"
+msgstr "אודות"
+
+#: trelby/dialogs/cfgdlg.py:209
+msgid "Display"
+msgstr "תצוגה"
+
+#: trelby/dialogs/cfgdlg.py:210
+msgid "Continuous Mode"
+msgstr "מצב רציף"
+
+#: trelby/dialogs/cfgdlg.py:211 trelby/dialogs/cfgdlg.py:219
+msgid "Elements"
+msgstr "רכיבים"
+
+#: trelby/dialogs/cfgdlg.py:212
+msgid "Keyboard"
+msgstr "מקלדת"
+
+#: trelby/dialogs/cfgdlg.py:213
+msgid "MCP Server"
+msgstr "שרת MCP"
+
+#: trelby/dialogs/cfgdlg.py:214
+msgid "Misc"
+msgstr "שונות"
+
+#: trelby/dialogs/cfgdlg.py:216
+msgid "Spelling Exclusion List"
+msgstr "רשימת החרגות איות"
+
+#: trelby/dialogs/cfgdlg.py:220
+msgid "Formatting"
+msgstr "עיצוב"
+
+#: trelby/dialogs/cfgdlg.py:221
+msgid "Paper"
+msgstr "נייר"
+
+#: trelby/dialogs/cfgdlg.py:223
+msgid "PDF/Fonts"
+msgstr "PDF/גופנים"
+
+#: trelby/dialogs/cfgdlg.py:224
+msgid "Strings"
+msgstr "מחרוזות"
+
+#: trelby/dialogs/characterprofilesdlg.py:124
+msgid "No photo"
+msgstr "אין תמונה"
+
+#: trelby/dialogs/characterprofilesdlg.py:172
+msgid "Name generator"
+msgstr "מחולל שמות"
+
+#: trelby/dialogs/characterprofilesdlg.py:190
+msgid "Origin:"
+msgstr "מוצא:"
+
+#: trelby/dialogs/characterprofilesdlg.py:192
+#: trelby/dialogs/characterprofilesdlg.py:197
+msgid "Any"
+msgstr "כלשהו"
+
+#: trelby/dialogs/characterprofilesdlg.py:196
+msgid "Gender:"
+msgstr "מין:"
+
+#: trelby/dialogs/characterprofilesdlg.py:197
+msgid "Female"
+msgstr "נקבה"
+
+#: trelby/dialogs/characterprofilesdlg.py:197
+msgid "Male"
+msgstr "זכר"
+
+#: trelby/dialogs/characterprofilesdlg.py:205
+msgid "Generate"
+msgstr "צור"
+
+#: trelby/dialogs/characterprofilesdlg.py:214
+msgid "Use name"
+msgstr "השתמש בשם"
+
+#: trelby/dialogs/characterprofilesdlg.py:287 trelby/ui/menus.py:620
+msgid "Character profiles"
+msgstr "פרופילי דמויות"
+
+#: trelby/dialogs/characterprofilesdlg.py:336
+msgid "Characters:"
+msgstr "דמויות:"
+
+#: trelby/dialogs/characterprofilesdlg.py:341
+msgid "Grayed out: no profile yet"
+msgstr "באפור: עדיין אין פרופיל"
+
+#: trelby/dialogs/characterprofilesdlg.py:347 trelby/ui/menus.py:221
+msgid "New"
+msgstr "חדש"
+
+#: trelby/dialogs/characterprofilesdlg.py:350
+#: trelby/dialogs/configpages/keyboardpanel.py:44
+#: trelby/dialogs/headersdlg.py:70 trelby/dialogs/locationsdlg.py:38
+#: trelby/dialogs/titlesdlg.py:53 trelby/ui/gutil.py:283
+msgid "Delete"
+msgstr "מחק"
+
+#: trelby/dialogs/characterprofilesdlg.py:367
+msgid "Previous photo"
+msgstr "התמונה הקודמת"
+
+#: trelby/dialogs/characterprofilesdlg.py:371
+msgid "Double-click to view a larger version"
+msgstr "לחץ פעמיים כדי להציג גרסה גדולה יותר"
+
+#: trelby/dialogs/characterprofilesdlg.py:375
+msgid "Next photo"
+msgstr "התמונה הבאה"
+
+#: trelby/dialogs/characterprofilesdlg.py:385
+msgid "Add photo..."
+msgstr "הוסף תמונה..."
+
+#: trelby/dialogs/characterprofilesdlg.py:388
+msgid "Remove photo"
+msgstr "הסר תמונה"
+
+#: trelby/dialogs/characterprofilesdlg.py:400
+#: trelby/dialogs/configpages/pdffontspanel.py:63
+msgid "Name:"
+msgstr "שם:"
+
+#: trelby/dialogs/characterprofilesdlg.py:408
+msgid "Generate..."
+msgstr "צור..."
+
+#: trelby/dialogs/characterprofilesdlg.py:409
+msgid "Pick a name from the name database"
+msgstr "בחר שם ממאגר השמות"
+
+#: trelby/dialogs/characterprofilesdlg.py:414
+msgid "Notes:"
+msgstr "הערות:"
+
+#: trelby/dialogs/characterprofilesdlg.py:487
+#: trelby/dialogs/characterprofilesdlg.py:566
+msgid "(unnamed)"
+msgstr "(ללא שם)"
+
+#: trelby/dialogs/characterprofilesdlg.py:570
+#, python-brace-format
+msgid "Delete the profile of {}?"
+msgstr "למחוק את הפרופיל של {}?"
+
+#: trelby/dialogs/characterprofilesdlg.py:571
+#: trelby/dialogs/characterprofilesdlg.py:655 trelby/dialogs/recoverydlg.py:59
+#: trelby/ui/scriptactions.py:756 trelby/ui/trelbyctrl.py:852
+msgid "Confirm"
+msgstr "אישור"
+
+#: trelby/dialogs/characterprofilesdlg.py:616
+msgid "Choose photos"
+msgstr "בחר תמונות"
+
+#: trelby/dialogs/characterprofilesdlg.py:617
+msgid "Images"
+msgstr "תמונות"
+
+#: trelby/dialogs/characterprofilesdlg.py:638
+msgid "Couldn't read these images:"
+msgstr "לא ניתן היה לקרוא את התמונות האלה:"
+
+#: trelby/dialogs/characterprofilesdlg.py:639
+#: trelby/dialogs/characterprofilesdlg.py:691
+#: trelby/dialogs/characterprofilesdlg.py:700
+#: trelby/dialogs/configpages/displaypanel.py:97
+#: trelby/dialogs/configpages/keyboardpanel.py:90
+#: trelby/dialogs/configpages/keyboardpanel.py:100
+#: trelby/dialogs/configpages/pdffontspanel.py:170
+#: trelby/dialogs/configpages/pdffontspanel.py:182
+#: trelby/dialogs/configpages/themepanel.py:142
+#: trelby/dialogs/configpages/themepanel.py:194
+#: trelby/dialogs/locationsdlg.py:98 trelby/dialogs/locationsdlg.py:147
+#: trelby/dialogs/namesdlg.py:58 trelby/dialogs/textdlg.py:117
+#: trelby/dialogs/watermarkdlg.py:108 trelby/dialogs/watermarkdlg.py:166
+#: trelby/dialogs/watermarkdlg.py:179 trelby/trelby.py:61 trelby/trelby.py:88
+#: trelby/trelby.py:98 trelby/ui/fileio.py:40 trelby/ui/fileio.py:77
+#: trelby/ui/fileio.py:97 trelby/ui/fileio.py:127 trelby/ui/fileio.py:216
+#: trelby/ui/globaldata.py:142 trelby/ui/myimport.py:37
+#: trelby/ui/pdfviewer.py:115 trelby/ui/scriptactions.py:224
+#: trelby/ui/scriptactions.py:252 trelby/ui/scriptactions.py:543
+#: trelby/ui/scriptactions.py:833 trelby/ui/splash.py:180
+#: trelby/ui/trelbyctrl.py:247 trelby/ui/trelbyframe.py:331
+#: trelby/ui/trelbyframe.py:384
+msgid "Error"
+msgstr "שגיאה"
+
+#: trelby/dialogs/characterprofilesdlg.py:655
+msgid "Remove this photo?"
+msgstr "להסיר את התמונה הזו?"
+
+#: trelby/dialogs/characterprofilesdlg.py:668
+msgid "Photo"
+msgstr "תמונה"
+
+#: trelby/dialogs/characterprofilesdlg.py:691
+msgid "Every profile needs a name."
+msgstr "לכל פרופיל צריך להיות שם."
+
+#: trelby/dialogs/characterprofilesdlg.py:699
+#, python-brace-format
+msgid "There is more than one profile for {}."
+msgstr "יש יותר מפרופיל אחד עבור {}."
+
+#: trelby/dialogs/charmapdlg.py:13
+msgid "Latin-1"
+msgstr "Latin-1"
+
+#: trelby/dialogs/charmapdlg.py:14
+msgid "Latin Extended-A"
+msgstr "Latin Extended-A"
+
+#: trelby/dialogs/charmapdlg.py:15
+msgid "Latin Extended-B"
+msgstr "Latin Extended-B"
+
+#: trelby/dialogs/charmapdlg.py:16
+msgid "Greek"
+msgstr "יוונית"
+
+#: trelby/dialogs/charmapdlg.py:17
+msgid "Cyrillic"
+msgstr "קירילית"
+
+#: trelby/dialogs/charmapdlg.py:19
+msgid "Punctuation and symbols"
+msgstr "פיסוק וסמלים"
+
+#: trelby/dialogs/charmapdlg.py:47 trelby/ui/menus.py:769
+msgid "Character map"
+msgstr "מפת תווים"
+
+#: trelby/dialogs/charmapdlg.py:69
+msgid " Insert character "
+msgstr " הוסף תו "
+
+#: trelby/dialogs/charmapdlg.py:213
+msgid "Selected:"
+msgstr "נבחר:"
+
+#: trelby/dialogs/charmapdlg.py:224
+msgid "Opposite case:"
+msgstr "רישיות הפוכה:"
+
+#: trelby/dialogs/charmapdlg.py:229
+#, python-format
+msgid "Character code: %d"
+msgstr "קוד התו: %d"
+
+#: trelby/dialogs/charmapdlg.py:233
+msgid "Normal space"
+msgstr "רווח רגיל"
+
+#: trelby/dialogs/charmapdlg.py:235
+msgid "Non-breaking space"
+msgstr "רווח קשיח"
+
+#: trelby/dialogs/charmapdlg.py:239
+msgid "Click on a character to select it."
+msgstr "לחץ על תו כדי לבחור אותו."
+
+#: trelby/dialogs/checkboxdlg.py:57
+msgid "Set"
+msgstr "סמן הכל"
+
+#: trelby/dialogs/checkboxdlg.py:61
+msgid "Clear"
+msgstr "נקה הכל"
+
+#: trelby/dialogs/checkboxdlg.py:65
+msgid "Toggle"
+msgstr "הפוך בחירה"
+
+#: trelby/dialogs/commandsdlg.py:13 trelby/ui/menus.py:794
+msgid "Commands"
+msgstr "פקודות"
+
+#: trelby/dialogs/commandsdlg.py:67
+msgid "Key(s)"
+msgstr "מקשים"
+
+#: trelby/dialogs/commandsdlg.py:67
+msgid "Command"
+msgstr "פקודה"
+
+#: trelby/dialogs/commandsdlg.py:78
+msgid "No key defined"
+msgstr "לא הוגדר מקש"
+
+#: trelby/dialogs/commandsdlg.py:117
+msgid "HTML files (*.html)|*.html|All files|*"
+msgstr "קובצי HTML (*.html)|*.html|כל הקבצים|*"
+
+#: trelby/dialogs/configpages/displaypanel.py:15
+msgid "Screen fonts:"
+msgstr "גופני מסך:"
+
+#: trelby/dialogs/configpages/displaypanel.py:25
+msgid "Change"
+msgstr "שנה"
+
+#: trelby/dialogs/configpages/displaypanel.py:39
+msgid "Toolbar icon size:"
+msgstr "גודל סמלי סרגל הכלים:"
+
+#: trelby/dialogs/configpages/displaypanel.py:52
+#: trelby/dialogs/configpages/draftpanel.py:28
+msgid "pixels"
+msgstr "פיקסלים"
+
+#: trelby/dialogs/configpages/displaypanel.py:96
+msgid "The selected font is not fixed width and can not be used."
+msgstr "הגופן שנבחר אינו ברוחב קבוע ולא ניתן להשתמש בו."
+
+#: trelby/dialogs/configpages/displaypanel.py:132
+msgid "Fonts have different widths"
+msgstr "לגופנים יש רוחב שונה"
+
+#: trelby/dialogs/configpages/displaypanel.py:135
+msgid "Fonts have matching widths"
+msgstr "לגופנים יש רוחב תואם"
+
+#: trelby/dialogs/configpages/draftpanel.py:15
+msgid "Row spacing:"
+msgstr "מרווח שורות:"
+
+#: trelby/dialogs/configpages/draftpanel.py:39
+msgid "Page break lines to show"
+msgstr "קווי מעבר עמוד להצגה"
+
+#: trelby/dialogs/configpages/draftpanel.py:42
+#: trelby/reports/reportframes.py:73
+msgid "None"
+msgstr "ללא"
+
+#: trelby/dialogs/configpages/draftpanel.py:42
+msgid "Normal"
+msgstr "רגיל"
+
+#: trelby/dialogs/configpages/draftpanel.py:42
+msgid "Normal + unadjusted   "
+msgstr "רגיל + לא מותאם   "
+
+#: trelby/dialogs/configpages/elementsglobalpanel.py:36
+msgid "Enter creates"
+msgstr "Enter יוצר"
+
+#: trelby/dialogs/configpages/elementsglobalpanel.py:37
+msgid "Tab creates"
+msgstr "Tab יוצר"
+
+#: trelby/dialogs/configpages/elementsglobalpanel.py:38
+msgid "Tab switches to"
+msgstr "Tab עובר אל"
+
+#: trelby/dialogs/configpages/elementsglobalpanel.py:39
+msgid "Shift+Tab switches to"
+msgstr "Shift+Tab עובר אל"
+
+#: trelby/dialogs/configpages/elementspanel.py:46
+msgid "Empty lines / 10 before:"
+msgstr "שורות ריקות / 10 לפני:"
+
+#: trelby/dialogs/configpages/elementspanel.py:62
+msgid "Empty lines / 10 between:"
+msgstr "שורות ריקות / 10 בין:"
+
+#: trelby/dialogs/configpages/elementspanel.py:82
+msgid "Indent:"
+msgstr "הזחה:"
+
+#: trelby/dialogs/configpages/elementspanel.py:97
+#: trelby/dialogs/configpages/elementspanel.py:119
+msgid "characters (10 characters = 1 inch)"
+msgstr "תווים (10 תווים = אינץ׳ אחד)"
+
+#: trelby/dialogs/configpages/elementspanel.py:104
+#: trelby/dialogs/configpages/paperpanel.py:35
+msgid "Width:"
+msgstr "רוחב:"
+
+#: trelby/dialogs/configpages/elementspanel.py:145
+msgid "Caps"
+msgstr "אותיות גדולות"
+
+#: trelby/dialogs/configpages/elementspanel.py:146 trelby/ui/menus.py:415
+#: trelby/ui/toolbar.py:449 trelby/ui/widgets.py:47
+msgid "Italic"
+msgstr "נטוי"
+
+#: trelby/dialogs/configpages/elementspanel.py:147 trelby/ui/menus.py:407
+#: trelby/ui/toolbar.py:448 trelby/ui/widgets.py:45
+msgid "Bold"
+msgstr "מודגש"
+
+#: trelby/dialogs/configpages/elementspanel.py:149 trelby/ui/widgets.py:49
+msgid "Underlined"
+msgstr "קו תחתון"
+
+#: trelby/dialogs/configpages/formattingpanel.py:18
+msgid ""
+"Leave at least this many lines at the end of a page when breaking in the "
+"middle of an element:"
+msgstr "השאר לפחות מספר שורות זה בסוף עמוד כאשר רכיב נשבר באמצעו:"
+
+#: trelby/dialogs/configpages/formattingpanel.py:29
+msgid "Action:"
+msgstr "תיאור:"
+
+#: trelby/dialogs/configpages/formattingpanel.py:30 trelby/ui/menus.py:144
+msgid "Dialogue"
+msgstr "דיאלוג"
+
+#: trelby/dialogs/configpages/formattingpanel.py:34
+msgid "Start each act on a new page"
+msgstr "התחל כל מערכה בעמוד חדש"
+
+#: trelby/dialogs/configpages/formattingpanel.py:39
+msgid "Font size:"
+msgstr "גודל גופן:"
+
+#: trelby/dialogs/configpages/formattingpanel.py:43
+msgid "Double-width characters (for Chinese, Japanese, Korean)"
+msgstr "תווים ברוחב כפול (לסינית, יפנית, קוריאנית)"
+
+#: trelby/dialogs/configpages/formattingpanel.py:48
+msgid "Scene CONTINUEDs:"
+msgstr "המשך (CONTINUED) של סצנות:"
+
+#: trelby/dialogs/configpages/formattingpanel.py:51
+msgid "Include,"
+msgstr "כלול,"
+
+#: trelby/dialogs/configpages/formattingpanel.py:56
+msgid "indent:"
+msgstr "הזחה:"
+
+#: trelby/dialogs/configpages/formattingpanel.py:59
+msgid "characters"
+msgstr "תווים"
+
+#: trelby/dialogs/configpages/formattingpanel.py:66
+msgid "Include scene numbers"
+msgstr "כלול מספרי סצנות"
+
+#: trelby/dialogs/configpages/formattingpanel.py:76
+msgid "Show line numbers (debug)"
+msgstr "הצג מספרי שורות (ניפוי באגים)"
+
+#: trelby/dialogs/configpages/globalaboutpanel.py:7
+msgid ""
+"This is the config dialog for global settings, which means things\n"
+"that affect the user interface of the program like interface colors,\n"
+"keyboard shortcuts, display fonts, and so on.\n"
+"\n"
+"The settings here are independent of any script being worked on,\n"
+"and unique to this computer.\n"
+"\n"
+"None of the settings here have any effect on the generated PDF\n"
+"output for a script. See Script/Script settings for those."
+msgstr ""
+"זהו חלון ההגדרות הכלליות, כלומר דברים שמשפיעים על\n"
+"ממשק המשתמש של התוכנה, כמו צבעי הממשק, קיצורי\n"
+"מקלדת, גופני התצוגה וכן הלאה.\n"
+"\n"
+"ההגדרות כאן אינן תלויות בתסריט שעליו עובדים,\n"
+"והן ייחודיות למחשב זה.\n"
+"\n"
+"לאף אחת מההגדרות כאן אין השפעה על קובץ ה־PDF\n"
+"שנוצר מתסריט. לשם כך ראה תסריט/הגדרות תסריט."
+
+#: trelby/dialogs/configpages/keyboardpanel.py:21
+msgid "Commands:"
+msgstr "פקודות:"
+
+#: trelby/dialogs/configpages/keyboardpanel.py:34
+msgid "Keys:"
+msgstr "מקשים:"
+
+#: trelby/dialogs/configpages/keyboardpanel.py:39
+#: trelby/dialogs/headersdlg.py:65 trelby/dialogs/locationsdlg.py:34
+#: trelby/dialogs/titlesdlg.py:49 trelby/ui/gutil.py:282
+msgid "Add"
+msgstr "הוסף"
+
+#: trelby/dialogs/configpages/keyboardpanel.py:49
+msgid "Description:"
+msgstr "תיאור:"
+
+#: trelby/dialogs/configpages/keyboardpanel.py:59
+msgid "Conflicting keys:"
+msgstr "מקשים מתנגשים:"
+
+#: trelby/dialogs/configpages/keyboardpanel.py:89
+msgid "The key is already bound to this command."
+msgstr "המקש כבר מוקצה לפקודה זו."
+
+#: trelby/dialogs/configpages/keyboardpanel.py:99
+msgid "You can't bind input characters to commands."
+msgstr "לא ניתן להקצות תווי קלט לפקודות."
+
+#: trelby/dialogs/configpages/mcppanel.py:23
+msgid ""
+"The MCP server lets AI assistants like Claude read and edit the scripts open "
+"in Trelby. Their edits show up right away and can be undone, but aren't "
+"saved until you save the script."
+msgstr "שרת ה־MCP מאפשר לעוזרי בינה מלאכותית כמו Claude לקרוא ולערוך את התסריטים הפתוחים ב־Trelby. העריכות שלהם מופיעות מיד וניתן לבטל אותן, אך הן אינן נשמרות עד שתשמור את התסריט."
+
+#: trelby/dialogs/configpages/mcppanel.py:33
+msgid "Turn on the MCP server"
+msgstr "הפעל את שרת ה־MCP"
+
+#: trelby/dialogs/configpages/mcppanel.py:39
+msgid "Port:"
+msgstr "פורט:"
+
+#: trelby/dialogs/configpages/mcppanel.py:54
+msgid "Address:"
+msgstr "כתובת:"
+
+#: trelby/dialogs/configpages/mcppanel.py:69
+msgid ""
+"Only programs on this computer can connect. Clients that connect by URL "
+"(like Claude Code) can use the address above."
+msgstr "רק תוכנות במחשב זה יכולות להתחבר. לקוחות שמתחברים דרך כתובת URL (כמו Claude Code) יכולים להשתמש בכתובת שלמעלה."
+
+#: trelby/dialogs/configpages/mcppanel.py:81
+msgid "Copy Claude Desktop config"
+msgstr "העתק את התצורה של Claude Desktop"
+
+#: trelby/dialogs/configpages/mcppanel.py:84
+msgid ""
+"Copy the claude_desktop_config.json entry that connects Claude Desktop to "
+"Trelby"
+msgstr "העתק את הרשומה של claude_desktop_config.json שמחברת את Claude Desktop ל־Trelby"
+
+#: trelby/dialogs/configpages/mcppanel.py:144
+msgid ""
+"Copied. Quit Claude Desktop, paste this inside the\n"
+"\"mcpServers\" section of claude_desktop_config.json, and\n"
+"start Claude Desktop again."
+msgstr ""
+"הועתק. צא מ־Claude Desktop, הדבק זאת בתוך המקטע\n"
+"\"mcpServers\" בקובץ claude_desktop_config.json, ואז\n"
+"הפעל את Claude Desktop מחדש."
+
+#: trelby/dialogs/configpages/mcppanel.py:148 trelby/mcpserver/app.py:296
+#: trelby/mcpserver/app.py:310
+msgid "MCP server"
+msgstr "שרת MCP"
+
+#: trelby/dialogs/configpages/mcppanel.py:162
+#, python-brace-format
+msgid "Status: {}"
+msgstr "מצב: {}"
+
+#: trelby/dialogs/configpages/miscpanel.py:17
+msgid "Default script directory"
+msgstr "תיקיית ברירת המחדל לתסריטים"
+
+#: trelby/dialogs/configpages/miscpanel.py:25
+#: trelby/dialogs/configpages/pdffontspanel.py:68
+#: trelby/dialogs/configpages/pdfviewerpanel.py:49
+#: trelby/dialogs/watermarkdlg.py:37
+msgid "Browse"
+msgstr "עיון"
+
+#: trelby/dialogs/configpages/miscpanel.py:35
+msgid "Paper size for new scripts:"
+msgstr "גודל נייר לתסריטים חדשים:"
+
+#: trelby/dialogs/configpages/miscpanel.py:56
+msgid "Auto-capitalize sentences"
+msgstr "אות גדולה אוטומטית בתחילת משפט"
+
+#: trelby/dialogs/configpages/miscpanel.py:57
+msgid "Auto-capitalize i -> I"
+msgstr "החלפה אוטומטית i -> I"
+
+#: trelby/dialogs/configpages/miscpanel.py:58
+msgid "Underline misspelled words"
+msgstr "סמן בקו מילים עם שגיאות כתיב"
+
+#: trelby/dialogs/configpages/miscpanel.py:59
+msgid "When opening a script, start at last saved position"
+msgstr "בפתיחת תסריט, התחל במיקום השמור האחרון"
+
+#: trelby/dialogs/configpages/miscpanel.py:60
+msgid "Recenter screen on scrolling"
+msgstr "מרכז את המסך מחדש בעת גלילה"
+
+#: trelby/dialogs/configpages/miscpanel.py:61
+msgid "Typing replaces selected text"
+msgstr "הקלדה מחליפה את הטקסט הנבחר"
+
+#: trelby/dialogs/configpages/miscpanel.py:64
+msgid "Check script for formatting errors before export or compare"
+msgstr "בדוק שגיאות עיצוב בתסריט לפני ייצוא או השוואה"
+
+#: trelby/dialogs/configpages/miscpanel.py:80
+msgid ""
+"Autosave recovery copy interval in minutes:\n"
+" (0 = disable)"
+msgstr ""
+"מרווח שמירה אוטומטית של עותק שחזור בדקות:\n"
+" (0 = מושבת)"
+
+#: trelby/dialogs/configpages/miscpanel.py:88
+msgid "Lines to scroll per mouse wheel event:"
+msgstr "שורות לגלילה בכל סיבוב של גלגלת העכבר:"
+
+#: trelby/dialogs/configpages/paperpanel.py:22
+#: trelby/dialogs/configpages/pdffontspanel.py:42
+#: trelby/dialogs/titlesdlg.py:77
+msgid "Type:"
+msgstr "סוג:"
+
+#: trelby/dialogs/configpages/paperpanel.py:44
+msgid "Height:"
+msgstr "גובה:"
+
+#: trelby/dialogs/configpages/paperpanel.py:55
+msgid "Margins"
+msgstr "שוליים"
+
+#: trelby/dialogs/configpages/paperpanel.py:59
+msgid "Top"
+msgstr "עליון"
+
+#: trelby/dialogs/configpages/paperpanel.py:60
+msgid "Bottom"
+msgstr "תחתון"
+
+#: trelby/dialogs/configpages/paperpanel.py:61
+msgid "Left"
+msgstr "שמאל"
+
+#: trelby/dialogs/configpages/paperpanel.py:62
+msgid "Right"
+msgstr "ימין"
+
+#: trelby/dialogs/configpages/paperpanel.py:132
+#, python-brace-format
+msgid "Lines per page: {}"
+msgstr "שורות בעמוד: {}"
+
+#: trelby/dialogs/configpages/pdffontspanel.py:28
+msgid ""
+"Leave all the fields empty to use the default PDF Courier fonts. This is "
+"highly recommended.\n"
+"\n"
+"Otherwise, fill in the font filename to use the specified TrueType font. See "
+"the manual for the full details."
+msgstr ""
+"השאר את כל השדות ריקים כדי להשתמש בגופני ה־Courier המובנים של PDF. זה מומלץ מאוד.\n"
+"\n"
+"אחרת, מלא את שם קובץ הגופן כדי להשתמש בגופן TrueType שצוין. לפרטים המלאים ראה את המדריך."
+
+#: trelby/dialogs/configpages/pdffontspanel.py:67
+msgid "File:"
+msgstr "קובץ:"
+
+#: trelby/dialogs/configpages/pdffontspanel.py:167
+#, python-brace-format
+msgid ""
+"File '{}'\n"
+"does not appear to be a valid TrueType font."
+msgstr ""
+"נראה שהקובץ '{}'\n"
+"אינו גופן TrueType תקין."
+
+#: trelby/dialogs/configpages/pdffontspanel.py:179
+#, python-brace-format
+msgid ""
+"Font '{}'\n"
+"does not allow embedding in its license terms.\n"
+"You may encounter problems using this font embedded."
+msgstr ""
+"הגופן '{}'\n"
+"אינו מתיר הטמעה לפי תנאי הרישיון שלו.\n"
+"ייתכן שתיתקל בבעיות בשימוש בגופן זה כשהוא מוטמע."
+
+#: trelby/dialogs/configpages/pdfpanel.py:19
+msgid "Add table of contents"
+msgstr "הוסף תוכן עניינים"
+
+#: trelby/dialogs/configpages/pdfpanel.py:22
+msgid "Show table of contents on PDF open"
+msgstr "הצג את תוכן העניינים בפתיחת ה־PDF"
+
+#: trelby/dialogs/configpages/pdfpanel.py:25
+msgid "Omit Note elements"
+msgstr "השמט רכיבי הערה"
+
+#: trelby/dialogs/configpages/pdfpanel.py:28
+msgid "  Draw rectangles around Note elements"
+msgstr "  צייר מלבנים סביב רכיבי הערה"
+
+#: trelby/dialogs/configpages/pdfpanel.py:31
+msgid "Show margins (debug)"
+msgstr "הצג שוליים (ניפוי באגים)"
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:18
+msgid "Use built-in PDF viewer"
+msgstr "השתמש במציג ה־PDF המובנה"
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:23
+msgid ""
+"The application below is used when the built-in viewer is turned off or "
+"can't open a file."
+msgstr "היישום שלהלן משמש כאשר המציג המובנה כבוי או אינו מצליח לפתוח קובץ."
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:28
+msgid "The built-in viewer isn't available on this system."
+msgstr "המציג המובנה אינו זמין במערכת זו."
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:33
+msgid "PDF viewer application"
+msgstr "יישום להצגת PDF"
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:40
+msgid "Path:"
+msgstr "נתיב:"
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:53
+msgid "Guess"
+msgstr "נחש"
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:62
+msgid "Arguments:"
+msgstr "ארגומנטים:"
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:91
+msgid "Choose program"
+msgstr "בחר תוכנה"
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:109
+msgid "Unable to guess. Please set the path manually."
+msgstr "לא ניתן לנחש. הגדר את הנתיב ידנית."
+
+#: trelby/dialogs/configpages/pdfviewerpanel.py:110
+msgid "PDF Viewer"
+msgstr "מציג PDF"
+
+#: trelby/dialogs/configpages/scriptaboutpanel.py:7
+msgid ""
+"This is the config dialog for script format settings, which means\n"
+"things that affect the generated PDF output of a script. Things like\n"
+"paper size, indendation/line widths/font styles for the different\n"
+"element types, and so on.\n"
+"\n"
+"The settings here are saved within the screenplay itself.\n"
+"\n"
+"If you're looking for the user interface settings (colors, keyboard\n"
+"shortcuts, etc.), those are found in Edit/Settings."
+msgstr ""
+"זהו חלון הגדרות העיצוב של התסריט, כלומר דברים\n"
+"שמשפיעים על קובץ ה־PDF שנוצר מהתסריט, כמו\n"
+"גודל הנייר, הזחות, רוחב שורות וסגנונות גופן של\n"
+"סוגי הרכיבים השונים, וכן הלאה.\n"
+"\n"
+"ההגדרות כאן נשמרות בתוך התסריט עצמו.\n"
+"\n"
+"אם אתה מחפש את הגדרות ממשק המשתמש (צבעים, קיצורי\n"
+"מקלדת וכו׳), הן נמצאות בעריכה/הגדרות."
+
+#: trelby/dialogs/configpages/spellcheckpanel.py:20
+msgid ""
+"Mark these words as correct spelling so the spell checker won't flag them."
+msgstr "סמן מילים אלה כמאויתות נכון כדי שבודק האיות לא יסמן אותן."
+
+#: trelby/dialogs/configpages/spellcheckpanel.py:29
+msgid "Global words (one per line):"
+msgstr "מילים כלליות (אחת בכל שורה):"
+
+#: trelby/dialogs/configpages/themepanel.py:15
+msgid "Light"
+msgstr "בהיר"
+
+#: trelby/dialogs/configpages/themepanel.py:16
+msgid "Dark"
+msgstr "כהה"
+
+#: trelby/dialogs/configpages/themepanel.py:17
+msgid "Parchment"
+msgstr "קלף"
+
+#: trelby/dialogs/configpages/themepanel.py:18
+msgid "Solarized Light"
+msgstr "Solarized בהיר"
+
+#: trelby/dialogs/configpages/themepanel.py:19
+msgid "Solarized Dark"
+msgstr "Solarized כהה"
+
+#: trelby/dialogs/configpages/themepanel.py:33
+msgid "Theme:"
+msgstr "ערכת נושא:"
+
+#: trelby/dialogs/configpages/themepanel.py:42
+msgid ""
+"System default follows the light or dark mode setting of your operating "
+"system.\n"
+"\n"
+"To make your own theme, export one as a starting point, edit the file's "
+"colors, and click Reload. Theme files are read from the themes folder."
+msgstr ""
+"ברירת המחדל של המערכת עוקבת אחר הגדרת המצב הבהיר או הכהה של מערכת ההפעלה.\n"
+"\n"
+"כדי ליצור ערכת נושא משלך, ייצא אחת כנקודת התחלה, ערוך את הצבעים בקובץ ולחץ על טען מחדש. קובצי ערכות הנושא נקראים מתיקיית ערכות הנושא."
+
+#: trelby/dialogs/configpages/themepanel.py:56 trelby/ui/menus.py:275
+msgid "Export"
+msgstr "ייצא"
+
+#: trelby/dialogs/configpages/themepanel.py:57
+msgid "Save the selected theme as a theme file"
+msgstr "שמור את ערכת הנושא הנבחרת כקובץ ערכת נושא"
+
+#: trelby/dialogs/configpages/themepanel.py:60
+msgid "Open themes folder"
+msgstr "פתח את תיקיית ערכות הנושא"
+
+#: trelby/dialogs/configpages/themepanel.py:63
+msgid "Reload"
+msgstr "טען מחדש"
+
+#: trelby/dialogs/configpages/themepanel.py:64
+msgid "Read the theme files again"
+msgstr "קרא שוב את קובצי ערכות הנושא"
+
+#: trelby/dialogs/configpages/themepanel.py:96
+msgid "System default"
+msgstr "ברירת המחדל של המערכת"
+
+#: trelby/dialogs/configpages/themepanel.py:108
+#, python-brace-format
+msgid "The theme '{}' wasn't found, so System default is used."
+msgstr "ערכת הנושא '{}' לא נמצאה, ולכן נעשה שימוש בברירת המחדל של המערכת."
+
+#: trelby/dialogs/configpages/themepanel.py:114
+msgid "Skipped theme files:"
+msgstr "קובצי ערכות נושא שדולגו:"
+
+#: trelby/dialogs/configpages/themepanel.py:141
+#, python-brace-format
+msgid "Can't create the themes folder '{}': {}"
+msgstr "לא ניתן ליצור את תיקיית ערכות הנושא '{}': {}"
+
+#: trelby/dialogs/configpages/themepanel.py:165
+msgid "Theme file to save as (its name becomes the theme's name)"
+msgstr "קובץ ערכת נושא לשמירה (שמו יהפוך לשם ערכת הנושא)"
+
+#: trelby/dialogs/configpages/themepanel.py:167
+#, python-brace-format
+msgid "My {}"
+msgstr "{} שלי"
+
+#: trelby/dialogs/configpages/themepanel.py:168
+msgid "Theme files"
+msgstr "קובצי ערכות נושא"
+
+#: trelby/dialogs/configpages/themepanel.py:192
+#, python-brace-format
+msgid "There's already a theme named '{}'. Choose another file name."
+msgstr "כבר קיימת ערכת נושא בשם '{}'. בחר שם קובץ אחר."
+
+#: trelby/dialogs/finddlg.py:34
+msgid "Find & Replace"
+msgstr "חיפוש והחלפה"
+
+#: trelby/dialogs/finddlg.py:54
+msgid "Find what:"
+msgstr "חפש את:"
+
+#: trelby/dialogs/finddlg.py:60
+msgid "Replace with:"
+msgstr "החלף ב:"
+
+#: trelby/dialogs/finddlg.py:77
+msgid "Match whole word only"
+msgstr "התאם מילה שלמה בלבד"
+
+#: trelby/dialogs/finddlg.py:80
+msgid "Match case"
+msgstr "התאם רישיות"
+
+#: trelby/dialogs/finddlg.py:86
+msgid "Direction"
+msgstr "כיוון"
+
+#: trelby/dialogs/finddlg.py:86
+msgid "Up"
+msgstr "למעלה"
+
+#: trelby/dialogs/finddlg.py:86
+msgid "Down"
+msgstr "למטה"
+
+#: trelby/dialogs/finddlg.py:94 trelby/dialogs/namesdlg.py:82
+msgid "Search in:"
+msgstr "חפש ב:"
+
+#: trelby/dialogs/finddlg.py:242
+msgid "<<< Less"
+msgstr "<<< פחות"
+
+#: trelby/dialogs/finddlg.py:244
+msgid "More >>>"
+msgstr "עוד >>>"
+
+#: trelby/dialogs/finddlg.py:311 trelby/dialogs/finddlg.py:315
+msgid "start"
+msgstr "תחילת"
+
+#: trelby/dialogs/finddlg.py:312 trelby/dialogs/finddlg.py:314
+msgid "end"
+msgstr "סוף"
+
+#: trelby/dialogs/finddlg.py:319
+#, python-brace-format
+msgid ""
+"Search finished at the {} of the script. Do\n"
+"you want to continue at the {} of the script?"
+msgstr ""
+"החיפוש הגיע ל{} התסריט. האם\n"
+"להמשיך מ{} התסריט?"
+
+#: trelby/dialogs/finddlg.py:322
+msgid "Continue?"
+msgstr "להמשיך?"
+
+#: trelby/dialogs/finddlg.py:345
+msgid "Search finished without results."
+msgstr "החיפוש הסתיים ללא תוצאות."
+
+#: trelby/dialogs/finddlg.py:346
+msgid "No matches"
+msgstr "אין התאמות"
+
+#: trelby/dialogs/finddlg.py:382
+#, python-brace-format
+msgid "Replaced {} matches"
+msgstr "הוחלפו {} התאמות"
+
+#: trelby/dialogs/finddlg.py:382 trelby/dialogs/spellcheckdlg.py:116
+#: trelby/dialogs/spellcheckdlg.py:184 trelby/ui/scriptactions.py:280
+#: trelby/ui/scriptactions.py:638
+msgid "Results"
+msgstr "תוצאות"
+
+#: trelby/dialogs/footerdlg.py:20 trelby/ui/menus.py:611
+msgid "Page footer"
+msgstr "כותרת תחתונה"
+
+#: trelby/dialogs/footerdlg.py:38
+msgid "Left:"
+msgstr "שמאל:"
+
+#: trelby/dialogs/footerdlg.py:38
+msgid "Center:"
+msgstr "מרכז:"
+
+#: trelby/dialogs/footerdlg.py:38
+msgid "Right:"
+msgstr "ימין:"
+
+#: trelby/dialogs/footerdlg.py:56 trelby/dialogs/headersdlg.py:87
+msgid "Insert variable"
+msgstr "הוסף משתנה"
+
+#: trelby/dialogs/footerdlg.py:64
+msgid ""
+"The title, author and draft come from the strings of that kind on the title "
+"pages."
+msgstr "הכותרת, המחבר והטיוטה נלקחים מהמחרוזות מהסוג הזה בדפי השער."
+
+#: trelby/dialogs/footerdlg.py:73
+msgid "Print on the first page"
+msgstr "הדפס בעמוד הראשון"
+
+#: trelby/dialogs/footerdlg.py:83
+msgid ""
+"The footer is printed in the bottom margin, which is too small for it. Make "
+"the margin bigger in Script settings."
+msgstr "הכותרת התחתונה מודפסת בשוליים התחתונים, שקטנים מדי עבורה. הגדל את השוליים בהגדרות התסריט."
+
+#: trelby/dialogs/formattingerrorsdlg.py:20 trelby/ui/scriptactions.py:343
+msgid "Formatting Errors"
+msgstr "שגיאות עיצוב"
+
+#: trelby/dialogs/formattingerrorsdlg.py:35
+#, python-brace-format
+msgid "Found 1 formatting error in \"{1}\"."
+msgstr "נמצאה שגיאת עיצוב אחת ב־\"{1}\"."
+
+#: trelby/dialogs/formattingerrorsdlg.py:37
+#, python-brace-format
+msgid "Found {0} formatting errors in \"{1}\"."
+msgstr "נמצאו {0} שגיאות עיצוב ב־\"{1}\"."
+
+#: trelby/dialogs/formattingerrorsdlg.py:46 trelby/ui/menus.py:491
+msgid "Page"
+msgstr "עמוד"
+
+#: trelby/dialogs/formattingerrorsdlg.py:47
+msgid "Element"
+msgstr "רכיב"
+
+#: trelby/dialogs/formattingerrorsdlg.py:48
+msgid "Problem"
+msgstr "בעיה"
+
+#: trelby/dialogs/formattingerrorsdlg.py:49 trelby/dialogs/titlesdlg.py:64
+#: trelby/dialogs/titlesdlg.py:309
+msgid "Text"
+msgstr "טקסט"
+
+#: trelby/dialogs/formattingerrorsdlg.py:67
+msgid "Select an error to show it in the script."
+msgstr "בחר שגיאה כדי להציג אותה בתסריט."
+
+#: trelby/dialogs/formattingerrorsdlg.py:78 trelby/dialogs/watermarkdlg.py:64
+#: trelby/ui/menus.py:255
+msgid "Close"
+msgstr "סגור"
+
+#: trelby/dialogs/formattingerrorsdlg.py:81
+msgid "Go To"
+msgstr "עבור"
+
+#: trelby/dialogs/formattingerrorsdlg.py:106
+#, python-format
+msgid "(%d spaces)"
+msgstr "(%d רווחים)"
+
+#: trelby/dialogs/formattingerrorsdlg.py:106
+msgid "(empty)"
+msgstr "(ריק)"
+
+#: trelby/dialogs/headersdlg.py:20 trelby/ui/menus.py:603
+msgid "Page headers"
+msgstr "כותרות עליונות"
+
+#: trelby/dialogs/headersdlg.py:42
+msgid "Empty lines after headers:"
+msgstr "שורות ריקות אחרי הכותרות:"
+
+#: trelby/dialogs/headersdlg.py:57
+msgid "Strings:"
+msgstr "מחרוזות:"
+
+#: trelby/dialogs/headersdlg.py:79
+msgid "Text:"
+msgstr "טקסט:"
+
+#: trelby/dialogs/headersdlg.py:102
+msgid "Header line:"
+msgstr "שורת כותרת:"
+
+#: trelby/dialogs/headersdlg.py:112
+msgid "X offset (characters):"
+msgstr "היסט X (בתווים):"
+
+#: trelby/dialogs/headersdlg.py:125
+msgid "Alignment:"
+msgstr "יישור:"
+
+#: trelby/dialogs/headersdlg.py:132 trelby/dialogs/titlesdlg.py:85
+msgid "Format:"
+msgstr "עיצוב:"
+
+#: trelby/dialogs/importdlg.py:11
+msgid "Adjust styles"
+msgstr "התאם סגנונות"
+
+#: trelby/dialogs/importdlg.py:18
+msgid "Input:"
+msgstr "קלט:"
+
+#: trelby/dialogs/importdlg.py:24
+#, python-brace-format
+msgid "{} lines (indented {} characters)"
+msgstr "{} שורות (מוזחות ב־{} תווים)"
+
+#: trelby/dialogs/importdlg.py:32
+msgid "Style:"
+msgstr "סגנון:"
+
+#: trelby/dialogs/importdlg.py:35
+msgid "Scene / Action"
+msgstr "סצנה / תיאור"
+
+#: trelby/dialogs/importdlg.py:39
+msgid "Ignore"
+msgstr "התעלם"
+
+#: trelby/dialogs/importdlg.py:47
+msgid "Lines:"
+msgstr "שורות:"
+
+#: trelby/dialogs/keydlg.py:12
+msgid "Key capture"
+msgstr "לכידת מקש"
+
+#: trelby/dialogs/keydlg.py:20
+#, python-brace-format
+msgid "Press the key combination you want to bind to the command '{}'."
+msgstr "הקש את צירוף המקשים שברצונך להקצות לפקודה '{}'."
+
+#: trelby/dialogs/locationsdlg.py:18 trelby/ui/menus.py:628
+msgid "Locations"
+msgstr "מיקומים"
+
+#: trelby/dialogs/locationsdlg.py:26
+msgid "Locations:"
+msgstr "מיקומים:"
+
+#: trelby/dialogs/locationsdlg.py:44
+msgid "Scenes:"
+msgstr "סצנות:"
+
+#: trelby/dialogs/locationsdlg.py:98
+msgid "No scenes selected in the lower list."
+msgstr "לא נבחרו סצנות ברשימה התחתונה."
+
+#: trelby/dialogs/locationsdlg.py:147
+msgid "No scene selected in the upper list."
+msgstr "לא נבחרה סצנה ברשימה העליונה."
+
+#: trelby/dialogs/namesdlg.py:45
+#, python-brace-format
+msgid "No name type set before line: '{}'"
+msgstr "לא הוגדר סוג שם לפני השורה: '{}'"
+
+#: trelby/dialogs/namesdlg.py:49
+#, python-brace-format
+msgid "Unknown linetype for line: '{}'"
+msgstr "סוג שורה לא מוכר בשורה: '{}'"
+
+#: trelby/dialogs/namesdlg.py:57
+#, python-brace-format
+msgid "Error loading name database: {}"
+msgstr "שגיאה בטעינת מאגר השמות: {}"
+
+#: trelby/dialogs/namesdlg.py:72
+msgid "Character name database"
+msgstr "מאגר שמות דמויות"
+
+#: trelby/dialogs/namesdlg.py:88
+msgid "Count"
+msgstr "כמות"
+
+#: trelby/dialogs/namesdlg.py:89 trelby/dialogs/titlesdlg.py:63
+msgid "Type"
+msgstr "סוג"
+
+#: trelby/dialogs/namesdlg.py:111 trelby/ui/menus.py:370
+msgid "Select all"
+msgstr "בחר הכל"
+
+#: trelby/dialogs/namesdlg.py:122
+msgid "Search"
+msgstr "חפש"
+
+#: trelby/dialogs/namesdlg.py:129
+msgid "Insert"
+msgstr "הוסף"
+
+#: trelby/dialogs/namesdlg.py:138
+msgid "Name"
+msgstr "שם"
+
+#: trelby/dialogs/namesdlg.py:148
+msgid "Sex"
+msgstr "מין"
+
+#: trelby/dialogs/namesdlg.py:158
+msgid "Results:"
+msgstr "תוצאות:"
+
+#: trelby/dialogs/namesdlg.py:273
+#, python-brace-format
+msgid "{} names found."
+msgstr "נמצאו {} שמות."
+
+#: trelby/dialogs/recoverydlg.py:32
+#, python-brace-format
+msgid ""
+"Trelby did not close normally last time. Unsaved changes\n"
+"to the following scripts were recovered:\n"
+"\n"
+"{}\n"
+"\n"
+"Do you want to restore them?"
+msgstr ""
+"Trelby לא נסגרה כראוי בפעם הקודמת. שינויים שלא נשמרו\n"
+"בתסריטים הבאים שוחזרו:\n"
+"\n"
+"{}\n"
+"\n"
+"האם לשחזר אותם?"
+
+#: trelby/dialogs/recoverydlg.py:34
+msgid "Recover Unsaved Changes"
+msgstr "שחזור שינויים שלא נשמרו"
+
+#: trelby/dialogs/recoverydlg.py:38
+msgid "Restore"
+msgstr "שחזר"
+
+#: trelby/dialogs/recoverydlg.py:39
+msgid "Discard"
+msgstr "מחק"
+
+#: trelby/dialogs/recoverydlg.py:40
+msgid "Decide later"
+msgstr "החלט אחר כך"
+
+#: trelby/dialogs/recoverydlg.py:57
+msgid ""
+"Are you sure you want to permanently discard\n"
+"the recovered changes?"
+msgstr ""
+"האם אתה בטוח שברצונך למחוק לצמיתות\n"
+"את השינויים ששוחזרו?"
+
+#: trelby/dialogs/scriptchooserdlg.py:12
+msgid "Choose scripts"
+msgstr "בחר תסריטים"
+
+#: trelby/dialogs/scriptchooserdlg.py:19
+msgid "Compare script"
+msgstr "השווה את התסריט"
+
+#: trelby/dialogs/scriptchooserdlg.py:20
+msgid "to"
+msgstr "עם"
+
+#: trelby/dialogs/scriptchooserdlg.py:24
+msgid "Use same configuration"
+msgstr "השתמש באותה תצורה"
+
+#: trelby/dialogs/spellcheckcfgdlg.py:14
+msgid "Spell checker dictionary"
+msgstr "מילון בודק האיות"
+
+#: trelby/dialogs/spellcheckcfgdlg.py:23
+msgid "Global words:"
+msgstr "מילים כלליות:"
+
+#: trelby/dialogs/spellcheckcfgdlg.py:25
+msgid "Script-specific words:"
+msgstr "מילים של התסריט:"
+
+#: trelby/dialogs/spellcheckdlg.py:30 trelby/ui/menus.py:744
+msgid "Spell checker"
+msgstr "בודק איות"
+
+#: trelby/dialogs/spellcheckdlg.py:50
+msgid "Word:"
+msgstr "מילה:"
+
+#: trelby/dialogs/spellcheckdlg.py:116
+msgid "No more incorrect words found."
+msgstr "לא נמצאו מילים שגויות נוספות."
+
+#: trelby/dialogs/spellcheckdlg.py:184
+msgid "No similar words found."
+msgstr "לא נמצאו מילים דומות."
+
+#: trelby/dialogs/spellcheckdlg.py:189
+msgid "Most similar words:"
+msgstr "המילים הדומות ביותר:"
+
+#: trelby/dialogs/spellcheckdlg.py:189
+msgid "Suggestions"
+msgstr "הצעות"
+
+#: trelby/dialogs/titlesdlg.py:18 trelby/ui/menus.py:595
+msgid "Title pages"
+msgstr "דפי שער"
+
+#: trelby/dialogs/titlesdlg.py:42
+msgid "Items on this page:"
+msgstr "פריטים בעמוד זה:"
+
+#: trelby/dialogs/titlesdlg.py:71
+msgid "Double-click an item's text, or click it in the preview, to edit it."
+msgstr "לחץ פעמיים על הטקסט של פריט, או לחץ עליו בתצוגה המקדימה, כדי לערוך אותו."
+
+#: trelby/dialogs/titlesdlg.py:100
+msgid "Font / Size:"
+msgstr "גופן / גודל:"
+
+#: trelby/dialogs/titlesdlg.py:126
+msgid "X / Y Pos (mm):"
+msgstr "מיקום X / Y (מ״מ):"
+
+#: trelby/dialogs/titlesdlg.py:151
+msgid "Add page"
+msgstr "הוסף עמוד"
+
+#: trelby/dialogs/titlesdlg.py:153
+msgid "Delete page"
+msgstr "מחק עמוד"
+
+#: trelby/dialogs/titlesdlg.py:155
+msgid "Move page"
+msgstr "הזז עמוד"
+
+#: trelby/dialogs/titlesdlg.py:156
+msgid "Move this page one place later"
+msgstr "הזז עמוד זה מקום אחד קדימה"
+
+#: trelby/dialogs/titlesdlg.py:161
+msgid "Previous"
+msgstr "הקודם"
+
+#: trelby/dialogs/titlesdlg.py:168
+msgid "Next"
+msgstr "הבא"
+
+#: trelby/dialogs/titlesdlg.py:302
+msgid "Title"
+msgstr "כותרת"
+
+#: trelby/dialogs/titlesdlg.py:303
+msgid "Written by"
+msgstr "נכתב על ידי"
+
+#: trelby/dialogs/titlesdlg.py:304
+msgid "Author"
+msgstr "מחבר"
+
+#: trelby/dialogs/titlesdlg.py:305
+msgid "Based on"
+msgstr "מבוסס על"
+
+#: trelby/dialogs/titlesdlg.py:306
+msgid "Draft / date"
+msgstr "טיוטה / תאריך"
+
+#: trelby/dialogs/titlesdlg.py:307
+msgid "Contact"
+msgstr "פרטי קשר"
+
+#: trelby/dialogs/titlesdlg.py:308
+msgid "Copyright"
+msgstr "זכויות יוצרים"
+
+#: trelby/dialogs/titlesdlg.py:575
+msgid "No pages."
+msgstr "אין עמודים."
+
+#: trelby/dialogs/watermarkdlg.py:23
+msgid "Watermarked PDFs generator"
+msgstr "מחולל קובצי PDF עם סימני מים"
+
+#: trelby/dialogs/watermarkdlg.py:32
+msgid "Directory to save in:"
+msgstr "תיקייה לשמירה:"
+
+#: trelby/dialogs/watermarkdlg.py:42
+msgid "Filename prefix:"
+msgstr "קידומת לשם הקובץ:"
+
+#: trelby/dialogs/watermarkdlg.py:46
+msgid "Watermark font size:"
+msgstr "גודל גופן סימן המים:"
+
+#: trelby/dialogs/watermarkdlg.py:54
+msgid "Common mark:"
+msgstr "סימון משותף:"
+
+#: trelby/dialogs/watermarkdlg.py:55
+msgid "Confidential"
+msgstr "חסוי"
+
+#: trelby/dialogs/watermarkdlg.py:58
+msgid "Watermarks (one per line):"
+msgstr "סימני מים (אחד בכל שורה):"
+
+#: trelby/dialogs/watermarkdlg.py:67
+msgid "Generate PDFs"
+msgstr "צור קובצי PDF"
+
+#: trelby/dialogs/watermarkdlg.py:108
+msgid "Please set directory."
+msgstr "הגדר תיקייה."
+
+#: trelby/dialogs/watermarkdlg.py:166
+msgid "PDF generation aborted."
+msgstr "יצירת ה־PDF בוטלה."
+
+#: trelby/dialogs/watermarkdlg.py:173
+#, python-brace-format
+msgid "Generated {} files in directory {}."
+msgstr "נוצרו {} קבצים בתיקייה {}."
+
+#: trelby/dialogs/watermarkdlg.py:174
+msgid "PDFs generated"
+msgstr "קובצי PDF נוצרו"
+
+#: trelby/dialogs/watermarkdlg.py:179
+msgid "No watermarks specified."
+msgstr "לא צוינו סימני מים."
+
+#: trelby/dialogs/worldbuildingdlg.py:11
+msgid "Physical Environment"
+msgstr "סביבה פיזית"
+
+#: trelby/dialogs/worldbuildingdlg.py:13
+msgid ""
+"The land, climate, weather, natural resources, and geography that shape "
+"daily life and travel."
+msgstr "הקרקע, האקלים, מזג האוויר, משאבי הטבע והגאוגרפיה שמעצבים את חיי היומיום ואת המסעות."
+
+#: trelby/dialogs/worldbuildingdlg.py:18
+msgid "Society and Culture"
+msgstr "חברה ותרבות"
+
+#: trelby/dialogs/worldbuildingdlg.py:20
+msgid ""
+"The religions, social classes, traditions, values, languages, and governance "
+"systems of the inhabitants."
+msgstr "הדתות, המעמדות החברתיים, המסורות, הערכים, השפות ושיטות השלטון של התושבים."
+
+#: trelby/dialogs/worldbuildingdlg.py:25
+msgid "History and Conflict"
+msgstr "היסטוריה וסכסוכים"
+
+#: trelby/dialogs/worldbuildingdlg.py:27
+msgid ""
+"Past wars, power shifts, ancient legends, or systemic oppressions that still "
+"influence the present narrative."
+msgstr "מלחמות עבר, שינויים במאזן הכוחות, אגדות עתיקות או דיכוי שיטתי שעדיין משפיעים על העלילה בהווה."
+
+#: trelby/dialogs/worldbuildingdlg.py:32
+msgid "Rules and Systems"
+msgstr "חוקים ומערכות"
+
+#: trelby/dialogs/worldbuildingdlg.py:34
+msgid ""
+"The logical boundaries of magic, technology, or physics that must remain "
+"consistent without contradiction."
+msgstr "הגבולות ההגיוניים של קסם, טכנולוגיה או פיזיקה, שחייבים להישאר עקביים וללא סתירות."
+
+#: trelby/dialogs/worldbuildingdlg.py:47 trelby/ui/menus.py:636
+msgid "World building"
+msgstr "בניית עולם"
+
+#: trelby/dialogs/worldbuildingdlg.py:58
+msgid "Notes about the world your story takes place in, such as:"
+msgstr "הערות על העולם שבו הסיפור שלך מתרחש, כמו:"
+
+#: trelby/formats.py:70
+msgid "PDF"
+msgstr "PDF"
+
+#: trelby/formats.py:79
+msgid "Rich Text (RTF)"
+msgstr "טקסט עשיר (RTF)"
+
+#: trelby/formats.py:87 trelby/formats.py:124
+msgid "Final Draft (FDX)"
+msgstr "Final Draft (FDX)"
+
+#: trelby/formats.py:95
+msgid "HTML"
+msgstr "HTML"
+
+#: trelby/formats.py:99
+msgid "Include Notes"
+msgstr "כלול הערות"
+
+#: trelby/formats.py:104 trelby/formats.py:132
+msgid "Fountain"
+msgstr "Fountain"
+
+#: trelby/formats.py:111 trelby/formats.py:172
+msgid "Formatted text"
+msgstr "טקסט מעוצב"
+
+#: trelby/formats.py:112 trelby/formats.py:173
+msgid "Formatted Text"
+msgstr "טקסט מעוצב"
+
+#: trelby/formats.py:116
+msgid "Include page markers"
+msgstr "כלול סימוני עמודים"
+
+#: trelby/formats.py:140
+msgid "Celtx"
+msgstr "Celtx"
+
+#: trelby/formats.py:148
+msgid "Adobe Story (ASTX)"
+msgstr "Adobe Story (ASTX)"
+
+#: trelby/formats.py:156
+msgid "Fade In"
+msgstr "Fade In"
+
+#: trelby/formats.py:164
+msgid "PDF with text"
+msgstr "PDF עם טקסט"
+
+#: trelby/formats.py:165
+msgid "PDF (Text-Based)"
+msgstr "PDF (מבוסס טקסט)"
+
+#: trelby/importers/astx.py:53
+msgid "File has no content."
+msgstr "לקובץ אין תוכן."
+
+#: trelby/importers/celtx.py:39
+msgid "File is not a valid Celtx script file."
+msgstr "הקובץ אינו קובץ תסריט Celtx תקין."
+
+#: trelby/importers/celtx.py:45
+msgid "Unable to find script in this Celtx file."
+msgstr "לא ניתן למצוא תסריט בקובץ Celtx זה."
+
+#: trelby/importers/celtx.py:51
+msgid "Script seems to be empty."
+msgstr "נראה שהתסריט ריק."
+
+#: trelby/importers/common.py:28
+msgid "File is empty."
+msgstr "הקובץ ריק."
+
+#: trelby/importers/common.py:35
+msgid "The file contains no importable lines"
+msgstr "הקובץ אינו מכיל שורות שניתן לייבא"
+
+#: trelby/importers/common.py:48
+#, python-brace-format
+msgid "Error parsing file: {}"
+msgstr "שגיאה בניתוח הקובץ: {}"
+
+#: trelby/importers/fadein.py:69
+msgid "File is not a valid .fadein file."
+msgstr "הקובץ אינו קובץ ‎.fadein תקין."
+
+#: trelby/importers/pdf.py:170
+msgid ""
+"The PDF file contains no text. Scanned scripts (pictures of pages) can't be "
+"imported."
+msgstr "קובץ ה־PDF אינו מכיל טקסט. לא ניתן לייבא תסריטים סרוקים (תמונות של עמודים)."
+
+#: trelby/importers/pdf.py:214
+msgid ""
+"Importing PDF files needs the pypdf Python module, which isn't installed. "
+"Install it with: pip install pypdf"
+msgstr "ייבוא קובצי PDF דורש את מודול הפייתון pypdf, שאינו מותקן. התקן אותו באמצעות: pip install pypdf"
+
+#: trelby/importers/pdf.py:223
+msgid "The PDF file is password protected."
+msgstr "קובץ ה־PDF מוגן בסיסמה."
+
+#: trelby/importers/pdf.py:230
+#, python-brace-format
+msgid "Error reading PDF file: {}"
+msgstr "שגיאה בקריאת קובץ ה־PDF: {}"
+
+#: trelby/importers/text.py:130
+msgid "File contains only empty lines."
+msgstr "הקובץ מכיל שורות ריקות בלבד."
+
+#: trelby/mcpserver/app.py:293
+msgid ""
+"The MCP server needs the 'mcp' Python package, which isn't installed. "
+"Install it with:\n"
+"\n"
+"pip install trelby[mcp]"
+msgstr ""
+"שרת ה־MCP דורש את חבילת הפייתון 'mcp', שאינה מותקנת. התקן אותה באמצעות:\n"
+"\n"
+"pip install trelby[mcp]"
+
+#: trelby/mcpserver/app.py:307
+#, python-brace-format
+msgid ""
+"Couldn't start the MCP server on port {}:\n"
+"\n"
+"{}"
+msgstr ""
+"לא ניתן היה להפעיל את שרת ה־MCP בפורט {}:\n"
+"\n"
+"{}"
+
+#: trelby/mcpserver/app.py:327
+msgid "Not available: the 'mcp' Python package isn't installed."
+msgstr "לא זמין: חבילת הפייתון 'mcp' אינה מותקנת."
+
+#: trelby/mcpserver/app.py:330
+#, python-brace-format
+msgid "Running at {}"
+msgstr "פועל בכתובת {}"
+
+#: trelby/mcpserver/app.py:332
+msgid "Not running."
+msgstr "לא פועל."
+
+#: trelby/pdf/truetype.py:89
+#, python-brace-format
+msgid "Table {} missing/invalid"
+msgstr "הטבלה {} חסרה או אינה תקינה"
+
+#: trelby/pdf/truetype.py:125
+msgid "No Postscript name found"
+msgstr "לא נמצא שם Postscript"
+
+#: trelby/pdf/writer.py:105
+msgid "draw not implemented"
+msgstr "draw לא מומש"
+
+#: trelby/pdf/writer.py:112
+msgid "PDFTextOp is only compatible with pml.TextOp, got "
+msgstr "PDFTextOp תואם רק ל־pml.TextOp, התקבל "
+
+#: trelby/pdf/writer.py:259
+msgid "PDFLineOp is only compatible with pml.LineOp, got "
+msgstr "PDFLineOp תואם רק ל־pml.LineOp, התקבל "
+
+#: trelby/pdf/writer.py:267
+#, python-brace-format
+msgid "LineOp contains only {} points"
+msgstr "LineOp מכיל רק {} נקודות"
+
+#: trelby/pdf/writer.py:287
+msgid "PDFRectOp is only compatible with pml.RectOp, got "
+msgstr "PDFRectOp תואם רק ל־pml.RectOp, התקבל "
+
+#: trelby/pdf/writer.py:309
+msgid "PDFQuarterCircleOp is only compatible with pml.QuarterCircleOp, got "
+msgstr "PDFQuarterCircleOp תואם רק ל־pml.QuarterCircleOp, התקבל "
+
+#: trelby/pdf/writer.py:342
+msgid "PDFArbitraryOp is only compatible with pml.PDFOp, got "
+msgstr "PDFArbitraryOp תואם רק ל־pml.PDFOp, התקבל "
+
+#: trelby/pdf/writer.py:466
+#, python-brace-format
+msgid "PDF.getfontNr: invalid flags {}"
+msgstr "PDF.getfontNr: דגלים לא תקינים {}"
+
+#: trelby/pdf/writer.py:482
+#, python-brace-format
+msgid ""
+"Font name \"{}\" is not known and no font file name provided. Please provide "
+"a file name for this font in the settings or use the default font."
+msgstr "שם הגופן \"{}\" אינו מוכר ולא סופק שם קובץ גופן. ציין שם קובץ לגופן זה בהגדרות או השתמש בגופן ברירת המחדל."
+
+#: trelby/reports/characterreport.py:13
+msgid "Basic information"
+msgstr "מידע בסיסי"
+
+#: trelby/reports/characterreport.py:14
+msgid "Page list"
+msgstr "רשימת עמודים"
+
+#: trelby/reports/characterreport.py:15
+msgid "Location list"
+msgstr "רשימת מיקומים"
+
+#: trelby/reports/characterreport.py:68
+#, python-brace-format
+msgid "Speeches: {}, Lines: {} %{:.2f}, per speech: {:.2f}"
+msgstr "דיבורים: {}, שורות: {} %{:.2f}, לכל דיבור: {:.2f}"
+
+#: trelby/reports/characterreport.py:77
+#, python-brace-format
+msgid "Words: {}, per speech: {:.2f}, characters per: {:.2f}"
+msgstr "מילים: {}, לכל דיבור: {:.2f}, תווים למילה: {:.2f}"
+
+#: trelby/reports/characterreport.py:86
+#, python-brace-format
+msgid "Pages: {}, list: {}"
+msgstr "עמודים: {}, רשימה: {}"
+
+#: trelby/reports/dialoguechart.py:35
+msgid "Sorted by: First appearance"
+msgstr "ממוין לפי: הופעה ראשונה"
+
+#: trelby/reports/dialoguechart.py:40
+msgid "Sorted by: Last appearance"
+msgstr "ממוין לפי: הופעה אחרונה"
+
+#: trelby/reports/dialoguechart.py:45
+msgid "Sorted by: Number of lines spoken"
+msgstr "ממוין לפי: מספר שורות דיבור"
+
+#: trelby/reports/dialoguechart.py:50
+msgid "Sorted by: Name"
+msgstr "ממוין לפי: שם"
+
+#: trelby/reports/locationreport.py:10 trelby/reports/scenereport.py:10
+msgid "Speakers"
+msgstr "דוברים"
+
+#: trelby/reports/locationreport.py:69
+#, python-brace-format
+msgid "Lines: {} (%{} action, %{} of script), Scenes: {}, Pages: {} ({})"
+msgstr "שורות: {} (%{} תיאור, %{} מהתסריט), סצנות: {}, עמודים: {} ({})"
+
+#: trelby/reports/reportframes.py:15
+msgid "Scene Report"
+msgstr "דוח סצנות"
+
+#: trelby/reports/reportframes.py:23
+msgid "Location Report"
+msgstr "דוח מיקומים"
+
+#: trelby/reports/reportframes.py:31
+msgid "Script Report"
+msgstr "דוח תסריט"
+
+#: trelby/reports/reportframes.py:41
+msgid "Character Report"
+msgstr "דוח דמויות"
+
+#: trelby/reports/reportframes.py:59
+msgid "Characters to include:"
+msgstr "דמויות לכלול:"
+
+#: trelby/reports/reportframes.py:69
+msgid "All"
+msgstr "הכל"
+
+#: trelby/reports/reportframes.py:104 trelby/reports/reportframes.py:155
+msgid "No characters speaking found."
+msgstr "לא נמצאו דמויות מדברות."
+
+#: trelby/reports/reportframes.py:106
+msgid "No characters selected."
+msgstr "לא נבחרו דמויות."
+
+#: trelby/reports/reportframes.py:119
+msgid "Dialogue Chart"
+msgstr "תרשים דיאלוגים"
+
+#: trelby/reports/reportframes.py:125
+msgid "Characters with < 10 lines"
+msgstr "דמויות עם פחות מ־10 שורות"
+
+#: trelby/reports/reportframes.py:157
+msgid "No characters with 10 or more lines found."
+msgstr "לא נמצאו דמויות עם 10 שורות או יותר."
+
+#: trelby/reports/reportwindow.py:81
+msgid "Save as PDF..."
+msgstr "שמור כ־PDF..."
+
+#: trelby/reports/reportwindow.py:146
+msgid "Save as PDF"
+msgstr "שמור כ־PDF"
+
+#: trelby/reports/reportwindow.py:149 trelby/ui/pdfviewer.py:106
+msgid "PDF files"
+msgstr "קובצי PDF"
+
+#: trelby/reports/reportwindow.py:203
+msgid "Nothing to show."
+msgstr "אין מה להציג."
+
+#: trelby/reports/scenereport.py:39
+#, python-brace-format
+msgid "     Lines: {} (%{} action), Pages: {} ({})"
+msgstr "     שורות: {} (%{} תיאור), עמודים: {} ({})"
+
+#: trelby/reports/scriptreport.py:23
+#, python-brace-format
+msgid "Total lines in script: {}"
+msgstr "סך השורות בתסריט: {}"
+
+#: trelby/reports/scriptreport.py:51
+msgid "Interior / exterior scenes"
+msgstr "סצנות פנים / חוץ"
+
+#: trelby/reports/scriptreport.py:64
+msgid "Max / avg. scene length in lines"
+msgstr "אורך סצנה מרבי / ממוצע בשורות"
+
+#: trelby/reports/scriptreport.py:103
+msgid "Max / avg. action element length in lines"
+msgstr "אורך רכיב תיאור מרבי / ממוצע בשורות"
+
+#: trelby/reports/scriptreport.py:109
+msgid "Speaking characters"
+msgstr "דמויות מדברות"
+
+#: trelby/screenplay/export/rtf.py:128
+#, python-brace-format
+msgid "Unknown line break style {} in generateRTF"
+msgstr "סגנון מעבר שורה לא מוכר {} ב־generateRTF"
+
+#: trelby/screenplay/fileformat.py:133
+msgid ""
+"File has too few lines to be a valid\n"
+"screenplay file."
+msgstr ""
+"בקובץ יש מעט מדי שורות כדי שיהיה\n"
+"קובץ תסריט תקין."
+
+#: trelby/screenplay/fileformat.py:139
+msgid ""
+"File doesn't seem to be a proper\n"
+"screenplay file."
+msgstr ""
+"נראה שהקובץ אינו\n"
+"קובץ תסריט תקין."
+
+#: trelby/screenplay/fileformat.py:144
+#, python-brace-format
+msgid ""
+"File uses fileformat version '{}',\n"
+"which is not supported by this version\n"
+"of the program."
+msgstr ""
+"הקובץ משתמש בגרסת תבנית קובץ '{}',\n"
+"שאינה נתמכת בגרסה זו\n"
+"של התוכנה."
+
+#: trelby/screenplay/fileformat.py:227
+#, python-brace-format
+msgid "Line {} is too short."
+msgstr "שורה {} קצרה מדי."
+
+#: trelby/screenplay/fileformat.py:233
+#, python-brace-format
+msgid ""
+"Line {} has invalid syntax for\n"
+"config line."
+msgstr ""
+"לשורה {} יש תחביר לא תקין\n"
+"עבור שורת תצורה."
+
+#: trelby/screenplay/fileformat.py:314
+#, python-brace-format
+msgid "Line {} has invalid element type."
+msgstr "לשורה {} יש סוג רכיב לא תקין."
+
+#: trelby/screenplay/fileformat.py:338
+msgid "Start-Script line not found."
+msgstr "השורה Start-Script לא נמצאה."
+
+#: trelby/screenplay/fileformat.py:341
+msgid "File doesn't contain any screenplay lines."
+msgstr "הקובץ אינו מכיל שורות תסריט."
+
+#: trelby/screenplay/fileformat.py:344
+msgid "Last line doesn't end an element."
+msgstr "השורה האחרונה אינה מסיימת רכיב."
+
+#: trelby/screenplay/fileformat.py:365
+msgid "Screenplay contained unknown linebreak types."
+msgstr "התסריט הכיל סוגי מעבר שורה לא מוכרים."
+
+#: trelby/screenplay/fileformat.py:370
+msgid ""
+"Screenplay contained unknown element types. These have been converted to "
+"Action elements."
+msgstr "התסריט הכיל סוגי רכיבים לא מוכרים. הם הומרו לרכיבי תיאור."
+
+#: trelby/screenplay/fileformat.py:377
+msgid ""
+"Screenplay contained unknown information. This probably means that the file "
+"was created with a newer version of this program.\n"
+"\n"
+"  You'll lose that information if you save over the existing file."
+msgstr ""
+"התסריט הכיל מידע לא מוכר. כנראה שהקובץ נוצר בגרסה חדשה יותר של התוכנה.\n"
+"\n"
+"  המידע הזה יאבד אם תשמור על הקובץ הקיים."
+
+#: trelby/screenplay/fileformat.py:398
+msgid "not found"
+msgstr "לא נמצא"
+
+#: trelby/screenplay/headers.py:13
+msgid "page number"
+msgstr "מספר עמוד"
+
+#: trelby/screenplay/headers.py:14
+msgid "number of pages"
+msgstr "מספר העמודים"
+
+#: trelby/screenplay/headers.py:15
+msgid "title"
+msgstr "כותרת"
+
+#: trelby/screenplay/headers.py:16
+msgid "author"
+msgstr "מחבר"
+
+#: trelby/screenplay/headers.py:17
+msgid "draft"
+msgstr "טיוטה"
+
+#: trelby/screenplay/headers.py:18
+msgid "draft date"
+msgstr "תאריך טיוטה"
+
+#: trelby/screenplay/proofing.py:66
+msgid "Empty line."
+msgstr "שורה ריקה."
+
+#: trelby/screenplay/proofing.py:69
+msgid "Empty line (contains only spaces)."
+msgstr "שורה ריקה (מכילה רווחים בלבד)."
+
+#: trelby/screenplay/proofing.py:72
+msgid "Empty parenthetical."
+msgstr "הוראת משחק ריקה."
+
+#: trelby/screenplay/proofing.py:75
+msgid "Line contains invalid characters (BUG)."
+msgstr "השורה מכילה תווים לא תקינים (באג)."
+
+#: trelby/screenplay/proofing.py:78
+msgid "Line is too long (BUG)."
+msgstr "השורה ארוכה מדי (באג)."
+
+#: trelby/screenplay/proofing.py:82 trelby/screenplay/proofing.py:88
+#: trelby/screenplay/proofing.py:94
+#, python-brace-format
+msgid "Element type '{}' can not follow type '{}'."
+msgstr "רכיב מסוג '{}' אינו יכול לבוא אחרי רכיב מסוג '{}'."
+
+#: trelby/screenplay/proofing.py:99
+msgid "Element contains lines with different line types (BUG)."
+msgstr "הרכיב מכיל שורות מסוגי שורה שונים (באג)."
+
+#: trelby/trelby.py:58
+#, python-brace-format
+msgid ""
+"You seem to have an invalid version\n"
+"({}) of wxWidgets installed. This\n"
+"program needs version 4.x."
+msgstr ""
+"נראה שמותקנת גרסה לא תקינה\n"
+"({}) של wxWidgets. תוכנה זו\n"
+"דורשת גרסה 4.x."
+
+#: trelby/trelby.py:86
+msgid ""
+"You seem to have a version of Windows\n"
+"older than Windows 2000, which is the minimum\n"
+"requirement for this program."
+msgstr ""
+"נראה שגרסת Windows שלך\n"
+"ישנה מ־Windows 2000, שהיא הדרישה\n"
+"המינימלית של תוכנה זו."
+
+#: trelby/trelby.py:96
+msgid ""
+"You seem to be using a non-Unicode build of\n"
+" wxWidgets. This is not supported."
+msgstr ""
+"נראה שאתה משתמש בגרסה של wxWidgets\n"
+" שאינה תומכת ב־Unicode. אין לכך תמיכה."
+
+#: trelby/ui/autosave.py:91
+msgid "untitled"
+msgstr "ללא שם"
+
+#: trelby/ui/beatboardview.py:271
+msgid "Ctrl+Enter or click outside the card to finish, Esc to cancel"
+msgstr "Ctrl+Enter או לחיצה מחוץ לכרטיס לסיום, Esc לביטול"
+
+#: trelby/ui/beatboardview.py:371
+msgid "Double-click to add a card"
+msgstr "לחץ פעמיים כדי להוסיף כרטיס"
+
+#: trelby/ui/beatboardview.py:453
+msgid "Empty card"
+msgstr "כרטיס ריק"
+
+#: trelby/ui/beatboardview.py:648
+msgid "Add card here"
+msgstr "הוסף כרטיס כאן"
+
+#: trelby/ui/beatboardview.py:655
+msgid "Edit text"
+msgstr "ערוך טקסט"
+
+#: trelby/ui/beatboardview.py:658 trelby/ui/outline.py:808
+msgid "No color"
+msgstr "ללא צבע"
+
+#: trelby/ui/beatboardview.py:670
+msgid "Color"
+msgstr "צבע"
+
+#: trelby/ui/beatboardview.py:672
+msgid "Delete card"
+msgstr "מחק כרטיס"
+
+#: trelby/ui/fileio.py:31
+#, python-brace-format
+msgid "File too large: {}"
+msgstr "הקובץ גדול מדי: {}"
+
+#: trelby/ui/fileio.py:39
+#, python-brace-format
+msgid "Error loading file '{}': {}"
+msgstr "שגיאה בטעינת הקובץ '{}': {}"
+
+#: trelby/ui/fileio.py:76
+#, python-brace-format
+msgid "Error loading file '{}': Decompression failed"
+msgstr "שגיאה בטעינת הקובץ '{}': פריסת הדחיסה נכשלה"
+
+#: trelby/ui/fileio.py:96
+#, python-brace-format
+msgid "Error writing file '{}': {}"
+msgstr "שגיאה בכתיבת הקובץ '{}': {}"
+
+#: trelby/ui/fileio.py:125
+msgid ""
+"PDF viewer application not found.\n"
+"\n"
+"You can change your PDF viewer\n"
+"settings at Edit/Settings/Misc."
+msgstr ""
+"יישום להצגת PDF לא נמצא.\n"
+"\n"
+"ניתן לשנות את הגדרות מציג ה־PDF\n"
+"בעריכה/הגדרות/שונות."
+
+#: trelby/ui/fileio.py:144
+#, python-brace-format
+msgid ""
+"Currently set PDF viewer ({}) was not found.\n"
+"Change this in Edit/Settings/Misc.\n"
+"\n"
+"Using the default PDF viewer instead:\n"
+"{}"
+msgstr ""
+"מציג ה־PDF המוגדר ({}) לא נמצא.\n"
+"שנה זאת בעריכה/הגדרות/שונות.\n"
+"\n"
+"במקומו נעשה שימוש במציג ה־PDF של ברירת המחדל:\n"
+"{}"
+
+#: trelby/ui/fileio.py:147 trelby/ui/trelbyctrl.py:255
+#: trelby/ui/trelbyframe.py:303
+msgid "Warning"
+msgstr "אזהרה"
+
+#: trelby/ui/fileio.py:215
+#, python-brace-format
+msgid "Error writing temporary PDF file: {}"
+msgstr "שגיאה בכתיבת קובץ PDF זמני: {}"
+
+#: trelby/ui/globaldata.py:24
+msgid "Files"
+msgstr "קבצים"
+
+#: trelby/ui/globaldata.py:139
+#, python-brace-format
+msgid ""
+"Error creating configuration directory\n"
+"'{}': {}"
+msgstr ""
+"שגיאה ביצירת תיקיית התצורה\n"
+"'{}': {}"
+
+#: trelby/ui/gutil.py:284
+msgid "Preview"
+msgstr "תצוגה מקדימה"
+
+#: trelby/ui/menus.py:125
+msgid "Scene"
+msgstr "סצנה"
+
+#: trelby/ui/menus.py:126
+msgid "Action"
+msgstr "תיאור"
+
+#: trelby/ui/menus.py:130
+msgid "Character"
+msgstr "דמות"
+
+#: trelby/ui/menus.py:137 trelby/ui/statusbar.py:185
+msgid "Parenthetical"
+msgstr "הוראת משחק"
+
+#: trelby/ui/menus.py:151
+msgid "Transition"
+msgstr "מעבר"
+
+#: trelby/ui/menus.py:155
+msgid "Shot"
+msgstr "שוט"
+
+#: trelby/ui/menus.py:159
+msgid "Act break"
+msgstr "סוף מערכה"
+
+#: trelby/ui/menus.py:163
+msgid "Note"
+msgstr "הערה"
+
+#: trelby/ui/menus.py:207
+msgid "Watermarked PDF"
+msgstr "PDF עם סימן מים"
+
+#: trelby/ui/menus.py:215
+msgid "File"
+msgstr "קובץ"
+
+#: trelby/ui/menus.py:229
+msgid "Open"
+msgstr "פתח"
+
+#: trelby/ui/menus.py:235
+msgid "Open Recent"
+msgstr "פתח אחרונים"
+
+#: trelby/ui/menus.py:239 trelby/ui/toolbar.py:351
+msgid "Save"
+msgstr "שמור"
+
+#: trelby/ui/menus.py:247
+msgid "Save As"
+msgstr "שמור בשם"
+
+#: trelby/ui/menus.py:263
+msgid "Revert"
+msgstr "חזור לגרסה השמורה"
+
+#: trelby/ui/menus.py:270
+msgid "Import"
+msgstr "ייבא"
+
+#: trelby/ui/menus.py:277
+msgid "Exit"
+msgstr "יציאה"
+
+#: trelby/ui/menus.py:282
+msgid "Edit"
+msgstr "עריכה"
+
+#: trelby/ui/menus.py:288 trelby/ui/toolbar.py:362
+msgid "Undo"
+msgstr "בטל"
+
+#: trelby/ui/menus.py:296 trelby/ui/toolbar.py:363
+msgid "Redo"
+msgstr "בצע שוב"
+
+#: trelby/ui/menus.py:305
+msgid "Cut"
+msgstr "גזור"
+
+#: trelby/ui/menus.py:314
+msgid "Copy"
+msgstr "העתק"
+
+#: trelby/ui/menus.py:323
+msgid "Paste"
+msgstr "הדבק"
+
+#: trelby/ui/menus.py:331
+msgid "Copy (system)"
+msgstr "העתק (מערכת)"
+
+#: trelby/ui/menus.py:337
+msgid "Unformatted"
+msgstr "ללא עיצוב"
+
+#: trelby/ui/menus.py:345
+msgid "Formatted"
+msgstr "עם עיצוב"
+
+#: trelby/ui/menus.py:355
+msgid "Paste (system)"
+msgstr "הדבק (מערכת)"
+
+#: trelby/ui/menus.py:363
+msgid "Select scene"
+msgstr "בחר סצנה"
+
+#: trelby/ui/menus.py:378
+msgid "Find && Replace"
+msgstr "חיפוש && החלפה"
+
+#: trelby/ui/menus.py:387 trelby/ui/scriptactions.py:514
+msgid "Goto page"
+msgstr "עבור לעמוד"
+
+#: trelby/ui/menus.py:396 trelby/ui/scriptactions.py:481
+msgid "Goto scene"
+msgstr "עבור לסצנה"
+
+#: trelby/ui/menus.py:423 trelby/ui/toolbar.py:450
+msgid "Underline"
+msgstr "קו תחתון"
+
+#: trelby/ui/menus.py:431
+msgid "Center action"
+msgstr "מרכז תיאור"
+
+#: trelby/ui/menus.py:440
+msgid "Insert non-breaking space"
+msgstr "הוסף רווח קשיח"
+
+#: trelby/ui/menus.py:447
+msgid "Dual dialogue"
+msgstr "דיאלוג כפול"
+
+#: trelby/ui/menus.py:456 trelby/ui/scriptactions.py:670
+msgid "Delete elements"
+msgstr "מחק רכיבים"
+
+#: trelby/ui/menus.py:477
+msgid "View"
+msgstr "תצוגה"
+
+#: trelby/ui/menus.py:483
+msgid "Continuous"
+msgstr "רציף"
+
+#: trelby/ui/menus.py:499
+msgid "Side by side"
+msgstr "זה לצד זה"
+
+#: trelby/ui/menus.py:508
+msgid "Toolbar"
+msgstr "סרגל כלים"
+
+#: trelby/ui/menus.py:516 trelby/ui/outline.py:391 trelby/ui/toolbar.py:428
+msgid "Outline"
+msgstr "מתווה"
+
+#: trelby/ui/menus.py:524
+msgid "Beat board"
+msgstr "לוח ביטים"
+
+#: trelby/ui/menus.py:532
+msgid "Show formatting"
+msgstr "הצג עיצוב"
+
+#: trelby/ui/menus.py:541 trelby/ui/statusbar.py:162
+msgid "Zoom in"
+msgstr "הגדל תצוגה"
+
+#: trelby/ui/menus.py:550 trelby/ui/statusbar.py:154
+msgid "Zoom out"
+msgstr "הקטן תצוגה"
+
+#: trelby/ui/menus.py:559 trelby/ui/statusbar.py:158
+msgid "Reset zoom"
+msgstr "אפס תצוגה"
+
+#: trelby/ui/menus.py:569
+msgid "Fullscreen"
+msgstr "מסך מלא"
+
+#: trelby/ui/menus.py:652
+msgid "Script dictionary"
+msgstr "מילון התסריט"
+
+#: trelby/ui/menus.py:661
+msgid "Lock pages"
+msgstr "נעל עמודים"
+
+#: trelby/ui/menus.py:668
+msgid "Unlock pages"
+msgstr "בטל נעילת עמודים"
+
+#: trelby/ui/menus.py:676
+msgid "Lock scene numbers"
+msgstr "נעל מספרי סצנות"
+
+#: trelby/ui/menus.py:683
+msgid "Unlock scene numbers"
+msgstr "בטל נעילת מספרי סצנות"
+
+#: trelby/ui/menus.py:692
+msgid "Reports"
+msgstr "דוחות"
+
+#: trelby/ui/menus.py:698
+msgid "Script report"
+msgstr "דוח תסריט"
+
+#: trelby/ui/menus.py:705
+msgid "Location report"
+msgstr "דוח מיקומים"
+
+#: trelby/ui/menus.py:713
+msgid "Scene report"
+msgstr "דוח סצנות"
+
+#: trelby/ui/menus.py:721
+msgid "Character report"
+msgstr "דוח דמויות"
+
+#: trelby/ui/menus.py:729
+msgid "Dialogue chart"
+msgstr "תרשים דיאלוגים"
+
+#: trelby/ui/menus.py:738
+msgid "Tools"
+msgstr "כלים"
+
+#: trelby/ui/menus.py:752
+msgid "Check formatting errors"
+msgstr "בדוק שגיאות עיצוב"
+
+#: trelby/ui/menus.py:761
+msgid "Name database"
+msgstr "מאגר שמות"
+
+#: trelby/ui/menus.py:778
+msgid "Compare scripts"
+msgstr "השווה תסריטים"
+
+#: trelby/ui/menus.py:788
+msgid "Help"
+msgstr "עזרה"
+
+#: trelby/ui/menus.py:802
+msgid "Manual"
+msgstr "מדריך"
+
+#: trelby/ui/menus.py:826
+msgid "Language"
+msgstr "שפה"
+
+#: trelby/ui/menus.py:958
+#, python-brace-format
+msgid "System default ({})"
+msgstr "ברירת המחדל של המערכת ({})"
+
+#: trelby/ui/menus.py:1094
+msgid "Synonyms"
+msgstr "מילים נרדפות"
+
+#: trelby/ui/menus.py:1098
+msgid "Multiple types"
+msgstr "סוגים מרובים"
+
+#: trelby/ui/menus.py:1110
+msgid "Switch type"
+msgstr "החלף סוג"
+
+#: trelby/ui/mrufiles.py:76
+msgid "No recent files"
+msgstr "אין קבצים אחרונים"
+
+#: trelby/ui/mrufiles.py:85
+msgid "Clear Recent Files"
+msgstr "נקה קבצים אחרונים"
+
+#: trelby/ui/myimport.py:54
+msgid "Import titles to title page."
+msgstr "ייבא כותרות לדף השער."
+
+#: trelby/ui/myimport.py:56
+msgid "Import titles as action lines."
+msgstr "ייבא כותרות כשורות תיאור."
+
+#: trelby/ui/myimport.py:60
+msgid "Import bold, italic and underline markup as formatting."
+msgstr "ייבא סימוני מודגש, נטוי וקו תחתון כעיצוב."
+
+#: trelby/ui/myimport.py:63
+msgid "Import section/synopsis as notes."
+msgstr "ייבא מקטעים/תקצירים כהערות."
+
+#: trelby/ui/myimport.py:66
+msgid "Fountain import options"
+msgstr "אפשרויות ייבוא Fountain"
+
+#: trelby/ui/myimport.py:66
+msgid "Import options:"
+msgstr "אפשרויות ייבוא:"
+
+#: trelby/ui/outline.py:18
+msgid "Red"
+msgstr "אדום"
+
+#: trelby/ui/outline.py:19
+msgid "Orange"
+msgstr "כתום"
+
+#: trelby/ui/outline.py:20
+msgid "Yellow"
+msgstr "צהוב"
+
+#: trelby/ui/outline.py:21
+msgid "Green"
+msgstr "ירוק"
+
+#: trelby/ui/outline.py:22
+msgid "Teal"
+msgstr "טורקיז"
+
+#: trelby/ui/outline.py:23
+msgid "Blue"
+msgstr "כחול"
+
+#: trelby/ui/outline.py:24
+msgid "Purple"
+msgstr "סגול"
+
+#: trelby/ui/outline.py:25
+msgid "Pink"
+msgstr "ורוד"
+
+#: trelby/ui/outline.py:26
+msgid "Gray"
+msgstr "אפור"
+
+#: trelby/ui/outline.py:403
+msgid "Move the selected scene up (Ctrl+Up)"
+msgstr "הזז את הסצנה הנבחרת למעלה (Ctrl+Up)"
+
+#: trelby/ui/outline.py:405
+msgid "Move the selected scene down (Ctrl+Down)"
+msgstr "הזז את הסצנה הנבחרת למטה (Ctrl+Down)"
+
+#: trelby/ui/outline.py:409
+msgid "Set the selected scene's color (or right-click a scene)"
+msgstr "הגדר את צבע הסצנה הנבחרת (או לחץ לחיצה ימנית על סצנה)"
+
+#: trelby/ui/outline.py:412
+msgid "Hide the outline"
+msgstr "הסתר את המתווה"
+
+#: trelby/ui/outline.py:823
+msgid "Custom color..."
+msgstr "צבע מותאם אישית..."
+
+#: trelby/ui/outline.py:865
+msgid "Scene color"
+msgstr "צבע הסצנה"
+
+#: trelby/ui/pdfviewer.py:47
+msgid "PDF Preview"
+msgstr "תצוגה מקדימה של PDF"
+
+#: trelby/ui/pdfviewer.py:60
+msgid "Save As..."
+msgstr "שמור בשם..."
+
+#: trelby/ui/pdfviewer.py:64
+msgid "Open in External Viewer"
+msgstr "פתח במציג חיצוני"
+
+#: trelby/ui/pdfviewer.py:104
+msgid "Save PDF As"
+msgstr "שמור PDF בשם"
+
+#: trelby/ui/pdfviewer.py:115
+#, python-brace-format
+msgid "Error saving file: {}"
+msgstr "שגיאה בשמירת הקובץ: {}"
+
+#: trelby/ui/scriptactions.py:223
+msgid "You need at least two scripts open to compare them."
+msgstr "צריך לפחות שני תסריטים פתוחים כדי להשוות ביניהם."
+
+#: trelby/ui/scriptactions.py:251
+msgid "You can't compare a script to itself."
+msgstr "לא ניתן להשוות תסריט לעצמו."
+
+#: trelby/ui/scriptactions.py:280
+msgid "The scripts are identical."
+msgstr "התסריטים זהים."
+
+#: trelby/ui/scriptactions.py:306
+msgid "Export Anyway"
+msgstr "ייצא בכל זאת"
+
+#: trelby/ui/scriptactions.py:306
+msgid "Compare Anyway"
+msgstr "השווה בכל זאת"
+
+#: trelby/ui/scriptactions.py:313
+#, python-brace-format
+msgid "\"{}\" is empty."
+msgstr "\"{}\" ריק."
+
+#: trelby/ui/scriptactions.py:314
+msgid "Empty Script"
+msgstr "תסריט ריק"
+
+#: trelby/ui/scriptactions.py:317
+msgid "There is no text in the script yet."
+msgstr "אין עדיין טקסט בתסריט."
+
+#: trelby/ui/scriptactions.py:332
+#, python-brace-format
+msgid "\"{}\" has a formatting error on page {}."
+msgstr "ב־\"{}\" יש שגיאת עיצוב בעמוד {}."
+
+#: trelby/ui/scriptactions.py:336
+#, python-brace-format
+msgid "\"{}\" has {} formatting errors, the first on page {}."
+msgstr "ב־\"{}\" יש {} שגיאות עיצוב, הראשונה בעמוד {}."
+
+#: trelby/ui/scriptactions.py:347
+msgid "Show Errors"
+msgstr "הצג שגיאות"
+
+#: trelby/ui/scriptactions.py:476
+msgid "Invalid scene number."
+msgstr "מספר סצנה לא תקין."
+
+#: trelby/ui/scriptactions.py:480
+#, python-brace-format
+msgid "Enter scene number ({} - {}):"
+msgstr "הזן מספר סצנה ({} - {}):"
+
+#: trelby/ui/scriptactions.py:509
+msgid "Invalid page number."
+msgstr "מספר עמוד לא תקין."
+
+#: trelby/ui/scriptactions.py:513
+#, python-brace-format
+msgid "Enter page number ({} - {}):"
+msgstr "הזן מספר עמוד ({} - {}):"
+
+#: trelby/ui/scriptactions.py:539
+msgid ""
+"Dual dialogue needs two speeches in a row (a character followed by its "
+"dialogue), with the cursor in one of them."
+msgstr "דיאלוג כפול דורש שני דיבורים ברצף (דמות ואחריה הדיאלוג שלה), כשהסמן נמצא באחד מהם."
+
+#: trelby/ui/scriptactions.py:581
+msgid "No formatting errors found."
+msgstr "לא נמצאו שגיאות עיצוב."
+
+#: trelby/ui/scriptactions.py:581
+msgid "Check Formatting"
+msgstr "בדיקת עיצוב"
+
+#: trelby/ui/scriptactions.py:634
+msgid ""
+"\n"
+"\n"
+"(Starting position was not at\n"
+"the beginning of the script.)"
+msgstr ""
+"\n"
+"\n"
+"(מיקום ההתחלה לא היה\n"
+"בתחילת התסריט.)"
+
+#: trelby/ui/scriptactions.py:637
+msgid "Spell checker found no errors."
+msgstr "בודק האיות לא מצא שגיאות."
+
+#: trelby/ui/scriptactions.py:672
+msgid "Element types to delete:"
+msgstr "סוגי רכיבים למחיקה:"
+
+#: trelby/ui/scriptactions.py:731
+msgid "Output options"
+msgstr "אפשרויות פלט"
+
+#: trelby/ui/scriptactions.py:731
+msgid "Options:"
+msgstr "אפשרויות:"
+
+#: trelby/ui/scriptactions.py:754
+#, python-brace-format
+msgid ""
+"The built-in PDF fonts can't show these characters, so they will\n"
+"be shown as boxes or in a different font:\n"
+"\n"
+"{}\n"
+"\n"
+"To show them, choose a TrueType font that has them in\n"
+"Script/Script settings/PDF/Fonts.\n"
+"\n"
+"Export anyway?"
+msgstr ""
+"גופני ה־PDF המובנים אינם יכולים להציג את התווים האלה, ולכן הם\n"
+"יוצגו כריבועים או בגופן אחר:\n"
+"\n"
+"{}\n"
+"\n"
+"כדי להציג אותם, בחר גופן TrueType שמכיל אותם\n"
+"בתסריט/הגדרות תסריט/PDF/גופנים.\n"
+"\n"
+"לייצא בכל זאת?"
+
+#: trelby/ui/scriptactions.py:775
+msgid "Filename to export as"
+msgstr "שם הקובץ לייצוא"
+
+#: trelby/ui/scriptactions.py:833
+msgid "Error opening name database."
+msgstr "שגיאה בפתיחת מאגר השמות."
+
+#: trelby/ui/scriptpainter.py:468
+msgid "Manage title page"
+msgstr "נהל את דף השער"
+
+#: trelby/ui/splash.py:31
+msgid "Splash"
+msgstr "מסך פתיחה"
+
+#: trelby/ui/splash.py:158
+#, python-brace-format
+msgid "No lines defined for quote at line {}"
+msgstr "לא הוגדרו שורות לציטוט בשורה {}"
+
+#: trelby/ui/splash.py:163
+#, python-brace-format
+msgid "Too many lines defined for quote at line {}"
+msgstr "הוגדרו יותר מדי שורות לציטוט בשורה {}"
+
+#: trelby/ui/splash.py:174
+msgid "Last quote does not have source"
+msgstr "לציטוט האחרון אין מקור"
+
+#: trelby/ui/splash.py:180
+#, python-brace-format
+msgid "Error loading quotes: {}"
+msgstr "שגיאה בטעינת הציטוטים: {}"
+
+#: trelby/ui/statusbar.py:116
+msgid "1 word"
+msgstr "מילה אחת"
+
+#: trelby/ui/statusbar.py:118
+#, python-format
+msgid "%s words"
+msgstr "%s מילים"
+
+#: trelby/ui/statusbar.py:125
+#, python-format
+msgid "Runtime: ~%d min"
+msgstr "זמן מסך: ~%d דק׳"
+
+#: trelby/ui/statusbar.py:127
+#, python-format
+msgid "Runtime: ~%d h %d min"
+msgstr "זמן מסך: ~%d שע׳ %d דק׳"
+
+#: trelby/ui/statusbar.py:183
+#, python-format
+msgid "Page %d / %d"
+msgstr "עמוד %d / %d"
+
+#: trelby/ui/statusbar.py:186 trelby/ui/statusbar.py:273
+#, python-format
+msgid "Enter: %s    Tab: %s"
+msgstr "Enter: %s    Tab: %s"
+
+#: trelby/ui/statusbar.py:280
+#, python-format
+msgid "Page %s / %d (locked)"
+msgstr "עמוד %s / %d (נעול)"
+
+#: trelby/ui/statusbar.py:282
+#, python-format
+msgid "Page %s / %d"
+msgstr "עמוד %s / %d"
+
+#: trelby/ui/statusbar.py:291
+#, python-format
+msgid "Autosave failed: %s"
+msgstr "השמירה האוטומטית נכשלה: %s"
+
+#: trelby/ui/statusbar.py:293
+#, python-format
+msgid "Recovery copy autosaved at %s"
+msgstr "עותק שחזור נשמר אוטומטית ב־%s"
+
+#: trelby/ui/themes.py:63
+#, python-brace-format
+msgid "missing colors: {}"
+msgstr "צבעים חסרים: {}"
+
+#: trelby/ui/themes.py:68
+#, python-brace-format
+msgid "unknown colors: {}"
+msgstr "צבעים לא מוכרים: {}"
+
+#: trelby/ui/themes.py:72
+msgid "'accent' and 'accentText' go together"
+msgstr "'accent' ו־'accentText' באים יחד"
+
+#: trelby/ui/themes.py:76
+#, python-brace-format
+msgid "color '{}' is not (r, g, b)"
+msgstr "הצבע '{}' אינו (r, g, b)"
+
+#: trelby/ui/themes.py:412
+#, python-brace-format
+msgid "Can't read the themes folder '{}': {}"
+msgstr "לא ניתן לקרוא את תיקיית ערכות הנושא '{}': {}"
+
+#: trelby/ui/themes.py:425
+msgid "not UTF-8 text"
+msgstr "אינו טקסט UTF-8"
+
+#: trelby/ui/themes.py:435
+#, python-brace-format
+msgid "there's already a theme named '{}'"
+msgstr "כבר קיימת ערכת נושא בשם '{}'"
+
+#: trelby/ui/themes.py:456
+#, python-brace-format
+msgid "not valid JSON (line {}, column {}: {})"
+msgstr "אינו JSON תקין (שורה {}, עמודה {}: {})"
+
+#: trelby/ui/themes.py:462
+msgid "the file should contain a JSON object, {...}"
+msgstr "הקובץ צריך להכיל אובייקט JSON, {...}"
+
+#: trelby/ui/themes.py:467
+#, python-brace-format
+msgid "unknown settings: {}"
+msgstr "הגדרות לא מוכרות: {}"
+
+#: trelby/ui/themes.py:472
+msgid "'name' should be a non-empty string"
+msgstr "'name' צריך להיות מחרוזת לא ריקה"
+
+#: trelby/ui/themes.py:476
+msgid "'dark' should be true or false"
+msgstr "'dark' צריך להיות true או false"
+
+#: trelby/ui/themes.py:480
+msgid "'colors' should be a JSON object, {...}"
+msgstr "'colors' צריך להיות אובייקט JSON, {...}"
+
+#: trelby/ui/themes.py:489
+#, python-brace-format
+msgid "color '{}' should be \"#rrggbb\" or [r, g, b] (0-255), not {}"
+msgstr "הצבע '{}' צריך להיות \"#rrggbb\" או [r, g, b] (0-255), ולא {}"
+
+#: trelby/ui/toolbar.py:349
+msgid "New file"
+msgstr "קובץ חדש"
+
+#: trelby/ui/toolbar.py:350
+msgid "Open file"
+msgstr "פתח קובץ"
+
+#: trelby/ui/toolbar.py:353
+msgid "Close file"
+msgstr "סגור קובץ"
+
+#: trelby/ui/toolbar.py:357
+msgid "Import file"
+msgstr "ייבא קובץ"
+
+#: trelby/ui/toolbar.py:358
+msgid "Export file"
+msgstr "ייצא קובץ"
+
+#: trelby/ui/toolbar.py:367
+msgid "Find / Replace"
+msgstr "חיפוש / החלפה"
+
+#: trelby/ui/toolbar.py:368
+msgid "View mode"
+msgstr "מצב תצוגה"
+
+#: trelby/ui/toolbar.py:411 trelby/ui/widgets.py:67
+msgid "Center"
+msgstr "מרכז"
+
+#: trelby/ui/toolbar.py:461
+msgid ""
+"Centering is only for Action elements. Put the cursor in an action, or "
+"select one, to center it."
+msgstr "מרכוז מיועד רק לרכיבי תיאור. מקם את הסמן בתיאור, או בחר אחד, כדי למרכז אותו."
+
+#: trelby/ui/toolbar.py:466
+msgid ""
+"Center this action on the page, e.g. THE END or a title card. Only Action "
+"elements can be centered."
+msgstr "מרכז תיאור זה בעמוד, למשל THE END או כתובית. רק רכיבי תיאור ניתנים למרכוז."
+
+#: trelby/ui/toolbar.py:475
+#, python-format
+msgid "Change element to %s"
+msgstr "שנה את הרכיב ל%s"
+
+#: trelby/ui/toolbar.py:502
+msgid "Show the script"
+msgstr "הצג את התסריט"
+
+#: trelby/ui/toolbar.py:504
+msgid "Show the beat board"
+msgstr "הצג את לוח הביטים"
+
+#: trelby/ui/trelbyctrl.py:246
+#, python-brace-format
+msgid ""
+"Error loading file:\n"
+"\n"
+"{}"
+msgstr ""
+"שגיאה בטעינת הקובץ:\n"
+"\n"
+"{}"
+
+#: trelby/ui/trelbyctrl.py:499
+msgid ""
+"This script has Chinese, Japanese or Korean characters, which are\n"
+"twice as wide as Latin letters, so they don't fit in the columns\n"
+"of the page.\n"
+"\n"
+"Switch the script to double-width characters? Every character,\n"
+"Latin ones too, will then take up two columns.\n"
+"\n"
+"This clears the undo history. It can be changed back in\n"
+"Script/Script settings/Formatting."
+msgstr ""
+"בתסריט זה יש תווים סיניים, יפניים או קוריאניים, שרוחבם כפול\n"
+"מזה של אותיות לטיניות, ולכן הם אינם נכנסים בעמודות\n"
+"של העמוד.\n"
+"\n"
+"להעביר את התסריט לתווים ברוחב כפול? כל תו, כולל\n"
+"תווים לטיניים, יתפוס אז שתי עמודות.\n"
+"\n"
+"פעולה זו מנקה את היסטוריית הביטול. ניתן לשנות זאת בחזרה\n"
+"בתסריט/הגדרות תסריט/עיצוב."
+
+#: trelby/ui/trelbyctrl.py:501
+msgid "Double-width characters"
+msgstr "תווים ברוחב כפול"
+
+#: trelby/ui/trelbyctrl.py:712
+msgid "Spelling"
+msgstr "איות"
+
+#: trelby/ui/trelbyctrl.py:716
+msgid "No suggestions"
+msgstr "אין הצעות"
+
+#: trelby/ui/trelbyctrl.py:718
+#, python-brace-format
+msgid "Add \"{}\" to dictionary"
+msgstr "הוסף את \"{}\" למילון"
+
+#: trelby/ui/trelbyctrl.py:720
+#, python-brace-format
+msgid "Add \"{}\" to script dictionary"
+msgstr "הוסף את \"{}\" למילון התסריט"
+
+#: trelby/ui/trelbyctrl.py:777
+msgid "noun"
+msgstr "שם עצם"
+
+#: trelby/ui/trelbyctrl.py:777
+msgid "verb"
+msgstr "פועל"
+
+#: trelby/ui/trelbyctrl.py:777
+msgid "adjective"
+msgstr "שם תואר"
+
+#: trelby/ui/trelbyctrl.py:777
+msgid "adverb"
+msgstr "תואר הפועל"
+
+#: trelby/ui/trelbyctrl.py:850
+msgid ""
+"The script has been modified. Are you sure\n"
+"you want to discard the changes?"
+msgstr ""
+"התסריט שונה. האם אתה בטוח\n"
+"שברצונך לבטל את השינויים?"
+
+#: trelby/ui/trelbyframe.py:103
+msgid "Exit fullscreen"
+msgstr "צא ממסך מלא"
+
+#: trelby/ui/trelbyframe.py:301
+msgid ""
+"You have at least one key bound to more than one\n"
+"command. The program will not work correctly until\n"
+"you fix this."
+msgstr ""
+"יש לפחות מקש אחד שמוקצה ליותר מפקודה\n"
+"אחת. התוכנה לא תפעל כראוי עד\n"
+"שתתקן זאת."
+
+#: trelby/ui/trelbyframe.py:329
+msgid ""
+"The fonts listed below are not fixed width and\n"
+"will cause the program not to function correctly.\n"
+"Please change the fonts at Edit/Settings.\n"
+"\n"
+"\n"
+msgstr ""
+"הגופנים שלהלן אינם ברוחב קבוע\n"
+"ויגרמו לתוכנה לא לפעול כראוי.\n"
+"שנה את הגופנים בעריכה/הגדרות.\n"
+"\n"
+"\n"
+
+#: trelby/ui/trelbyframe.py:382
+#, python-brace-format
+msgid ""
+"File not found:\n"
+"\n"
+"{}\n"
+"\n"
+"It has been removed from the recent files list."
+msgstr ""
+"הקובץ לא נמצא:\n"
+"\n"
+"{}\n"
+"\n"
+"הוא הוסר מרשימת הקבצים האחרונים."
+
+#: trelby/ui/trelbyframe.py:420
+msgid "File to import"
+msgstr "קובץ לייבוא"
+
+#: trelby/ui/trelbyframe.py:748
+msgid ""
+"You have unsaved changes. Do\n"
+"you want to save your changes?"
+msgstr ""
+"יש לך שינויים שלא נשמרו. האם\n"
+"לשמור את השינויים?"
+
+#: trelby/ui/trelbyframe.py:749
+msgid "Save Changes"
+msgstr "שמירת שינויים"
+
+#: trelby/ui/trelbyframe.py:753
+msgid "Don't save"
+msgstr "אל תשמור"
+
+#: trelby/ui/viewmode.py:100 trelby/ui/viewmode.py:104
+#: trelby/ui/viewmode.py:108 trelby/ui/viewmode.py:120
+#: trelby/ui/viewmode.py:125 trelby/ui/viewmode.py:131
+msgid "not implemented"
+msgstr "לא מומש"
+
+#: trelby/ui/widgets.py:66
+msgid "Align left"
+msgstr "יישור לשמאל"
+
+#: trelby/ui/widgets.py:68
+msgid "Align right"
+msgstr "יישור לימין"
+
+#: trelby/util.py:146
+msgid "bools2flags: chars and bools are not equal length"
+msgstr "bools2flags: ל־chars ול־bools אין אותו אורך"

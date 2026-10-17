@@ -76,6 +76,7 @@ def getLocaleDir():
 # translation missing from here is listed by its folder name.
 LANGUAGE_NAMES = {
     "en_US": "English",
+    "he_IL": "עברית",
     "it_IT": "Italiano",
     "zh_CN": "简体中文",
 }
