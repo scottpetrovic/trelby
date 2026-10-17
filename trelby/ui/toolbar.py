@@ -1,5 +1,7 @@
 # the main toolbar (MainToolBar), and the controls drawn in it.
 
+from collections import namedtuple
+
 import wx
 
 import trelby.ui.icons as icons
@@ -10,11 +12,18 @@ import trelby.textfmt as textfmt
 import trelby.ui.theming as theming
 
 
+# an item label drawn as an icon (an SVG in trelby/resources) instead of text
+BarIcon = namedtuple("BarIcon", "filename")
+
+
 # toolbar control showing the element types as a group of toggle buttons,
 # with the current element's type selected. 'items' is a list of (lt,
-# label) tuples; clicking one calls onSelect(lt). getToolTip(lt) returns
-# the tooltip for an item.
+# label) tuples, where a label is a string or a BarIcon; clicking one calls
+# onSelect(lt). getToolTip(lt) returns the tooltip for an item.
 class MyElemTypeBar(wx.Control):
+    # a BarIcon's size, in DIPs
+    ICON = 16
+
     def __init__(self, parent, id, getCfgGui, items, onSelect, getToolTip, height):
         wx.Control.__init__(self, parent, id, style=wx.BORDER_NONE)
 
@@ -39,6 +48,9 @@ class MyElemTypeBar(wx.Control):
         self.font = self.GetFont()
         self.boldFont = self.font.Bold()
 
+        # BarIcons' wx.BitmapBundles by (filename, color)
+        self.bitmaps = {}
+
         # every item is as wide as its label in bold, so selecting one
         # doesn't shift the others
         padX = self.FromDIP(10)
@@ -48,7 +60,12 @@ class MyElemTypeBar(wx.Control):
         x = self.margin
 
         for lt, label in items:
-            w = self.GetFullTextExtent(label, self.boldFont)[0] + padX * 2
+            if isinstance(label, BarIcon):
+                w = self.FromDIP(self.ICON)
+            else:
+                w = self.GetFullTextExtent(label, self.boldFont)[0]
+
+            w += padX * 2
             self.rects.append(wx.Rect(x, self.margin, w, height - self.margin * 2))
             x += w
 
@@ -85,6 +102,17 @@ class MyElemTypeBar(wx.Control):
     # font to draw item i's label in
     def itemFont(self, i, selected):
         return self.boldFont if selected else self.font
+
+    # the bitmap to draw a BarIcon with, in the given color
+    def iconBitmap(self, label, color):
+        key = (label.filename, color.GetAsString(wx.C2S_HTML_SYNTAX))
+
+        if key not in self.bitmaps:
+            self.bitmaps[key] = icons.svgBitmap(
+                label.filename, wx.Size(self.ICON, self.ICON), color=color
+            )
+
+        return self.bitmaps[key].GetBitmapFor(self)
 
     def itemAt(self, pos):
         for i, rect in enumerate(self.rects):
@@ -143,7 +171,7 @@ class MyElemTypeBar(wx.Control):
                 dc.SetBrush(cfgGui.toolbarSelBrush)
                 dc.SetPen(cfgGui.toolbarSelPen)
                 dc.DrawRoundedRectangle(fillRect, radius - 1)
-                dc.SetTextForeground(cfgGui.tabTextColor)
+                color = cfgGui.tabTextColor
                 dc.SetFont(self.itemFont(i, True))
             else:
                 if (i == self.hover) and not self.disabled:
@@ -152,18 +180,29 @@ class MyElemTypeBar(wx.Control):
                     dc.DrawRoundedRectangle(fillRect, radius - 1)
 
                 if not self.disabled:
-                    dc.SetTextForeground(cfgGui.tabTextColor)
+                    color = cfgGui.tabTextColor
                 else:
-                    dc.SetTextForeground(
-                        wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT)
-                    )
+                    color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT)
 
                 dc.SetFont(self.itemFont(i, False))
 
-            tw, th = dc.GetTextExtent(label)
-            dc.DrawText(
-                label, rect.x + (rect.width - tw) // 2, rect.y + (rect.height - th) // 2
-            )
+            if isinstance(label, BarIcon):
+                bmp = self.iconBitmap(label, color)
+                bw, bh = bmp.GetSize()
+                dc.DrawBitmap(
+                    bmp,
+                    rect.x + (rect.width - bw) // 2,
+                    rect.y + (rect.height - bh) // 2,
+                    True,
+                )
+            else:
+                dc.SetTextForeground(color)
+                tw, th = dc.GetTextExtent(label)
+                dc.DrawText(
+                    label,
+                    rect.x + (rect.width - tw) // 2,
+                    rect.y + (rect.height - th) // 2,
+                )
 
             # divider between two items that are both unhighlighted
             if (
@@ -408,7 +447,7 @@ class MainToolBar:
             tb,
             -1,
             self.getCfgGui,
-            [(self.ALIGN_CENTER, _("Center"))],
+            [(self.ALIGN_CENTER, BarIcon("aligncenter.svg"))],
             lambda bit: self.onAction("ToggleCentered"),
             lambda bit: self.getAlignToolTip(),
             height,
