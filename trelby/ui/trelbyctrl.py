@@ -1227,6 +1227,21 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(self.ed.line)
         self.updateScreen()
 
+    # add the given Lines as new scenes after the scene containing the
+    # given line, or an empty scene if lines is None (see
+    # Editor.insertScenes). used by the outline view.
+    def insertScenes(self, line, lines=None):
+        self.clearAutoComp()
+
+        if lines is None:
+            self.ed.addScene(line)
+        else:
+            self.ed.insertScenes(line, lines)
+
+        self.sp.paginate()
+        self.makeLineVisible(self.ed.line)
+        self.updateScreen()
+
     # put the cursor at the start of the given line, scrolling only if it
     # isn't on screen. used by the notes sidebar.
     def showLine(self, line):

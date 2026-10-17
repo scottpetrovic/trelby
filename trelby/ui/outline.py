@@ -2,6 +2,7 @@ import wx
 from wx.lib.wordwrap import wordwrap
 
 import trelby.screenplay as screenplay
+import trelby.screenplay.beatsheets as beatsheets
 import trelby.ui.gutil as gutil
 import trelby.ui.icons as icons
 from trelby.ui.theming import blendColors
@@ -387,17 +388,33 @@ class OutlinePanel(wx.Panel):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        # buttons to move the selected scene and set its color
+        # buttons to add scenes, and to move the selected scene and set its
+        # color
         self.tools = wx.Panel(toolParent or self, -1)
         hdr = wx.BoxSizer(wx.HORIZONTAL)
 
-        def addBtn(iconFilename, toolTip):
-            bitmap = icons.svgBitmap(iconFilename, wx.Size(16, 16))
+        def addBtn(iconFilename, toolTip, size=wx.Size(16, 16), flags=wx.ALL):
+            bitmap = icons.svgBitmap(iconFilename, size)
             btn = wx.BitmapButton(self.tools, -1, bitmap, style=wx.BORDER_NONE)
             btn.SetToolTip(toolTip)
-            hdr.Add(btn, 0, wx.ALL, self.FromDIP(2))
+            hdr.Add(btn, 0, flags, self.FromDIP(2))
 
             return btn
+
+        # a split button: the "+" adds an empty scene, the arrow beside it
+        # a beat sheet's
+        self.addBtn = addBtn(
+            "addscene.svg",
+            _("Add an empty scene after the selected one"),
+            flags=wx.TOP | wx.BOTTOM | wx.LEFT,
+        )
+        self.beatSheetBtn = addBtn(
+            "dropdown.svg",
+            _("Add the scenes of a beat sheet"),
+            wx.Size(10, 16),
+            wx.TOP | wx.BOTTOM | wx.RIGHT,
+        )
+        hdr.AddSpacer(self.FromDIP(4))
 
         self.upBtn = addBtn("moveup.svg", _("Move the selected scene up (Ctrl+Up)"))
         self.downBtn = addBtn(
@@ -455,6 +472,8 @@ class OutlinePanel(wx.Panel):
         self.list.Bind(wx.EVT_MOUSE_CAPTURE_LOST, self.OnCaptureLost)
         self.list.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.list.Bind(wx.EVT_CONTEXT_MENU, self.OnContextMenu)
+        self.addBtn.Bind(wx.EVT_BUTTON, self.OnAddScene)
+        self.beatSheetBtn.Bind(wx.EVT_BUTTON, self.OnBeatSheetBtn)
         self.upBtn.Bind(wx.EVT_BUTTON, self.OnMoveUp)
         self.downBtn.Bind(wx.EVT_BUTTON, self.OnMoveDown)
         self.colorBtn.Bind(wx.EVT_BUTTON, self.OnColorBtn)
@@ -470,7 +489,14 @@ class OutlinePanel(wx.Panel):
         self.SetBackgroundColour(cfgGui.tabBarBgColor)
         self.SetForegroundColour(cfgGui.tabTextColor)
 
-        for w in (self.tools, self.upBtn, self.downBtn, self.colorBtn):
+        for w in (
+            self.tools,
+            self.addBtn,
+            self.beatSheetBtn,
+            self.upBtn,
+            self.downBtn,
+            self.colorBtn,
+        ):
             w.SetBackgroundColour(cfgGui.tabBarBgColor)
             w.SetForegroundColour(cfgGui.tabTextColor)
 
@@ -919,3 +945,49 @@ class OutlinePanel(wx.Panel):
 
     def OnMoveDown(self, event):
         self.moveScene(1)
+
+    # the line new scenes go after the scene of: the selected one's, or the
+    # cursor's
+    def getInsertLine(self):
+        idx = self.list.GetSelection()
+
+        if idx != -1:
+            return self.items[idx].startLine
+
+        return self.getCtrl().ed.line
+
+    # add the given Lines as new scenes after the selected one, or an
+    # empty scene if lines is None, and go there to edit them
+    def insertScenes(self, lines=None):
+        ctrl = self.getCtrl()
+        ctrl.insertScenes(self.getInsertLine(), lines)
+        self.refresh()
+        ctrl.SetFocus()
+
+    def OnAddScene(self, event):
+        self.insertScenes()
+
+    # let the user pick a beat sheet from a menu below the button, and add
+    # its scenes
+    def OnBeatSheetBtn(self, event):
+        menu = wx.Menu()
+
+        # ids are only reserved while their WindowIDRefs exist
+        idRefs = {}
+
+        for sheet in beatsheets.SHEETS:
+            ref = wx.NewIdRef()
+            idRefs[int(ref)] = (ref, sheet)
+            menu.Append(ref, sheet.name())
+
+        rect = self.addBtn.GetRect()
+
+        try:
+            sel = self.tools.GetPopupMenuSelectionFromUser(
+                menu, wx.Point(rect.x, rect.GetBottom())
+            )
+        finally:
+            menu.Destroy()
+
+        if sel in idRefs:
+            self.insertScenes(idRefs[sel][1].lines())

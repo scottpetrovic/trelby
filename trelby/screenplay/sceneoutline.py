@@ -1,14 +1,16 @@
-# the scene outline (the outline panel's data), scene colors, and moving
-# whole scenes around.
+# the scene outline (the outline panel's data), scene colors, and adding
+# and moving whole scenes around.
 
 import trelby.textutil as textutil
 import trelby.undo as undo
 from trelby.screenplay.constants import (
     ACTBREAK,
     ACTION,
+    LB_LAST,
     SCENE,
 )
 from trelby.screenplay.datatypes import OutlineItem
+from trelby.screenplay.line import Line
 
 
 class OutlineMixin:
@@ -138,6 +140,54 @@ class OutlineEditMixin:
         self.undoHistory.add(u)
 
         return True
+
+    # insert the given Lines, which must start with a scene heading or act
+    # break, after the scene (or act break) containing the given line, or
+    # before the first one if the line is before it. a script with no text
+    # or notes is replaced instead. the cursor is placed at the start of
+    # the first new line.
+    def insertScenes(self, line, lines):
+        sp = self.sp
+        self.clearAutoComp()
+        self.clearMark()
+
+        if sp.isEmpty() and not sp.getAllNotes():
+            at, end = 0, len(sp.lines)
+
+            # adding an empty scene to a script that's just one
+            if (len(lines) == end) and not any(
+                a != b for a, b in zip(lines, sp.lines)
+            ):
+                self.gotoPos(0, 0)
+
+                return
+        else:
+            starts = sp.getOutlineStarts()
+            idx = sp.getOutlineIndex(starts, line)
+
+            if idx + 1 < len(starts):
+                at = starts[idx + 1]
+            else:
+                at = len(sp.lines)
+
+            end = at
+
+        u = undo.AnyDifference(self)
+
+        sp.lines[at:end] = lines
+        self.line = at
+        self.column = 0
+
+        # each new line is a paragraph of its own
+        sp.reformatRange(at, at + len(lines) - 1, self)
+        sp.markChanged()
+
+        u.setAfter(self)
+        self.undoHistory.add(u)
+
+    # insert an empty scene heading, see insertScenes
+    def addScene(self, line):
+        self.insertScenes(line, [Line(LB_LAST, SCENE)])
 
     # move the scene (or act break) containing the given line one step up
     # (direction = -1) or down (direction = 1) in the script, swapping it

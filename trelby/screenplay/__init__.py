@@ -46,6 +46,7 @@
 #   locations     scene headings grouped into locations
 #   worldbuilding notes about the story's world
 #   beatboard*    index cards laid out on a board
+#   beatsheets    templates of scenes, a beat each, for the outline
 #   pagelock      page labels once the pages are locked
 #   autocompletion, autocompletiontype  the auto-completion lists
 #

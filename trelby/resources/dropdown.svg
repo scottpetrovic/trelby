@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- a button's drop-down arrow, e.g. the outline view's beat sheets -->
+<svg
+   width="16"
+   height="32"
+   viewBox="0 0 16 32"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg"><path
+     style="fill:#000000;fill-opacity:1;stroke:none"
+     d="M 2,13 H 14 L 8,20 Z" /></svg>
