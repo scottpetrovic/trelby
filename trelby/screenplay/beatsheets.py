@@ -67,7 +67,7 @@ def saveTheCat():
         Beat(
             _("Opening Image"),
             _(
-                "Page 1. A snapshot of the hero's world before the story "
+                "A snapshot of the hero's world before the story "
                 "changes it, setting the tone of the film."
             ),
             ACT_ONE,
@@ -75,7 +75,7 @@ def saveTheCat():
         Beat(
             _("Theme Stated"),
             _(
-                "Page 5. Someone, usually not the hero, says what the story "
+                "Someone, usually not the hero, says what the story "
                 "is really about: the lesson the hero will have to learn."
             ),
             ACT_ONE,
@@ -83,7 +83,7 @@ def saveTheCat():
         Beat(
             _("Set-Up"),
             _(
-                "Pages 1-10. The hero's ordinary life, their flaws and what's "
+                "The hero's ordinary life, their flaws and what's "
                 "missing from it, and the people who will matter later."
             ),
             ACT_ONE,
@@ -91,7 +91,7 @@ def saveTheCat():
         Beat(
             _("Catalyst"),
             _(
-                "Page 12. The event that knocks the hero's world off "
+                "The event that knocks the hero's world off "
                 "balance: a telegram, a death, a chance meeting."
             ),
             ACT_ONE,
@@ -99,7 +99,7 @@ def saveTheCat():
         Beat(
             _("Debate"),
             _(
-                "Pages 12-25. The hero doubts, resists or prepares: should "
+                "The hero doubts, resists or prepares: should "
                 "they go? Can they?"
             ),
             ACT_ONE,
@@ -107,7 +107,7 @@ def saveTheCat():
         Beat(
             _("Break into Two"),
             _(
-                "Page 25. The hero chooses to act, leaving the old world for "
+                "The hero chooses to act, leaving the old world for "
                 "the upside-down world of Act Two."
             ),
             ACT_TWO,
@@ -115,7 +115,7 @@ def saveTheCat():
         Beat(
             _("B Story"),
             _(
-                "Page 30. A new relationship, often a love story or mentor, "
+                "A new relationship, often a love story or mentor, "
                 "that carries the theme and helps the hero learn it."
             ),
             ACT_TWO,
@@ -123,7 +123,7 @@ def saveTheCat():
         Beat(
             _("Fun and Games"),
             _(
-                "Pages 30-55. The promise of the premise: the scenes the "
+                "The promise of the premise: the scenes the "
                 "audience came to see, the hero exploring the new world."
             ),
             ACT_TWO,
@@ -131,7 +131,7 @@ def saveTheCat():
         Beat(
             _("Midpoint"),
             _(
-                "Page 55. A false victory or a false defeat. The stakes are "
+                "A false victory or a false defeat. The stakes are "
                 "raised and the fun and games are over."
             ),
             ACT_TWO,
@@ -139,7 +139,7 @@ def saveTheCat():
         Beat(
             _("Bad Guys Close In"),
             _(
-                "Pages 55-75. The enemies regroup, doubt and jealousy split "
+                "The enemies regroup, doubt and jealousy split "
                 "the hero's team, and things get steadily worse."
             ),
             ACT_TWO,
@@ -147,7 +147,7 @@ def saveTheCat():
         Beat(
             _("All Is Lost"),
             _(
-                "Page 75. The lowest point, the opposite of the midpoint. "
+                "The lowest point, the opposite of the midpoint. "
                 "Something or someone dies, if only an old way of thinking."
             ),
             ACT_TWO,
@@ -155,7 +155,7 @@ def saveTheCat():
         Beat(
             _("Dark Night of the Soul"),
             _(
-                "Pages 75-85. The hero mourns what's lost and hits bottom, "
+                "The hero mourns what's lost and hits bottom, "
                 "until they find the last idea that will save them."
             ),
             ACT_TWO,
@@ -163,7 +163,7 @@ def saveTheCat():
         Beat(
             _("Break into Three"),
             _(
-                "Page 85. The answer, found by bringing the A and B stories "
+                "The answer, found by bringing the A and B stories "
                 "together. The hero chooses to fight."
             ),
             ACT_THREE,
@@ -171,7 +171,7 @@ def saveTheCat():
         Beat(
             _("Finale"),
             _(
-                "Pages 85-110. The hero puts the lesson into practice, beats "
+                "The hero puts the lesson into practice, beats "
                 "the bad guys and changes the world for the better."
             ),
             ACT_THREE,
@@ -179,7 +179,7 @@ def saveTheCat():
         Beat(
             _("Final Image"),
             _(
-                "Page 110. The opposite of the opening image: proof that "
+                "The opposite of the opening image: proof that "
                 "change has happened."
             ),
             ACT_THREE,
@@ -314,7 +314,7 @@ def sequences():
         Beat(
             _("Sequence A: Status Quo and Inciting Incident"),
             _(
-                "Pages 1-15. The protagonist's world and what they want, "
+                "The protagonist's world and what they want, "
                 "ending with the inciting incident."
             ),
             ACT_ONE,
@@ -322,7 +322,7 @@ def sequences():
         Beat(
             _("Sequence B: Predicament and Lock-In"),
             _(
-                "Pages 15-30. The protagonist wrestles with the new "
+                "The protagonist wrestles with the new "
                 "situation, ending when they're locked into the story's main "
                 "tension. End of Act One."
             ),
@@ -331,7 +331,7 @@ def sequences():
         Beat(
             _("Sequence C: First Obstacle"),
             _(
-                "Pages 30-45. The first attempt to solve the problem, the "
+                "The first attempt to solve the problem, the "
                 "easy way, which fails and raises the stakes."
             ),
             ACT_TWO,
@@ -339,7 +339,7 @@ def sequences():
         Beat(
             _("Sequence D: First Culmination"),
             _(
-                "Pages 45-60. A bigger attempt, ending at the midpoint with "
+                "A bigger attempt, ending at the midpoint with "
                 "a glimpse of how things could end."
             ),
             ACT_TWO,
@@ -347,7 +347,7 @@ def sequences():
         Beat(
             _("Sequence E: Subplot and Rising Action"),
             _(
-                "Pages 60-75. The consequences of the midpoint, subplots "
+                "The consequences of the midpoint, subplots "
                 "come to the fore, things get harder."
             ),
             ACT_TWO,
@@ -355,7 +355,7 @@ def sequences():
         Beat(
             _("Sequence F: Main Culmination"),
             _(
-                "Pages 75-90. The main tension is resolved, often at the "
+                "The main tension is resolved, often at the "
                 "protagonist's lowest point. End of Act Two."
             ),
             ACT_TWO,
@@ -363,7 +363,7 @@ def sequences():
         Beat(
             _("Sequence G: New Tension and Twist"),
             _(
-                "Pages 90-105. A new tension carries the story to the end, "
+                "A new tension carries the story to the end, "
                 "with a twist that upends expectations."
             ),
             ACT_THREE,
@@ -371,7 +371,7 @@ def sequences():
         Beat(
             _("Sequence H: Resolution"),
             _(
-                "Pages 105-120. The climax and its aftermath: the story's "
+                "The climax and its aftermath: the story's "
                 "questions answered and loose ends tied up."
             ),
             ACT_THREE,
@@ -384,7 +384,7 @@ def miniMovies():
         Beat(
             _("Mini-Movie 1: The Setup"),
             _(
-                "Pages 1-12. Hook the audience, show the hero's world, and "
+                "Hook the audience, show the hero's world, and "
                 "end on the inciting incident. Each mini-movie has its own "
                 "beginning, middle and end, and closes on a question that "
                 "pulls into the next."
@@ -394,7 +394,7 @@ def miniMovies():
         Beat(
             _("Mini-Movie 2: The Lock-In"),
             _(
-                "Pages 12-25. The hero is drawn in until there's no way "
+                "The hero is drawn in until there's no way "
                 "out, ending on the decision that starts Act Two."
             ),
             ACT_ONE,
@@ -402,7 +402,7 @@ def miniMovies():
         Beat(
             _("Mini-Movie 3: The First Trial"),
             _(
-                "Pages 25-37. A new world and the first try at the goal, "
+                "A new world and the first try at the goal, "
                 "ending in a setback."
             ),
             ACT_TWO,
@@ -410,7 +410,7 @@ def miniMovies():
         Beat(
             _("Mini-Movie 4: The Midpoint"),
             _(
-                "Pages 37-55. Things build to a big reversal at the "
+                "Things build to a big reversal at the "
                 "midpoint that changes the hero's course."
             ),
             ACT_TWO,
@@ -418,7 +418,7 @@ def miniMovies():
         Beat(
             _("Mini-Movie 5: The Complications"),
             _(
-                "Pages 55-67. Fallout from the midpoint, subplots tighten "
+                "Fallout from the midpoint, subplots tighten "
                 "and the opposition hits back."
             ),
             ACT_TWO,
@@ -426,7 +426,7 @@ def miniMovies():
         Beat(
             _("Mini-Movie 6: The Lowest Point"),
             _(
-                "Pages 67-80. Everything falls apart, ending with all hope "
+                "Everything falls apart, ending with all hope "
                 "lost. End of Act Two."
             ),
             ACT_TWO,
@@ -434,7 +434,7 @@ def miniMovies():
         Beat(
             _("Mini-Movie 7: The Twist"),
             _(
-                "Pages 80-95. The hero regroups with a new plan, and a "
+                "The hero regroups with a new plan, and a "
                 "twist raises the stakes one last time."
             ),
             ACT_THREE,
@@ -442,7 +442,7 @@ def miniMovies():
         Beat(
             _("Mini-Movie 8: The Climax"),
             _(
-                "Pages 95-110. The final confrontation and the new world "
+                "The final confrontation and the new world "
                 "it leaves behind."
             ),
             ACT_THREE,

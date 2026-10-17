@@ -160,7 +160,8 @@ def testBeatSheetReplacesEmptyScript():
 
     # nothing left of the empty script, and the descriptions wrapped
     assert ed.sp.lines[0].lt == scr.SCENE
-    assert ed.sp.lines[-1].text == "change has happened."
+    assert ed.sp.lines[-1].text.endswith("happened.")
+    assert ed.sp.lines[-2].lb != scr.LB_LAST
     ed._validate()
 
 
