@@ -385,19 +385,6 @@ class MainToolBar:
             # the status bar shows this while the tool is hovered
             tool.SetLongHelp(toolTip)
 
-        addTB(ids.ID_FILE_NEW, "new.svg", _("New file"))
-        addTB(ids.ID_FILE_OPEN, "open.svg", _("Open file") + "...")
-        addTB(ids.ID_FILE_SAVE, "save.svg", _("Save"))
-        addTB(ids.ID_FILE_SAVE_AS, "saveas.svg", _("Save as") + "...")
-        addTB(ids.ID_FILE_CLOSE, "close.svg", _("Close file"))
-
-        addDivider()
-
-        addTB(ids.ID_FILE_IMPORT, "import.svg", _("Import file") + "...")
-        addTB(ids.ID_FILE_EXPORT, "export.svg", _("Export file"))
-
-        addDivider()
-
         addTB(ids.ID_EDIT_UNDO, "undo.svg", _("Undo"))
         addTB(ids.ID_EDIT_REDO, "redo.svg", _("Redo"))
 

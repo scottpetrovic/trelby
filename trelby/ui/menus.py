@@ -269,9 +269,8 @@ def makeTable():
                 _("Import"),
                 "I",
                 [importAction(f) for f in formats.IMPORT_FORMATS],
-                "import",
             ),
-            Menu(_("Export"), "E", exportItems, "export"),
+            Menu(_("Export"), "E", exportItems),
             SEP,
             Action("Quit", ID_FILE_EXIT, _("Exit"), "x", OnFrame("OnExit"), "CTRL-Q"),
         ],
@@ -924,20 +923,6 @@ def makeTable():
             OnFrame("OnSpellCheckerDictionaryDlg"),
         ),
         # the toolbar buttons that pop up a menu
-        Action(
-            "ToolbarImport",
-            ID_FILE_IMPORT,
-            None,
-            None,
-            OnFrame("popupMenu", "import"),
-        ),
-        Action(
-            "ToolbarExport",
-            ID_FILE_EXPORT,
-            None,
-            None,
-            OnFrame("popupMenu", "export"),
-        ),
         Action(
             "ToolbarViews",
             ID_TOOLBAR_VIEWS,
