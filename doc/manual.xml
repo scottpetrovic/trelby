@@ -974,6 +974,11 @@
 	  the other pages keep their numbers. 'Clear revision marks' removes
 	  all the marks, making every page White again.</para>
 
+	  <para>Exporting to Final Draft (FDX) keeps the revision marks, as
+	  Final Draft revision sets, and the scene numbers when they're locked
+	  or printed. Importing an FDX file reads its revision marks
+	  back.</para>
+
 	</sect1>
 
 	<sect1 id="spell_checker">

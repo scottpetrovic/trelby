@@ -16,11 +16,15 @@ from trelby.screenplay.line import Line
 # after what they're about, which become notes on the paragraph before each
 # here (see screenplay/notes.py).
 class ImportResult:
-    def __init__(self, lines, titlePages=None):
+    def __init__(self, lines, titlePages=None, revisions=None):
         notes.absorbNoteElements(lines)
 
         self.lines = lines
         self.titlePages = titlePages
+
+        # the script's revision settings (screenplay.revisions.Revisions),
+        # for formats that have them, or None
+        self.revisions = revisions
 
 
 # an import that failed. message is for the user.
@@ -58,7 +62,8 @@ def parseXML(data, parser=None):
 # append an element of type lt, with the lines of text in items, to lines.
 # an empty last item (the element ending in a newline) is dropped. fmt is
 # the format string for "\n".join(items), or None.
-def addElem(lines, lt, items, fmt=None):
+# revs is likewise its revision marks (see screenplay/revisions.py).
+def addElem(lines, lt, items, fmt=None, revs=None):
     if not items[-1] and (len(items) > 1):
         items = items[:-1]
 
@@ -70,6 +75,9 @@ def addElem(lines, lt, items, fmt=None):
     for i, s in enumerate(items):
         lb = screenplay.LB_LAST if (i == len(items) - 1) else screenplay.LB_FORCED
         lineFmt = fmt and fmt[pos : pos + len(s)]
+        lineRevs = revs and revs[pos : pos + len(s)]
         pos += len(s) + 1
 
-        lines.append(Line(lb, lt, textutil.cleanInput(s), fmt=lineFmt))
+        lines.append(
+            Line(lb, lt, textutil.cleanInput(s), fmt=lineFmt, revs=lineRevs)
+        )

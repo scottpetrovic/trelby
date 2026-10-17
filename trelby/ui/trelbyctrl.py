@@ -412,6 +412,8 @@ class MyCtrl(wx.Control):
         self.sp.lines = result.lines
         if result.titlePages:
             self.sp.titles.pages = result.titlePages
+        if result.revisions:
+            self.sp.revisions = result.revisions
         self.sp.reformatAll()
         self.sp.paginate()
         self.sp.markChanged(True)

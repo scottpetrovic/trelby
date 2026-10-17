@@ -1,7 +1,9 @@
 # Final Draft (FDX) files.
 
 import trelby.screenplay as screenplay
+import trelby.screenplay.revisions as revisions
 import trelby.textfmt as textfmt
+import trelby.util as util
 from trelby.importers.common import (
     ImportResult,
     addElem,
@@ -72,6 +74,7 @@ def parse(data, options=None):
 
         s = ""
         fmt = ""
+        revs = ""
         for text in para.xpath("Text"):
             # text.text is None for paragraphs with no text
             if text.text:
@@ -85,13 +88,20 @@ def parse(data, options=None):
                         style |= bit
 
                 fmt += textfmt.char(style) * len(text.text)
+                revs += revisions.levelChar(revisionLevel(text)) * len(text.text)
 
         # don't remove paragraphs with no text, unless that paragraph
         # contained a scriptnote
         if s or not addedNote:
             lt = ELEM_MAP.get(et, screenplay.ACTION)
             firstLine = len(lines)
-            addElem(lines, lt, s.split("\n"), textfmt.compact(fmt))
+            addElem(
+                lines,
+                lt,
+                s.split("\n"),
+                textfmt.compact(fmt),
+                textfmt.compact(revs),
+            )
 
             if (lt == screenplay.ACTION) and (para.get("Alignment") == "Center"):
                 lines[firstLine].centered = True
@@ -113,4 +123,33 @@ def parse(data, options=None):
 
     checkLines(lines)
 
-    return ImportResult(lines)
+    return ImportResult(lines, revisions=parseRevisions(root))
+
+
+# return the revision a Text element is marked with: its RevisionID, a
+# revision set's ID, which is taken as the revision's level (1 for Blue,
+# ...). 0 if it has none or it's invalid.
+def revisionLevel(text):
+    return util.str2int(text.get("RevisionID", "0"), 0, 0, revisions.MAX_LEVEL)
+
+
+# return the script's revision settings from its Revisions element, or
+# None if it has none: the active revision set, revision mode and the
+# active set's revision mark. the sets' names and colors are Final
+# Draft's own, so they're not kept.
+def parseRevisions(root):
+    elems = root.xpath("Revisions")
+
+    if not elems:
+        return None
+
+    elem = elems[0]
+    rv = revisions.Revisions()
+    rv.level = util.str2int(elem.get("ActiveSet", "0"), 0, 0, revisions.MAX_LEVEL)
+    rv.active = bool(rv.level) and (elem.get("RevisionMode") == "Yes")
+
+    for r in elem.xpath("Revision"):
+        if r.get("ID") == str(rv.level):
+            rv.markChar = (r.get("Mark") or "").strip()[:1] or rv.markChar
+
+    return rv

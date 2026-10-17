@@ -577,3 +577,159 @@ def testRevisionsDlg():
         assert rv.dates == {1: "9/1/26", 2: revisionsdlg.today()}
     finally:
         app.Destroy()
+
+
+# Final Draft (FDX) export and import
+
+
+def fdxRoot(sp):
+    from lxml import etree
+
+    import trelby.screenplay.export as export
+
+    return etree.XML(export.generateFDX(sp))
+
+
+def testFDXExport():
+    ed = makeRevising()
+    ed.lockScenes()
+    ed.sp.revisions.dates[1] = "10/17/26"
+    ed.gotoPos(1, len("Scene 1 starts"))
+    ed.cmdChars(" right")
+    ed.gotoPos(ed.sp.getSceneStarts()[1], 0)
+    ed.omitScene()
+
+    root = fdxRoot(ed.sp)
+    paras = root.xpath("Content/Paragraph")
+
+    # revised text is its own Text element, with the revision's ID
+    texts = paras[1].xpath("Text")
+    assert "".join(t.text for t in texts).startswith("Scene 1 starts right here")
+    assert [t.text.strip() for t in texts if t.get("RevisionID") == "1"] == [
+        "right"
+    ]
+    assert all(t.get("RevisionID") in (None, "1") for t in texts)
+
+    # locked scene numbers go on the headings, the omitted scene's too
+    headings = root.xpath("Content/Paragraph[@Type='Scene Heading']")
+    assert [(h.get("Number"), h.xpath("string(Text)")) for h in headings] == [
+        ("1", "INT. ROOM 1 - DAY"),
+        ("2", "OMITTED"),
+        ("3", "INT. ROOM 3 - DAY"),
+    ]
+
+    sets = root.xpath("Revisions")
+    assert len(sets) == 1
+    assert sets[0].get("ActiveSet") == "1"
+    assert sets[0].get("RevisionMode") == "Yes"
+
+    rev = sets[0].xpath("Revision")
+    assert len(rev) == 1
+    assert rev[0].get("ID") == "1"
+    assert rev[0].get("Name") == "Blue Rev. 10/17/26"
+    assert rev[0].get("Mark") == "*"
+    assert len(rev[0].get("PageColor")) == len("#RRRRGGGGBBBB")
+
+
+def testFDXExportPlainScript():
+    sp = makeScript().sp
+    root = fdxRoot(sp)
+
+    assert not root.xpath("Revisions")
+    assert not root.xpath("//Text[@RevisionID]")
+
+    # scene numbers only when they're printed (or locked)
+    assert [p.get("Number") for p in root.xpath("//Paragraph[@Number]")] == [
+        "1",
+        "2",
+        "3",
+    ]
+
+    sp.cfg.pdfShowSceneNumbers = False
+    assert not fdxRoot(sp).xpath("//Paragraph[@Number]")
+
+
+# every revision up to the latest one used gets a revision set
+def testFDXExportOlderRevisions():
+    ed = makeRevising(level=3)
+    ed.gotoPos(1, 0)
+    ed.cmdChars("Yellow ")
+    ed.sp.revisions.level = 1
+    ed.sp.revisions.active = False
+
+    sets = fdxRoot(ed.sp).xpath("Revisions")[0]
+    assert [r.get("ID") for r in sets.xpath("Revision")] == ["1", "2", "3"]
+    assert sets.get("ActiveSet") == "1"
+    assert sets.get("RevisionMode") == "No"
+
+
+def testFDXRoundTrip():
+    import trelby.importers.fdx as fdximport
+    import trelby.screenplay.export as export
+
+    ed = makeRevising(level=2)
+    ed.sp.revisions.markChar = "#"
+    ed.gotoPos(1, 0)
+    ed.cmdChars("Pink ")
+
+    result = fdximport.parse(export.generateFDX(ed.sp).decode("UTF-8"))
+
+    assert result.revisions.level == 2
+    assert result.revisions.active
+    assert result.revisions.markChar == "#"
+
+    sp = u.new()
+    sp.lines = result.lines
+    sp.revisions = result.revisions
+    sp.reformatAll()
+    ed2 = scr.Editor(sp)
+    ed2._validate()
+
+    assert markedWords(ed2, 1, 2) == ["Pink"]
+    assert [ln.text for ln in sp.lines] == [ln.text for ln in ed.sp.lines]
+    assert [ln.revs for ln in sp.lines] == [ln.revs for ln in ed.sp.lines]
+
+
+# a file as Final Draft writes it, with revision sets of its own
+def testFDXImportFinalDraftRevisions():
+    import trelby.importers.fdx as fdximport
+
+    s = """<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<FinalDraft DocumentType="Script" Template="No" Version="5">
+  <Content>
+    <Paragraph Number="1" Type="Scene Heading">
+      <Text>INT. HOUSE - DAY</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>She opens the </Text>
+      <Text RevisionID="2" Style="Bold">red</Text>
+      <Text> door.</Text>
+    </Paragraph>
+  </Content>
+  <Revisions ActiveSet="2" Location="7.75" RevisionMode="No" RevisionsShown="Active" ShowAllMarks="No" ShowAllSets="No">
+    <Revision Color="#000000000000" FullRevision="No" ID="1" Mark="*" Name="First Revision" PageColor="#C6C6EDEDFEFE" Style=""/>
+    <Revision Color="#000000000000" FullRevision="No" ID="2" Mark="+" Name="Second Revision" PageColor="#FEFECDCDDADA" Style=""/>
+  </Revisions>
+</FinalDraft>
+"""
+    result = fdximport.parse(s)
+    ln = result.lines[1]
+
+    assert ln.text == "She opens the red door."
+    assert ln.revs == "0" * 14 + "222" + "0" * 6
+    assert ln.fmt == "0" * 14 + "111" + "0" * 6
+
+    rv = result.revisions
+    assert (rv.level, rv.active, rv.markChar) == (2, False, "+")
+
+
+def testFDXImportWithoutRevisions():
+    import trelby.importers.fdx as fdximport
+
+    result = fdximport.parse(
+        "<FinalDraft><Content><Paragraph Type='Action'><Text>Hi.</Text>"
+        "</Paragraph></Content></FinalDraft>"
+    )
+
+    assert result.revisions is None
+    assert result.lines[0].revs is None
