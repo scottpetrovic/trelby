@@ -72,10 +72,8 @@ class ScriptPainter:
     # config, and showFormatting whether to show the margins and line
     # break types (View / Show formatting). misspelled words are
     # underlined if scDict, the user's global spell checker dictionary,
-    # is given and the main dictionary is loaded. noteLine is the first
-    # line of a paragraph to highlight as the one whose note is selected in
-    # the notes sidebar, or None.
-    def __init__(self, vp, vm, cfgGl, showFormatting, scDict=None, noteLine=None):
+    # is given and the main dictionary is loaded.
+    def __init__(self, vp, vm, cfgGl, showFormatting, scDict=None):
         self.vp = vp
         self.vm = vm
         self.cfgGl = cfgGl
@@ -89,14 +87,6 @@ class ScriptPainter:
 
         # wx.Rect of the title page button, set by paint
         self.titleButtonRect = None
-
-        # the lines of the paragraph to highlight
-        self.noteLines = range(0)
-
-        if (noteLine is not None) and (noteLine < len(vp.sp.lines)):
-            self.noteLines = range(
-                noteLine, vp.sp.getParaLastIndexFromLine(noteLine) + 1
-            )
 
         # the note markers drawn, as (wx.Rect, line) tuples, set by paint
         self.noteMarkers = []
@@ -186,16 +176,6 @@ class ScriptPainter:
 
             if i != -1:
                 l = ls[i]
-
-                if i in self.noteLines:
-                    dc.SetPen(self.cfgGui.notePen)
-                    dc.SetBrush(self.cfgGui.noteBrush)
-
-                    # element widths are in columns, fx pixels each
-                    nx = int(t.x - vp.sp.getCenterOffset(i) * fx) - 4
-                    nw = vp.sp.cfg.getType(l.lt).width * fx + 8
-
-                    dc.DrawRectangle(nx, y, nw, lineh)
 
                 if marked and vp.ed.isLineMarked(i, marked):
                     c1, c2 = vp.ed.getMarkedColumns(i, marked)
@@ -432,24 +412,21 @@ class ScriptPainter:
             if sceneLocked:
                 self.drawLock(dc, x + sceneX, t.y, h, w)
 
-    # mark each paragraph that has notes with a note icon in the left
-    # margin, on its first line, and remember where they are for clicks.
-    # they're in a column of their own, left of the scene numbers and
-    # their lock icons (see drawLocks).
+    # mark each paragraph that has notes with a note icon just outside the
+    # page's right edge, on its first line, and remember where they are for
+    # clicks.
     def drawNoteMarkers(self, dc, strings, dpages, size):
         vp = self.vp
-        cfg = vp.sp.cfg
         ls = vp.sp.lines
 
         h = max(6, self.cfgGui.fonts[pml.NORMAL].fy)
         w = h + h // 4
-        gap = h // 3
 
-        # x offset (pixels) of the icon from the left edge of the page
-        lockX = int((cfg.marginLeft - 6 * vp.chX) * vp.mm2p) - gap - h * 3 // 4
-        pageX = max(gap, lockX - gap - w)
+        # x offset (pixels) of the icon from the page's right edge
+        gap = vp.dip(20)
 
-        draftX = util.clamp((size.width - vp.pageW) // 2, 0)
+        # in draft mode, the right edge of the infinite page (see paint)
+        draftX = util.clamp((size.width - vp.pageW) // 2, 0) + vp.pageW
 
         for t in strings:
             i = t.line
@@ -457,26 +434,42 @@ class ScriptPainter:
             if (i == -1) or not ls[i].notes:
                 continue
 
-            x = draftX
+            right = draftX
 
             for dp in dpages:
                 if dp.x1 <= t.x <= dp.x2:
-                    x = dp.x1
+                    right = dp.x2
 
-            x += pageX
+            x = right + gap
+
+            # where there's no room for it outside, as between the pages in
+            # side by side mode, or at the window's edge, it goes as far
+            # inside the page instead
+            if (x + w > size.width) or any(
+                right < dp.x1 < x + w + gap and dp.y1 <= t.y <= dp.y2
+                for dp in dpages
+            ):
+                x = right - gap - w
 
             self.drawNoteMarker(dc, x, t.y, w, h, all(n.resolved for n in ls[i].notes))
             self.noteMarkers.append((wx.Rect(x, t.y, w, h), i))
 
     # draw a speech bubble w pixels wide and h high, its top left corner at
-    # (x, y), faded if 'faded' (all the notes are resolved)
+    # (x, y), in muted colors so that it stays in the background: a grey
+    # outline filled with a tint of the theme's accent color, faded further
+    # into the workspace around the pages if 'faded' (all the notes are
+    # resolved)
     def drawNoteMarker(self, dc, x, y, w, h, faded):
-        fill = self.cfgGui.noteMarkerColor
-        border = self.cfgGui.noteMarkerBorderColor
+        cfgGui = self.cfgGui
+        bg = cfgGui.workspaceColor
+        fill = blendColors(bg, cfgGui.accentColor, 0.3)
+        border = blendColors(bg, cfgGui.textColor, 0.4)
+        text = border
 
         if faded:
-            fill = blendColors(fill, self.cfgGui.textBgColor, 0.6)
-            border = blendColors(border, self.cfgGui.textBgColor, 0.6)
+            fill, border, text = [
+                blendColors(c, bg, 0.6) for c in (fill, border, text)
+            ]
 
         bh = h * 3 // 4
         tail = max(2, h // 4)
@@ -493,7 +486,7 @@ class ScriptPainter:
         dc.DrawRoundedRectangle(x, y, w, bh, max(1, h // 6))
 
         # the "text" in it, two lines
-        dc.SetPen(wx.Pen(border, max(1, h // 12)))
+        dc.SetPen(wx.Pen(text, max(1, h // 12)))
         lx = x + w // 4
         lw = w - w // 2
 

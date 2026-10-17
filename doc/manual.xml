@@ -625,14 +625,15 @@
 	  it's about. A note stays with its paragraph as you edit the script,
 	  moves with it when you cut and paste it, and is deleted along with
 	  all of the paragraph's text. In the script, paragraphs with notes
-	  have a note icon in the left margin; click it to see their
-	  notes.</para>
+	  have a note icon just outside the right edge of the page; click it
+	  to see their notes.</para>
 
-	  <para>Click a note to go to its paragraph, which is highlighted while
-	  the list has the focus. Double-click it, or press Enter or F2, to
-	  edit it; Ctrl+Enter or clicking elsewhere finishes, and Escape
-	  cancels. Space marks the note as resolved, or not, and Delete
-	  deletes it; the right-click menu has these too, and can hide the
+	  <para>Click a note to go to its paragraph. Double-click it, or
+	  press Enter or F2, to edit it; Ctrl+Enter or clicking elsewhere,
+	  in the script too, finishes, and Escape cancels. Space marks the
+	  note as resolved, or not, and Delete or the &#215; at the note's
+	  top right deletes it; the right-click menu has these too, and can
+	  hide the
 	  resolved notes. Every change to the notes can be undone like any
 	  other edit.</para>
 
@@ -1306,9 +1307,7 @@
 			  These colors are required: text, textHdr (page headers),
 			  textBg (the page), workspace (around the pages), pageBorder,
 			  pageShadow, selected, cursor, autoCompFg and autoCompBg (the
-			  auto-completion list), note (the background of the
-			  paragraph whose note is selected),
-			  pagebreak, pagebreakNoAdjust, tabText, tabBorder, tabBarBg and
+			  auto-completion list), pagebreak, pagebreakNoAdjust, tabText, tabBorder, tabBarBg and
 			  tabNonActiveBg.</para>
 
 			  <para>These are optional: the text colors of scene, action,

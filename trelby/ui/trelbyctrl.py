@@ -560,6 +560,12 @@ class MyCtrl(wx.Control):
     # where the button went down, and later ones only move the cursor, so
     # dragging selects text
     def OnLeftDown(self, event, mark=False):
+        # the event isn't skipped, so wx doesn't give us the focus itself.
+        # taking it ends editing a note in the notes sidebar, keeping it.
+        # (mark is True when OnMotion extends a selection by dragging.)
+        if not mark and not self.HasFocus():
+            self.SetFocus()
+
         if not mark and self.isOverTitleButton(event.GetPosition()):
             scriptactions.titlesDlg(self.gd.mainFrame, self)
 
@@ -1203,7 +1209,6 @@ class MyCtrl(wx.Control):
             self.gd.cfgGl,
             self.gd.showFormatting,
             self.gd.scDict if self.gd.cfgGl.checkSpelling else None,
-            self.panel.notes.getHighlightLine(),
         )
         self.titleButtonRect = painter.paint(dc)
         self.noteMarkers = painter.noteMarkers

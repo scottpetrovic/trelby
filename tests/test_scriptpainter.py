@@ -12,6 +12,7 @@ import trelby.spellcheck as spellcheck
 import trelby.ui.scriptpainter as scriptpainter
 import trelby.translations as translations
 import trelby.ui.viewmode as viewmode
+from trelby.screenplay.notes import Note
 
 _ = translations.trelby_translations_load()
 
@@ -122,3 +123,45 @@ def testPaintSpellingErrors(app, vm):
 
         vp, rect, bmp = paint(ed, vm(), scDict=spellcheck.Dict())
         assert countColor(bmp, red) > 0
+
+
+# the note markers go 20 pixels right of the page, or as far inside it
+# where the next page leaves no room (side by side)
+@pytest.mark.parametrize(
+    "vm, inside",
+    [
+        (viewmode.ViewModeDraft, False),
+        (viewmode.ViewModeLayout, False),
+        (viewmode.ViewModeSideBySide, True),
+    ],
+)
+def testPaintNoteMarkers(app, vm, inside):
+    ed = loadSample()
+    ed.sp.lines[1].notes = (Note("Hi"),)
+    vm = vm()
+    size = wx.Size(1600, 600)
+    cfgGui = configgui.ConfigGui(ed.sp.cfgGl, 100)
+    vp = scriptpainter.Viewport.make(ed.sp, ed, cfgGui, vm, size, lambda n: n)
+
+    painter = scriptpainter.ScriptPainter(vp, vm, ed.sp.cfgGl, False)
+    dc = wx.MemoryDC(wx.Bitmap(size))
+    painter.paint(dc)
+    dc.SelectObject(wx.NullBitmap)
+
+    strings, dpages = vm.getScreen(vp, True, True)
+    t = next(t for t in strings if t.line == 1)
+
+    if dpages:
+        right = next(dp.x2 for dp in dpages if dp.x1 <= t.x <= dp.x2)
+    else:
+        right = (size.width - vp.pageW) // 2 + vp.pageW
+
+    assert len(painter.noteMarkers) == 1
+    rect, line = painter.noteMarkers[0]
+    assert line == 1
+    assert rect.y == t.y
+
+    if inside:
+        assert rect.x + rect.width == right - 20
+    else:
+        assert rect.x == right + 20

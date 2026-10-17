@@ -20,8 +20,6 @@ COLORS = [
     "cursor",
     "autoCompFg",
     "autoCompBg",
-    # the background of script notes
-    "note",
     "pagebreak",
     "pagebreakNoAdjust",
     "tabText",
@@ -34,9 +32,10 @@ COLORS = [
 # "accent" and "accentText", for the selected item in lists and toolbars
 # we draw ourselves, default to the system's highlight colors.
 # "spellError", the underline of misspelled words, defaults to a red that
-# suits the theme's background (see spellErrorColor). "noteText" was the
-# color of note elements, which are now notes in the sidebar; it's still
-# accepted so that custom themes that have it keep loading.
+# suits the theme's background (see spellErrorColor). "noteText" and
+# "note" were the text and background colors of note elements, which are
+# now notes in the sidebar, marked in the accent color; they're still
+# accepted so that custom themes that have them keep loading.
 ELEMENTS = [
     "scene",
     "action",
@@ -47,7 +46,7 @@ ELEMENTS = [
     "shot",
     "actBreak",
 ]
-OPTIONAL = ELEMENTS + ["accent", "accentText", "spellError", "noteText"]
+OPTIONAL = ELEMENTS + ["accent", "accentText", "spellError", "noteText", "note"]
 
 
 class Theme:
@@ -117,7 +116,6 @@ LIGHT = Theme(
         "cursor": (135, 135, 253),
         "autoCompFg": (0, 0, 0),
         "autoCompBg": (242, 242, 242),
-        "note": (255, 237, 223),
         "pagebreak": (221, 221, 221),
         "pagebreakNoAdjust": (221, 221, 221),
         "tabText": (50, 50, 50),
@@ -147,7 +145,6 @@ DARK = Theme(
         "cursor": (110, 110, 230),
         "autoCompFg": (230, 230, 230),
         "autoCompBg": (55, 55, 55),
-        "note": (80, 62, 50),
         "pagebreak": (70, 70, 70),
         "pagebreakNoAdjust": (70, 70, 70),
         "tabText": (220, 220, 220),
@@ -178,7 +175,6 @@ PARCHMENT = Theme(
         "cursor": (196, 150, 90),
         "autoCompFg": (35, 30, 20),
         "autoCompBg": (246, 226, 160),
-        "note": (249, 206, 158),
         "pagebreak": (226, 202, 140),
         "pagebreakNoAdjust": (226, 202, 140),
         "tabText": (60, 45, 25),
@@ -211,7 +207,6 @@ SOLARIZED_LIGHT = Theme(
         "cursor": (38, 139, 210),
         "autoCompFg": (88, 110, 117),
         "autoCompBg": (238, 232, 213),
-        "note": (250, 228, 204),
         "pagebreak": (225, 218, 196),
         "pagebreakNoAdjust": (225, 218, 196),
         "tabText": (88, 110, 117),
@@ -243,7 +238,6 @@ SOLARIZED_DARK = Theme(
         "cursor": (38, 139, 210),
         "autoCompFg": (147, 161, 161),
         "autoCompBg": (7, 54, 66),
-        "note": (62, 54, 30),
         "pagebreak": (20, 70, 82),
         "pagebreakNoAdjust": (20, 70, 82),
         "tabText": (147, 161, 161),
@@ -275,7 +269,6 @@ MONOKAI = Theme(
         "cursor": (253, 151, 31),
         "autoCompFg": (248, 248, 242),
         "autoCompBg": (62, 61, 50),
-        "note": (82, 66, 36),
         "pagebreak": (62, 61, 50),
         "pagebreakNoAdjust": (62, 61, 50),
         "tabText": (248, 248, 242),
@@ -308,7 +301,6 @@ DRACULA = Theme(
         "cursor": (189, 147, 249),
         "autoCompFg": (248, 248, 242),
         "autoCompBg": (68, 71, 90),
-        "note": (84, 58, 78),
         "pagebreak": (68, 71, 90),
         "pagebreakNoAdjust": (68, 71, 90),
         "tabText": (248, 248, 242),
@@ -341,7 +333,6 @@ NORD = Theme(
         "cursor": (136, 192, 208),
         "autoCompFg": (216, 222, 233),
         "autoCompBg": (59, 66, 82),
-        "note": (90, 70, 66),
         "pagebreak": (67, 76, 94),
         "pagebreakNoAdjust": (67, 76, 94),
         "tabText": (216, 222, 233),

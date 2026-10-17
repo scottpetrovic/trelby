@@ -2,10 +2,10 @@
 # each, in script order. a card shows where its note is (the page and the
 # scene, and the start of the paragraph it's on) above the note's text.
 #
-# selecting a card puts the cursor on the note's paragraph, which the
-# script view highlights while the list has the focus. double-click, Enter
-# or F2 edits a note in place (Ctrl+Enter or clicking elsewhere finishes,
-# Esc cancels), Space marks it resolved or not, and Delete deletes it.
+# selecting a card puts the cursor on the note's paragraph. double-click,
+# Enter or F2 edits a note in place (Ctrl+Enter or clicking elsewhere,
+# the script included, finishes, Esc cancels), Space marks it resolved or
+# not, and Delete or the × at the card's top right deletes it.
 # Edit / Add note (Alt+N) adds one to the paragraph at the cursor. every
 # change is an undoable edit of the script, done through MyCtrl.
 
@@ -122,6 +122,9 @@ class NotesList(wx.VListBox):
         # NoteItems shown
         self.items = []
 
+        # index of the card whose delete button the mouse is over, or None
+        self.hoverClose = None
+
         # index of the card whose note is being edited, which is made tall
         # enough for the text field, or None
         self.editRow = None
@@ -134,9 +137,9 @@ class NotesList(wx.VListBox):
         # NotesPanel.applyTheme)
         self.highlight = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
 
-        # the color of the bar at the left of each card, like the note
-        # markers in the script
-        self.barColor = wx.Colour(242, 178, 56)
+        # the color of the bar at the left of each card, the theme's accent
+        # color like the note markers in the script
+        self.barColor = self.highlight
 
         self.pad = self.FromDIP(wx.Size(8, 7))
         self.barWidth = self.FromDIP(3)
@@ -149,10 +152,13 @@ class NotesList(wx.VListBox):
         self.wrapWidth = None
 
         self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeave)
 
     def setItems(self, items):
         self.items = items
         self.wrapCache = {}
+        self.hoverClose = None
 
         # also makes the list re-measure all rows
         self.SetItemCount(len(items))
@@ -163,6 +169,42 @@ class NotesList(wx.VListBox):
         x = self.barWidth + self.pad.x
 
         return x, self.GetClientSize().width - x - self.pad.x
+
+    # the delete button of the card in row rect 'rect', at the right of its
+    # first line, in the same coordinates as rect
+    def getCloseRect(self, rect):
+        size = self.smallHeight
+
+        return wx.Rect(rect.GetRight() - self.pad.x - size, rect.y + self.pad.y, size, size)
+
+    # the index of the card whose delete button is at pos (client
+    # coordinates), or None. the card being edited has none.
+    def closeHitTest(self, pos):
+        n = self.VirtualHitTest(pos.y)
+
+        if (n == wx.NOT_FOUND) or (n == self.editRow) or not self.IsRowVisible(n):
+            return None
+
+        if self.getCloseRect(self.GetItemRect(n)).Contains(pos):
+            return n
+
+        return None
+
+    def OnMotion(self, event):
+        event.Skip()
+        self.setHoverClose(self.closeHitTest(event.GetPosition()))
+
+    def OnLeave(self, event):
+        event.Skip()
+        self.setHoverClose(None)
+
+    def setHoverClose(self, n):
+        if n == self.hoverClose:
+            return
+
+        self.hoverClose = n
+        self.SetToolTip(_("Delete note") if n is not None else None)
+        self.Refresh()
 
     # return item n's note text wrapped to fit the list's width
     def getTextLines(self, n):
@@ -257,12 +299,28 @@ class NotesList(wx.VListBox):
         dc.SetFont(self.smallFont)
         dc.SetTextForeground(dim)
 
-        contextW = width
+        # the right end of the first line's text: left of the delete
+        # button, an × that turns the text color under the mouse
+        right = width
+
+        if n != self.editRow:
+            cr = self.getCloseRect(rect)
+            inset = max(2, cr.width // 4)
+            x1, y1 = cr.x + inset, cr.y + inset
+            x2, y2 = cr.GetRight() - inset, cr.GetBottom() - inset
+
+            dc.SetPen(wx.Pen(fg if n == self.hoverClose else dim, self.FromDIP(1)))
+            dc.DrawLine(x1, y1, x2 + 1, y2 + 1)
+            dc.DrawLine(x1, y2, x2 + 1, y1 - 1)
+
+            right -= cr.width + self.pad.x // 2
+
+        contextW = right
 
         if it.note.resolved:
             mark = "✓ " + _("Resolved")
             markW = dc.GetTextExtent(mark).width
-            dc.DrawText(mark, x + width - markW, y)
+            dc.DrawText(mark, x + right - markW, y)
             contextW -= markW + self.pad.x
 
         if contextW > 0:
@@ -399,6 +457,8 @@ class NotesPanel(wx.Panel):
         self.list.Bind(wx.EVT_SET_FOCUS, self.OnListFocus)
         self.list.Bind(wx.EVT_KILL_FOCUS, self.OnListFocus)
         self.list.Bind(wx.EVT_MOUSEWHEEL, self.OnListWheel)
+        self.list.Bind(wx.EVT_LEFT_DOWN, self.OnListLeftDown)
+        self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnListLeftDClick)
         self.addBtn.Bind(wx.EVT_BUTTON, self.OnAddBtn)
         self.closeBtn.Bind(wx.EVT_BUTTON, self.OnClose)
 
@@ -422,7 +482,7 @@ class NotesPanel(wx.Panel):
         self.list.SetBackgroundColour(cfgGui.textBgColor)
         self.list.SetForegroundColour(cfgGui.textColor)
         self.list.highlight = cfgGui.accentColor
-        self.list.barColor = cfgGui.noteMarkerColor
+        self.list.barColor = cfgGui.accentColor
         self.listHolder.SetBackgroundColour(cfgGui.textBgColor)
         self.scrollBar.setColors(cfgGui.textBgColor, cfgGui.textColor)
 
@@ -576,23 +636,6 @@ class NotesPanel(wx.Panel):
 
                 return
 
-    # the first line of the paragraph whose note is selected, while the
-    # list has the focus, for the script view to highlight it; otherwise
-    # None
-    def getHighlightLine(self):
-        if not self.IsShownOnScreen():
-            return None
-
-        if self.editing:
-            return self.editing[0].line
-
-        sel = self.getSelected()
-
-        if sel and self.list.HasFocus():
-            return sel.line
-
-        return None
-
     # show and focus the notes of the paragraph starting at line, for a
     # click on its marker in the script
     def showNotesOf(self, line):
@@ -661,8 +704,6 @@ class NotesPanel(wx.Panel):
 
         ctrl.SetFocus()
         ctrl.SetInsertionPointEnd()
-
-        self.getCtrl().Refresh(False)
 
     # stop editing a note, if one is being edited, keeping the new text or
     # not. 'refocus' gives the list the focus back. a note left empty is
@@ -748,6 +789,41 @@ class NotesPanel(wx.Panel):
         if self.items:
             self.select(self.items[min(idx, len(self.items) - 1)].key())
 
+    # a click on a card's ×, which deletes its note without selecting it
+    def OnListLeftDown(self, event):
+        n = self.list.closeHitTest(event.GetPosition())
+
+        if n is None:
+            event.Skip()
+
+            return
+
+        item = self.items[n]
+
+        # finishing an edit can change the list (an emptied note is
+        # deleted), so the note is found again after it
+        if self.editing:
+            self.finishEdit(True)
+
+            same = [
+                it
+                for it in self.items
+                if (it.line == item.line) and (it.note == item.note)
+            ]
+
+            if not same:
+                return
+
+            item = min(same, key=lambda it: abs(it.index - item.index))
+
+        self.deleteNote(item)
+
+    # the second click of a double-click on a ×, which mustn't delete the
+    # next note too, or edit it
+    def OnListLeftDClick(self, event):
+        if self.list.closeHitTest(event.GetPosition()) is None:
+            event.Skip()
+
     def OnTimer(self, event):
         self.refresh()
 
@@ -757,15 +833,9 @@ class NotesPanel(wx.Panel):
 
         event.Skip()
 
-    # the highlighted paragraph in the script follows the list's focus
     def OnListFocus(self, event):
         event.Skip()
         self.list.Refresh()
-        wx.CallAfter(self.refreshScript)
-
-    def refreshScript(self):
-        if self:
-            self.getCtrl().Refresh(False)
 
     def OnItemSelected(self, event):
         if self.updating:
