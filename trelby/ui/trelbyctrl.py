@@ -168,6 +168,10 @@ class MyCtrl(wx.Control):
         # the noteeditor.NoteEditor editing a note on its card, or None
         self.noteEditor = None
 
+        # the first line of the paragraph a new note is being written on,
+        # which gets a blank card for it beside the page, or None
+        self.newNoteLine = None
+
         # the right-click menu's items for a misspelled word: its
         # suggested replacements, and adding it to the user's or the
         # script's dictionary
@@ -603,7 +607,7 @@ class MyCtrl(wx.Control):
 
         if marker is not None:
             self.lastNoteClick = (time.monotonic(), marker)
-            self.showNote(*marker)
+            self.showNote(marker[0], marker[1], marker[1] is None)
 
             return
 
@@ -736,15 +740,18 @@ class MyCtrl(wx.Control):
 
         return None
 
-    # put the cursor on the paragraph starting at line, and show the notes
-    # sidebar with its note at index selected, or its first one if index
-    # is None
-    def showNote(self, line, index):
-        if not self.gd.showNotes:
+    # put the cursor on the paragraph starting at line, and select its note
+    # at index in the notes sidebar, or its first one if index is None, if
+    # the sidebar is shown or 'openSidebar' is True. (only a note icon
+    # opens it, since its notes can't be read anywhere else.)
+    def showNote(self, line, index, openSidebar=False):
+        if openSidebar and not self.gd.showNotes:
             self.gd.mainFrame.setShowNotes(True)
 
         self.showLine(line)
-        self.panel.notes.showNotesOf(line, index)
+
+        if self.gd.showNotes:
+            self.panel.notes.showNotesOf(line, index)
 
     # a double click on the note at (line, index) beside the page (see
     # noteMarkerAt), which edits it. a note icon for more than one note
@@ -768,17 +775,51 @@ class MyCtrl(wx.Control):
         # that got us here may have moved them
         self.Update()
 
-        rect = next(
-            (r for r, l, i in self.noteMarkers if (l, i) == (line, index)), None
-        )
+        rect = self.noteCardRect(line, index)
 
         if rect is None:
-            self.showNote(line, index)
+            self.showNote(line, index, True)
             self.panel.notes.startEdit(self.panel.notes.list.GetSelection())
 
             return
 
         self.noteEditor = noteeditor.NoteEditor(self, line, index, rect)
+
+    # start writing a new note on the paragraph at the cursor, on a blank
+    # card after its notes beside the page, or in the notes sidebar if
+    # there's no room for cards
+    def newNote(self):
+        self.clearAutoComp()
+        self.finishNoteEdit(True)
+
+        line = self.sp.getParaFirstIndexFromLine(self.ed.line)
+        self.makeLineVisible(line)
+
+        self.newNoteLine = line
+        self.Refresh(False)
+        self.Update()
+
+        rect = self.noteCardRect(line, len(self.sp.getParaNotes(line)))
+
+        if rect is None:
+            self.newNoteLine = None
+            self.Refresh(False)
+
+            if not self.gd.showNotes:
+                self.gd.mainFrame.setShowNotes(True)
+
+            self.panel.notes.addNote()
+
+            return
+
+        self.noteEditor = noteeditor.NoteEditor(self, line, None, rect)
+
+    # the wx.Rect of the card of the note at index among the notes of the
+    # paragraph starting at line, as last drawn, or None if it has none
+    def noteCardRect(self, line, index):
+        return next(
+            (r for r, l, i in self.noteMarkers if (l, i) == (line, index)), None
+        )
 
     # stop editing a note on its card, if one is, keeping the new text or
     # not
@@ -794,7 +835,7 @@ class MyCtrl(wx.Control):
 
         if index is None:
             if len(notes) != 1:
-                self.showNote(line, None)
+                self.showNote(line, None, True)
 
                 return
 
@@ -1360,6 +1401,7 @@ class MyCtrl(wx.Control):
             self.gd.cfgGl,
             self.gd.showFormatting,
             self.gd.scDict if self.gd.cfgGl.checkSpelling else None,
+            self.newNoteLine,
         )
         self.titleButtonRect = painter.paint(dc)
         self.noteMarkers = painter.noteMarkers

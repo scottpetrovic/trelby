@@ -521,15 +521,10 @@ def gotoPage(frame, ctrl):
     ctrl.updateScreen()
 
 
-# start writing a note on the paragraph at the cursor, in the notes
-# sidebar, showing it if needed
+# start writing a note on the paragraph at the cursor, on a card beside
+# the page (see MyCtrl.newNote)
 def addNote(frame, ctrl):
-    ctrl.clearAutoComp()
-
-    if not frame.gd.showNotes:
-        frame.setShowNotes(True)
-
-    ctrl.panel.notes.addNote()
+    ctrl.newNote()
 
 
 def insertNbsp(frame, ctrl):

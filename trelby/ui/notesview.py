@@ -6,7 +6,9 @@
 # Enter or F2 edits a note in place (Ctrl+Enter or clicking elsewhere,
 # the script included, finishes, Esc cancels), Space marks it resolved or
 # not, and Delete or the × in a column at the card's right deletes it.
-# Edit / Add note (Alt+N) adds one to the paragraph at the cursor. every
+# the + button adds one to the paragraph at the cursor (Edit / Add note,
+# Alt+N, adds it on a card beside the page instead, see MyCtrl.newNote,
+# unless there's no room for one). every
 # change is an undoable edit of the script, done through MyCtrl.
 
 import bisect

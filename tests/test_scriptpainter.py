@@ -189,3 +189,25 @@ def testPaintNoteMarkers(app, vm, cards):
     assert rects[0].y == t1.y
     assert rects[1].y > rects[0].GetBottom()
     assert rects[2].y == max(t5.y, rects[1].GetBottom() + 1 + 4)
+
+
+# a paragraph a new note is being written on gets a blank card after its
+# notes, with the index the note will have, even if it has none yet
+@pytest.mark.parametrize("line, notes", [(1, (Note("Hi"),)), (5, ())])
+def testPaintNewNoteCard(app, line, notes):
+    ed = loadSample()
+    ed.sp.lines[line].notes = notes
+    vm = viewmode.ViewModeDraft()
+    size = wx.Size(1600, 600)
+    cfgGui = configgui.ConfigGui(ed.sp.cfgGl, 100)
+    vp = scriptpainter.Viewport.make(ed.sp, ed, cfgGui, vm, size, lambda n: n)
+
+    painter = scriptpainter.ScriptPainter(
+        vp, vm, ed.sp.cfgGl, False, newNoteLine=line
+    )
+    dc = wx.MemoryDC(wx.Bitmap(size))
+    painter.paint(dc)
+    dc.SelectObject(wx.NullBitmap)
+
+    keys = [(l, index) for rect, l, index in painter.noteMarkers]
+    assert keys == [(line, k) for k in range(len(notes) + 1)]

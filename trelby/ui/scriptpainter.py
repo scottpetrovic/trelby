@@ -14,6 +14,7 @@ import trelby.spellcheck as spellcheck
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.util as util
+from trelby.screenplay.notes import Note
 from trelby.ui.theming import blendColors
 
 # the notes beside the page: how wide their cards are at most, and at
@@ -79,13 +80,18 @@ class ScriptPainter:
     # config, and showFormatting whether to show the margins and line
     # break types (View / Show formatting). misspelled words are
     # underlined if scDict, the user's global spell checker dictionary,
-    # is given and the main dictionary is loaded.
-    def __init__(self, vp, vm, cfgGl, showFormatting, scDict=None):
+    # is given and the main dictionary is loaded. newNoteLine is the first
+    # line of a paragraph that gets a blank card after its notes, for a
+    # note being written there (see noteeditor.py), or None.
+    def __init__(
+        self, vp, vm, cfgGl, showFormatting, scDict=None, newNoteLine=None
+    ):
         self.vp = vp
         self.vm = vm
         self.cfgGl = cfgGl
         self.cfgGui = vp.cfgGui
         self.showFormatting = showFormatting
+        self.newNoteLine = newNoteLine
 
         self.spellChecker = None
 
@@ -426,7 +432,8 @@ class ScriptPainter:
     # mode or in a narrow window, a note icon marks the paragraph instead.
     # remembers where they are for clicks, as (wx.Rect, line, index)
     # tuples in noteMarkers, index being the note's among the paragraph's
-    # notes, or None for an icon.
+    # notes, or None for an icon. the blank card for a new note (see
+    # newNoteLine) has the index the note will have.
     def drawNoteMarkers(self, dc, strings, dpages, size):
         vp = self.vp
         ls = vp.sp.lines
@@ -446,7 +453,15 @@ class ScriptPainter:
         for t in strings:
             i = t.line
 
-            if (i == -1) or not ls[i].notes:
+            if i == -1:
+                continue
+
+            notes = ls[i].notes
+
+            if i == self.newNoteLine:
+                notes += (Note(""),)
+
+            if not notes:
                 continue
 
             right = draftX
@@ -478,7 +493,7 @@ class ScriptPainter:
             dc.SetPen(wx.Pen(self.noteColors(False)[1]))
             dc.DrawLine(right + 1, t.y + lineH // 2, x, y + lineH // 2)
 
-            for index, note in enumerate(ls[i].notes):
+            for index, note in enumerate(notes):
                 h = self.drawNoteCard(dc, x, y, w, lineH, note)
                 self.noteMarkers.append((wx.Rect(x, y, w, h), i, index))
                 y += h + vp.dip(4)

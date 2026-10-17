@@ -273,9 +273,13 @@ class EditCtrl(wx.Panel):
         self.ed = ed
         self.sp = ed.sp
         self.noteEditor = None
+        self.newNoteLine = None
 
     def getCfgGui(self):
         return SimpleNamespace(textBgColor=wx.WHITE, textColor=wx.BLACK)
+
+    def addNote(self, line, text):
+        self.ed.addNote(line, text)
 
     def setNote(self, line, index, note):
         self.ed.setNote(line, index, note)
@@ -397,3 +401,58 @@ def testNoteDClick(app):
     ctrl.ed.deleteNote(0, 0)
     ctrl.noteDClick(0, None)
     assert edited == [(0, 1), (0, 0)]
+
+
+# a new note, written on the blank card after the paragraph's notes, is
+# added when it's finished with some text, and not otherwise
+@pytest.mark.parametrize(
+    "keep, text, added",
+    [(True, " Three ", ("Three",)), (True, " ", ()), (False, "Three", ())],
+)
+def testInlineNewNote(editCtrl, keep, text, added):
+    editCtrl.newNoteLine = 0
+    e = startEdit(editCtrl, None)
+    assert e.text.GetValue() == ""
+
+    # it follows the blank card, whose index is the new note's
+    e.update([(wx.Rect(0, 0, 100, 10), 0, 1), (wx.Rect(30, 70, 150, 30), 0, 2)])
+    assert e.text.GetRect().GetPosition() == wx.Point(30, 70)
+
+    e.text.SetValue(text)
+    e.finish(keep)
+
+    assert editCtrl.noteEditor is None
+    assert editCtrl.newNoteLine is None
+    assert [n.text for n in editCtrl.sp.getParaNotes(0)] == ["One", "Two"] + list(
+        added
+    )
+
+
+# clicking a note's card beside the page puts the cursor on its paragraph
+# and selects the note in the notes sidebar if it's shown, but doesn't
+# show the sidebar; a note icon does, since its notes can't be read
+# anywhere else
+def testNoteClickOpensSidebarOnlyForIcons(app):
+    ctrl = noteCtrl()
+    shown = []
+    selected = []
+
+    def setShowNotes(show):
+        shown.append(show)
+        ctrl.gd.showNotes = show
+
+    ctrl.gd.showNotes = False
+    ctrl.gd.mainFrame = SimpleNamespace(setShowNotes=setShowNotes)
+    ctrl.panel = SimpleNamespace(
+        notes=SimpleNamespace(showNotesOf=lambda *args: selected.append(args))
+    )
+    ctrl.showLine = lambda line: None
+
+    ctrl.showNote(0, 1)
+    assert (shown, selected) == ([], [])
+
+    ctrl.showNote(0, None, True)
+    assert (shown, selected) == ([True], [(0, None)])
+
+    ctrl.showNote(0, 1)
+    assert (shown, selected) == ([True], [(0, None), (0, 1)])
