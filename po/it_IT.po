@@ -3581,3 +3581,43 @@ msgstr "Riavvia più tardi"
 
 #~ msgid "text"
 #~ msgstr "testo"
+
+#: trelby/dialogs/finddlg.py:122
+msgid "&Find next"
+msgstr "&Trova successivo"
+
+#: trelby/dialogs/finddlg.py:125
+msgid "&Replace"
+msgstr "&Sostituisci"
+
+#: trelby/dialogs/finddlg.py:128
+msgid "Replace all"
+msgstr "Sostituisci tutto"
+
+#: trelby/dialogs/namesdlg.py:141
+msgid "begins with"
+msgstr "inizia con"
+
+#: trelby/dialogs/namesdlg.py:141
+msgid "contains"
+msgstr "contiene"
+
+#: trelby/dialogs/namesdlg.py:141
+msgid "ends in"
+msgstr "finisce con"
+
+#: trelby/dialogs/namesdlg.py:151
+msgid "Both"
+msgstr "Entrambi"
+
+#: trelby/dialogs/commandsdlg.py:52
+msgid "&Save as..."
+msgstr "&Salva come..."
+
+#: trelby/dialogs/commandsdlg.py:55
+msgid "&File"
+msgstr "&File"
+
+#: trelby/dialogs/titlesdlg.py:563
+msgid "Page: {} / {}"
+msgstr "Pagina: {} / {}"

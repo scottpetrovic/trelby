@@ -49,10 +49,10 @@ class CommandsDlg(wx.Frame):
 
         id = wx.NewIdRef()
         menu = wx.Menu()
-        menu.Append(id, "&Save as...")
+        menu.Append(id, _("&Save as..."))
 
         mb = wx.MenuBar()
-        mb.Append(menu, "&File")
+        mb.Append(menu, _("&File"))
         self.SetMenuBar(mb)
 
         self.Bind(wx.EVT_MENU, self.OnSave, id=id)

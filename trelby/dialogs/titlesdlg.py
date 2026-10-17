@@ -560,7 +560,7 @@ class TitlesDlg(wx.Dialog):
         if self.pageIndex != -1:
             page = self.titles.pages[self.pageIndex]
 
-            self.pageLabel.SetLabel("Page: %d / %d" % (self.pageIndex + 1, pgCnt))
+            self.pageLabel.SetLabel(_("Page: {} / {}").format(self.pageIndex + 1, pgCnt))
             self.addBtn.Enable(True)
             self.delBtn.Enable(len(page) > 0)
 

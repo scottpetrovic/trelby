@@ -119,13 +119,13 @@ class FindDlg(wx.Dialog):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        find = wx.Button(self, -1, "&Find next")
+        find = wx.Button(self, -1, _("&Find next"))
         vsizer.Add(find, 0, wx.EXPAND | wx.BOTTOM, 5)
 
-        replace = wx.Button(self, -1, "&Replace")
+        replace = wx.Button(self, -1, _("&Replace"))
         vsizer.Add(replace, 0, wx.EXPAND | wx.BOTTOM, 5)
 
-        replaceAll = wx.Button(self, -1, " Replace all ")
+        replaceAll = wx.Button(self, -1, " " + _("Replace all") + " ")
         vsizer.Add(replaceAll, 0, wx.EXPAND | wx.BOTTOM, 5)
 
         self.moreButton = wx.Button(self, -1, "")

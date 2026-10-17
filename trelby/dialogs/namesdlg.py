@@ -138,7 +138,7 @@ class NamesDlg(wx.Dialog):
             _("Name"),
             style=wx.RA_SPECIFY_COLS,
             majorDimension=1,
-            choices=["begins with", "contains", "ends in"],
+            choices=[_("begins with"), _("contains"), _("ends in")],
         )
         hsizer2.Add(self.nameRb)
 
@@ -148,7 +148,7 @@ class NamesDlg(wx.Dialog):
             _("Sex"),
             style=wx.RA_SPECIFY_COLS,
             majorDimension=1,
-            choices=["Male", "Female", "Both"],
+            choices=[_("Male"), _("Female"), _("Both")],
         )
         self.sexRb.SetSelection(2)
         hsizer2.Add(self.sexRb, 0, wx.LEFT, 5)
@@ -286,18 +286,18 @@ class MyListCtrl(wx.ListCtrl):
             | wx.LC_VRULES,
         )
 
-        self.sex = ["Female", "Male"]
+        self.sex = [_("Female"), _("Male")]
 
-        self.InsertColumn(0, "Name")
-        self.InsertColumn(1, "Type")
-        self.InsertColumn(2, "Sex")
+        self.InsertColumn(0, _("Name"))
+        self.InsertColumn(1, _("Type"))
+        self.InsertColumn(2, _("Sex"))
         self.SetColumnWidth(0, 120)
         self.SetColumnWidth(1, 120)
 
         # we can't use wx.LIST_AUTOSIZE since this is a virtual control,
         # so calculate the size ourselves since we know the longest string
         # possible.
-        w = gutil.getTextExtent(self.GetFont(), "Female")[0] + 15
+        w = max(gutil.getTextExtent(self.GetFont(), s)[0] for s in self.sex) + 15
         self.SetColumnWidth(2, w)
 
         gutil.setWH(self, w=120 * 2 + w + 25)

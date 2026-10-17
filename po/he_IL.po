@@ -3504,3 +3504,43 @@ msgstr "יישור לימין"
 #: trelby/util.py:146
 msgid "bools2flags: chars and bools are not equal length"
 msgstr "bools2flags: ל־chars ול־bools אין אותו אורך"
+
+#: trelby/dialogs/finddlg.py:122
+msgid "&Find next"
+msgstr "&חפש הבא"
+
+#: trelby/dialogs/finddlg.py:125
+msgid "&Replace"
+msgstr "&החלף"
+
+#: trelby/dialogs/finddlg.py:128
+msgid "Replace all"
+msgstr "החלף הכל"
+
+#: trelby/dialogs/namesdlg.py:141
+msgid "begins with"
+msgstr "מתחיל ב"
+
+#: trelby/dialogs/namesdlg.py:141
+msgid "contains"
+msgstr "מכיל"
+
+#: trelby/dialogs/namesdlg.py:141
+msgid "ends in"
+msgstr "מסתיים ב"
+
+#: trelby/dialogs/namesdlg.py:151
+msgid "Both"
+msgstr "שניהם"
+
+#: trelby/dialogs/commandsdlg.py:52
+msgid "&Save as..."
+msgstr "&שמור בשם..."
+
+#: trelby/dialogs/commandsdlg.py:55
+msgid "&File"
+msgstr "&קובץ"
+
+#: trelby/dialogs/titlesdlg.py:563
+msgid "Page: {} / {}"
+msgstr "עמוד: {} / {}"

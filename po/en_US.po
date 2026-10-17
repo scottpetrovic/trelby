@@ -3575,3 +3575,43 @@ msgstr "Restart later"
 
 #~ msgid "text"
 #~ msgstr "text"
+
+#: trelby/dialogs/finddlg.py:122
+msgid "&Find next"
+msgstr "&Find next"
+
+#: trelby/dialogs/finddlg.py:125
+msgid "&Replace"
+msgstr "&Replace"
+
+#: trelby/dialogs/finddlg.py:128
+msgid "Replace all"
+msgstr "Replace all"
+
+#: trelby/dialogs/namesdlg.py:141
+msgid "begins with"
+msgstr "begins with"
+
+#: trelby/dialogs/namesdlg.py:141
+msgid "contains"
+msgstr "contains"
+
+#: trelby/dialogs/namesdlg.py:141
+msgid "ends in"
+msgstr "ends in"
+
+#: trelby/dialogs/namesdlg.py:151
+msgid "Both"
+msgstr "Both"
+
+#: trelby/dialogs/commandsdlg.py:52
+msgid "&Save as..."
+msgstr "&Save as..."
+
+#: trelby/dialogs/commandsdlg.py:55
+msgid "&File"
+msgstr "&File"
+
+#: trelby/dialogs/titlesdlg.py:563
+msgid "Page: {} / {}"
+msgstr "Page: {} / {}"
