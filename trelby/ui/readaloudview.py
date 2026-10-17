@@ -4,15 +4,18 @@ import wx
 
 import trelby.screenplay.tableread as tableread
 import trelby.speech as speech
+import trelby.ui.gutil as gutil
 import trelby.ui.icons as icons
 import trelby.ui.theming as theming
 from trelby.screenplay.tableread import NARRATOR, VoiceChoice
 from trelby.ui.scrollbar import ScrollBar
+from trelby.ui.theming import blendColors
 
 # the side panel's Read aloud tab: buttons to play, pause and stop the table
 # read (frame.reader, a tablereader.TableReader) and to go from element to
-# element, and the cast: the narrator and each character with their voice
-# and speed, which can be changed, and a button to hear them. the voices
+# element, the cast as a grid (the narrator and each character with their
+# voice and speed), and below it the selected speaker's voice and speed,
+# which can be changed, and a button to hear them. the voices
 # chosen are kept in the script (sp.readAloud); the rest are the ones
 # tableread.assignVoices picks, shown as they'd be read now. the reader
 # tells the frame whenever what it's doing changes, and the frame calls
@@ -58,49 +61,165 @@ def setSelection(w, idx):
         w.Refresh()
 
 
-# one speaker's controls: their name and a button to hear their voice,
-# over their voice and speed
-class CastRow:
-    def __init__(self, panel, parent, name, voiceNames):
-        self.name = name
+# the cast as a grid: a row per speaker with their name, voice and speed.
+# the selected row is the one the panel's lists below it change, and the
+# speaker being read is shown in the accent color, in bold.
+class CastList(wx.VListBox):
+    def __init__(self, parent):
+        wx.VListBox.__init__(self, parent, -1, style=wx.BORDER_NONE)
 
-        self.label = wx.StaticText(
-            parent,
-            -1,
-            _("Narrator") if name == NARRATOR else name,
-            style=wx.ST_ELLIPSIZE_END,
+        # (name, voice, speed) shown on each row
+        self.entries = []
+
+        # index of the row of the speaker being read, or None
+        self.currentIdx = None
+
+        self.normalFont = self.GetFont()
+        self.boldFont = self.normalFont.Bold()
+
+        # color of the selection and the speaker being read. the panel's
+        # applyTheme sets the theme's accent color.
+        self.highlight = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+
+        self.pad = self.FromDIP(wx.Size(6, 5))
+        self.gap = self.FromDIP(8)
+        self.lineHeight = max(
+            self.GetFullTextExtent("Ag", font)[1]
+            for font in (self.normalFont, self.boldFont)
         )
-        self.label.SetMinSize(wx.Size(parent.FromDIP(40), -1))
+        self.rowHeight = self.pad.y * 2 + self.lineHeight
 
-        self.sampleBtn = wx.BitmapButton(
-            parent, -1, panel.sampleBitmap, style=wx.BORDER_NONE
+        # the speed column is as wide as its widest label
+        self.speedWidth = max(
+            self.GetFullTextExtent(s, self.boldFont)[0]
+            for s in [_("Speed")] + speedLabels()
         )
-        self.sampleBtn.SetToolTip(_("Hear this voice"))
 
-        self.voice = wx.Choice(parent, -1, choices=voiceNames)
-        self.voice.SetMinSize(wx.Size(parent.FromDIP(60), -1))
-        self.voice.SetToolTip(_("Voice"))
+    def setEntries(self, entries):
+        if entries != self.entries:
+            self.entries = entries
+            self.SetItemCount(len(entries))
+            self.Refresh()
 
-        self.speed = wx.Choice(
-            parent, -1, choices=["%d%%" % round(f * 100) for f in SPEEDS]
+    def setCurrent(self, idx):
+        old = self.currentIdx
+        self.currentIdx = idx
+
+        for i in (old, idx):
+            if (i is not None) and (i < self.GetItemCount()):
+                self.RefreshRow(i)
+
+        if (idx is not None) and not self.IsRowVisible(idx):
+            self.ScrollToRow(idx)
+
+    # the x positions of the name, voice and speed columns and the right
+    # edge of the last, in a row width wide
+    def columns(self, width):
+        speedX = width - self.pad.x - self.speedWidth
+        rest = max(0, speedX - self.gap * 2 - self.pad.x)
+        voiceX = self.pad.x + rest * 9 // 20 + self.gap
+
+        return (self.pad.x, voiceX, speedX, width - self.pad.x)
+
+    def OnMeasureItem(self, n):
+        return self.rowHeight
+
+    def getRowColor(self, n):
+        bg = self.GetBackgroundColour()
+
+        if self.IsSelected(n):
+            return blendColors(bg, self.highlight, 0.2 if self.HasFocus() else 0.12)
+
+        return bg
+
+    def OnDrawBackground(self, dc, rect, n):
+        bg = self.GetBackgroundColour()
+        fill = self.getRowColor(n)
+
+        if fill != bg:
+            dc.SetPen(wx.TRANSPARENT_PEN)
+            dc.SetBrush(wx.Brush(fill))
+            dc.DrawRectangle(rect)
+
+        # separator between rows
+        dc.SetPen(wx.Pen(blendColors(bg, self.GetForegroundColour(), 0.12)))
+        y = rect.GetBottom()
+        dc.DrawLine(rect.GetLeft(), y, rect.GetRight() + 1, y)
+
+    def OnDrawItem(self, dc, rect, n):
+        name, voice, speed = self.entries[n]
+        nameX, voiceX, speedX, right = [
+            rect.x + x for x in self.columns(rect.width)
+        ]
+        y = rect.y + self.pad.y
+        fg = self.GetForegroundColour()
+        current = n == self.currentIdx
+
+        dc.SetFont(self.boldFont if current else self.normalFont)
+        dc.SetTextForeground(self.highlight if current else fg)
+        drawClipped(dc, name, nameX, y, voiceX - self.gap - nameX)
+
+        dc.SetFont(self.normalFont)
+        dc.SetTextForeground(fg)
+        drawClipped(dc, voice, voiceX, y, speedX - self.gap - voiceX)
+        dc.DrawText(speed, right - dc.GetTextExtent(speed).width, y)
+
+
+# the column titles over a CastList
+class CastHeader(wx.Window):
+    def __init__(self, parent, castList):
+        wx.Window.__init__(self, parent, -1, style=wx.BORDER_NONE)
+
+        self.castList = castList
+        self.titles = (_("Character"), _("Voice"), _("Speed"))
+
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.SetMinSize(
+            wx.Size(-1, castList.lineHeight + castList.pad.y + self.FromDIP(2))
         )
-        self.speed.SetToolTip(_("Speed"))
 
-        self.sampleBtn.Bind(wx.EVT_BUTTON, lambda e: panel.playSample(self))
-        self.voice.Bind(wx.EVT_CHOICE, lambda e: panel.OnChoice(self))
-        self.speed.Bind(wx.EVT_CHOICE, lambda e: panel.OnChoice(self))
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_SIZE, lambda e: self.Refresh())
 
-    def windows(self):
-        return (self.label, self.sampleBtn, self.voice, self.speed)
+    def OnPaint(self, event):
+        dc = wx.AutoBufferedPaintDC(self)
+        bg = self.GetBackgroundColour()
+        fg = self.GetForegroundColour()
+        lc = self.castList
+
+        dc.SetBackground(wx.Brush(bg))
+        dc.Clear()
+        dc.SetFont(lc.normalFont)
+        dc.SetTextForeground(blendColors(fg, bg, 0.35))
+
+        # the columns line up with the list's, which is as wide as listHolder
+        nameX, voiceX, speedX, right = lc.columns(lc.GetClientSize().width)
+        y = self.FromDIP(2)
+        name, voice, speed = self.titles
+
+        drawClipped(dc, name, nameX, y, voiceX - lc.gap - nameX)
+        drawClipped(dc, voice, voiceX, y, speedX - lc.gap - voiceX)
+        dc.DrawText(speed, right - dc.GetTextExtent(speed).width, y)
+
+
+# draw text at x, y on dc, shortened with "..." to fit in width
+def drawClipped(dc, text, x, y, width):
+    if width > 0:
+        dc.DrawText(wx.Control.Ellipsize(text, dc, wx.ELLIPSIZE_END, width), x, y)
+
+
+def speedLabels():
+    return ["%d%%" % round(f * 100) for f in SPEEDS]
+
+
+def displayName(name):
+    return _("Narrator") if name == NARRATOR else name
 
 
 class ReadAloudPanel(wx.Panel):
 
     # how long to wait after the last change before refreshing, in ms
     REFRESH_DELAY = 300
-
-    # how far a turn of the mouse wheel scrolls the cast, in DIPs per line
-    WHEEL_LINE = 20
 
     # the reset button (in self.tools) is made in toolParent, as in the
     # outline (see outline.OutlinePanel)
@@ -110,26 +229,17 @@ class ReadAloudPanel(wx.Panel):
         # trelbypanel.MyPanel whose script we show
         self.scriptPanel = scriptPanel
 
-        # the speakers shown (NARRATOR, then the characters), with a
-        # CastRow each, and the voices (speech.Voices) their lists offer.
-        # names is None until the cast has been shown.
+        # the speakers shown (NARRATOR, then the characters), and the
+        # voices (speech.Voices) the voice list offers. names is None until
+        # the cast has been shown.
         self.names = None
-        self.rows = []
         self.voices = []
+
+        # the (voice, speed) indexes in the lists for each of names
+        self.cast = []
 
         # the engine's normal rate, which SPEEDS are factors of
         self.baseRate = 0
-
-        # the row of the speaker being read, or None
-        self.currentRow = None
-
-        # how far the cast is scrolled down, in pixels
-        self.scrollPos = 0
-
-        # the configgui.ConfigGui last applied, to theme new rows with
-        self.cfgGui = None
-
-        self.sampleBitmap = icons.svgBitmap("speaker.svg", wx.Size(14, 14))
 
         self.tools = wx.Panel(toolParent or self, -1)
         hdr = wx.BoxSizer(wx.HORIZONTAL)
@@ -172,17 +282,66 @@ class ReadAloudPanel(wx.Panel):
         self.message = wx.StaticText(self, -1, "")
         vsizer.Add(self.message, 0, wx.EXPAND | wx.ALL, self.FromDIP(10))
 
-        # the cast's rows are on inner, which is moved up and down inside
-        # holder as scrollBar says (a native scrolled window's scrollbar
-        # wouldn't take the theme's colors)
-        self.holder = wx.Window(self, -1, style=wx.BORDER_NONE)
-        self.inner = wx.Panel(self.holder, -1)
-        self.scrollBar = ScrollBar(self, self.inner)
+        # the list's native scrollbar ignores the theme's colors, so when
+        # the list has one, it's sized to put it just past the right edge of
+        # listHolder, out of sight, and scrollBar stands in for it (as in
+        # the outline). the names are the script's text, which is left to
+        # right in a right-to-left interface too, and the titles go with
+        # them.
+        self.listHolder = wx.Window(self, -1, style=wx.BORDER_NONE)
+        gutil.keepLeftToRight(self.listHolder)
+        self.list = CastList(self.listHolder)
+        self.scrollBar = ScrollBar(self, self.list)
 
-        csizer = wx.BoxSizer(wx.HORIZONTAL)
-        csizer.Add(self.holder, 1, wx.EXPAND)
-        csizer.Add(self.scrollBar, 0, wx.EXPAND)
-        vsizer.Add(csizer, 1, wx.EXPAND)
+        self.header = CastHeader(self, self.list)
+        gutil.keepLeftToRight(self.header)
+        vsizer.Add(self.header, 0, wx.EXPAND)
+
+        lsizer = wx.BoxSizer(wx.HORIZONTAL)
+        lsizer.Add(self.listHolder, 1, wx.EXPAND)
+        lsizer.Add(self.scrollBar, 0, wx.EXPAND)
+        vsizer.Add(lsizer, 0, wx.EXPAND)
+
+        # the selected speaker's name and a button to hear them, over
+        # their voice and speed
+        self.editor = wx.Panel(self, -1)
+        esizer = wx.BoxSizer(wx.VERTICAL)
+
+        nsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.selName = wx.StaticText(self.editor, -1, "", style=wx.ST_ELLIPSIZE_END)
+        self.selName.SetFont(self.selName.GetFont().Bold())
+        nsizer.Add(self.selName, 1, wx.ALIGN_CENTER_VERTICAL)
+
+        self.sampleBtn = wx.BitmapButton(
+            self.editor,
+            -1,
+            icons.svgBitmap("speaker.svg", wx.Size(16, 16)),
+            style=wx.BORDER_NONE,
+        )
+        self.sampleBtn.SetToolTip(_("Hear this voice"))
+        nsizer.Add(self.sampleBtn, 0, wx.ALIGN_CENTER_VERTICAL)
+        esizer.Add(nsizer, 0, wx.EXPAND | wx.BOTTOM, 5)
+
+        grid = wx.FlexGridSizer(2, 5, 10)
+        grid.AddGrowableCol(1)
+
+        self.voice = wx.Choice(self.editor, -1)
+        self.voice.SetMinSize(wx.Size(self.FromDIP(60), -1))
+        self.speed = wx.Choice(self.editor, -1, choices=speedLabels())
+
+        for label, w, flags in (
+            (_("Voice"), self.voice, wx.EXPAND),
+            (_("Speed"), self.speed, 0),
+        ):
+            grid.Add(
+                wx.StaticText(self.editor, -1, label), 0, wx.ALIGN_CENTER_VERTICAL
+            )
+            grid.Add(w, 0, flags)
+
+        esizer.Add(grid, 0, wx.EXPAND)
+        gutil.spaceSizer(esizer)
+        self.editor.SetSizer(esizer)
+        vsizer.Add(self.editor, 0, wx.EXPAND | wx.ALL, self.FromDIP(6))
 
         self.SetSizer(vsizer)
 
@@ -190,12 +349,19 @@ class ReadAloudPanel(wx.Panel):
 
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
         self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
-        self.holder.Bind(wx.EVT_SIZE, self.OnHolderSize)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.listHolder.Bind(wx.EVT_SIZE, self.OnListHolderSize)
         self.scrollBar.Bind(wx.EVT_COMMAND_SCROLL, self.OnScroll)
+        self.list.Bind(wx.EVT_SIZE, self.OnListSize)
+        self.list.Bind(wx.EVT_IDLE, self.OnListIdle)
+        self.list.Bind(wx.EVT_LISTBOX, lambda e: self.showSelected())
+        self.list.Bind(wx.EVT_LISTBOX_DCLICK, lambda e: self.playSample())
+        self.list.Bind(wx.EVT_SET_FOCUS, self.OnListFocus)
+        self.list.Bind(wx.EVT_KILL_FOCUS, self.OnListFocus)
         self.resetBtn.Bind(wx.EVT_BUTTON, self.OnReset)
-
-        for w in (self.holder, self.inner):
-            w.Bind(wx.EVT_MOUSEWHEEL, self.OnWheel)
+        self.sampleBtn.Bind(wx.EVT_BUTTON, lambda e: self.playSample())
+        self.voice.Bind(wx.EVT_CHOICE, self.OnChoice)
+        self.speed.Bind(wx.EVT_CHOICE, self.OnChoice)
 
         self.message.Hide()
         self.scrollBar.Hide()
@@ -220,51 +386,27 @@ class ReadAloudPanel(wx.Panel):
     def getReader(self):
         return self.scriptPanel.gd.mainFrame.reader
 
-    # use the colors of the theme in the given configgui.ConfigGui: all of
-    # it like the tab bar, and the drop-down lists like the buttons
+    # use the colors of the theme in the given configgui.ConfigGui: the
+    # buttons and the lists like the tab bar, and the cast like the page
     def applyTheme(self, cfgGui):
-        self.cfgGui = cfgGui
+        bg, fg = cfgGui.tabBarBgColor, cfgGui.tabTextColor
 
-        for w in (self, self.tools, self.resetBtn, self.holder, self.inner):
-            w.SetBackgroundColour(cfgGui.tabBarBgColor)
-            w.SetForegroundColour(cfgGui.tabTextColor)
+        theming.themeChildren(self, cfgGui)
 
-        for w in self.GetChildren():
-            if isinstance(w, (wx.StaticText, wx.BitmapButton)):
-                w.SetBackgroundColour(cfgGui.tabBarBgColor)
-                w.SetForegroundColour(cfgGui.tabTextColor)
+        for w in [self, self.tools, self.resetBtn, self.header, self.sampleBtn] + [
+            w for w in self.GetChildren() if isinstance(w, wx.BitmapButton)
+        ]:
+            w.SetBackgroundColour(bg)
+            w.SetForegroundColour(fg)
 
-        self.scrollBar.setColors(cfgGui.tabBarBgColor, cfgGui.tabTextColor)
-        self.themeRows()
+        self.list.SetBackgroundColour(cfgGui.textBgColor)
+        self.list.SetForegroundColour(cfgGui.textColor)
+        self.list.highlight = cfgGui.accentColor
+        self.listHolder.SetBackgroundColour(cfgGui.textBgColor)
+        self.scrollBar.setColors(cfgGui.textBgColor, cfgGui.textColor)
+
         self.tools.Refresh()
         self.Refresh()
-
-    def themeRows(self):
-        cfgGui = self.cfgGui
-
-        if not cfgGui:
-            return
-
-        theming.themeChildren(self.inner, cfgGui)
-
-        for row in self.rows:
-            row.sampleBtn.SetBackgroundColour(cfgGui.tabBarBgColor)
-            self.colorLabel(row)
-
-    # the speaker being read in the accent color, in bold
-    def colorLabel(self, row):
-        cfgGui = self.cfgGui
-        current = row is self.currentRow
-
-        if cfgGui:
-            row.label.SetBackgroundColour(cfgGui.tabBarBgColor)
-            row.label.SetForegroundColour(
-                cfgGui.accentColor if current else cfgGui.tabTextColor
-            )
-
-        font = self.inner.GetFont()
-        row.label.SetFont(font.Bold() if current else font)
-        row.label.Refresh()
 
     # refresh the cast once things have been quiet for a moment
     def scheduleRefresh(self):
@@ -300,24 +442,70 @@ class ReadAloudPanel(wx.Panel):
         # an engine with no voices to choose from has its default voice
         voices = voices or [speech.Voice(None, _("Default voice"))]
         names = [NARRATOR] + list(cast.characters)
+        labels = voiceLabels(voices)
 
-        if (names != self.names) or (voices != self.voices):
+        if voices != self.voices:
             self.voices = voices
-            self.makeRows(names)
+            self.voice.Set(labels)
 
         self.baseRate = backend.defaultRate
         ids = [v.id for v in voices]
+        self.cast = []
 
-        for row in self.rows:
-            choice = cast.voiceFor(row.name or None)
-            setSelection(
-                row.voice, ids.index(choice.voiceId) if choice.voiceId in ids else 0
+        for name in names:
+            choice = cast.voiceFor(name or None)
+            self.cast.append(
+                (
+                    ids.index(choice.voiceId) if choice.voiceId in ids else 0,
+                    speedIndex(choice.rate, self.baseRate),
+                )
             )
-            setSelection(row.speed, speedIndex(choice.rate, self.baseRate))
+
+        speeds = speedLabels()
+        self.list.setEntries(
+            [
+                (displayName(name), labels[v], speeds[s])
+                for name, (v, s) in zip(names, self.cast)
+            ]
+        )
+
+        # the same speaker stays selected
+        if names != self.names:
+            sel = self.selectedName()
+            self.names = names
+            self.list.currentIdx = None
+            self.list.SetSelection(names.index(sel) if sel in names else 0)
 
         self.resetBtn.Enable(sp.readAloud.hasInfo())
         self.showMessage(None)
+        self.showSelected()
         self.updateState()
+
+    # the speaker of the selected row, or None
+    def selectedName(self):
+        idx = self.list.GetSelection()
+
+        if self.names and (0 <= idx < len(self.names)):
+            return self.names[idx]
+
+        return None
+
+    # select row idx, showing its speaker's voice in the lists below
+    def select(self, idx):
+        self.list.SetSelection(idx)
+        self.showSelected()
+
+    # show the selected speaker's voice and speed in the lists below
+    def showSelected(self):
+        idx = self.list.GetSelection()
+
+        if not (0 <= idx < len(self.cast)):
+            return
+
+        v, s = self.cast[idx]
+        self.selName.SetLabel(displayName(self.names[idx]))
+        setSelection(self.voice, v)
+        setSelection(self.speed, s)
 
     # show msg in place of the cast, saying why there's no reading aloud,
     # or the cast if msg is None
@@ -330,11 +518,10 @@ class ReadAloudPanel(wx.Panel):
             if width > 0:
                 self.message.Wrap(width)
 
-        elif not self.message.IsShown():
-            return
-
         self.message.Show(msg is not None)
-        self.holder.Show(msg is None)
+
+        for w in (self.header, self.listHolder, self.editor):
+            w.Show(msg is None)
 
         if msg is not None:
             self.scrollBar.Hide()
@@ -343,83 +530,50 @@ class ReadAloudPanel(wx.Panel):
         for btn in (self.playBtn, self.prevBtn, self.stopBtn, self.nextBtn):
             btn.Show(msg is None)
 
+        self.fitCast()
+
+    # make the cast as tall as its rows, so that the lists are right below
+    # it, unless they don't fit, when it scrolls
+    def fitCast(self):
+        if self.listHolder.IsShown():
+            lc = self.list
+            self.listHolder.SetMinSize(wx.Size(-1, 0))
+            room = self.GetClientSize().height - self.GetSizer().CalcMin().height
+            rows = lc.GetItemCount() * lc.rowHeight
+            height = min(rows, max(room, lc.rowHeight))
+            self.listHolder.SetMinSize(wx.Size(-1, height))
+
         self.Layout()
 
-        if msg is None:
-            self.layoutCast()
+    # size the list to fill listHolder, plus the width of its native
+    # scrollbar if it has one. called again when the scrollbar comes or goes.
+    def layoutList(self):
+        lc = self.list
+        size = self.listHolder.GetClientSize()
+        sbWidth = lc.GetSize().width - lc.GetClientSize().width
+        rect = wx.Rect(0, 0, size.width + sbWidth, size.height)
 
-    # make a CastRow for each of names
-    def makeRows(self, names):
-        self.inner.Freeze()
+        if lc.GetRect() != rect:
+            lc.SetSize(rect)
 
-        try:
-            self.inner.DestroyChildren()
-            self.rows = []
-            self.currentRow = None
+        self.header.Refresh()
+        self.updateScrollBar()
 
-            sizer = wx.BoxSizer(wx.VERTICAL)
-            voiceNames = voiceLabels(self.voices)
-            pad = self.FromDIP(6)
+    # make scrollBar match the list's native scrollbar, and show it only
+    # when the list can scroll
+    def updateScrollBar(self):
+        lc = self.list
+        thumb = lc.GetScrollThumb(wx.VERTICAL)
 
-            for name in names:
-                row = CastRow(self, self.inner, name, voiceNames)
-                self.rows.append(row)
-
-                grid = wx.FlexGridSizer(2, self.FromDIP(4), self.FromDIP(4))
-                grid.AddGrowableCol(0)
-                grid.Add(row.label, 0, wx.EXPAND)
-                grid.Add(row.sampleBtn, 0, wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
-                grid.Add(row.voice, 0, wx.EXPAND)
-                grid.Add(row.speed, 0)
-
-                sizer.Add(grid, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, pad)
-
-                for w in row.windows():
-                    w.Bind(wx.EVT_MOUSEWHEEL, self.OnWheel)
-
-            self.inner.SetSizer(sizer)
-            self.names = names
-            self.themeRows()
-        finally:
-            self.inner.Thaw()
-
-        self.layoutCast()
-
-    # size and place inner in holder at the scroll position, and show
-    # scrollBar if it can scroll
-    def layoutCast(self):
-        size = self.holder.GetClientSize()
-        sizer = self.inner.GetSizer()
-        height = sizer.CalcMin().height if sizer else 0
-
-        self.scrollPos = max(0, min(self.scrollPos, height - size.height))
-        self.inner.SetSize(
-            0, -self.scrollPos, size.width, max(height, size.height)
+        self.scrollBar.SetScrollbar(
+            lc.GetScrollPos(wx.VERTICAL), thumb, lc.GetScrollRange(wx.VERTICAL), thumb
         )
-        self.inner.Layout()
 
-        self.scrollBar.SetScrollbar(self.scrollPos, size.height, height, size.height)
-        show = self.holder.IsShown() and self.scrollBar.canScroll()
+        show = self.listHolder.IsShown() and self.scrollBar.canScroll()
 
         if show != self.scrollBar.IsShown():
             self.scrollBar.Show(show)
             self.Layout()
-
-    def scrollTo(self, pos):
-        if pos != self.scrollPos:
-            self.scrollPos = pos
-            self.layoutCast()
-
-    # scroll so that row shows
-    def showRow(self, row):
-        top = row.label.GetPosition().y + self.scrollPos - self.FromDIP(6)
-        bottom = row.voice.GetRect().GetBottom() + self.scrollPos + self.FromDIP(6)
-        height = self.holder.GetClientSize().height
-
-        if top < self.scrollPos:
-            self.scrollTo(top)
-        elif bottom > self.scrollPos + height:
-            self.scrollTo(max(top, bottom - height))
 
     # show what the reader is doing: the play button as a pause button
     # while it's reading, which buttons can be used, and which speaker is
@@ -449,22 +603,16 @@ class ReadAloudPanel(wx.Panel):
         self.status.SetLabel(status)
 
         speaker = reader.currentSpeaker() if ours else False
-        row = None
+        idx = None
 
-        if speaker is not False:
+        if (speaker is not False) and self.names:
             name = NARRATOR if speaker is None else speaker
-            row = next((r for r in self.rows if r.name == name), None)
 
-        if row is not self.currentRow:
-            old = self.currentRow
-            self.currentRow = row
+            if name in self.names:
+                idx = self.names.index(name)
 
-            for r in (old, row):
-                if r:
-                    self.colorLabel(r)
-
-            if row:
-                self.showRow(row)
+        if idx != self.list.currentIdx:
+            self.list.setCurrent(idx)
 
     # after a button has been used, the keyboard goes back to the script
     def focusScript(self):
@@ -486,18 +634,23 @@ class ReadAloudPanel(wx.Panel):
         self.getReader().skip(1)
         self.focusScript()
 
-    # the VoiceChoice row's lists show
-    def rowChoice(self, row):
-        voice = self.voices[max(0, row.voice.GetSelection())]
-        factor = SPEEDS[max(0, row.speed.GetSelection())]
+    # the VoiceChoice the lists show
+    def shownChoice(self):
+        voice = self.voices[max(0, self.voice.GetSelection())]
+        factor = SPEEDS[max(0, self.speed.GetSelection())]
 
         return VoiceChoice(voice.id, int(round(self.baseRate * factor)))
 
-    # the voice or speed of row's speaker was changed: keep it in the
-    # script, and read in it from now on
-    def OnChoice(self, row):
+    # the voice or speed of the selected speaker was changed: keep it in
+    # the script, and read in it from now on
+    def OnChoice(self, event=None):
+        name = self.selectedName()
+
+        if name is None:
+            return
+
         choices = dict(self.getCtrl().sp.readAloud.choices)
-        choices[row.name] = self.rowChoice(row)
+        choices[name] = self.shownChoice()
         self.setChoices(choices)
 
     def OnReset(self, event):
@@ -517,10 +670,15 @@ class ReadAloudPanel(wx.Panel):
         # the others' voices may have changed too
         self.refresh()
 
-    # say a bit of what row's speaker says in their voice
-    def playSample(self, row):
+    # say a bit of what the selected speaker says, in the voice shown
+    def playSample(self):
+        name = self.selectedName()
+
+        if name is None:
+            return
+
         sp = self.getCtrl().sp
-        speaker = row.name or None
+        speaker = name or None
         text = tableread.sampleText(tableread.utterances(sp), speaker)
 
         if not text:
@@ -529,18 +687,31 @@ class ReadAloudPanel(wx.Panel):
             else:
                 text = _("This is {}.").format(speaker.title())
 
-        self.getReader().preview(text, self.rowChoice(row))
+        self.getReader().preview(text, self.shownChoice())
 
-    def OnHolderSize(self, event):
-        self.layoutCast()
+    def OnSize(self, event):
+        self.fitCast()
+
+    def OnListHolderSize(self, event):
+        self.layoutList()
+
+    def OnListSize(self, event):
+        event.Skip()
+        self.layoutList()
+
+    # the list can scroll in many ways (the mouse wheel, the keyboard, the
+    # selection changing, ...), which all end with it going idle
+    def OnListIdle(self, event):
+        event.Skip()
+        self.updateScrollBar()
 
     def OnScroll(self, event):
-        self.scrollTo(self.scrollBar.GetThumbPosition())
+        self.list.ScrollToRow(self.scrollBar.GetThumbPosition())
 
-    def OnWheel(self, event):
-        lines = -event.GetWheelRotation() / max(1, event.GetWheelDelta())
-        step = lines * event.GetLinesPerAction() * self.FromDIP(self.WHEEL_LINE)
-        self.scrollTo(self.scrollPos + int(step))
+    # the selection is drawn stronger while the list has the focus
+    def OnListFocus(self, event):
+        event.Skip()
+        self.list.Refresh()
 
     def OnTimer(self, event):
         self.refresh()

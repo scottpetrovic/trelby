@@ -65,10 +65,12 @@ def setup(app, monkeypatch):
 
 # each row as (name, voice shown, speed shown)
 def rows(panel):
-    return [
-        (r.name, r.voice.GetStringSelection(), r.speed.GetStringSelection())
-        for r in panel.rows
-    ]
+    return [(n,) + e[1:] for n, e in zip(panel.names, panel.list.entries)]
+
+
+# the voice and speed the lists below the cast show
+def shown(panel):
+    return (panel.voice.GetStringSelection(), panel.speed.GetStringSelection())
 
 
 def said(backend):
@@ -84,8 +86,13 @@ def testCast(setup):
         ("BOB", "David", "120%"),
         ("ANN", "Zira", "100%"),
     ]
-    assert p.rows[0].label.GetLabel() == "Narrator"
+    assert p.list.entries[0][0] == "Narrator"
     assert not p.resetBtn.IsEnabled()
+
+    # the narrator is selected, and the lists show their voice
+    assert p.list.GetSelection() == 0
+    assert p.selName.GetLabel() == "Narrator"
+    assert shown(p) == ("David", "100%")
 
     # nothing's being read
     assert not p.stopBtn.IsEnabled()
@@ -96,11 +103,14 @@ def testCast(setup):
 # around it; reset goes back to the automatic ones
 def testChooseVoice(setup):
     p, sp = setup.panel, setup.ctrl.sp
-    bob = p.rows[1]
+    p.select(1)
 
-    bob.voice.SetSelection(1)
-    bob.speed.SetSelection(readaloudview.SPEEDS.index(1.0))
-    p.OnChoice(bob)
+    assert p.selName.GetLabel() == "BOB"
+    assert shown(p) == ("David", "120%")
+
+    p.voice.SetSelection(1)
+    p.speed.SetSelection(readaloudview.SPEEDS.index(1.0))
+    p.OnChoice()
 
     assert sp.readAloud.choices == {"BOB": VoiceChoice("zira", 100)}
     assert sp.hasChanged
@@ -109,10 +119,14 @@ def testChooseVoice(setup):
     # ANN doesn't share Bob's voice
     assert rows(p)[1:] == [("BOB", "Zira", "100%"), ("ANN", "Zira", "120%")]
 
+    # Bob's still selected
+    assert p.selectedName() == "BOB"
+
     p.OnReset(None)
 
     assert sp.readAloud.choices == {}
     assert rows(p)[1] == ("BOB", "David", "120%")
+    assert shown(p) == ("David", "120%")
 
 
 # the play button reads from the cursor and pauses, and the speaker being
@@ -127,12 +141,12 @@ def testPlay(setup):
     assert p.status.GetLabel() == "Reading"
     assert p.playBtn.GetToolTipText() == "Pause"
     assert p.stopBtn.IsEnabled()
-    assert p.currentRow is p.rows[1]
+    assert p.list.currentIdx == 1
 
     backend.finish()
 
     # "He drinks it."
-    assert p.currentRow is p.rows[0]
+    assert p.list.currentIdx == 0
 
     p.OnPlay(None)
 
@@ -142,12 +156,12 @@ def testPlay(setup):
 
     p.OnNext(None)
 
-    assert p.currentRow is p.rows[2]
+    assert p.list.currentIdx == 2
 
     p.OnStop(None)
 
     assert not reader.isActive()
-    assert p.currentRow is None
+    assert p.list.currentIdx is None
     assert not p.nextBtn.IsEnabled()
 
 
@@ -158,9 +172,9 @@ def testRecast(setup):
     ctrl.ed.gotoPos(4, 0)
     p.OnPlay(None)
 
-    ann = p.rows[2]
-    ann.voice.SetSelection(0)
-    p.OnChoice(ann)
+    p.select(2)
+    p.voice.SetSelection(0)
+    p.OnChoice()
 
     assert setup.reader.isReading()
 
@@ -180,7 +194,8 @@ def testSample(setup):
     p, reader, backend = setup.panel, setup.reader, setup.backend
 
     p.OnPlay(None)
-    p.playSample(p.rows[2])
+    p.select(2)
+    p.playSample()
 
     assert not reader.isActive()
     assert said(backend)[-1] == (
@@ -196,13 +211,32 @@ def testSample(setup):
     assert backend.stops == stops + 1
     assert not reader.previewing
 
-    p.playSample(p.rows[0])
+    p.select(0)
+    p.playSample()
 
     assert said(backend)[-1] == ("Fade in.", "david", 100)
 
     backend.finish()
 
     assert not reader.previewing
+
+
+# the cast is as tall as its rows, with the lists right below it, and
+# scrolls when there isn't room for them all
+def testFit(setup):
+    p = setup.panel
+    rowHeight = p.list.rowHeight
+
+    assert p.listHolder.GetSize().height == 3 * rowHeight
+    assert p.editor.GetPosition().y >= p.listHolder.GetRect().GetBottom()
+    assert not p.scrollBar.IsShown()
+
+    p.GetParent().SetSize(wx.Size(300, 200))
+    p.updateScrollBar()
+
+    assert p.listHolder.GetSize().height < 3 * rowHeight
+    assert p.editor.GetRect().GetBottom() < p.GetClientSize().height
+    assert p.scrollBar.IsShown()
 
 
 def testNoBackend(setup):
@@ -214,7 +248,8 @@ def testNoBackend(setup):
 
     assert p.message.IsShown()
     assert "Install it." in p.message.GetLabel()
-    assert not p.holder.IsShown()
+    assert not p.listHolder.IsShown()
+    assert not p.editor.IsShown()
     assert not p.playBtn.IsShown()
 
 
