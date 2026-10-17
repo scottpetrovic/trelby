@@ -225,3 +225,40 @@ def testPaintNewNoteCard(app, line, notes):
     # the blank card has no checkbox
     keys = [(l, index) for rect, l, index in painter.noteChecks]
     assert keys == [(line, k) for k in range(len(notes))]
+
+
+# revised text is highlighted in its revision's color, and its line gets
+# the revision mark in the right margin
+@pytest.mark.parametrize(
+    "vm",
+    [viewmode.ViewModeDraft, viewmode.ViewModeLayout, viewmode.ViewModeSideBySide],
+)
+def testPaintRevisions(app, vm):
+    ed = loadSample()
+    ed.line = 0
+    cfgGui = configgui.ConfigGui(ed.sp.cfgGl, 100)
+    painter = scriptpainter.ScriptPainter(
+        scriptpainter.Viewport.make(
+            ed.sp, ed, cfgGui, vm(), wx.Size(900, 1200), lambda n: n
+        ),
+        vm(),
+        ed.sp.cfgGl,
+        False,
+    )
+    blue = painter.revisionColor(1).Get(False)
+
+    vp, rect, bmp = paint(ed, vm())
+    assert countColor(bmp, blue) == 0
+
+    ed.sp.lines[1].revs = "1" * len(ed.sp.lines[1].text)
+    vp, rect, bmp = paint(ed, vm())
+    assert countColor(bmp, blue) > 0
+
+    marks = []
+
+    with mock.patch.object(
+        wx.MemoryDC, "DrawText", lambda dc, s, x, y: marks.append(s)
+    ):
+        paint(ed, vm())
+
+    assert marks.count("*") == 1

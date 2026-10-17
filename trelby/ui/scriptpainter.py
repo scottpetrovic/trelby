@@ -10,6 +10,7 @@ from wx.lib.wordwrap import wordwrap
 import trelby.config as config
 import trelby.ui.gutil as gutil
 import trelby.pdf.pml as pml
+import trelby.screenplay.revisions as revisions
 import trelby.spellcheck as spellcheck
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
@@ -111,6 +112,9 @@ class ScriptPainter:
         # wx.Rect of the title page button, set by paint
         self.titleButtonRect = None
 
+        # the highlight color of each revision level drawn, by level
+        self.revisionColors = {}
+
         # the note markers drawn, as (wx.Rect, line, index) tuples, set by
         # paint (see drawNoteMarkers)
         self.noteMarkers = []
@@ -210,6 +214,9 @@ class ScriptPainter:
                     self.readingLines[0] <= i <= self.readingLines[1]
                 ):
                     self.drawReadingLine(dc, t, i, y, lineh, fx)
+
+                if l.revs:
+                    self.drawRevised(dc, t, l, y, lineh, cfx)
 
                 if marked and vp.ed.isLineMarked(i, marked):
                     c1, c2 = vp.ed.getMarkedColumns(i, marked)
@@ -353,6 +360,7 @@ class ScriptPainter:
                 self.drawSquiggle(dc, x, y, w)
 
         self.drawLocks(dc, strings, dpages, size)
+        self.drawRevisionMarks(dc, strings, dpages, size)
         self.drawNoteMarkers(dc, strings, dpages, size)
 
         if vp.ed.acItems and (cursorY > 0):
@@ -376,6 +384,75 @@ class ScriptPainter:
         dc.SetPen(cfgGui.cursorPen)
         dc.SetBrush(cfgGui.cursorBrush)
         dc.DrawRectangle(lx - fx, y, max(2, fx // 4), lineh)
+
+    # highlight the revised text of line l, drawn at t.x, y, in the color
+    # of each part's revision (see screenplay/revisions.py)
+    def drawRevised(self, dc, t, l, y, lineh, cfx):
+        n = min(len(t.text), len(l.text))
+        dc.SetPen(wx.TRANSPARENT_PEN)
+
+        for a, b, level in textfmt.runs(l.revs[:n], n):
+            if level:
+                dc.SetBrush(wx.Brush(self.revisionColor(level)))
+                dc.DrawRectangle(t.x + a * cfx, y, (b - a) * cfx, lineh)
+
+    # the color revised text of 'level' is highlighted with: the
+    # revision's color, faded into the page's
+    def revisionColor(self, level):
+        color = self.revisionColors.get(level)
+
+        if color is None:
+            color = blendColors(
+                self.cfgGui.textBgColor,
+                wx.Colour("#" + revisions.levelColor(level)),
+                0.45,
+            )
+            self.revisionColors[level] = color
+
+        return color
+
+    # put the revision mark in the right margin of each line that gets
+    # one when printed (see screenplay.render), in the color of the
+    # line's revision. in draft mode, where there are no pages, the
+    # margin is that of the infinite page.
+    def drawRevisionMarks(self, dc, strings, dpages, size):
+        vp = self.vp
+        sp = vp.sp
+        rv = sp.revisions
+        ls = sp.lines
+
+        markX = int(revisions.markX(sp.cfg, vp.chX) * vp.mm2p)
+        draftX = util.clamp((size.width - vp.pageW) // 2, 0)
+
+        dc.SetFont(self.cfgGui.fonts[pml.BOLD].font)
+        done = set()
+
+        for t in strings:
+            i = t.line
+
+            if (i == -1) or not ls[i].revs or not rv.isMarked(ls[i]):
+                continue
+
+            x = draftX
+
+            for dp in dpages:
+                if dp.x1 <= t.x <= dp.x2:
+                    x = dp.x1
+
+            # the two columns of a dual dialogue share the mark
+            if (x, t.y) in done:
+                continue
+
+            done.add((x, t.y))
+
+            dc.SetTextForeground(
+                blendColors(
+                    self.cfgGui.textColor,
+                    wx.Colour("#" + revisions.levelColor(revisions.lineLevel(ls[i]))),
+                    0.5,
+                )
+            )
+            dc.DrawText(rv.markChar, x + markX, t.y)
 
     # draw a wavy line w pixels wide from x, its bottom at y
     def drawSquiggle(self, dc, x, y, w):

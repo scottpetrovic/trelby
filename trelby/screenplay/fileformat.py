@@ -11,6 +11,7 @@ import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.screenplay.notes as notes
 import trelby.screenplay.headers as headers
 import trelby.screenplay.pagelock as pagelock
+import trelby.screenplay.revisions as revisions
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.screenplay.titles as titles
@@ -71,6 +72,11 @@ def save(sp) -> bytes:
         output += sp.readAloud.save()
         output += "#End-Read-Aloud \n"
 
+    if sp.revisions.hasInfo():
+        output += "#Begin-Revisions \n"
+        output += sp.revisions.save()
+        output += "#End-Revisions \n"
+
     pgs = sp.titles.pages
     for pg in range(len(pgs)):
         if pg != 0:
@@ -115,6 +121,9 @@ def save(sp) -> bytes:
 
         if ln.fmt:
             output += "#Format %s\n" % textfmt.encode(ln.getFmt())
+
+        if ln.revs:
+            output += "#Revised %s\n" % revisions.encode(ln.revs)
 
         for note in ln.notes:
             output += "#%s %s\n" % (
@@ -202,6 +211,10 @@ def load(s: str, cfgGl):
     if s:
         sp.readAloud.load(s)
 
+    s, index = getConfigPart(lines, "Revisions", index)
+    if s:
+        sp.revisions.load(s)
+
     # used to keep track that element type only changes after a
     # LB_LAST line.
     prevType = None
@@ -234,6 +247,10 @@ def load(s: str, cfgGl):
     # formatting (as saved by textfmt.encode) to set on the next script
     # line, or None
     fmt = None
+
+    # revision marks (as saved by revisions.encode) to set on the next
+    # script line, or None
+    revs = None
 
     # whether to set the centered flag on the next script line
     centered = False
@@ -296,6 +313,9 @@ def load(s: str, cfgGl):
             elif (key == "Format") and startSeen:
                 fmt = val
 
+            elif (key == "Revised") and startSeen:
+                revs = val
+
             elif (key == "Centered") and startSeen:
                 centered = True
 
@@ -354,12 +374,16 @@ def load(s: str, cfgGl):
             if fmt:
                 line.fmt = textfmt.decode(fmt, len(text))
 
+            if revs:
+                line.revs = revisions.decode(revs, len(text))
+
             sp.lines.append(line)
             pageLock = None
             dual = False
             color = None
             sceneLock = None
             fmt = None
+            revs = None
             centered = False
             lineNotes = ()
 

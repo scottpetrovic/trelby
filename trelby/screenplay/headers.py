@@ -16,6 +16,7 @@ VARIABLES = [
     ("AUTHOR", lambda: _("author")),
     ("DRAFT", lambda: _("draft")),
     ("DRAFTDATE", lambda: _("draft date")),
+    ("REVISION", lambda: _("page's revision")),
 ]
 
 
@@ -110,6 +111,7 @@ def pageVars(sp, pageNr, tvars=None):
     v = dict(titleVars(sp.titles) if tvars is None else tvars)
     v["PAGE"] = sp.getPageLabel(pageNr)
     v["PAGES"] = sp.getPageLabel(len(sp.pages) - 1)
+    v["REVISION"] = sp.revisions.label(sp.getPageRevision(pageNr))
 
     return v
 

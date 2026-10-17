@@ -178,14 +178,20 @@ def testAddedSceneAtEnd():
     assert labels(ed) == ["1", "2", "3", "4", "5", "5A"]
 
 
-def testDeleteSceneLeavesGap():
+# a deleted locked scene leaves an omitted scene with its number
+def testDeleteSceneLeavesOmitted():
     ed = makeLocked()
 
     selectScene(ed, 2)
     ed.getSelectedAsCD(True)
     ed._validate()
 
-    assert labels(ed) == ["1", "2", "4", "5"]
+    assert labels(ed) == ["1", "2", "3", "4", "5"]
+    assert numbers(ed)["OMITTED"] == "3"
+
+    i = ed.sp.getSceneStarts()[2]
+    assert ed.sp.isOmittedScene(i)
+    assert ed.sp.getSceneIndexesFromLine(i) == (i, i)
 
 
 def testCutPasteKeepsNumber():
@@ -193,14 +199,17 @@ def testCutPasteKeepsNumber():
 
     selectScene(ed, 1)
     cd = ed.getSelectedAsCD(True)
-    assert labels(ed) == ["1", "3", "4", "5"]
+    assert labels(ed) == ["1", "2", "3", "4", "5"]
+    assert numbers(ed)["OMITTED"] == "2"
 
-    ed.gotoPos(ed.sp.getSceneStarts()[3], 0)
+    # pasting it takes the number back from the omitted scene
+    ed.gotoPos(ed.sp.getSceneStarts()[4], 0)
     ed.paste(cd.lines)
     ed._validate()
 
     assert numbers(ed)["INT. ROOM 2 - DAY"] == "2"
     assert labels(ed) == ["1", "3", "4", "2", "5"]
+    assert not ed.sp.getOmittedLocks()
 
     # pasting it again makes a new scene
     ed.gotoPos(ed.sp.getSceneStarts()[1], 0)
@@ -291,25 +300,29 @@ def testUndoRedo():
 
     selectScene(ed, 2)
     ed.getSelectedAsCD(True)
-    assert labels(ed) == ["1", "2", "4", "5"]
+    assert numbers(ed)["OMITTED"] == "3"
 
     ed.cmd("undo")
     assert labels(ed) == ["1", "2", "3", "4", "5"]
+    assert "OMITTED" not in numbers(ed)
     assert all(ed.sp.getSceneLock(i) for i in ed.sp.getSceneStarts())
+
+    ed.cmd("redo")
+    assert numbers(ed)["OMITTED"] == "3"
 
 
 def testUnlock():
     ed = makeLocked()
 
-    selectScene(ed, 2)
-    ed.getSelectedAsCD(True)
+    ed.gotoPos(ed.sp.getSceneStarts()[2], 0)
+    ed.paste(newScene("INT. NEW ROOM - DAY"))
     ed.unlockScenes()
 
     assert not ed.sp.hasSceneLocks()
-    assert labels(ed) == ["1", "2", "3", "4"]
+    assert labels(ed) == ["1", "2", "3", "4", "5", "6"]
 
     ed.cmd("undo")
-    assert labels(ed) == ["1", "2", "4", "5"]
+    assert labels(ed) == ["1", "2", "2A", "3", "4", "5"]
 
 
 def testRelockLocksAScenes():

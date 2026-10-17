@@ -13,6 +13,7 @@
 #   locks*        locked pages and scene numbers
 #   sceneoutline* the outline, scene colors, moving scenes
 #   notes*        notes on paragraphs, shown in the notes sidebar
+#   revisions*    revision marks and colors, revised pages
 #
 # Editor:
 #   editing       type changes, joining / splitting, whole-script edits

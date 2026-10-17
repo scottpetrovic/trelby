@@ -16,6 +16,7 @@ import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.config as config
 import trelby.screenplay.headers as headers
 import trelby.screenplay.locations as locations
+import trelby.screenplay.revisions as revisions
 import trelby.screenplay.tableread as tableread
 import trelby.screenplay.fileformat as fileformat
 import trelby.spellcheck as spellcheck
@@ -35,6 +36,7 @@ from trelby.screenplay.dualdialogue import DualDialogueMixin
 from trelby.screenplay.locks import LocksMixin
 from trelby.screenplay.notes import NotesMixin
 from trelby.screenplay.pagination import PaginationMixin
+from trelby.screenplay.revisions import RevisionsMixin
 from trelby.screenplay.sceneoutline import OutlineMixin
 from trelby.screenplay.structure import StructureMixin
 from trelby.screenplay.wrapping import WrappingMixin
@@ -49,6 +51,7 @@ class Screenplay(
     LocksMixin,
     OutlineMixin,
     NotesMixin,
+    RevisionsMixin,
 ):
     def __init__(self, cfgGl):
         self.autoCompletion = autocompletion.AutoCompletion()
@@ -63,6 +66,9 @@ class Screenplay(
 
         # the voices chosen by hand for reading the script aloud
         self.readAloud = tableread.VoiceSettings()
+
+        # the revision settings: the current revision, revision mode...
+        self.revisions = revisions.Revisions()
 
         self.lines = [Line(LB_LAST, SCENE)]
 
@@ -119,6 +125,7 @@ class Screenplay(
         sp.worldBuilding = copy.deepcopy(self.worldBuilding)
         sp.beatBoard = copy.deepcopy(self.beatBoard)
         sp.readAloud = copy.deepcopy(self.readAloud)
+        sp.revisions = copy.deepcopy(self.revisions)
 
         sp.lines = [ln.copy() for ln in self.lines]
 
@@ -189,6 +196,12 @@ class Screenplay(
                 assert len(ln.fmt) == len(ln.text)
                 assert ln.fmt == textfmt.compact(ln.fmt)
                 assert not ln.fmt.strip("01234567")
+
+            # and so do revision marks
+            if ln.revs is not None:
+                assert len(ln.revs) == len(ln.text)
+                assert ln.revs == textfmt.compact(ln.revs)
+                assert max(ln.revs) <= revisions.levelChar(revisions.MAX_LEVEL)
 
             if prevType:
                 assert ln.lt == prevType

@@ -918,14 +918,61 @@
 
 	  <para>'Lock scene numbers' makes every scene keep the number it has
 	  now. After that, a scene added after scene 12 becomes 12A (then 12B,
-	  ...), one added before scene 1 becomes A1, deleting a scene leaves a
-	  gap in the numbering instead of renumbering the scenes after it, and
-	  a scene that is moved, in the outline or by cutting and pasting it,
-	  keeps its number. Locking again also locks any A-scenes created
-	  since. 'Unlock scene numbers' removes the locks and numbers the
-	  scenes 1, 2, 3, ... again. The numbers are shown in the outline and
-	  the scene report, and printed if 'Include scene numbers' is on in
-	  the script's Formatting settings.</para>
+	  ...), one added before scene 1 becomes A1, deleting a scene leaves an
+	  omitted scene in its place (see below) instead of renumbering the
+	  scenes after it, and a scene that is moved, in the outline or by
+	  cutting and pasting it, keeps its number. Locking again also locks
+	  any A-scenes created since. 'Unlock scene numbers' removes the locks
+	  and numbers the scenes 1, 2, 3, ... again. The numbers are shown in
+	  the outline and the scene report, and printed if 'Include scene
+	  numbers' is on in the script's Formatting settings.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Script/Omit scene</title>
+
+	  <para>'Omit scene' replaces the scene the cursor is in with a scene
+	  heading reading OMITTED, which keeps the scene's number, as shooting
+	  scripts do with cut scenes. Once the scene numbers are locked,
+	  deleting a whole scene (selecting it and deleting or cutting it)
+	  does this by itself. Pasting a cut scene back gives it its number
+	  back, and its OMITTED heading goes away. Deleting an OMITTED heading
+	  removes the number for good.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Script/Revisions</title>
+
+	  <para>Once a script is in production, each round of changes is a
+	  revision, named after the color of the paper its pages are printed
+	  on: White (the original), Blue, Pink, Yellow, Green, Goldenrod, Buff,
+	  Salmon, Cherry, then Double White, Double Blue, and so on.</para>
+
+	  <para>'Revision mode' turns marking changes on or off. While it's
+	  on, the words you change are marked with the current revision:
+	  they're highlighted in its color on screen, and their lines get a
+	  revision mark (*) in the right margin, on screen and when printed.
+	  Deleting text marks the line it was deleted from. Marks stay with
+	  their text as it's edited and rewrapped, and are saved with the
+	  script. The status bar shows the current revision while revision
+	  mode is on.</para>
+
+	  <para>'Revision settings' chooses the current revision and its date,
+	  the revision mark, whether each revised page shows its revision
+	  above its header (for example "Blue Rev. 10/17/26"; a page's
+	  revision is the latest one marked on it), and whether only the
+	  current revision's changes get revision marks. Page headers can also
+	  show the page's revision with the ${REVISION} variable. Start a new
+	  revision by choosing the next color here; the older marks keep their
+	  colors.</para>
+
+	  <para>'Export revised pages' exports a PDF of only the pages with
+	  changes marked with the current revision, for handing out as
+	  replacement pages; lock the pages first (Script/Lock pages) so that
+	  the other pages keep their numbers. 'Clear revision marks' removes
+	  all the marks, making every page White again.</para>
 
 	</sect1>
 

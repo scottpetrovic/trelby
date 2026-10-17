@@ -2,6 +2,7 @@
 # element's width, and rewrapping paragraphs after they're edited.
 
 import trelby.config as config
+import trelby.screenplay.revisions as revisions
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 from trelby.screenplay.line import Line
@@ -71,20 +72,33 @@ class WrappingMixin:
         isParen = line.lt == PAREN
         charWidth = self.cfg.getCharWidth()
 
-        # text remaining to be wrapped, and its format string (or None)
+        # text remaining to be wrapped, and its format string and
+        # revision marks (or None)
         text = line.text
         fmt = line.getFmt() if line.fmt else None
+        revs = textfmt.fit(line.revs, len(text)) if line.revs else None
 
         # add a line with text[a:b] and lb, and drop text[:c] from what's
         # left to be wrapped
         def add(lb, a, b, c):
-            nonlocal text, fmt
+            nonlocal text, fmt, revs
 
-            ret.append(Line(lb, line.lt, text[a:b], fmt=fmt and fmt[a:b]))
+            ret.append(
+                Line(
+                    lb,
+                    line.lt,
+                    text[a:b],
+                    fmt=fmt and fmt[a:b],
+                    revs=revs and revs[a:b],
+                )
+            )
             text = text[c:]
 
             if fmt:
                 fmt = fmt[c:]
+
+            if revs:
+                revs = revs[c:]
 
         while 1:
             # reduce parenthetical width by 1 from second line onwards
@@ -213,7 +227,12 @@ class WrappingMixin:
             [config.lb2str(ls[i].lb) for i in range(line1, line2)],
         )
 
-        tmp = Line(ls[line2].lb, ls[line1].lt, s, fmt=fmt)
+        revs = revisions.join(
+            [(ls[i].text, ls[i].revs) for i in range(line1, line2 + 1)],
+            [config.lb2str(ls[i].lb) for i in range(line1, line2)],
+        )
+
+        tmp = Line(ls[line2].lb, ls[line1].lt, s, fmt=fmt, revs=revs)
 
         # speeches in a dual dialogue are wrapped to fit their column
         width = None

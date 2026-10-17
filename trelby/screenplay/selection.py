@@ -4,6 +4,7 @@
 import sys
 
 import trelby.config as config
+import trelby.screenplay.locks as locks
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.undo as undo
@@ -246,8 +247,11 @@ class SelectionMixin:
 
         # a pasted scene keeps its locked number (so cutting and pasting a
         # scene moves it with its number), unless the script already has
-        # a scene with that number (e.g. it was copied, not cut)
-        usedLocks = set(self.sp.getSceneLocks().values())
+        # a scene with that number (e.g. it was copied, not cut). cutting
+        # it left an omitted scene with its number, which it takes back.
+        omitted = self.sp.getOmittedLocks()
+        usedLocks = set(self.sp.getSceneLocks().values()) - set(omitted)
+        reclaimed = set()
 
         inLines = []
         i = 0
@@ -266,6 +270,9 @@ class SelectionMixin:
             if ln.sceneLock and (ln.sceneLock not in usedLocks):
                 newLine.sceneLock = ln.sceneLock
                 usedLocks.add(ln.sceneLock)
+
+                if ln.sceneLock in omitted:
+                    reclaimed.add(ln.sceneLock)
 
             # (text, fmt) of the lines in this paragraph, and the
             # separators between them
@@ -287,6 +294,13 @@ class SelectionMixin:
                 seps.append(config.lb2str(ln.lb))
 
             newLine.fmt = textfmt.join(parts, seps)
+
+            # an omitted scene doesn't take a number from another one
+            if (newLine.sceneLock in reclaimed) and (
+                newLine.text.strip().upper() == locks.OMITTED
+            ):
+                reclaimed.discard(newLine.sceneLock)
+                newLine.sceneLock = None
 
             newLine.lb = ln.lb
             inLines.append(newLine)
@@ -382,6 +396,9 @@ class SelectionMixin:
 
         self.reformatRange(wrap1, self.sp.getParaFirstIndexFromLine(wrap2))
         self.rewrapSpeechesAround(wrap1, min(self.line + 1, len(ls) - 1))
+
+        if reclaimed:
+            self.removeOmittedScenes(reclaimed)
 
         u.setAfter(self)
         self.undoHistory.add(u)

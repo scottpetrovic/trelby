@@ -1,11 +1,12 @@
 # lays the script out as pml pages: what's printed on each page (script
 # lines, headers, the footer, CONTINUED / (MORE) / (cont'd), scene
-# numbers, notes), and where. used for PDF export and by the editor's
+# numbers, revision marks), and where. used for PDF export and by the editor's
 # page view modes. the page breaks themselves are decided by pagination.
 
 import trelby.pdf.mypager as mypager
 import trelby.pdf.pml as pml
 import trelby.screenplay.headers as headers
+import trelby.screenplay.revisions as revisions
 import trelby.textutil as textutil
 import trelby.util as util
 from trelby.screenplay.constants import (
@@ -14,20 +15,27 @@ from trelby.screenplay.constants import (
 )
 
 
-# Same as generatePDF, but returns a PML document.
-def generatePML(sp) -> pml.Document:
+# Same as generatePDF, but returns a PML document. if revisedOnly is
+# True, it has only the pages with text marked with the current revision
+# (see Screenplay.isPageRevised), and no title pages.
+def generatePML(sp, revisedOnly=False) -> pml.Document:
     pager = mypager.Pager(sp.cfg)
-    sp.titles.generatePages(pager.doc)
+
+    if not revisedOnly:
+        sp.titles.generatePages(pager.doc)
 
     pager.doc.showTOC = sp.cfg.pdfShowTOC
 
+    # every page is generated, since each one carries things over to the
+    # next (see mypager)
     for i in range(1, len(sp.pages)):
         pg = generatePMLPage(sp, pager, i, True, True)
 
-        if pg:
-            pager.doc.add(pg)
-        else:
+        if not pg:
             break
+
+        if not revisedOnly or sp.isPageRevised(i):
+            pager.doc.add(pg)
 
     for pfi in sp.cfg.getPDFFontIds():
         pf = sp.cfg.getPDFFont(pfi)
@@ -95,6 +103,25 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
 
         if sp.footer.isOnPage(pageNr):
             sp.footer.generatePML(pg, pvars, cfg)
+
+        # the page's revision, above where the header starts, unless the
+        # headers show it themselves
+        if pvars["REVISION"] and sp.revisions.showInHeader and not any(
+            "${REVISION}" in h.text for h in sp.headers.hdrs
+        ):
+            pg.add(
+                pml.TextOp(
+                    pvars["REVISION"],
+                    cfg.paperWidth - cfg.marginRight,
+                    max(cfg.marginTop - chY, 0),
+                    fs,
+                    align=util.ALIGN_RIGHT,
+                )
+            )
+
+    # the y positions (in tenths of a line) of the revision marks added,
+    # so that the two columns of a dual dialogue don't get one each
+    marksAt = set()
 
     # the first page has no header and never continues anything. on
     # the others, the header, a "CONTINUED:" plus a blank line when the
@@ -211,6 +238,17 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
         )
 
         pg.add(to)
+
+        if doExtra and forPDF and (y not in marksAt) and sp.revisions.isMarked(line):
+            marksAt.add(y)
+            pg.add(
+                pml.TextOp(
+                    sp.revisions.markChar,
+                    revisions.markX(cfg, chX),
+                    cfg.marginTop + (y / 10.0) * chY,
+                    fs,
+                )
+            )
 
         if doExtra and (tcfg.lt == ACTBREAK) and sp.isFirstLineOfElem(i):
             pager.sceneContNr = 0

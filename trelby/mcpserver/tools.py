@@ -113,7 +113,7 @@ def revisionOf(data):
 # report it, never change it.
 def linesRevision(sp):
     s = "\n".join(
-        "%s|%s|%s|%s|%s|%s|%s|%s"
+        "%s|%s|%s|%s|%s|%s|%s|%s|%s"
         % (
             ln,
             ln.pageLock or "",
@@ -123,6 +123,7 @@ def linesRevision(sp):
             int(ln.centered),
             ln.sceneLock or "",
             repr(ln.notes) if ln.notes else "",
+            ln.revs or "",
         )
         for ln in sp.lines
     )
@@ -204,11 +205,16 @@ class FileDoc:
         if revision != current:
             raise staleError(revision, current)
 
-        # the changed-lines range edit returns and ownUndo don't matter
-        # here: save() rewraps the whole script and throws away the undo
-        # history anyway
+        # the changed-lines range edit returns doesn't matter here: save()
+        # rewraps the whole script and throws away the undo history
+        # anyway. the undo step is still made, as its setAfter is what
+        # marks revisions and leaves deleted locked scenes as OMITTED.
         ed = screenplay.Editor(sp)
+        u = None if ownUndo else undo.AnyDifference(ed)
         edit(ed)
+
+        if u:
+            u.setAfter(ed)
 
         return (sp, save(ed, self.path))
 

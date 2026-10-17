@@ -59,6 +59,7 @@ class Action:
         dots=False,
         canUse=None,
         kind=wx.ITEM_NORMAL,
+        isChecked=None,
     ):
         # name of the keyboard command (see commands.py), if there's one
         # for this, or a name of its own
@@ -90,6 +91,11 @@ class Action:
         # wx.ITEM_NORMAL, ITEM_CHECK or ITEM_RADIO
         self.kind = kind
 
+        # for a check item showing the current script's state:
+        # function(frame, ctrl) returning whether it's checked, asked like
+        # canUse. None for items whose state the frame sets.
+        self.isChecked = isChecked
+
     def getMenuLabel(self):
         s = self.label + ("..." if self.dots else "")
 
@@ -104,6 +110,16 @@ class Action:
 
 # a separator in a menu
 SEP = None
+
+
+# whether the scene at the cursor can be omitted (see Editor.omitScene)
+def canOmitScene(frame, ctrl):
+    sp = ctrl.sp
+    first, last = sp.getSceneIndexesFromLine(ctrl.ed.line)
+
+    return (sp.lines[first].lt == screenplay.SCENE) and not (
+        (first == last) and sp.isOmittedScene(first)
+    )
 
 
 # a menu: label, mnemonic, and items: Actions, SEPs and submenus. items can
@@ -716,6 +732,55 @@ def makeTable():
                 OnScript(scriptactions.unlockScenes),
                 canUse=lambda f, c: c.sp.hasAnySceneLock(),
             ),
+            Action(
+                "OmitScene",
+                ID_SCRIPT_OMIT_SCENE,
+                _("Omit scene"),
+                "i",
+                OnScript(scriptactions.omitScene),
+                canUse=canOmitScene,
+            ),
+            Menu(
+                _("Revisions"),
+                "v",
+                [
+                    Action(
+                        "ToggleRevisionMode",
+                        ID_SCRIPT_REVISION_MODE,
+                        _("Revision mode"),
+                        "m",
+                        OnScript(scriptactions.toggleRevisionMode),
+                        kind=wx.ITEM_CHECK,
+                        isChecked=lambda f, c: c.sp.revisions.active,
+                    ),
+                    Action(
+                        "RevisionsDlg",
+                        ID_SCRIPT_REVISIONS,
+                        _("Revision settings"),
+                        "s",
+                        OnScript(scriptactions.revisionsDlg),
+                        dots=True,
+                    ),
+                    SEP,
+                    Action(
+                        "ExportRevisedPages",
+                        ID_SCRIPT_REVISIONS_EXPORT,
+                        _("Export revised pages"),
+                        "E",
+                        OnScript(scriptactions.exportRevisedPages),
+                        dots=True,
+                        canUse=lambda f, c: bool(c.sp.revisions.level),
+                    ),
+                    Action(
+                        "ClearRevisionMarks",
+                        ID_SCRIPT_REVISIONS_CLEAR,
+                        _("Clear revision marks"),
+                        "C",
+                        OnScript(scriptactions.clearRevisionMarks),
+                        canUse=lambda f, c: c.sp.hasRevisionMarks(),
+                    ),
+                ],
+            ),
         ],
     )
 
@@ -1032,6 +1097,8 @@ def fillLanguageMenu(menu, gd, onLanguage):
 # so that e.g. CTRL-X on the board doesn't cut text from the hidden script.
 SCRIPT_ONLY = {
     "AddNote",
+    "ClearRevisionMarks",
+    "OmitScene",
     "CheckFormatting",
     "Copy",
     "Cut",
@@ -1089,7 +1156,7 @@ def bind(frame, actions):
 
         frame.Bind(wx.EVT_MENU, lambda event, a=a: runAction(frame, a), id=a.id)
 
-        if a.canUse or (a.name in SCRIPT_ONLY):
+        if a.canUse or a.isChecked or (a.name in SCRIPT_ONLY):
             frame.Bind(
                 wx.EVT_UPDATE_UI,
                 lambda event, a=a: onUpdateUI(frame, event, a),
@@ -1109,6 +1176,9 @@ def onUpdateUI(frame, event, a):
             event.Enable(a.canUse(frame, panel.ctrl))
         else:
             event.Enable(True)
+
+        if a.isChecked:
+            event.Check(a.isChecked(frame, panel.ctrl))
 
 
 # build the editor's right-click menu from the actions ({name: Action}).

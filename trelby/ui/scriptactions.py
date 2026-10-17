@@ -25,6 +25,9 @@ import trelby.keys as keys
 import trelby.dialogs.locationsdlg as locationsdlg
 import trelby.misc as misc
 import trelby.dialogs.namesdlg as namesdlg
+import trelby.dialogs.revisionsdlg as revisionsdlg
+import trelby.screenplay.export as export
+import trelby.screenplay.revisions as revisions
 import trelby.screenplay.pagelock as pagelock
 import trelby.pdf.writer as pdf
 import trelby.screenplay.compare as compare
@@ -68,6 +71,89 @@ def lockScenes(frame, ctrl):
 def unlockScenes(frame, ctrl):
     ctrl.ed.unlockScenes()
     ctrl.updateScreen()
+
+
+def omitScene(frame, ctrl):
+    ctrl.ed.omitScene()
+    ctrl.makeLineVisible(ctrl.ed.line)
+    ctrl.updateScreen()
+
+
+def applyRevisions(ctrl, rv):
+    if rv != ctrl.sp.revisions:
+        ctrl.sp.revisions = rv
+        ctrl.sp.markChanged()
+        ctrl.updateScreen()
+
+
+# the revision settings dialog, on rv, or a copy of the script's settings
+def revisionsDlg(frame, ctrl, rv=None):
+    sp = ctrl.sp
+    sp.paginate()
+
+    dlg = revisionsdlg.RevisionsDlg(
+        frame,
+        rv or copy.deepcopy(sp.revisions),
+        [sp.getPageLabel(p) for p in sp.getRevisedPages()],
+    )
+
+    if dlg.ShowModal() == wx.ID_OK:
+        applyRevisions(ctrl, dlg.revisions)
+
+    dlg.Destroy()
+
+
+# turn revision mode on or off. the first time, the revision settings are
+# asked for, as a revision has to be chosen.
+def toggleRevisionMode(frame, ctrl):
+    rv = copy.deepcopy(ctrl.sp.revisions)
+    rv.active = not rv.active
+
+    if rv.active and not rv.level:
+        revisionsDlg(frame, ctrl, rv)
+    else:
+        applyRevisions(ctrl, rv)
+
+
+def clearRevisionMarks(frame, ctrl):
+    ctrl.ed.clearRevisionMarks()
+    ctrl.updateScreen()
+
+
+# export the pages revised in the current revision as a PDF
+def exportRevisedPages(frame, ctrl):
+    sp = getExportable(frame, ctrl, "export")
+    if not sp:
+        return
+
+    if not sp.getRevisedPages():
+        wx.MessageBox(
+            _("No pages have been revised in the current revision ({}).").format(
+                revisions.levelName(sp.revisions.level)
+            ),
+            _("Revised Pages"),
+            wx.OK,
+            frame,
+        )
+
+        return
+
+    dlg = wx.FileDialog(
+        frame,
+        _("Filename to export as"),
+        misc.scriptDir,
+        wildcard="PDF (*.pdf)|*.pdf",
+        style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+    )
+
+    if dlg.ShowModal() == wx.ID_OK:
+        misc.scriptDir = dlg.GetDirectory()
+        fileName = textutil.ensureEndsIn(dlg.GetPath(), ".pdf")
+
+        if confirmPdfChars(frame, sp):
+            fileio.writeToFile(fileName, export.generatePDF(sp, True), frame)
+
+    dlg.Destroy()
 
 
 def autoCompletionDlg(frame, ctrl):

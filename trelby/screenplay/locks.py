@@ -1,11 +1,47 @@
 # locked pages and scene numbers, which keep their labels (e.g. "15A") as
 # the script changes. the label arithmetic is in trelby/pagelock.py.
+#
+# once the scene numbers are locked, a scene that's cut is left as an
+# omitted scene: a scene heading reading OMITTED, keeping the scene's
+# number, as shooting scripts do. Editor.omitScene does it by hand, and
+# deleting a locked scene's heading with a selection (or over MCP) does it
+# by itself (omitDeletedScenes, called by undo.AnyDifference). pasting
+# the scene back takes its number back from the omitted scene, which goes
+# away.
 
 import trelby.screenplay.pagelock as pagelock
 import trelby.undo as undo
 from trelby.screenplay.constants import (
+    ACTBREAK,
+    LB_LAST,
     SCENE,
 )
+from trelby.screenplay.line import Line
+
+# the text of an omitted scene's heading
+OMITTED = "OMITTED"
+
+
+# return the labels of the locked scene headings in lines, a run of lines
+# (e.g. ones from before an edit), that aren't omitted scenes
+def _sceneLockLabels(lines):
+    ret = set()
+
+    for i, ln in enumerate(lines):
+        if (
+            ln.sceneLock
+            and (ln.lt == SCENE)
+            and ((i == 0) or (lines[i - 1].lb == LB_LAST))
+            and not _isOmittedText(lines, i)
+        ):
+            ret.add(ln.sceneLock)
+
+    return ret
+
+
+# whether the element starting at lines[i] reads OMITTED
+def _isOmittedText(lines, i):
+    return (lines[i].lb == LB_LAST) and (lines[i].text.strip().upper() == OMITTED)
 
 
 class LocksMixin:
@@ -112,6 +148,55 @@ class LocksMixin:
 
         return list(zip(starts, labels))
 
+    # whether line i is the first line of an omitted scene's heading
+    def isOmittedScene(self, i):
+        return (
+            (self.lines[i].lt == SCENE)
+            and self.isFirstLineOfElem(i)
+            and _isOmittedText(self.lines, i)
+        )
+
+    # return {label: line} for the omitted scenes that have a locked
+    # number
+    def getOmittedLocks(self):
+        return {
+            label: i
+            for i, label in self.getSceneLocks().items()
+            if self.isOmittedScene(i)
+        }
+
+    # an edit has replaced the lines oldLines (all of them, as Line
+    # copies) with the current ones: if it deleted the heading of a scene
+    # with a locked number, add an omitted scene with that number where
+    # the scene was, before the next scene heading after the edited lines.
+    # cursor (anything with line / column) is kept on the same text. used
+    # by undo.AnyDifference, so that it covers every edit that can delete
+    # whole scenes.
+    def omitDeletedScenes(self, oldLines, cursor=None):
+        if not any(ln.sceneLock for ln in oldLines):
+            return
+
+        lost = _sceneLockLabels(oldLines) - set(self.getSceneLocks().values())
+
+        if not lost:
+            return
+
+        ls = self.lines
+        a, b, x, y = undo.mySequenceMatcher(oldLines, ls)
+
+        at = y
+        while (at < len(ls)) and not (
+            (ls[at].lt in (SCENE, ACTBREAK)) and self.isFirstLineOfElem(at)
+        ):
+            at = self.getElemLastIndexFromLine(at) + 1
+
+        lost = sorted(lost, key=lambda label: pagelock.labelRange(label)[0])
+
+        ls[at:at] = [Line(LB_LAST, SCENE, OMITTED, sceneLock=label) for label in lost]
+
+        if (cursor is not None) and (cursor.line >= at):
+            cursor.line += len(lost)
+
 
 # the Editor's side: locking and unlocking, as undoable edits
 class LocksEditMixin:
@@ -173,6 +258,68 @@ class LocksEditMixin:
 
         u.setAfter(self)
         self.undoHistory.add(u)
+
+    # replace the scene the cursor is in with an omitted scene: a scene
+    # heading reading OMITTED, keeping the scene's number and color. does
+    # nothing before the first scene, in an act break, or in a scene
+    # that's already omitted.
+    def omitScene(self):
+        sp = self.sp
+        first, last = sp.getSceneIndexesFromLine(self.line)
+
+        if (sp.lines[first].lt != SCENE) or (
+            sp.isOmittedScene(first) and (first == last)
+        ):
+            return
+
+        self.clearAutoComp()
+        self.clearMark()
+
+        u = undo.AnyDifference(self)
+
+        heading = Line(
+            LB_LAST,
+            SCENE,
+            OMITTED,
+            pageLock=sp.lines[first].pageLock,
+            color=sp.getSceneColor(first),
+            sceneLock=sp.getSceneLock(first),
+        )
+
+        if last > first:
+            sp.movePageLocksForward(first + 1, last)
+
+        sp.lines[first : last + 1] = [heading]
+
+        self.line = first
+        self.column = 0
+        sp.markChanged()
+
+        u.setAfter(self)
+        self.undoHistory.add(u)
+
+    # delete the omitted scenes whose numbers are in labels, a scene
+    # pasted back having taken them. an omitted scene's number is never
+    # used by another scene's heading reading OMITTED, as paste keeps a
+    # number only for one that doesn't. part of an edit, not one itself.
+    def removeOmittedScenes(self, labels):
+        sp = self.sp
+
+        for i in reversed(sp.getSceneStarts()):
+            if (sp.lines[i].sceneLock in labels) and sp.isOmittedScene(i):
+                last = sp.getElemLastIndexFromLine(i)
+
+                if len(sp.lines) == last - i + 1:
+                    continue
+
+                sp.movePageLocksForward(i, last)
+                del sp.lines[i : last + 1]
+
+                if self.line > last:
+                    self.line -= last - i + 1
+                elif self.line >= i:
+                    self.line = min(i, len(sp.lines) - 1)
+                    self.column = 0
 
     def unlockScenes(self):
         if not self.sp.hasAnySceneLock():

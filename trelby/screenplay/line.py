@@ -21,6 +21,7 @@ class Line:
         centered=False,
         sceneLock=None,
         notes=(),
+        revs=None,
     ):
 
         # line break type: what separates this line from the next one
@@ -71,8 +72,14 @@ class Line:
         # in the middle of an edit; see notes.py.
         self.notes = notes
 
+        # the revision marks of the text, as a string with one character
+        # per character of text, like fmt, or None if it has none. see
+        # screenplay/revisions.py.
+        self.revs = textfmt.compact(textfmt.fit(revs, len(text))) if revs else None
+
     # return a copy of this line, including its page lock, dual flag,
-    # color, formatting, centered flag, scene lock and notes
+    # color, formatting, centered flag, scene lock, notes and revision
+    # marks
     def copy(self):
         return Line(
             self.lb,
@@ -85,6 +92,7 @@ class Line:
             self.centered,
             self.sceneLock,
             self.notes,
+            self.revs,
         )
 
     # return the format string, exactly as long as the text
@@ -170,6 +178,7 @@ class Line:
             or (self.centered != other.centered)
             or (self.sceneLock != other.sceneLock)
             or (self.notes != other.notes)
+            or (textfmt.compact(self.revs) != textfmt.compact(other.revs))
         )
 
     def __eq__(self, other):

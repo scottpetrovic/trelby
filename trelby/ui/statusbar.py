@@ -5,6 +5,8 @@ import time
 
 import wx
 
+import trelby.screenplay.revisions as revisions
+
 
 # a status bar drawn in the theme's colors. wx.StatusBar can't be used: the
 # native one ignores its colors, and in dark mode wx paints it over anything
@@ -181,6 +183,11 @@ class MainStatusBar(StatusBar):
         self.zoomLevelBtn.SetSize(self.GetTextExtent("300%")[0] + pad, -1)
 
         pageW = self.GetTextExtent(_("Page %d / %d") % (999, 999))[0] + pad
+
+        # the page field's width, which it grows from to fit "(locked)" or
+        # the revision (see showScriptState)
+        self.pageW = pageW
+        self.pad = pad
         zoomW = sum(b.GetSize().width for b in self.zoomBtns) + self.FromDIP(8)
         longest = _("Parenthetical")
         nextW = self.GetTextExtent(_("Enter: %s    Tab: %s") % (longest, longest))[0]
@@ -280,6 +287,18 @@ class MainStatusBar(StatusBar):
             s = _("Page %s / %d (locked)") % (page, pageCnt)
         else:
             s = _("Page %s / %d") % (page, pageCnt)
+
+        if sp.revisions.active:
+            s += "    " + _("{} revision").format(
+                revisions.levelName(sp.revisions.level)
+            )
+
+        w = max(self.pageW, self.GetTextExtent(s)[0] + self.pad)
+
+        if w != self.widths[self.SB_PAGE]:
+            self.widths[self.SB_PAGE] = w
+            self.layoutZoomButtons()
+            self.Refresh()
 
         self.SetStatusText(s, self.SB_PAGE)
         self.SetStatusText(formatWordCount(sp.getWordCount()), self.SB_WORDS)

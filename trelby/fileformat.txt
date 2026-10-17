@@ -172,6 +172,27 @@ The following config sections exists and appear in the file in this order:
   Voice/N/Rate (integer): The speaking rate, in words per minute.
 
 
+ Revisions (optional, only present if the revision settings have been
+ changed):
+
+  Level (integer): The current revision: 1 for Blue, 2 for Pink, 3 for
+  Yellow, ... (White, Blue, Pink, Yellow, Green, Goldenrod, Buff, Salmon,
+  Cherry, then Double White, ..., Triple Cherry = 26). 0 if no revision
+  has been started.
+
+  Active (0 or 1): Whether revision mode (marking changes) is on.
+
+  Mark (string): The character printed in the margin of revised lines.
+
+  ShowInHeader (0 or 1): Whether each revised page shows its revision
+  above its header.
+
+  CurrentOnly (0 or 1): Whether only the current revision's changes get
+  revision marks.
+
+  Date/N (string): The date revision N was issued, as free text.
+
+
 After this (in version 1 files after "#Version 1") there is more
 configuration, but in a different syntax, that is mostly due to historical
 accidents.
@@ -336,6 +357,12 @@ and flags is any combination of "b", "i" and "u": those characters of the
 next line are bold / italic / underlined, on top of their element type's
 own style. Example: "4-8:b,15-21:iu". Invalid items, and the parts of
 items past the end of the line, are ignored.
+
+"Revised". Value: comma-separated "start-end:level" items, where start
+and end (exclusive) are 0-based character offsets into the next line's
+text and level is the revision (1 for Blue, ...) those characters were
+last changed in. Example: "0-12:1,20-25:2". Invalid items, and the parts
+of items past the end of the line, are ignored.
 
 "Note" and "Note-Resolved". Value: the note's text, escaped like the
 character profile notes (newlines as \n). A note on the paragraph that

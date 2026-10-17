@@ -1,6 +1,7 @@
 import copy
 import zlib
 
+import trelby.screenplay.revisions as revisions
 from trelby.screenplay.line import Line
 
 # Which command uses which undo object:
@@ -88,6 +89,9 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[9]: dict of {index: notes} for the lines that have notes, or
 #   None if none do. the notes are immutable, so they're shared.
 #
+#   tuple[10]: dict of {index: revs} for the lines that have revision
+#   marks, or None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
@@ -99,6 +103,7 @@ def lines2storage(lines):
     centers = tuple(i for i, ln in enumerate(lines) if ln.centered) or None
     sceneLocks = {i: ln.sceneLock for i, ln in enumerate(lines) if ln.sceneLock}
     notes = {i: ln.notes for i, ln in enumerate(lines) if ln.notes} or None
+    revs = {i: ln.revs for i, ln in enumerate(lines) if ln.revs} or None
 
     # str(ln) only holds the line break, type and text, which is all
     # Line.fromStr can restore, so every other Line attribute travels in
@@ -129,6 +134,7 @@ def lines2storage(lines):
         centers,
         sceneLocks or None,
         notes,
+        revs,
     )
 
 
@@ -172,7 +178,35 @@ def storage2lines(storage):
         for i, notes in storage[9].items():
             lines[i].notes = notes
 
+    if storage[10]:
+        for i, revs in storage[10].items():
+            lines[i].revs = revs
+
     return lines
+
+
+# whether any of the lines in the given storage has revision marks
+def hasRevs(storage):
+    return (storage[0] != 0) and bool(storage[10])
+
+
+# an edit replaced the lines 'before' (a list of Lines, or a storage
+# tuple) with ed.sp.lines[start:end]: give those their revision marks (see
+# revisions.carry), unless there are none to carry and revision mode is
+# off
+def carryRevisions(ed, before, start, end):
+    level = ed.sp.revisions.markingLevel()
+
+    if isinstance(before, tuple):
+        if not level and not hasRevs(before):
+            return
+
+        before = storage2lines(before)
+
+    elif not level and not any(ln.revs for ln in before):
+        return
+
+    revisions.carry(before, ed.sp.lines[start:end], level)
 
 
 # how much memory is used by the given storage object
@@ -265,8 +299,13 @@ class FullCopy(Base):
         self.elemStartLine = 0
         self.linesBefore = lines2storage(ed.sp.lines)
 
-    # called after editing action is over to snapshot the "after" state
-    def setAfter(self, ed):
+    # called after editing action is over to snapshot the "after" state.
+    # like every undo object, it first carries the revision marks over to
+    # the changed lines (see carryRevisions), unless carry is False.
+    def setAfter(self, ed, carry=True):
+        if carry:
+            carryRevisions(ed, self.linesBefore, 0, len(ed.sp.lines))
+
         self.linesAfter = lines2storage(ed.sp.lines)
         self.setEndPos(ed)
 
@@ -321,6 +360,7 @@ class SinglePara(Base):
 
         endLine = ed.sp.getParaLastIndexFromLine(self.elemStartLine)
 
+        carryRevisions(ed, self.linesBefore, self.elemStartLine, endLine + 1)
         self.linesAfter = lines2storage(ed.sp.lines[self.elemStartLine : endLine + 1])
 
         self.setEndPos(ed)
@@ -353,6 +393,7 @@ class ManyElems(Base):
         for i in range(self.nrOfElemsEnd - 1):
             endLine = ed.sp.getElemLastIndexFromLine(endLine + 1)
 
+        carryRevisions(ed, self.linesBefore, self.elemStartLine, endLine + 1)
         self.linesAfter = lines2storage(ed.sp.lines[self.elemStartLine : endLine + 1])
 
         self.setEndPos(ed)
@@ -373,10 +414,29 @@ class AnyDifference(Base):
     # [a:b] of the old lines was replaced by [x:y] of the new ones (a ==
     # x). only that block is stored, and undo / redo swap it back in, so
     # unlike the other classes these don't use elemStartLine.
+    #
+    # a locked scene that the edit deleted is left as an OMITTED scene
+    # (see Screenplay.omitDeletedScenes). in revision mode the block gets
+    # an unchanged line on each side, so that deleting whole lines can
+    # mark the line next to them (see revisions.carry).
     def setAfter(self, ed):
-        self.a, self.b, self.x, self.y = mySequenceMatcher(
-            self.linesBefore, ed.sp.lines
-        )
+        ed.sp.omitDeletedScenes(self.linesBefore, ed)
+
+        before = self.linesBefore
+        lines = ed.sp.lines
+        a, b, x, y = mySequenceMatcher(before, lines)
+
+        if ed.sp.revisions.markingLevel():
+            if a > 0:
+                a -= 1
+                x -= 1
+
+            if (b < len(before)) and (y < len(lines)):
+                b += 1
+                y += 1
+
+        carryRevisions(ed, before[a:b], x, y)
+        self.a, self.b, self.x, self.y = a, b, x, y
 
         self.removed = lines2storage(self.linesBefore[self.a : self.b])
         self.inserted = lines2storage(ed.sp.lines[self.x : self.y])

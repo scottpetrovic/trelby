@@ -23,6 +23,7 @@ from trelby.screenplay.editing import EditingMixin
 from trelby.screenplay.formatting import FormattingMixin
 from trelby.screenplay.locks import LocksEditMixin
 from trelby.screenplay.notes import NotesEditMixin
+from trelby.screenplay.revisions import RevisionsEditMixin
 from trelby.screenplay.sceneoutline import OutlineEditMixin
 from trelby.screenplay.search import SearchEditMixin
 from trelby.screenplay.selection import SelectionMixin
@@ -37,6 +38,7 @@ class Editor(
     OutlineEditMixin,
     BeatBoardEditMixin,
     NotesEditMixin,
+    RevisionsEditMixin,
     EditingMixin,
     FormattingMixin,
     SearchEditMixin,
