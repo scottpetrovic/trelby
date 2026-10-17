@@ -99,8 +99,8 @@ def testCast(setup):
     assert p.status.GetLabel() == ""
 
 
-# a voice chosen is kept in the script, and the others are given out
-# around it; reset goes back to the automatic ones
+# changing a speaker's voice keeps everyone's voice in the script, so
+# that no one else's changes; reset goes back to the automatic ones
 def testChooseVoice(setup):
     p, sp = setup.panel, setup.ctrl.sp
     p.select(1)
@@ -109,24 +109,44 @@ def testChooseVoice(setup):
     assert shown(p) == ("David", "120%")
 
     p.voice.SetSelection(1)
-    p.speed.SetSelection(readaloudview.SPEEDS.index(1.0))
     p.OnChoice()
 
-    assert sp.readAloud.choices == {"BOB": VoiceChoice("zira", 100)}
+    assert sp.readAloud.choices == {
+        NARRATOR: VoiceChoice("david", 100),
+        "BOB": VoiceChoice("zira", 120),
+        "ANN": VoiceChoice("zira", 100),
+    }
     assert sp.hasChanged
     assert p.resetBtn.IsEnabled()
 
-    # ANN doesn't share Bob's voice
-    assert rows(p)[1:] == [("BOB", "Zira", "100%"), ("ANN", "Zira", "120%")]
+    # only Bob's row changed
+    assert rows(p) == [
+        (NARRATOR, "David", "100%"),
+        ("BOB", "Zira", "120%"),
+        ("ANN", "Zira", "100%"),
+    ]
 
-    # Bob's still selected
-    assert p.selectedName() == "BOB"
+    # Bob's speed, and then Ann's voice, leave the others as they are
+    p.speed.SetSelection(readaloudview.SPEEDS.index(1.0))
+    p.OnChoice()
+    p.select(2)
+    p.voice.SetSelection(0)
+    p.OnChoice()
+
+    assert rows(p) == [
+        (NARRATOR, "David", "100%"),
+        ("BOB", "Zira", "100%"),
+        ("ANN", "David", "100%"),
+    ]
+
+    # Ann's still selected
+    assert p.selectedName() == "ANN"
 
     p.OnReset(None)
 
     assert sp.readAloud.choices == {}
-    assert rows(p)[1] == ("BOB", "David", "120%")
-    assert shown(p) == ("David", "120%")
+    assert rows(p)[1:] == [("BOB", "David", "120%"), ("ANN", "Zira", "100%")]
+    assert shown(p) == ("Zira", "100%")
 
 
 # the play button reads from the cursor and pauses, and the speaker being

@@ -15,11 +15,12 @@ from trelby.ui.theming import blendColors
 # read (frame.reader, a tablereader.TableReader) and to go from element to
 # element, the cast as a grid (the narrator and each character with their
 # voice and speed), and below it the selected speaker's voice and speed,
-# which can be changed, and a button to hear them. the voices
-# chosen are kept in the script (sp.readAloud); the rest are the ones
-# tableread.assignVoices picks, shown as they'd be read now. the reader
-# tells the frame whenever what it's doing changes, and the frame calls
-# updateState.
+# which can be changed, and a button to hear them. once one has been
+# changed, everyone's voice is kept in the script (sp.readAloud), so that
+# changing one doesn't change the others; until then, and for characters
+# added after, they're the ones tableread.assignVoices picks, shown as
+# they'd be read now. the reader tells the frame whenever what it's doing
+# changes, and the frame calls updateState.
 
 # the speeds offered, as factors of the engine's normal rate
 SPEEDS = sorted(tableread.RATE_FACTORS)
@@ -235,8 +236,10 @@ class ReadAloudPanel(wx.Panel):
         self.names = None
         self.voices = []
 
-        # the (voice, speed) indexes in the lists for each of names
+        # the (voice, speed) indexes in the lists for each of names, and the
+        # VoiceChoice each is read in
         self.cast = []
+        self.castChoices = []
 
         # the engine's normal rate, which SPEEDS are factors of
         self.baseRate = 0
@@ -451,9 +454,9 @@ class ReadAloudPanel(wx.Panel):
         self.baseRate = backend.defaultRate
         ids = [v.id for v in voices]
         self.cast = []
+        self.castChoices = [cast.voiceFor(name or None) for name in names]
 
-        for name in names:
-            choice = cast.voiceFor(name or None)
+        for choice in self.castChoices:
             self.cast.append(
                 (
                     ids.index(choice.voiceId) if choice.voiceId in ids else 0,
@@ -642,7 +645,9 @@ class ReadAloudPanel(wx.Panel):
         return VoiceChoice(voice.id, int(round(self.baseRate * factor)))
 
     # the voice or speed of the selected speaker was changed: keep it in
-    # the script, and read in it from now on
+    # the script, and read in it from now on. everyone else's voice is kept
+    # as it is too, or tableread.assignVoices would give some of them other
+    # voices to make room for this one.
     def OnChoice(self, event=None):
         name = self.selectedName()
 
@@ -650,6 +655,7 @@ class ReadAloudPanel(wx.Panel):
             return
 
         choices = dict(self.getCtrl().sp.readAloud.choices)
+        choices.update(zip(self.names, self.castChoices))
         choices[name] = self.shownChoice()
         self.setChoices(choices)
 
