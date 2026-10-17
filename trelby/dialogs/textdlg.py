@@ -18,7 +18,7 @@ class TextDlg(wx.Dialog):
             self,
             value=text,
             size=wx.Size(400, 200),
-            style=wx.TE_READONLY | wx.TE_LINEWRAP,
+            style=wx.TE_READONLY | wx.TE_WORDWRAP,
         )
         vsizer.Add(textBox, 1, wx.EXPAND)
 

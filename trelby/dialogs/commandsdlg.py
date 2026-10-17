@@ -115,7 +115,7 @@ R                      Replace
             self,
             _("Filename to save as"),
             wildcard=_("HTML files (*.html)|*.html|All files|*"),
-            style=wx.FD_SAVE | wx.OVERWRITE_PROMPT,
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         )
 
         if dlg.ShowModal() == wx.ID_OK:
