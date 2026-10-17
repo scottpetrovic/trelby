@@ -127,6 +127,7 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU_HIGHLIGHT_ALL, self.OnMenuHighlight)
 
         self.tabCtrl.setPageChangedFunc(self.OnPageChange)
+        self.tabCtrl.setNewTabFunc(lambda: self.runAction("NewScript"))
         self.applyThemeColors()
 
         menus.bind(self, self.actions.values())

@@ -1,5 +1,6 @@
-# the tab bar above the script: the tabs of the open scripts, and the
-# button for leaving fullscreen mode.
+# the tab bar above the script: the tabs of the open scripts, the "+"
+# button after them for a new script, and the button for leaving
+# fullscreen mode.
 
 import wx
 
@@ -73,6 +74,17 @@ class MyTabCtrl(wx.Window):
         # x-pos of the center of a tab's close button, relative to the tab
         self.closeX = self.tabWidth - 18
 
+        # width of the "+" button after the last visible tab, and the size
+        # of its hover highlight
+        self.newTabWidth = 30
+        self.newTabSize = 22
+
+        # whether the mouse is over the "+" button
+        self.newTabHover = False
+
+        # function to call when the "+" button is clicked
+        self.newTabFunc = None
+
         # width, height, spacing, y-pos of arrows
         self.arrowWidth = 8
         self.arrowHeight = 13
@@ -88,6 +100,7 @@ class MyTabCtrl(wx.Window):
                 + self.arrowWidth * 2
                 + self.arrowSpacing
                 + self.tabWidth
+                + self.newTabWidth
                 + 5,
                 TAB_BAR_HEIGHT,
             )
@@ -95,6 +108,8 @@ class MyTabCtrl(wx.Window):
 
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDown)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
@@ -175,6 +190,7 @@ class MyTabCtrl(wx.Window):
 
         w -= self.paddingX * 2
         w -= self.arrowWidth * 2 + self.arrowSpacing
+        w -= self.newTabWidth
 
         # leave at least 2 pixels between left arrow and last tab
         w -= 2
@@ -191,6 +207,18 @@ class MyTabCtrl(wx.Window):
         return util.clamp(
             self.firstTab + self.calcMaxVisibleTabs() - 1, maxVal=len(self.pages) - 1
         )
+
+    # x-pos of the "+" button's left edge: right after the last visible tab
+    def getNewTabX(self):
+        return self.paddingX + (self.getLastVisibleTab() - self.firstTab + 1) * (
+            self.tabWidth
+        )
+
+    # whether x-pos 'x' is on the "+" button
+    def isOnNewTab(self, x):
+        nx = self.getNewTabX()
+
+        return (x >= nx) and (x < (nx + self.newTabWidth))
 
     # make sure selected tab is visible
     def makeSelectedTabVisible(self):
@@ -213,10 +241,42 @@ class MyTabCtrl(wx.Window):
     def setPageChangedFunc(self, func):
         self.pageChangeFunc = func
 
+    # set function to call, with no arguments, when the "+" button is
+    # clicked
+    def setNewTabFunc(self, func):
+        self.newTabFunc = func
+
+    def OnMotion(self, event):
+        self.setNewTabHover(self.isOnNewTab(event.GetPosition().x))
+        event.Skip()
+
+    def OnLeaveWindow(self, event):
+        self.setNewTabHover(False)
+        event.Skip()
+
+    def setNewTabHover(self, hover):
+        if hover == self.newTabHover:
+            return
+
+        self.newTabHover = hover
+
+        if hover:
+            self.SetToolTip(_("New script"))
+        else:
+            self.UnsetToolTip()
+
+        self.Refresh(False)
+
     def OnLeftDown(self, event):
         x = event.GetPosition().x
 
         if x < self.paddingX:
+            return
+
+        if self.isOnNewTab(x):
+            if self.newTabFunc:
+                self.newTabFunc()
+
             return
 
         w = self.GetClientSize()[0]
@@ -357,6 +417,24 @@ class MyTabCtrl(wx.Window):
             gc.StrokeLine(cx - s, cy + s, cx + s, cy - s)
 
             xpos += self.tabWidth
+
+        # the "+" button after the last tab, with a rounded highlight
+        # behind it while the mouse is over it
+        cx = xpos + self.newTabWidth / 2
+        cy = (4 + h) / 2
+
+        if self.newTabHover:
+            hs = self.newTabSize
+            gc.SetPen(wx.NullGraphicsPen)
+            gc.SetBrush(gc.CreateBrush(cfgGui.tabNonActiveBgBrush))
+            gc.DrawRoundedRectangle(cx - hs / 2, cy - hs / 2, hs, hs, radius)
+
+        s = 5
+        gc.SetPen(
+            gc.CreatePen(wx.GraphicsPenInfo(cfgGui.tabTextColor, 1.5).Cap(wx.CAP_ROUND))
+        )
+        gc.StrokeLine(cx - s, cy, cx + s, cy)
+        gc.StrokeLine(cx, cy - s, cx, cy + s)
 
         del gc
 
