@@ -534,6 +534,8 @@ class MainToolBar:
             else:
                 icon, tip = "beatboard.svg", _("Show the beat board")
 
+            tip += " (%s)" % menus.BOARD_TOGGLE_KEY.replace("-", "+").title()
+
             tb = self.tb
             tb.SetToolNormalBitmap(
                 ids.ID_VIEW_BEAT_BOARD,

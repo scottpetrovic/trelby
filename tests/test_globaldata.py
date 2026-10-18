@@ -65,3 +65,22 @@ def testMakeConfDirError(tmp_path):
     assert box.call_count == 1
     assert path in box.call_args[0][0]
     assert "Denied" in box.call_args[0][0]
+
+
+# the beat board has its own zoom level, which the zoom commands step
+# through while it's shown
+def testBoardZoom():
+    gd = globaldata.GlobalData.__new__(globaldata.GlobalData)
+    gd.zoom = 100
+    gd.boardZoom = 50
+    gd.showBeatBoard = False
+    assert gd.currentZoom() == 100
+    assert gd.getZoomStep(-1) == 90
+
+    gd.showBeatBoard = True
+    assert gd.currentZoom() == 50
+    assert gd.getZoomStep(-1) == 33
+    assert gd.getZoomStep(1) == 67
+
+    gd.boardZoom = globaldata.GlobalData.BOARD_ZOOM_LEVELS[0]
+    assert gd.getZoomStep(-1) == gd.boardZoom

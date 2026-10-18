@@ -30,6 +30,7 @@ class MyPanel(wx.Panel):
         # the beat board, hidden until it's shown. created before MyCtrl,
         # which reloads it when it gets a new script.
         self.board = BeatBoardView(self, self)
+        self.board.zoom = gd.boardZoom
         self.board.Hide()
 
         self.splitter = wx.SplitterWindow(

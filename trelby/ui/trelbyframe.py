@@ -648,6 +648,9 @@ class MyFrame(wx.Frame):
         for i in range(self.tabCtrl.getPageCount()):
             self.tabCtrl.getPage(i).showBeatBoard(show)
 
+        # the board has its own zoom level
+        self.statusBar.updateZoom()
+
         self.panel.ctrl.SetFocus()
         self.panel.ctrl.updateCommon()
 
@@ -694,8 +697,14 @@ class MyFrame(wx.Frame):
     def OnZoomReset(self, event=None):
         self.setZoom(100)
 
-    # set zoom level (in percent) for all open scripts
-    def setZoom(self, zoom):
+    # set zoom level (in percent) for all open scripts, or while the beat
+    # board is shown, for the boards (see setBoardZoom)
+    def setZoom(self, zoom, pos=None):
+        if self.gd.showBeatBoard:
+            self.setBoardZoom(zoom, pos)
+
+            return
+
         if zoom == self.gd.zoom:
             return
 
@@ -713,6 +722,20 @@ class MyFrame(wx.Frame):
         c = self.panel.ctrl
         c.makeLineVisible(c.ed.line)
         c.updateScreen()
+
+    # set the beat boards' zoom level (in percent). the current tab's board
+    # keeps the point at pos (in its window, by default the middle) where
+    # it is.
+    def setBoardZoom(self, zoom, pos=None):
+        if zoom == self.gd.boardZoom:
+            return
+
+        self.gd.boardZoom = zoom
+        self.statusBar.updateZoom()
+
+        for i in range(self.tabCtrl.getPageCount()):
+            page = self.tabCtrl.getPage(i)
+            page.board.setZoom(zoom, pos if page is self.panel else None)
 
     def ToggleFullscreen(self, event=None):
         fullScreen = not self.IsFullScreen()

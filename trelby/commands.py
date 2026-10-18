@@ -569,6 +569,8 @@ def defaultCommands():
         Command(
             "ToggleBeatBoard",
             _("Switch between the script and its beat board."),
+            [keys.Key(ord("B"), ctrl=True, shift=True).toInt()],
+            isFixed=True,
             isMenu=True,
         ),
         Command(

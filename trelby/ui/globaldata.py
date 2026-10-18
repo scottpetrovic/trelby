@@ -65,6 +65,10 @@ class GlobalData:
     # available zoom levels, in percent
     ZOOM_LEVELS = [50, 67, 75, 90, 100, 125, 150, 175, 200, 250, 300]
 
+    # the beat board's zoom levels, which go further out, to see more of
+    # the board
+    BOARD_ZOOM_LEVELS = [25, 33, 50, 67, 75, 90, 100, 125, 150, 175, 200]
+
     def __init__(self):
 
         self.confFilename = misc.confPath + "/default.conf"
@@ -105,6 +109,15 @@ class GlobalData:
         )
 
         v.addInt("zoom", 100, "Zoom", self.ZOOM_LEVELS[0], self.ZOOM_LEVELS[-1])
+
+        # the beat board's own zoom level, shared by every tab's board
+        v.addInt(
+            "boardZoom",
+            100,
+            "BoardZoom",
+            self.BOARD_ZOOM_LEVELS[0],
+            self.BOARD_ZOOM_LEVELS[-1],
+        )
 
         # the side panel with the outline, the notes and the table read's
         # controls: whether it's shown, which of them it shows, and its
@@ -174,16 +187,24 @@ class GlobalData:
     def notesShown(self):
         return self.showSidePanel and (self.sideTab == self.SIDE_NOTES)
 
-    # return the zoom level 'step' levels away from the current one (1 =
-    # next larger, -1 = next smaller). the current zoom need not be one of
-    # ZOOM_LEVELS (the state file can be edited by hand).
+    # the zoom level of what's shown: the beat board's while it's shown,
+    # otherwise the script's
+    def currentZoom(self):
+        return self.boardZoom if self.showBeatBoard else self.zoom
+
+    # return the zoom level 'step' levels away from the current one (see
+    # currentZoom) (1 = next larger, -1 = next smaller). the current zoom
+    # need not be one of the levels (the state file can be edited by hand).
     def getZoomStep(self, step):
+        zoom = self.currentZoom()
+        levels = self.BOARD_ZOOM_LEVELS if self.showBeatBoard else self.ZOOM_LEVELS
+
         if step > 0:
-            larger = [z for z in self.ZOOM_LEVELS if z > self.zoom]
-            return larger[0] if larger else self.zoom
+            larger = [z for z in levels if z > zoom]
+            return larger[0] if larger else zoom
         else:
-            smaller = [z for z in self.ZOOM_LEVELS if z < self.zoom]
-            return smaller[-1] if smaller else self.zoom
+            smaller = [z for z in levels if z < zoom]
+            return smaller[-1] if smaller else zoom
 
     # load from string 's'. does not throw any exceptions and silently
     # ignores any errors.

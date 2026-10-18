@@ -247,7 +247,7 @@ class MainStatusBar(StatusBar):
 
     # show the zoom level, and which ways it can still go
     def updateZoom(self):
-        zoom = self.gd.zoom
+        zoom = self.gd.currentZoom()
         self.zoomLevelBtn.SetLabel("%d%%" % zoom)
         self.zoomOutBtn.Enable(self.gd.getZoomStep(-1) != zoom)
         self.zoomInBtn.Enable(self.gd.getZoomStep(1) != zoom)

@@ -609,3 +609,61 @@ def test_resizePicture(view):
     resizeCard(view, beat, 40, 40)
     shown = tuple(view.FromDIP(n) for n in view.pictureSize(beat))
     assert all(k[1:] == shown for k in view.bitmaps)
+
+
+# the board's own zoom scales the cards, keeping the point zoomed around
+# where it is, and the cards' text is in Courier Prime at the zoom level
+def test_zoom(view):
+    beat = view.board.beats[0]
+    r100 = view.cardRect(beat)
+    font100 = view.cardFont()
+    assert font100.GetFaceName() == gutil.courierFace()
+
+    pos = wx.Point(*view.CalcScrolledPosition(r100.x, r100.y))
+    view.setZoom(200, pos)
+    r200 = view.cardRect(beat)
+    assert abs(r200.width - r100.width * 2) <= 2
+    assert abs(r200.height - r100.height * 2) <= 2
+    assert view.cardFont().GetFractionalPointSize() == pytest.approx(
+        font100.GetFractionalPointSize() * 2
+    )
+
+    # the card's corner stays under the mouse, and board coordinates
+    # still map back
+    corner = view.CalcScrolledPosition(r200.x, r200.y)
+    assert abs(corner[0] - pos.x) <= 1 and abs(corner[1] - pos.y) <= 1
+    x, y = view.toBoard(wx.Point(*corner))
+    assert abs(x - beat.x) <= 1 and abs(y - beat.y) <= 1
+    assert view.hitTest(wx.Point(corner[0] + 5, corner[1] + 5)) is beat
+
+    view.setZoom(50)
+    r50 = view.cardRect(beat)
+    assert abs(r50.width - r100.width / 2) <= 1
+
+    paint(view)
+    view.setZoom(100)
+    assert view.cardRect(beat) == r100
+    assert not view.bitmaps
+
+
+# zooming ends a card's editing, since the text control would be out of
+# place
+def test_zoomEndsEdit(view):
+    beat = view.board.beats[0]
+    view.startEdit(beat)
+    view.editing[1].SetValue("Changed")
+    view.setZoom(150)
+    assert view.editing is None
+    assert beat.text == "Changed"
+
+
+# both right-click menus get to the other view through the View menu's
+# Beat board item
+def test_scriptItem(view):
+    import trelby.ui.ids as ids
+
+    menu = wx.Menu()
+    view.addScriptItem(menu)
+    item = menu.FindItemById(ids.ID_VIEW_BEAT_BOARD)
+    assert item and item.GetItemLabelText() == _("Go to script")
+    menu.Destroy()

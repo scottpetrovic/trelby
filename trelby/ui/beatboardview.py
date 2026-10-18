@@ -16,6 +16,10 @@
 # a card is resized by dragging its bottom right corner (with shift held
 # down, keeping its shape). its picture is fitted in it, so it grows and
 # shrinks with the card.
+#
+# the board has its own zoom level (self.zoom, GlobalData.boardZoom), which
+# scales the cards, their text and the grid, and the cards' text is in
+# Courier Prime, like the script's.
 
 import copy
 import io
@@ -26,8 +30,17 @@ from wx.lib.wordwrap import wordwrap
 
 import trelby.screenplay.beatboard as beatboard
 import trelby.ui.gutil as gutil
+import trelby.ui.ids as ids
 import trelby.ui.theming as theming
 from trelby.ui.outline import getSceneColors, luminance, str2color, swatchBitmap
+
+# the keyboard shortcut that switches between the script and the board (the
+# View menu's Beat board item, see menus.py), shown in the right-click
+# menus
+BOARD_TOGGLE_KEY = "CTRL-SHIFT-B"
+
+# the cards' font size at 100% zoom, in points
+CARD_FONT_SIZE = 9
 
 # the board's background grid: the size of its squares, in unscaled
 # pixels, and how many squares apart its stronger lines are
@@ -181,8 +194,8 @@ class BoardDropTarget(wx.DropTarget):
 
 
 # a scrollable area with the cards drawn on it. board coordinates are
-# unscaled pixels, which FromDIP turns into the window's. panel is the
-# trelbypanel.MyPanel it's in, whose ctrl has the script.
+# unscaled pixels, which px turns into the window's at the zoom level.
+# panel is the trelbypanel.MyPanel it's in, whose ctrl has the script.
 class BeatBoardView(wx.ScrolledWindow):
     def __init__(self, parent, panel):
         wx.ScrolledWindow.__init__(
@@ -231,6 +244,9 @@ class BeatBoardView(wx.ScrolledWindow):
         self.editing = None
 
         self.cfgGui = theming.currentCfgGui()
+
+        # the zoom level, in percent (see setZoom)
+        self.zoom = 100
 
         # the cards' pictures, decoded: Beat.image -> wx.Image, or None if
         # it can't be read. and those pictures as bitmaps at the size
@@ -574,18 +590,57 @@ class BeatBoardView(wx.ScrolledWindow):
 
         return (max(PICTURE_CARD_MIN_WIDTH, w + 2 * CARD_PAD), h)
 
+    # n unscaled pixels (board coordinates) in the window's pixels, at the
+    # zoom level
+    def px(self, n):
+        return self.FromDIP(round(n * self.zoom / 100))
+
+    # the window's pixels p in unscaled pixels (the opposite of px)
+    def unpx(self, p):
+        return round(self.ToDIP(p) * 100 / self.zoom)
+
+    # the cards' font, at the zoom level
+    def cardFont(self):
+        font = wx.Font(self.GetFont())
+        font.SetFaceName(gutil.courierFace())
+        font.SetFractionalPointSize(CARD_FONT_SIZE * self.zoom / 100)
+
+        return font
+
+    # zoom to 'zoom' percent, keeping the point at the mouse position pos
+    # (by default the middle of the window) where it is
+    def setZoom(self, zoom, pos=None):
+        if zoom == self.zoom:
+            return
+
+        # the text control would be in the wrong place and size
+        self.finishEdit(True)
+
+        if pos is None:
+            w, h = self.GetClientSize()
+            pos = wx.Point(w // 2, h // 2)
+
+        x, y = self.CalcUnscrolledPosition(pos.x, pos.y)
+        scale = zoom / self.zoom
+
+        self.zoom = zoom
+        self.bitmaps = {}
+        self.updateVirtualSize()
+        self.scrollTo(round(x * scale) - pos.x, round(y * scale) - pos.y)
+        self.Refresh()
+
     # the rectangle of a card, in the window's unscrolled coordinates
     def cardRect(self, beat):
-        dip = self.FromDIP
+        px = self.px
         w, h = self.cardSize(beat)
 
-        return wx.Rect(dip(beat.x), dip(beat.y), dip(w), dip(h))
+        return wx.Rect(px(beat.x), px(beat.y), px(w), px(h))
 
     # convert a mouse position to the board's coordinates
     def toBoard(self, pos):
         x, y = self.CalcUnscrolledPosition(pos.x, pos.y)
 
-        return (self.ToDIP(x), self.ToDIP(y))
+        return (self.unpx(x), self.unpx(y))
 
     # return the topmost card at the mouse position pos, or None
     def hitTest(self, pos):
@@ -601,7 +656,7 @@ class BeatBoardView(wx.ScrolledWindow):
     # unscrolled coordinates
     def gripRect(self, beat):
         r = self.cardRect(beat)
-        size = self.FromDIP(RESIZE_GRIP)
+        size = self.px(RESIZE_GRIP)
 
         return wx.Rect(r.GetRight() + 1 - size, r.GetBottom() + 1 - size, size, size)
 
@@ -640,7 +695,7 @@ class BeatBoardView(wx.ScrolledWindow):
         cw, ch = self.GetClientSize()
 
         if (x < 0) or (y < 0) or (x + r.width > cw) or (y + r.height > ch):
-            gap = self.FromDIP(beatboard.GAP)
+            gap = self.px(beatboard.GAP)
             self.scrollTo(r.x - gap, r.y - gap)
 
     # show the hand cursor while space is held down or the board is being
@@ -700,7 +755,7 @@ class BeatBoardView(wx.ScrolledWindow):
         )
         ctrl.SetBackgroundColour(bg)
         ctrl.SetForegroundColour(fg)
-        ctrl.SetFont(self.GetFont())
+        ctrl.SetFont(self.cardFont())
         ctrl.SetToolTip(
             _("Ctrl+Enter or click outside the card to finish, Esc to cancel")
         )
@@ -810,7 +865,7 @@ class BeatBoardView(wx.ScrolledWindow):
     # so it works on light and dark themes alike, with every
     # GRID_MAJOR'th line a bit stronger
     def drawGrid(self, dc, boardColor, textColor):
-        step = self.FromDIP(GRID)
+        step = max(2, self.px(GRID))
 
         # the visible part of the board, in its unscrolled coordinates
         x0, y0 = self.CalcUnscrolledPosition(0, 0)
@@ -844,21 +899,22 @@ class BeatBoardView(wx.ScrolledWindow):
     # the part of beat's card its text goes in, in the window's unscrolled
     # coordinates
     def textRect(self, beat):
-        pad = self.FromDIP(CARD_PAD)
+        pad = self.px(CARD_PAD)
 
         return self.cardRect(beat).Deflate(pad, pad)
 
     def drawCard(self, dc, beat):
         dip = self.FromDIP
+        px = self.px
         _board, _bg, _fg, border, shadow, accent = self.getColors()
         cardBg, cardFg = self.getCardColors(beat)
 
         r = self.cardRect(beat)
-        radius = dip(6)
+        radius = px(6)
 
         dc.SetPen(wx.TRANSPARENT_PEN)
         dc.SetBrush(wx.Brush(shadow))
-        dc.DrawRoundedRectangle(r.x + dip(2), r.y + dip(3), r.width, r.height, radius)
+        dc.DrawRoundedRectangle(r.x + px(2), r.y + px(3), r.width, r.height, radius)
 
         if beat is self.selected:
             dc.SetPen(wx.Pen(accent, dip(2)))
@@ -878,13 +934,13 @@ class BeatBoardView(wx.ScrolledWindow):
 
     # draw beat's text or picture in 'r', the inside of its card
     def drawContents(self, dc, beat, r, cardBg, cardFg):
-        dip = self.FromDIP
+        px = self.px
         width = r.width
         x = r.x
         y = r.y
         bottom = r.GetBottom()
 
-        font = self.GetFont()
+        font = self.cardFont()
         dim = theming.blendColors(cardFg, cardBg, 0.4)
 
         title = beat.getTitle()
@@ -893,12 +949,12 @@ class BeatBoardView(wx.ScrolledWindow):
             height = r.height
 
             if title:
-                height -= dip(CAPTION_HEIGHT)
+                height -= px(CAPTION_HEIGHT)
                 dc.SetFont(font.Bold())
                 dc.SetTextForeground(cardFg)
                 s = wx.Control.Ellipsize(title, dc, wx.ELLIPSIZE_END, width)
                 th = dc.GetTextExtent(s)[1]
-                dc.DrawText(s, x, bottom - (dip(CAPTION_HEIGHT) + th) // 2)
+                dc.DrawText(s, x, bottom - (px(CAPTION_HEIGHT) + th) // 2)
 
             self.drawPicture(dc, beat, x, y, width, height)
 
@@ -931,11 +987,11 @@ class BeatBoardView(wx.ScrolledWindow):
                 dc.DrawText(s, x, y)
                 y += lh
 
-            y += dip(4)
+            y += px(4)
 
     # draw beat's picture centered in the width x height pixels at (x, y)
     def drawPicture(self, dc, beat, x, y, width, height):
-        w, h = (self.FromDIP(n) for n in self.pictureSize(beat))
+        w, h = (self.px(n) for n in self.pictureSize(beat))
         key = (beat.image, w, h)
         bmp = self.bitmaps.get(key)
 
@@ -954,15 +1010,15 @@ class BeatBoardView(wx.ScrolledWindow):
     # draw the lines in the corner of beat's card that show it can be
     # resized from there
     def drawGrip(self, dc, beat, color):
-        dip = self.FromDIP
+        px = self.px
         r = self.cardRect(beat)
-        right = r.GetRight() - dip(3)
-        bottom = r.GetBottom() - dip(3)
+        right = r.GetRight() - px(3)
+        bottom = r.GetBottom() - px(3)
 
-        dc.SetPen(wx.Pen(color, max(1, dip(1))))
+        dc.SetPen(wx.Pen(color, max(1, self.FromDIP(1))))
 
         for n in (4, 8):
-            d = dip(n)
+            d = px(n)
             dc.DrawLine(right - d, bottom, right, bottom - d)
 
     def OnLeftDown(self, event):
@@ -1089,7 +1145,7 @@ class BeatBoardView(wx.ScrolledWindow):
             size = self.pictureSize(b)
 
             if size:
-                shown.add((b.image,) + tuple(self.FromDIP(n) for n in size))
+                shown.add((b.image,) + tuple(self.px(n) for n in size))
 
         self.bitmaps = {k: v for k, v in self.bitmaps.items() if k in shown}
 
@@ -1126,6 +1182,18 @@ class BeatBoardView(wx.ScrolledWindow):
     # the wheel scrolls up and down, or with shift held down (or a
     # horizontal wheel), left and right
     def OnMouseWheel(self, event):
+        # with ctrl held down, it zooms in or out around the mouse, like
+        # the script
+        if event.ControlDown():
+            rotation = event.GetWheelRotation()
+
+            if rotation:
+                gd = self.panel.gd
+                zoom = gd.getZoomStep(1 if rotation > 0 else -1)
+                gd.mainFrame.setZoom(zoom, event.GetPosition())
+
+            return
+
         lines = event.GetWheelRotation() / event.GetWheelDelta()
         amount = int(lines * event.GetLinesPerAction() * self.FromDIP(20))
         vx, vy = self.GetViewStart()
@@ -1215,6 +1283,7 @@ class BeatBoardView(wx.ScrolledWindow):
             add(menu, _("Add card here"), lambda: self.addCard(x, y))
             add(menu, _("Add picture here..."), lambda: self.choosePictures(pos))
             add(menu, _("Paste picture"), lambda: self.paste(pos), self.canPaste())
+            self.addScriptItem(menu)
             self.PopupMenu(menu, pos)
             menu.Destroy()
             self.updateVirtualSize()
@@ -1249,9 +1318,18 @@ class BeatBoardView(wx.ScrolledWindow):
 
         menu.AppendSeparator()
         add(menu, _("Delete card"), lambda: self.deleteCard(beat))
+        self.addScriptItem(menu)
 
         self.PopupMenu(menu, pos)
         menu.Destroy()
+
+    # add the item that goes back to the script to a right-click menu. it
+    # has the View menu's Beat board item's id, so the main window runs it.
+    def addScriptItem(self, menu):
+        menu.AppendSeparator()
+        menu.Append(
+            ids.ID_VIEW_BEAT_BOARD, _("Go to script") + "\t" + BOARD_TOGGLE_KEY
+        )
 
     # resize beat to w x h, or back to its default size if w is None
     def setSize(self, beat, w, h=None):

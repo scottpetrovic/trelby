@@ -15,6 +15,7 @@ import trelby.screenplay as screenplay
 import trelby.ui.scriptactions as scriptactions
 import trelby.textfmt as textfmt
 import trelby.translations as translations
+from trelby.ui.beatboardview import BOARD_TOGGLE_KEY
 from trelby.ui.globaldata import GlobalData
 from trelby.ui.ids import *
 from trelby.reports.reportframes import (
@@ -494,7 +495,7 @@ def makeTable():
     )
 
     def zoomStep(step):
-        return lambda f, c: f.gd.getZoomStep(step) != f.gd.zoom
+        return lambda f, c: f.gd.getZoomStep(step) != f.gd.currentZoom()
 
     viewMenu = Menu(
         _("View"),
@@ -571,6 +572,7 @@ def makeTable():
                 _("Beat board"),
                 "B",
                 OnFrame("OnToggleBeatBoard"),
+                BOARD_TOGGLE_KEY,
                 kind=wx.ITEM_CHECK,
             ),
             Action(
@@ -607,7 +609,7 @@ def makeTable():
                 "R",
                 OnFrame("OnZoomReset"),
                 "CTRL-0",
-                canUse=lambda f, c: f.gd.zoom != 100,
+                canUse=lambda f, c: f.gd.currentZoom() != 100,
             ),
             SEP,
             Action(
@@ -1130,9 +1132,6 @@ SCRIPT_ONLY = {
     "ViewModeDraft",
     "ViewModeLayout",
     "ViewModeSideBySide",
-    "ZoomIn",
-    "ZoomOut",
-    "ZoomReset",
 }
 
 
@@ -1271,6 +1270,11 @@ def makeRightClickMenu(
     m.AppendSeparator()
     append(m, "AddNote")
     append(m, "SelectScene")
+    m.AppendSeparator()
+    m.Append(
+        actions["ToggleBeatBoard"].id,
+        _("Go to beat board") + "	" + BOARD_TOGGLE_KEY,
+    )
     m.AppendSeparator()
 
     if withCut:
