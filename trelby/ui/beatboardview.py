@@ -17,6 +17,8 @@
 # down, keeping its shape). its picture is fitted in it, so it grows and
 # shrinks with the card.
 #
+# each card has an "x" in its top right corner that deletes it.
+#
 # the board has its own zoom level (self.zoom, GlobalData.boardZoom), which
 # scales the cards, their text and the grid, and the cards' text is in
 # Courier Prime, like the script's.
@@ -61,6 +63,11 @@ CAPTION_HEIGHT = 22
 # the size of the corner of a card that resizes it when dragged, in
 # unscaled pixels
 RESIZE_GRIP = 14
+
+# the size of the button that deletes a card, in its top right corner, and
+# its distance from the corner, in unscaled pixels
+CLOSE_SIZE = 14
+CLOSE_MARGIN = 3
 
 # how far apart the cards of several pictures added at once are put
 CASCADE = 30
@@ -229,6 +236,12 @@ class BeatBoardView(wx.ScrolledWindow):
         # whether the mouse is over a card's resizing corner
         self.overGrip = False
 
+        # the card whose delete button the mouse is over, or None
+        self.hover = None
+
+        # whether the last left button press was on a delete button
+        self.lastClickButton = False
+
         # while the board is being panned (dragged with the middle button,
         # or the left one with space held down): (x, y, view x, view y),
         # the mouse position and the scroll position when it started, in
@@ -268,6 +281,7 @@ class BeatBoardView(wx.ScrolledWindow):
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDClick)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
         self.Bind(wx.EVT_MIDDLE_DOWN, self.OnMiddleDown)
         self.Bind(wx.EVT_MIDDLE_UP, self.OnMiddleUp)
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
@@ -295,6 +309,7 @@ class BeatBoardView(wx.ScrolledWindow):
         self.resize = None
         self.pan = None
         self.selected = None
+        self.hover = None
         self.board = copy.deepcopy(sp.beatBoard)
 
         # forget the pictures of cards that are gone
@@ -318,6 +333,7 @@ class BeatBoardView(wx.ScrolledWindow):
     # away again if nothing is written on it.
     def addCard(self, x, y):
         beat = beatboard.Beat("", x, y)
+        beat.color = beatboard.DEFAULT_COLOR
         self.board.beats.append(beat)
         self.updateVirtualSize()
         self.startEdit(beat, True)
@@ -338,6 +354,7 @@ class BeatBoardView(wx.ScrolledWindow):
 
         for i, image in enumerate(images):
             beat = beatboard.Beat()
+            beat.color = beatboard.DEFAULT_COLOR
             beat.image = image
 
             w, h = self.cardSize(beat)
@@ -670,6 +687,43 @@ class BeatBoardView(wx.ScrolledWindow):
 
         return None
 
+    # the button that deletes beat, in its top right corner, in the
+    # window's unscrolled coordinates
+    def closeRect(self, beat):
+        r = self.cardRect(beat)
+        size = self.px(CLOSE_SIZE)
+        margin = self.px(CLOSE_MARGIN)
+
+        return wx.Rect(r.GetRight() + 1 - margin - size, r.y + margin, size, size)
+
+    # the card whose delete button is at the mouse position pos (and isn't
+    # under another card), or None
+    def closeHitTest(self, pos):
+        beat = self.hitTest(pos)
+
+        if beat and self.closeRect(beat).Contains(self.CalcUnscrolledPosition(pos)):
+            return beat
+
+        return None
+
+    # note which card's delete button the mouse is over at pos (None when
+    # it's not in the window), redrawing it and changing the tooltip if
+    # that changed
+    def setHover(self, pos):
+        hover = self.closeHitTest(pos) if pos else None
+
+        if hover is self.hover:
+            return
+
+        self.hover = hover
+
+        if hover:
+            self.SetToolTip(_("Delete card"))
+        else:
+            self.UnsetToolTip()
+
+        self.Refresh()
+
     # make the board big enough to scroll to every card, and a screenful
     # past them, so there's always empty space to pan to and put cards in
     def updateVirtualSize(self):
@@ -848,13 +902,34 @@ class BeatBoardView(wx.ScrolledWindow):
         for beat in self.board.beats:
             self.drawCard(dc, beat)
 
+
+    # draw the button that deletes beat, an x that gets a circle behind it
+    # when the mouse is over it
+    def drawClose(self, dc, beat, cardBg, cardFg):
+        r = self.closeRect(beat)
+        cx = r.x + r.width // 2
+        cy = r.y + r.height // 2
+
+        if self.hover is beat:
+            dc.SetPen(wx.TRANSPARENT_PEN)
+            dc.SetBrush(wx.Brush(theming.blendColors(cardBg, cardFg, 0.15)))
+            dc.DrawCircle(cx, cy, r.width // 2)
+            color = cardFg
+        else:
+            color = theming.blendColors(cardFg, cardBg, 0.5)
+
+        d = max(2, r.width // 4)
+        dc.SetPen(wx.Pen(color, max(1, self.FromDIP(1))))
+        dc.DrawLine(cx - d, cy - d, cx + d + 1, cy + d + 1)
+        dc.DrawLine(cx - d, cy + d, cx + d + 1, cy - d - 1)
+
     # draw how to add cards in the middle of the window's size, measured
     # from the board's top left corner, so it scrolls with the board.
     # cards are drawn over it.
     def drawHint(self, dc, boardColor, textColor):
         w, h = self.GetClientSize()
 
-        dc.SetFont(self.GetFont().Scaled(1.4))
+        dc.SetFont(self.GetFont().Scaled(2.2))
         dc.SetTextForeground(theming.blendColors(boardColor, textColor, 0.35))
 
         text = _("Double-click to add a card, or drop pictures here")
@@ -929,6 +1004,8 @@ class BeatBoardView(wx.ScrolledWindow):
         self.drawContents(dc, beat, inside, cardBg, cardFg)
         dc.DestroyClippingRegion()
 
+        self.drawClose(dc, beat, cardBg, cardFg)
+
         if beat is self.selected:
             self.drawGrip(dc, beat, theming.blendColors(cardFg, cardBg, 0.5))
 
@@ -943,14 +1020,14 @@ class BeatBoardView(wx.ScrolledWindow):
         font = self.cardFont()
         dim = theming.blendColors(cardFg, cardBg, 0.4)
 
-        title = beat.getTitle()
+        title = beat.getTitle().upper()
 
         if self.getPicture(beat):
             height = r.height
 
             if title:
                 height -= px(CAPTION_HEIGHT)
-                dc.SetFont(font.Bold())
+                dc.SetFont(font)
                 dc.SetTextForeground(cardFg)
                 s = wx.Control.Ellipsize(title, dc, wx.ELLIPSIZE_END, width)
                 th = dc.GetTextExtent(s)[1]
@@ -967,18 +1044,17 @@ class BeatBoardView(wx.ScrolledWindow):
 
             return
 
-        # the title in bold, then the rest of the text
+        # the title in capitals, a line under it, then the rest of the text
         lines = beat.text.strip().splitlines()
         rest = "\n".join(lines[1:]).strip()
 
+        dc.SetFont(font)
         dc.SetTextForeground(cardFg)
+        lh = dc.GetTextExtent("X")[1]
 
-        for text, f in ((title, font.Bold()), (rest, font)):
+        for i, text in enumerate((title, rest)):
             if not text:
                 continue
-
-            dc.SetFont(f)
-            lh = dc.GetTextExtent("X")[1]
 
             for s in wordwrap(text, width, dc).split("\n"):
                 if y + lh > bottom:
@@ -987,7 +1063,11 @@ class BeatBoardView(wx.ScrolledWindow):
                 dc.DrawText(s, x, y)
                 y += lh
 
-            y += px(4)
+            if i == 0:
+                y += px(4)
+                dc.SetPen(wx.Pen(dim, max(1, self.FromDIP(1))))
+                dc.DrawLine(x, y, x + width, y)
+                y += px(6)
 
     # draw beat's picture centered in the width x height pixels at (x, y)
     def drawPicture(self, dc, beat, x, y, width, height):
@@ -1034,6 +1114,15 @@ class BeatBoardView(wx.ScrolledWindow):
             return
 
         pos = event.GetPosition()
+        closing = self.closeHitTest(pos)
+        self.lastClickButton = bool(closing)
+
+        if closing:
+            self.deleteCard(closing)
+            self.setHover(pos)
+
+            return
+
         beat = self.hitTest(pos)
         self.select(beat)
 
@@ -1072,6 +1161,8 @@ class BeatBoardView(wx.ScrolledWindow):
                 self.overGrip = over
                 self.updateCursor()
 
+            self.setHover(event.GetPosition())
+
         if not (self.drag and event.Dragging() and event.LeftIsDown()):
             return
 
@@ -1081,6 +1172,12 @@ class BeatBoardView(wx.ScrolledWindow):
         beat.y = min(max(0, y - dy), beatboard.MAX_COORD)
 
         self.Refresh()
+
+    def OnLeaveWindow(self, event):
+        event.Skip()
+
+        if not (self.drag or self.resize or self.pan):
+            self.setHover(None)
 
     # a card that was moved comes to the front
     def endDrag(self):
@@ -1206,6 +1303,11 @@ class BeatBoardView(wx.ScrolledWindow):
             self.scrollTo(vx, vy - amount)
 
     def OnLeftDClick(self, event):
+        # the second click on a delete button: where a card was deleted,
+        # nothing is added or edited
+        if self.lastClickButton:
+            return
+
         self.finishEdit(True)
 
         if self.spaceDown:

@@ -14,8 +14,8 @@ import trelby.util as util
 from trelby.screenplay.datatypes import isValidColor
 
 # size of a card on the board, in the board's units (unscaled pixels)
-CARD_WIDTH = 200
-CARD_HEIGHT = 120
+CARD_WIDTH = 260
+CARD_HEIGHT = 156
 
 # the sizes a card can be resized to, in the same units
 MIN_CARD_WIDTH = 80
@@ -35,6 +35,9 @@ MAX_COORD = 100000
 # that pictures don't make scripts huge
 MAX_IMAGE_SIDE = 1024
 MAX_IMAGE_BYTES = 1024 * 1024
+
+# the color new cards get: the outline's Yellow (ui/outline.getSceneColors)
+DEFAULT_COLOR = "fff2a8"
 
 
 # one index card on the board

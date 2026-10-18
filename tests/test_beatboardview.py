@@ -50,11 +50,11 @@ def view(app):
     board = beatboard.BeatBoard()
     board.beats.append(beatboard.Beat("Opening image\nThe city at dawn.", 20, 20))
 
-    b = beatboard.Beat("Catalyst", 240, 20)
+    b = beatboard.Beat("Catalyst", 300, 20)
     b.color = "ffd1a3"
     board.beats.append(b)
 
-    board.beats.append(beatboard.Beat("Midpoint", 460, 20))
+    board.beats.append(beatboard.Beat("Midpoint", 580, 20))
     board.beats.append(beatboard.Beat("", 700, 180))
 
     ed = u.newEditor()
@@ -323,6 +323,7 @@ def test_newCard(view):
     view.finishEdit(True)
     assert view.board.beats[-1] is beat
     assert ed(view).sp.beatBoard.beats[-1].text == "Dark night of the soul"
+    assert beat.color == beatboard.DEFAULT_COLOR
 
     # cancelling a new card removes it too
     view.addCard(700, 500)
@@ -667,3 +668,42 @@ def test_scriptItem(view):
     item = menu.FindItemById(ids.ID_VIEW_BEAT_BOARD)
     assert item and item.GetItemLabelText() == _("Go to script")
     menu.Destroy()
+
+
+def test_deleteButton(view):
+    n = len(view.board.beats)
+    opening = view.board.beats[0]
+    r = view.closeRect(opening)
+    x, y = view.CalcScrolledPosition(r.x + r.width // 2, r.y + r.height // 2)
+
+    # in the card's top right corner
+    card = view.cardRect(opening)
+    assert card.Contains(r)
+    assert r.GetRight() > card.x + card.width * 3 // 4
+    assert r.y < card.y + card.height // 4
+
+    # hovering over it highlights it
+    before = paint(view)
+    view.OnMotion(mouse(wx.wxEVT_MOTION, x, y))
+    assert view.hover is opening
+    assert pixel(paint(view), x - 4, y) != pixel(before, x - 4, y)
+
+    view.OnLeftDown(mouse(wx.wxEVT_LEFT_DOWN, x, y))
+    assert opening not in view.board.beats
+    assert len(ed(view).sp.beatBoard.beats) == n - 1
+    assert view.hover is None
+
+    # the double-click a second click makes adds nothing where it was
+    view.OnLeftDClick(mouse(wx.wxEVT_LEFT_DCLICK, x, y))
+    assert not view.editing
+    assert len(view.board.beats) == n - 1
+
+    ed(view).cmd("undo")
+    view.reload()
+    assert len(view.board.beats) == n
+
+    # elsewhere on a card, a click selects it
+    view.OnLeftDown(mouse(wx.wxEVT_LEFT_DOWN, x - 40, y + 30))
+    view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, x - 40, y + 30))
+    assert view.selected is view.board.beats[0]
+    assert len(view.board.beats) == n
