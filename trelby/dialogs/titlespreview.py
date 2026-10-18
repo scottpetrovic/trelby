@@ -1,15 +1,13 @@
 import wx
 
-import trelby.pdf.fontinfo as fontinfo
 import trelby.pdf.pml as pml
 import trelby.ui.gutil as gutil
 import trelby.util as util
 from trelby.ui.textedit import TextEdit
 
-# screen fonts that match the metrics of the PDF fonts. Courier is the
-# bundled font the PDFs use (see faceName).
+# screen fonts that match the metrics of the PDF fonts other than Courier,
+# which is the bundled font the PDFs use (gutil.courierFace)
 FACE_NAMES = {
-    pml.COURIER: fontinfo.BUNDLED_FACE,
     pml.HELVETICA: "Arial",
     pml.TIMES_ROMAN: "Times New Roman",
 }
@@ -17,8 +15,8 @@ FACE_NAMES = {
 
 # the screen font face for the given pml font family
 def faceName(font):
-    if (font == pml.COURIER) and not gutil.loadBundledFonts():
-        return "Courier New"
+    if font == pml.COURIER:
+        return gutil.courierFace()
 
     return FACE_NAMES[font]
 

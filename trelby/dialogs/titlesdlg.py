@@ -105,7 +105,7 @@ class TitlesDlg(wx.Dialog):
         self.fontCombo = wx.ComboBox(self, -1, style=wx.CB_READONLY)
 
         for it in [
-            ("Courier", pml.COURIER),
+            ("Courier Prime", pml.COURIER),
             ("Helvetica", pml.HELVETICA),
             ("Times-Roman", pml.TIMES_ROMAN),
         ]:

@@ -3,7 +3,9 @@ import wx
 
 import tests.u as u
 import trelby.config as config
+import trelby.dialogs.titlespreview as titlespreview
 import trelby.pdf.fontinfo as fontinfo
+import trelby.pdf.pml as pml
 import trelby.translations as translations
 import trelby.ui.configgui as configgui
 import trelby.ui.gutil as gutil
@@ -95,3 +97,7 @@ def testScreenUsesBundledFont(app):
     for fi in cfgGui.fonts:
         assert fi.font.GetFaceName() == fontinfo.BUNDLED_FACE
         assert gutil.isFixedWidth(fi.font)
+
+    # the title / header / footer previews and the report windows
+    assert gutil.courierFace() == fontinfo.BUNDLED_FACE
+    assert titlespreview.faceName(pml.COURIER) == fontinfo.BUNDLED_FACE

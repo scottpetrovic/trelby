@@ -1,5 +1,6 @@
 import wx
 
+import trelby.config as config
 import trelby.misc as misc
 import trelby.pdf.fontinfo as fontinfo
 import trelby.ui.theming as theming
@@ -46,6 +47,15 @@ def loadBundledFonts():
         )
 
     return _bundledFontsLoaded
+
+
+# the face to draw Courier text (pml.COURIER) in on the screen: the
+# bundled font, or the old default if it didn't load
+def courierFace():
+    if loadBundledFonts():
+        return fontinfo.BUNDLED_FACE
+
+    return config.oldDefaultFace()
 
 
 # return True if given font is a fixed-width one.

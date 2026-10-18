@@ -57,7 +57,7 @@ def generateHtml(sp, includeNotes=True):
 <title>Exported Screenplay</title>
 <style type="text/css">
 body {background: #ffffff; color: #000000; text-align: center;}
-pre, p {font: 12px/14px Courier, "Courier New", monospace !important;}
+pre, p {font: 12px/14px "Courier Prime", Courier, "Courier New", monospace !important;}
 pre {text-align: left !important; letter-spacing: 0 !important; margin-top: 0px !important; margin-bottom: 0px !important;}
 p {text-align: center;}
 .title, .footer {margin: 15px;}

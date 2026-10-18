@@ -365,12 +365,13 @@ class _PageRenderer:
         return self.gc.CreatePen(info)
 
     def drawText(self, op):
+        # Courier is the bundled font the PDFs use
         if op.flags & pml.TIMES_ROMAN:
-            family = wx.FONTFAMILY_ROMAN
+            face = _getFaceName(wx.FONTFAMILY_ROMAN)
         elif op.flags & pml.HELVETICA:
-            family = wx.FONTFAMILY_SWISS
+            face = _getFaceName(wx.FONTFAMILY_SWISS)
         else:
-            family = wx.FONTFAMILY_TELETYPE
+            face = gutil.courierFace()
 
         flags = wx.FONTFLAG_DEFAULT
 
@@ -385,7 +386,7 @@ class _PageRenderer:
 
         font = self.gc.CreateFont(
             util.getTextHeight(op.size) * self.scale,
-            _getFaceName(family),
+            face,
             flags,
             self.fill,
         )
