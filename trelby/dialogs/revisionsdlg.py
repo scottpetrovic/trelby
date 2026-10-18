@@ -1,6 +1,7 @@
 # the Revisions dialog: the script's revision settings (see
 # screenplay/revisions.py). it works on a copy of sp.revisions, which the
-# caller takes from dlg.revisions on OK.
+# caller takes from dlg.revisions on OK. revision mode itself is switched
+# on and off only by its menu item, Production > Revision mode.
 
 import wx
 
@@ -23,22 +24,18 @@ class RevisionsDlg(wx.Dialog):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.activeCb = wx.CheckBox(self, -1, _("Revision mode: mark changes"))
-        self.activeCb.SetValue(rv.active)
-        vsizer.Add(self.activeCb)
-
         vsizer.Add(
             widgets.WrappedText(
                 self,
                 _(
-                    "While revision mode is on, the text you change is marked "
-                    "with the current revision, and its lines get a revision "
-                    "mark in the right margin when printed."
+                    "While revision mode is on (Production > Revision mode), "
+                    "the text you change is marked with the current revision, "
+                    "and its lines get a revision mark in the right margin "
+                    "when printed."
                 ),
             ),
             0,
-            wx.EXPAND | wx.TOP,
-            5,
+            wx.EXPAND,
         )
 
         gsizer = wx.FlexGridSizer(3, 2, 5, 10)
@@ -142,7 +139,6 @@ class RevisionsDlg(wx.Dialog):
         rv = self.revisions
 
         rv.level = self.getLevel()
-        rv.active = self.activeCb.GetValue()
         rv.showInHeader = self.headerCb.GetValue()
         rv.currentOnly = self.currentCb.GetValue()
         rv.markChar = misc.fromGUI(self.markEntry.GetValue()).strip()[:1] or (

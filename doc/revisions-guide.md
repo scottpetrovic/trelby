@@ -236,7 +236,6 @@ To stop marking changes for a while (to fix a typo you don't want flagged, for e
 
 **Revision settings dialog:**
 
-- **Revision mode: mark changes**: the same switch as the menu item.
 - **Current revision**: the color new changes are marked with: Blue, Pink, Yellow, … up to Triple Cherry.
 - **Date**: the revision's issue date, printed in the page header. Each revision keeps its own date.
 - **Revision mark**: the character printed in the margin (default `*`).

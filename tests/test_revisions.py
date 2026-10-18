@@ -564,7 +564,6 @@ def testRevisionsDlg():
         dlg.levelCombo.SetSelection(1)
         dlg.OnLevel(None)
 
-        dlg.activeCb.SetValue(True)
         dlg.markEntry.SetValue("#")
 
         dlg.EndModal = lambda code: None
@@ -572,8 +571,10 @@ def testRevisionsDlg():
         dlg.Destroy()
 
         assert rv.level == 2
-        assert rv.active
         assert rv.markChar == "#"
+
+        # revision mode is the menu item's, not the dialog's
+        assert not rv.active
         assert rv.dates == {1: "9/1/26", 2: revisions.today()}
     finally:
         app.Destroy()
