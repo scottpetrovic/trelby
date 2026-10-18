@@ -22,10 +22,15 @@
 # the board has its own zoom level (self.zoom, GlobalData.boardZoom), which
 # scales the cards, their text and the grid, and the cards' text is in
 # Courier Prime, like the script's.
+#
+# the board is drawn on a paper texture in the theme's board color (made
+# when it's first needed, see paperShading), with the grid over it.
 
 import copy
 import io
+import math
 import os
+import random
 
 import wx
 from wx.lib.wordwrap import wordwrap
@@ -48,6 +53,12 @@ CARD_FONT_SIZE = 9
 # pixels, and how many squares apart its stronger lines are
 GRID = 40
 GRID_MAJOR = 5
+
+# the board's paper texture: the size of the square tile it repeats, in
+# pixels, and how far its lightest and darkest spots are from the theme's
+# board color (out of 255)
+PAPER_TILE = 512
+PAPER_DEPTH = 18
 
 # space around the text on a card, in unscaled pixels
 CARD_PAD = 14
@@ -74,6 +85,116 @@ CASCADE = 30
 
 # the picture files the file dialog offers
 PICTURE_WILDCARD = "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tif;*.tiff"
+
+
+# smooth noise that repeats seamlessly: cells x cells random grays (from
+# rnd, a random.Random), scaled up to size x size pixels. returns its
+# grays, one byte per pixel. it's scaled up tiled 3 x 3 and the middle cut
+# out, so its edges match.
+def tiledNoise(rnd, cells, size):
+    grays = bytes(rnd.randrange(256) for _ in range(cells * cells))
+    rows = [grays[y * cells : (y + 1) * cells] * 3 for y in range(cells)] * 3
+
+    img = wx.Image(cells * 3, cells * 3)
+    img.SetData(bytes(v for v in b"".join(rows) for _ in range(3)))
+    img = img.Scale(size * 3, size * 3, wx.IMAGE_QUALITY_BICUBIC)
+
+    return img.GetSubImage(wx.Rect(size, size, size, size)).GetData()[::3]
+
+
+# paper fibers: short, slightly curved light and dark strokes on mid gray,
+# drawn again a tile away on each side so they continue across its edges.
+# returns their grays like tiledNoise.
+def paperFibers(rnd, size):
+    bmp = wx.Bitmap(size, size)
+    dc = wx.MemoryDC(bmp)
+    dc.SetBackground(wx.Brush(wx.Colour(128, 128, 128)))
+    dc.Clear()
+    gc = wx.GraphicsContext.Create(dc)
+
+    for _ in range(size * size // 250):
+        x, y = rnd.uniform(0, size), rnd.uniform(0, size)
+        angle = rnd.uniform(0, math.pi)
+        length = rnd.uniform(4, 22)
+        dx, dy = math.cos(angle) * length, math.sin(angle) * length
+        bendX, bendY = rnd.uniform(-3, 3), rnd.uniform(-3, 3)
+        v = 128 + rnd.choice((-1, 1)) * rnd.randint(30, 90)
+        gc.SetPen(wx.Pen(wx.Colour(v, v, v, 90), 1))
+
+        for ox in (-size, 0, size):
+            for oy in (-size, 0, size):
+                path = gc.CreatePath()
+                path.MoveToPoint(x + ox, y + oy)
+                path.AddQuadCurveToPoint(
+                    x + ox + dx / 2 + bendX,
+                    y + oy + dy / 2 + bendY,
+                    x + ox + dx,
+                    y + oy + dy,
+                )
+                gc.StrokePath(path)
+
+    del gc
+    dc.SelectObject(wx.NullBitmap)
+
+    return bmp.ConvertToImage().GetData()[::3]
+
+
+# the paper texture's shading, made the first time it's needed (see
+# paperShading)
+_paperShading = None
+
+
+# the paper texture as a PAPER_TILE square of how much lighter or darker
+# than the board color each pixel is, from -1 to 1, as bytes (128 + 127 *
+# that): blotches of three sizes, fibers and a fine grain. it's the same
+# every time.
+def paperShading():
+    global _paperShading
+
+    if _paperShading is None:
+        size = PAPER_TILE
+        rnd = random.Random(7)
+
+        layers = (
+            (tiledNoise(rnd, 4, size), 0.3),
+            (tiledNoise(rnd, 16, size), 0.25),
+            (tiledNoise(rnd, 64, size), 0.3),
+            (rnd.randbytes(size * size), 0.22),
+            (paperFibers(rnd, size), 0.9),
+        )
+
+        # the weights add up to more than 1, but the layers seldom all
+        # go the same way
+        (a, wa), (b, wb), (c, wc), (d, wd), (e, we) = layers
+        shading = (
+            wa * (pa - 128)
+            + wb * (pb - 128)
+            + wc * (pc - 128)
+            + wd * (pd - 128)
+            + we * (pe - 128)
+            for pa, pb, pc, pd, pe in zip(a, b, c, d, e)
+        )
+        _paperShading = bytes(max(1, min(255, 128 + round(s))) for s in shading)
+
+    return _paperShading
+
+
+# a tile of the paper texture in 'color' (a wx.Colour), as a wx.Bitmap
+def paperTile(color):
+    shading = paperShading()
+    data = bytearray(len(shading) * 3)
+
+    for i, base in enumerate((color.Red(), color.Green(), color.Blue())):
+        table = bytes(
+            max(0, min(255, base + round((s - 128) / 127 * PAPER_DEPTH)))
+            for s in range(256)
+        )
+        data[i::3] = shading.translate(table)
+
+    img = wx.Image(PAPER_TILE, PAPER_TILE)
+    img.SetData(bytes(data))
+
+    return wx.Bitmap(img)
 
 
 # the picture file 'data' (bytes) as a wx.Image, or None if wx can't read
@@ -266,6 +387,10 @@ class BeatBoardView(wx.ScrolledWindow):
         # they're drawn at: (Beat.image, width, height) -> wx.Bitmap.
         self.pictures = {}
         self.bitmaps = {}
+
+        # the board's paper texture: (its color, a tile of it as a
+        # wx.Bitmap), or None until it's first drawn
+        self.paper = None
 
         self.SetDropTarget(BoardDropTarget(self))
 
@@ -893,9 +1018,8 @@ class BeatBoardView(wx.ScrolledWindow):
     # scroll position
     def paint(self, dc):
         boardColor, _card, textColor = self.getColors()[:3]
-        dc.SetBackground(wx.Brush(boardColor))
-        dc.Clear()
 
+        self.drawPaper(dc, boardColor)
         self.drawGrid(dc, boardColor, textColor)
         self.drawHint(dc, boardColor, textColor)
 
@@ -935,6 +1059,25 @@ class BeatBoardView(wx.ScrolledWindow):
         text = _("Double-click to add a card, or drop pictures here")
         tw, th = dc.GetTextExtent(text)
         dc.DrawText(text, (w - tw) // 2, (h - th) // 2)
+
+    # fill the visible part of the board with the paper texture in the
+    # board color. it's fixed to the board, so it scrolls with it, but it
+    # isn't zoomed.
+    def drawPaper(self, dc, boardColor):
+        key = boardColor.GetRGB()
+
+        if not self.paper or self.paper[0] != key:
+            self.paper = (key, paperTile(boardColor))
+
+        tile = self.paper[1]
+        size = PAPER_TILE
+
+        x0, y0 = self.CalcUnscrolledPosition(0, 0)
+        w, h = self.GetClientSize()
+
+        for x in range(x0 // size * size, x0 + w, size):
+            for y in range(y0 // size * size, y0 + h, size):
+                dc.DrawBitmap(tile, x, y)
 
     # draw the board's grid, faint lines a little toward the text color,
     # so it works on light and dark themes alike, with every

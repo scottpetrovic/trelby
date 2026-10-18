@@ -155,10 +155,18 @@ def test_paint(view, theme):
     img = paint(view)
     step = view.FromDIP(beatboardview.GRID)
 
-    # on a grid line, away from the cards, and in the middle of a square
+    # the grid is drawn over the paper: on a grid line, away from the
+    # cards
     x = 20 * step + step // 2
     y = 12 * step
-    assert pixel(img, x, y) != pixel(img, x, y + step // 2)
+
+    drawGrid = view.drawGrid
+    view.drawGrid = lambda *args: None
+    paper = paint(view)
+    view.drawGrid = drawGrid
+
+    assert pixel(img, x, y) != pixel(paper, x, y)
+    assert pixel(img, x, y + step // 2) == pixel(paper, x, y + step // 2)
 
     # a card covers the grid
     r = view.cardRect(catalyst)
@@ -167,6 +175,63 @@ def test_paint(view, theme):
     # and scrolled
     view.scrollTo(37, 53)
     paint(view)
+
+
+def test_paper(app):
+    size = beatboardview.PAPER_TILE
+    color = wx.Colour(222, 202, 150)
+    img = beatboardview.paperTile(color).ConvertToImage()
+
+    assert (img.GetWidth(), img.GetHeight()) == (size, size)
+
+    # the same every time
+    assert img.GetData() == beatboardview.paperTile(color).ConvertToImage().GetData()
+
+    # it's the color, lighter and darker in places, but not far from it
+    reds = img.GetData()[::3]
+    assert len(set(reds)) > 10
+    assert all(abs(r - 222) <= beatboardview.PAPER_DEPTH for r in reds)
+    assert abs(sum(reds) / len(reds) - 222) < 3
+
+    # its opposite edges match, so it repeats without seams: they're no
+    # further apart than neighboring rows and columns are
+    def rowDiff(y0, y1):
+        return sum(abs(img.GetRed(x, y0) - img.GetRed(x, y1)) for x in range(size))
+
+    def colDiff(x0, x1):
+        return sum(abs(img.GetRed(x0, y) - img.GetRed(x1, y)) for y in range(size))
+
+    assert rowDiff(size - 1, 0) < 1.5 * rowDiff(size // 2, size // 2 + 1)
+    assert colDiff(size - 1, 0) < 1.5 * colDiff(size // 2, size // 2 + 1)
+
+
+def test_paperFollowsTheme(view):
+    cfgGl = config.ConfigGlobal()
+    cfgGl.theme = "Dark"
+    view.applyTheme(configgui.ConfigGui(cfgGl, 100))
+    paint(view)
+    dark = view.paper[1]
+
+    cfgGl.theme = "Light"
+    view.applyTheme(configgui.ConfigGui(cfgGl, 100))
+    img = paint(view)
+
+    assert view.paper[1] is not dark
+
+    # the paper scrolls with the board (looked at near the bottom left,
+    # away from the cards, the grid lines and the hint)
+    view.scrollTo(37, 53)
+    dx, dy = view.CalcUnscrolledPosition(0, 0)
+    assert (dx, dy) != (0, 0)
+
+    scrolled = paint(view)
+    step = view.FromDIP(beatboardview.GRID)
+    h = view.GetClientSize().height
+    points = [(x, y) for x in range(5, 60, 7) for y in range(h - 120, h - 60, 7)]
+    points = [(x, y) for x, y in points if (x + dx) % step and (y + dy) % step]
+
+    assert points
+    assert all(pixel(scrolled, x, y) == pixel(img, x + dx, y + dy) for x, y in points)
 
 
 def test_middlePan(view):
