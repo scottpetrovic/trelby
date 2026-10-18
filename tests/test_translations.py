@@ -61,6 +61,11 @@ def testInstalledLanguages():
 
     assert translations.findLanguage("it_IT.UTF-8", avail) == "it_IT"
     assert translations.findLanguage("en_GB", avail) == "en_US"
+    assert translations.findLanguage("fr_CA", avail) == "fr_FR"
+
+    # every translation has its own name in the Language menu
+    for name in avail:
+        assert name in translations.LANGUAGE_NAMES, name
 
 
 def testPickLanguage():

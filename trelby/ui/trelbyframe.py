@@ -409,9 +409,8 @@ class MyFrame(wx.Frame):
             self,
             _("File to open"),
             misc.scriptDir,
-            wildcard="Trelby "
-            + _("files")
-            + " (*.trelby)|*.trelby|"
+            wildcard=_("Trelby files (*.trelby)")
+            + "|*.trelby|"
             + _("All files")
             + "|*",
             style=wx.FD_OPEN,

@@ -3544,3 +3544,15 @@ msgstr "&קובץ"
 #: trelby/dialogs/titlesdlg.py:563
 msgid "Page: {} / {}"
 msgstr "עמוד: {} / {}"
+
+#: trelby/dialogs/cfgdlg.py:47
+msgid "Settings files (*.conf)"
+msgstr "קובצי הגדרות (*.conf)"
+
+#: trelby/dialogs/cfgdlg.py:96
+msgid "Script settings files (*.sconf)"
+msgstr "קובצי הגדרות תסריט (*.sconf)"
+
+#: trelby/ui/trelbyframe.py:412
+msgid "Trelby files (*.trelby)"
+msgstr "קובצי Trelby (*.trelby)"

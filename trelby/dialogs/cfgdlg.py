@@ -44,10 +44,8 @@ def askSettingsFile(parent, filename, save):
         title,
         defaultDir=os.path.dirname(filename),
         defaultFile=os.path.basename(filename),
-        wildcard=_("Setting")
-        + " "
-        + _("files")
-        + " (*.conf)|*.conf|"
+        wildcard=_("Settings files (*.conf)")
+        + "|*.conf|"
         + _("All files")
         + "|*",
         style=style,
@@ -95,12 +93,8 @@ def askScriptSettingsFile(parent, dirName, save):
         parent,
         title,
         defaultDir=dirName,
-        wildcard=_("Script")
-        + " "
-        + _("setting")
-        + " "
-        + _("files")
-        + " (*.sconf)|*.sconf|"
+        wildcard=_("Script settings files (*.sconf)")
+        + "|*.sconf|"
         + _("All files")
         + "|*",
         style=style,

@@ -3621,3 +3621,15 @@ msgstr "&File"
 #: trelby/dialogs/titlesdlg.py:563
 msgid "Page: {} / {}"
 msgstr "Pagina: {} / {}"
+
+#: trelby/dialogs/cfgdlg.py:47
+msgid "Settings files (*.conf)"
+msgstr "File di impostazioni (*.conf)"
+
+#: trelby/dialogs/cfgdlg.py:96
+msgid "Script settings files (*.sconf)"
+msgstr "File di impostazioni dello script (*.sconf)"
+
+#: trelby/ui/trelbyframe.py:412
+msgid "Trelby files (*.trelby)"
+msgstr "File Trelby (*.trelby)"

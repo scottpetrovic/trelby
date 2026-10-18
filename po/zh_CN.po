@@ -3323,3 +3323,15 @@ msgstr "文件(&F)"
 #: trelby/dialogs/titlesdlg.py:563
 msgid "Page: {} / {}"
 msgstr "页：{} / {}"
+
+#: trelby/dialogs/cfgdlg.py:47
+msgid "Settings files (*.conf)"
+msgstr "设置文件 (*.conf)"
+
+#: trelby/dialogs/cfgdlg.py:96
+msgid "Script settings files (*.sconf)"
+msgstr "剧本设置文件 (*.sconf)"
+
+#: trelby/ui/trelbyframe.py:412
+msgid "Trelby files (*.trelby)"
+msgstr "Trelby 文件 (*.trelby)"
