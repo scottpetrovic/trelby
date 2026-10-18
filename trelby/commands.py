@@ -532,7 +532,6 @@ def defaultCommands():
         Command(
             "SetMark",
             _("Set mark at current cursor position."),
-            [keys.Key(keys.WXK_SPACE, ctrl=True).toInt()],
         ),
         Command("Settings", _("Change global settings."), isMenu=True),
         Command(
@@ -569,7 +568,7 @@ def defaultCommands():
         Command(
             "ToggleBeatBoard",
             _("Switch between the script and its beat board."),
-            [keys.Key(ord("B"), ctrl=True, shift=True).toInt()],
+            [keys.Key(keys.WXK_SPACE, ctrl=True).toInt()],
             isFixed=True,
             isMenu=True,
         ),

@@ -814,6 +814,15 @@ class ConfigGlobal:
         for cmd in self.commands:
             cmd.load(vals, "Command/")
 
+        # CTRL-SPACE was Set mark's until it became the fixed key that
+        # switches to the beat board, so it's taken off Set mark in older
+        # configs
+        space = commands.keys.Key(commands.keys.WXK_SPACE, ctrl=True).toInt()
+
+        for cmd in self.commands:
+            if cmd.name == "SetMark":
+                cmd.keys = [k for k in cmd.keys if k != space]
+
         self.recalc()
 
     # save config into a string and return that.

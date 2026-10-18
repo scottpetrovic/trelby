@@ -37,7 +37,7 @@ from trelby.ui.outline import getSceneColors, luminance, str2color, swatchBitmap
 # the keyboard shortcut that switches between the script and the board (the
 # View menu's Beat board item, see menus.py), shown in the right-click
 # menus
-BOARD_TOGGLE_KEY = "CTRL-SHIFT-B"
+BOARD_TOGGLE_KEY = "CTRL-SPACE"
 
 # the cards' font size at 100% zoom, in points
 CARD_FONT_SIZE = 9
@@ -48,7 +48,7 @@ GRID = 40
 GRID_MAJOR = 5
 
 # space around the text on a card, in unscaled pixels
-CARD_PAD = 8
+CARD_PAD = 14
 
 # a card's picture is shown at most this big, in unscaled pixels, keeping
 # its shape, and its card is at least PICTURE_CARD_MIN_WIDTH wide. the
@@ -1229,8 +1229,10 @@ class BeatBoardView(wx.ScrolledWindow):
         kc = event.GetKeyCode()
 
         if kc == wx.WXK_SPACE:
-            # held down, it keeps repeating
-            if not self.spaceDown:
+            # held down, it keeps repeating. CTRL-SPACE switches to the
+            # script (BOARD_TOGGLE_KEY), and mustn't leave the board
+            # panning.
+            if not (self.spaceDown or event.ControlDown()):
                 self.spaceDown = True
                 self.updateCursor()
         elif self.selected and (kc in (wx.WXK_DELETE, wx.WXK_BACK)):

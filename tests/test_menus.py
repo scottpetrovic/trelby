@@ -278,3 +278,24 @@ def testPasteOnBoard():
     frame.panel.boardShown = False
     menus.runAction(frame, acts["Paste"])
     assert ran == ["Paste"]
+
+
+# CTRL-SPACE switches to the beat board, a fixed key: a config saved when
+# it was Set mark's loses it there, keeping Set mark's other keys
+def testFixedKeyTakenFromOldBinding():
+    import trelby.config as config
+
+    space = commands.keys.Key(commands.keys.WXK_SPACE, ctrl=True).toInt()
+    f8 = commands.keys.Key(commands.keys.WXK_F8, ctrl=True).toInt()
+
+    cfg = config.ConfigGlobal()
+    cfg.load(
+        "Command/SetMark/Keys:2\n"
+        "Command/SetMark/Keys/1:%d\n"
+        "Command/SetMark/Keys/2:%d\n" % (space, f8)
+    )
+
+    cmds = {cmd.name: cmd for cmd in cfg.commands}
+    assert cmds["SetMark"].keys == [f8]
+    assert cmds["ToggleBeatBoard"].keys == [space]
+    assert cfg.getKeyMap().get(space) is None
