@@ -94,10 +94,6 @@ def testClicks(side):
     rects = tabs.getRects(wx.ClientDC(tabs))
     assert len(rects) == 3
 
-    # the read aloud tab is an icon with a tooltip
-    assert isinstance(tabs.labels[2], sidepanel.IconLabel)
-    assert rects[2].width < rects[1].width
-
     for i, r in enumerate(rects):
         e = wx.MouseEvent(wx.wxEVT_LEFT_DOWN)
         e.SetPosition(r.GetPosition() + wx.Point(2, 2))

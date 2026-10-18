@@ -154,6 +154,9 @@ The following config sections exists and appear in the file in this order:
 
   Beat/N/Color (string): The card's color, six hex digits "rrggbb".
 
+  Beat/N/Image (string): The card's picture, the contents of a PNG or
+  JPEG file in base64, on one line.
+
   Unknown Beat/N/... values are kept as-is when saving.
 
 

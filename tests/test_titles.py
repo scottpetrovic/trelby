@@ -42,7 +42,7 @@ def testMakeString():
         assert 0 <= ts.y < 279.4
 
     ts = titles.makeString(titles.TITLE, 215.9, 279.4)
-    assert ts.isCentered and ts.isBold and (ts.font == pml.HELVETICA)
+    assert ts.isCentered and ts.isBold and (ts.font == pml.COURIER)
 
     ts = titles.makeString(titles.DRAFT, 215.9, 279.4)
     assert ts.getAlignment() == util.ALIGN_RIGHT

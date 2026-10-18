@@ -29,9 +29,7 @@ def makeString(kind, paperWidth, paperHeight):
     bottom = paperHeight - BOTTOM_Y
 
     if kind == TITLE:
-        ts = TitleString(
-            ["UNTITLED SCREENPLAY"], y=105.0, size=24, isBold=True, font=pml.HELVETICA
-        )
+        ts = TitleString(["UNTITLED SCREENPLAY"], y=105.0, size=24, isBold=True)
     elif kind == BYLINE:
         ts = TitleString(["Written by", "", "Author Name"], y=120.46)
     elif kind == AUTHOR:
@@ -108,7 +106,6 @@ class Titles:
                 y=y,
                 size=24,
                 isBold=True,
-                font=pml.HELVETICA,
                 kind=TITLE,
             )
         )

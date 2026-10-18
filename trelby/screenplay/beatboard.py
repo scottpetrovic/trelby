@@ -1,7 +1,10 @@
 # the beat board: index cards ("beats") laid out freely on a canvas, for
 # planning a story before or while writing it. a card is just text in a
-# place on the board, with a color. the board is kept apart from the
-# script's scenes and outline.
+# place on the board, with a color, and maybe a picture. the board is kept
+# apart from the script's scenes and outline.
+
+import base64
+import binascii
 
 import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.mypickle as mypickle
@@ -21,6 +24,12 @@ GAP = 20
 # can't put a card somewhere unreachable
 MAX_COORD = 100000
 
+# the longest side a card's picture is kept at, in pixels, and the
+# biggest picture file kept as it is (see ui/beatboardview.imageData), so
+# that pictures don't make scripts huge
+MAX_IMAGE_SIDE = 1024
+MAX_IMAGE_BYTES = 1024 * 1024
+
 
 # one index card on the board
 class Beat:
@@ -34,6 +43,11 @@ class Beat:
 
         # the card's color ("rrggbb"), or None for the default
         self.color = None
+
+        # the card's picture, the contents of a PNG or JPEG file (bytes),
+        # or None. saved in the file, so the script doesn't depend on
+        # where the picture came from.
+        self.image = None
 
         # values found in the file that this version doesn't know about,
         # kept so that saving doesn't lose them. key = name in the file
@@ -57,6 +71,10 @@ class Beat:
         if self.color:
             s += "%s/Color:%s\n" % (prefix, self.color)
 
+        if self.image:
+            data = base64.b64encode(self.image).decode("ascii")
+            s += "%s/Image:%s\n" % (prefix, data)
+
         for key in sorted(self.extra):
             s += "%s/%s:%s\n" % (prefix, key, self.extra[key])
 
@@ -72,10 +90,21 @@ class Beat:
         color = vals.pop(prefix + "/Color", "")
         self.color = color.lower() if isValidColor(color) else None
 
+        self.image = decodeImage(vals.pop(prefix + "/Image", ""))
+
         start = prefix + "/"
 
         for name in [n for n in vals if n.startswith(start)]:
             self.extra[name[len(start) :]] = vals.pop(name)
+
+
+# the picture saved as 's' (base64), or None if there's none or it isn't
+# valid base64
+def decodeImage(s):
+    try:
+        return base64.b64decode(s, validate=True) or None
+    except (binascii.Error, ValueError):
+        return None
 
 
 # all the cards of a single screenplay, in drawing order: a card is drawn

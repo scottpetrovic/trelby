@@ -119,6 +119,9 @@ class TitlesDlg(wx.Dialog):
         self.Bind(wx.EVT_SPINCTRL, self.OnMisc, id=self.sizeEntry.GetId())
         self.sizeEntry.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
         hsizer.Add(self.sizeEntry, 0, wx.LEFT, 10)
+        hsizer.Add(
+            wx.StaticText(self, -1, _("pt")), 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5
+        )
 
         gsizer.Add(hsizer)
 
@@ -128,12 +131,8 @@ class TitlesDlg(wx.Dialog):
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.xEntry = wx.TextCtrl(self, -1)
-        hsizer.Add(self.xEntry)
-        self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.xEntry.GetId())
-        self.yEntry = wx.TextCtrl(self, -1)
-        hsizer.Add(self.yEntry, 0, wx.LEFT, 10)
-        self.Bind(wx.EVT_TEXT, self.OnMisc, id=self.yEntry.GetId())
+        self.xEntry = self.addPosEntry(hsizer, 0)
+        self.yEntry = self.addPosEntry(hsizer, 10)
 
         gsizer.Add(hsizer)
 
@@ -218,6 +217,19 @@ class TitlesDlg(wx.Dialog):
         self.updateGui()
 
         self.previewCtrl.SetFocus()
+
+    # add a number field for a position in mm to 'sizer', 'gap' pixels
+    # from the previous one, and return it. the arrow keys step it by 1 mm.
+    def addPosEntry(self, sizer, gap):
+        entry = wx.SpinCtrlDouble(self, -1, size=(90, -1), max=1000.0, inc=1.0)
+        entry.SetDigits(2)
+        sizer.Add(entry, 0, wx.LEFT, gap)
+
+        # EVT_TEXT for typing, EVT_SPINCTRLDOUBLE for the arrows
+        self.Bind(wx.EVT_TEXT, self.OnMisc, id=entry.GetId())
+        self.Bind(wx.EVT_SPINCTRLDOUBLE, self.OnMisc, id=entry.GetId())
+
+        return entry
 
     # add a page control button to 'sizer', 'gap' pixels from the
     # previous one, and return it
@@ -588,8 +600,8 @@ class TitlesDlg(wx.Dialog):
             for w in self.widList:
                 w.Disable()
 
-            self.xEntry.SetValue("")
-            self.yEntry.SetValue("")
+            self.xEntry.SetValue(0.0)
+            self.yEntry.SetValue(0.0)
             self.sizeEntry.SetValue(12)
             self.boldBtn.SetValue(False)
             self.italicBtn.SetValue(False)
@@ -609,8 +621,8 @@ class TitlesDlg(wx.Dialog):
         if ts.isCentered:
             self.xEntry.Disable()
 
-        self.xEntry.SetValue("%.2f" % ts.x)
-        self.yEntry.SetValue("%.2f" % ts.y)
+        self.xEntry.SetValue(ts.x)
+        self.yEntry.SetValue(ts.y)
 
         widgets.setAlignment(self.alignBtns, ts.getAlignment())
         self.kindChoice.SetSelection(titles.KINDS.index(ts.kind or titles.TEXT))
@@ -632,16 +644,19 @@ class TitlesDlg(wx.Dialog):
 
         ts = self.titles.pages[self.pageIndex][self.tsIndex]
 
-        ts.x = util.str2float(self.xEntry.GetValue(), 0.0)
-        ts.y = util.str2float(self.yEntry.GetValue(), 0.0)
+        # the text, since GetValue only catches up with typing when the
+        # field loses the focus
+        ts.x = util.str2float(self.xEntry.GetTextValue(), 0.0)
+        ts.y = util.str2float(self.yEntry.GetTextValue(), 0.0)
 
         x = ts.x
         ts.setAlignment(widgets.getAlignment(self.alignBtns), self.cfg.paperWidth)
         self.xEntry.Enable(not ts.isCentered)
 
         if ts.x != x:
-            # ChangeValue, unlike SetValue, sends no EVT_TEXT
-            self.xEntry.ChangeValue("%.2f" % ts.x)
+            self.block = True
+            self.xEntry.SetValue(ts.x)
+            self.block = False
 
         ts.size = gutil.getSpinValue(self.sizeEntry)
         ts.font = self.fontCombo.GetClientData(self.fontCombo.GetSelection())
