@@ -966,7 +966,8 @@ class BeatBoardView(wx.ScrolledWindow):
             beat.text,
             self.CalcScrolledPosition(r.GetTopLeft()),
             r.GetSize(),
-            style=wx.TE_MULTILINE | wx.BORDER_NONE,
+            # no scroll bar: it's an index card, its text fits on it
+            style=wx.TE_MULTILINE | wx.TE_NO_VSCROLL | wx.BORDER_NONE,
         )
         ctrl.SetBackgroundColour(bg)
         ctrl.SetForegroundColour(fg)

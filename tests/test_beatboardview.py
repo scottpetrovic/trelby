@@ -339,6 +339,16 @@ def test_editInline(view):
     assert not isNew
     assert ctrl.GetValue() == old
 
+    # with no scroll bar
+    assert ctrl.HasFlag(wx.TE_NO_VSCROLL)
+
+    if wx.Platform == "__WXMSW__":
+        import ctypes
+
+        GWL_STYLE, WS_VSCROLL = -16, 0x00200000
+        style = ctypes.windll.user32.GetWindowLongW(ctrl.GetHandle(), GWL_STYLE)
+        assert not (style & WS_VSCROLL)
+
     # it covers the card's text
     r = view.textRect(beat)
     assert ctrl.GetRect() == wx.Rect(
