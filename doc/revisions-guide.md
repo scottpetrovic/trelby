@@ -145,17 +145,11 @@ Open the script and make sure it's the version everyone will receive as the Whit
 
 ### Step 2: Start the Blue revision
 
-1. Choose **Production > Revision mode**.
-   Because no revision has been started yet, the **Revisions** dialog opens first.
-2. In the dialog:
-   - **Current revision:** *Blue* (the first revision; it's already selected).
-   - **Date:** today's date is filled in. Change it to the date this revision will be issued if that's different.
-   - **Revision mark:** leave it as `*`.
-   - Leave **Show each revised page's revision above its header** turned on.
-   - Make sure **Revision mode: mark changes** is checked.
-3. Click **OK**.
+Choose **Production > Revision mode**. Since no revision has been started yet, this starts the first one, **Blue**, dated today.
 
 The status bar now says `Blue revision` next to the page number. Everything you change from now on is marked as Blue.
+
+If this revision will be issued on another day, choose **Production > Revision settings** and change its **Date** there. The same dialog has the revision mark (`*`) and whether each revised page shows its revision above its header.
 
 ### Step 3: Make the changes
 

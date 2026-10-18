@@ -918,7 +918,8 @@
 	  Deleting text marks the line it was deleted from. Marks stay with
 	  their text as it's edited and rewrapped, and are saved with the
 	  script. The status bar shows the current revision while revision
-	  mode is on.</para>
+	  mode is on. Turning it on before any revision has been started
+	  starts the first one, Blue, dated today.</para>
 
 	  <para>'Revision settings' chooses the current revision and its date,
 	  the revision mark, whether each revised page shows its revision

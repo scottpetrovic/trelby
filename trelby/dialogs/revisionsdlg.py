@@ -2,20 +2,12 @@
 # screenplay/revisions.py). it works on a copy of sp.revisions, which the
 # caller takes from dlg.revisions on OK.
 
-import time
-
 import wx
 
 import trelby.misc as misc
 import trelby.screenplay.revisions as revisions
 import trelby.ui.gutil as gutil
 import trelby.ui.widgets as widgets
-
-
-# today's date as a revision's date is usually written, in the system's
-# short date format
-def today():
-    return time.strftime("%x")
 
 
 class RevisionsDlg(wx.Dialog):
@@ -133,7 +125,7 @@ class RevisionsDlg(wx.Dialog):
         level = self.getLevel()
 
         if level not in self.dates:
-            self.dates[level] = today()
+            self.dates[level] = revisions.today()
             self.autoDated.add(level)
 
         self.dateEntry.ChangeValue(self.dates[level])

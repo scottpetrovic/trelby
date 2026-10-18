@@ -21,6 +21,7 @@
 
 import difflib
 import re
+import time
 
 import trelby.config as config
 import trelby.mypickle as mypickle
@@ -163,6 +164,12 @@ def markX(cfg, chX):
 
 
 # a script's revision settings
+# today's date as a revision's date is usually written, in the system's
+# short date format
+def today():
+    return time.strftime("%x")
+
+
 class Revisions:
     def __init__(self):
         # the current revision's level: 1 for Blue, 2 for Pink, ... (see
@@ -191,6 +198,16 @@ class Revisions:
     # whether there's anything worth saving
     def hasInfo(self):
         return self != Revisions()
+
+    # turn revision mode on or off. turning it on before a revision has
+    # been started starts the first one (Blue), dated today, so that it
+    # starts marking right away; Revision settings picks another.
+    def toggleActive(self):
+        self.active = not self.active
+
+        if self.active and not self.level:
+            self.level = 1
+            self.dates.setdefault(1, today())
 
     # the level edits are marked with now, or 0 if they aren't
     def markingLevel(self):

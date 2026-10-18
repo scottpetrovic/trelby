@@ -556,7 +556,7 @@ def testRevisionsDlg():
         # Pink gets today's date
         dlg.levelCombo.SetSelection(1)
         dlg.OnLevel(None)
-        assert dlg.dateEntry.GetValue() == revisionsdlg.today()
+        assert dlg.dateEntry.GetValue() == revisions.today()
 
         # looking at Yellow doesn't keep a date for it
         dlg.levelCombo.SetSelection(2)
@@ -574,7 +574,7 @@ def testRevisionsDlg():
         assert rv.level == 2
         assert rv.active
         assert rv.markChar == "#"
-        assert rv.dates == {1: "9/1/26", 2: revisionsdlg.today()}
+        assert rv.dates == {1: "9/1/26", 2: revisions.today()}
     finally:
         app.Destroy()
 
@@ -731,3 +731,25 @@ def testFDXImportWithoutRevisions():
 
     assert result.revisions is None
     assert result.lines[0].revs is None
+
+
+# turning revision mode on starts the first revision if there's none yet,
+# and otherwise only switches marking on and off
+def testToggleActive():
+    rv = revisions.Revisions()
+
+    rv.toggleActive()
+    assert rv.active
+    assert rv.level == 1
+    assert rv.dates == {1: revisions.today()}
+
+    rv.toggleActive()
+    assert not rv.active
+    assert rv.level == 1
+
+    rv.level = 2
+    rv.dates = {1: "9/1/26"}
+    rv.toggleActive()
+    assert rv.active
+    assert rv.level == 2
+    assert rv.dates == {1: "9/1/26"}

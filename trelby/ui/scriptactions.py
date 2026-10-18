@@ -86,14 +86,14 @@ def applyRevisions(ctrl, rv):
         ctrl.updateScreen()
 
 
-# the revision settings dialog, on rv, or a copy of the script's settings
-def revisionsDlg(frame, ctrl, rv=None):
+# the revision settings dialog
+def revisionsDlg(frame, ctrl):
     sp = ctrl.sp
     sp.paginate()
 
     dlg = revisionsdlg.RevisionsDlg(
         frame,
-        rv or copy.deepcopy(sp.revisions),
+        copy.deepcopy(sp.revisions),
         [sp.getPageLabel(p) for p in sp.getRevisedPages()],
     )
 
@@ -103,16 +103,11 @@ def revisionsDlg(frame, ctrl, rv=None):
     dlg.Destroy()
 
 
-# turn revision mode on or off. the first time, the revision settings are
-# asked for, as a revision has to be chosen.
+# turn revision mode on or off (see Revisions.toggleActive)
 def toggleRevisionMode(frame, ctrl):
     rv = copy.deepcopy(ctrl.sp.revisions)
-    rv.active = not rv.active
-
-    if rv.active and not rv.level:
-        revisionsDlg(frame, ctrl, rv)
-    else:
-        applyRevisions(ctrl, rv)
+    rv.toggleActive()
+    applyRevisions(ctrl, rv)
 
 
 def clearRevisionMarks(frame, ctrl):
