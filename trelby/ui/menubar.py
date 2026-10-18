@@ -415,6 +415,7 @@ class _MenuPainter:
         )
 
         self.line = cfgGui.tabBorderColor
+        self.text = cfgGui.tabTextColor
 
         # True while having wx draw an item again, see afterDrawItem
         self.redrawing = False
@@ -455,7 +456,9 @@ class _MenuPainter:
     # draw them again: the highlighted item by having wx draw it as not
     # highlighted, on our highlight color (the DRAWITEMSTRUCT the hooks
     # get is a copy, so changing its state there doesn't reach wx), and
-    # separators ourselves.
+    # separators ourselves. the system draws a submenu's arrow once the
+    # item is drawn, in its own colors (white when highlighted), so draw
+    # it ourselves and clip the item out of the menu's DC.
     def afterDrawItem(self, dis, hwnd, w32):
         item = self.getItem(dis)
 
@@ -487,6 +490,26 @@ class _MenuPainter:
             finally:
                 self.redrawing = False
                 item.SetBackgroundColour(self.bg)
+
+        if item.IsSubMenu():
+            self.drawArrow(dis.hDC, r, w32.getScale(hwnd), w32)
+            w32.excludeRect(dis.hDC, r)
+
+    # draw a submenu's arrow, a triangle pointing right, at the right of
+    # the item's RECT 'r'. in a right-to-left menu the DC is mirrored, so
+    # it ends up at the left, pointing left.
+    def drawArrow(self, hdc, r, scale, w32):
+        # half its height, and its tip's distance from the item's edge
+        half = max(3, round(4 * scale))
+        tipX = r.right - round(10 * scale)
+        midY = (r.top + r.bottom) // 2
+
+        # a column of pixels at a time, narrowing towards the tip
+        for i in range(half):
+            x = tipX - half + i
+            h = half - i
+            col = type(r)(x, midY - h, x + 1, midY + h)
+            w32.fillRect(hdc, col, self.text)
 
 
 # close the open popup menu, if any
@@ -653,6 +676,15 @@ class _Win32:
             wintypes.UINT,
             wintypes.UINT,
         ]
+        self.gdi32.ExcludeClipRect.argtypes = [
+            wintypes.HDC,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+        ]
+        self.user32.GetDpiForWindow.argtypes = [wintypes.HWND]
+        self.user32.GetDpiForWindow.restype = wintypes.UINT
 
         # key = (r, g, b), value = HBRUSH. kept for the life of the program,
         # as menus keep using them, and there are only a few.
@@ -812,6 +844,16 @@ class _Win32:
     # fill the RECT 'rect' in the HDC 'hdc' with the wx.Colour 'color'
     def fillRect(self, hdc, rect, color):
         self.user32.FillRect(hdc, self.ctypes.byref(rect), self.getBrush(color))
+
+    # leave the RECT 'rect' out of what's drawn on the HDC 'hdc' from now on
+    def excludeRect(self, hdc, rect):
+        self.gdi32.ExcludeClipRect(
+            hdc, rect.left, rect.top, rect.right, rect.bottom
+        )
+
+    # the window 'hwnd''s DPI scale (1.0 = 96 DPI)
+    def getScale(self, hwnd):
+        return (self.user32.GetDpiForWindow(hwnd) or 96) / 96
 
     def removeMenuHook(self, handle):
         hook, cb = handle

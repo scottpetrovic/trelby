@@ -120,9 +120,8 @@ class GlobalData:
         )
 
         # the side panel with the outline, the notes and the table read's
-        # controls: whether it's shown, which of them it shows, and its
-        # width
-        v.addBool("showSidePanel", False, "ShowSidePanel")
+        # controls: which of them it shows, and its width (whether it's
+        # shown is below)
         v.addInt(
             "sideTab",
             self.SIDE_OUTLINE,
@@ -141,6 +140,10 @@ class GlobalData:
         # scripts (see MyPanel.showBeatBoard). not saved: the app always
         # starts with the scripts.
         self.showBeatBoard = False
+
+        # whether the side panel is shown. not saved either: the app always
+        # starts with it hidden.
+        self.showSidePanel = False
 
         self.height = min(
             self.height, wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y) - 50
