@@ -103,10 +103,16 @@ def revisionsDlg(frame, ctrl):
     dlg.Destroy()
 
 
-# turn revision mode on or off (see Revisions.toggleActive)
+# turn revision mode on or off (see Revisions.toggleActive), first locking
+# the pages and scene numbers when it's turned on, if the script's settings
+# say to
 def toggleRevisionMode(frame, ctrl):
     rv = copy.deepcopy(ctrl.sp.revisions)
     rv.toggleActive()
+
+    if rv.active and rv.autoLock and ctrl.ed.lockForRevisions():
+        ctrl.makeLineVisible(ctrl.ed.line)
+
     applyRevisions(ctrl, rv)
 
 

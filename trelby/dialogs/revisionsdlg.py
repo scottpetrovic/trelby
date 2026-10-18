@@ -84,6 +84,14 @@ class RevisionsDlg(wx.Dialog):
         self.currentCb.SetValue(rv.currentOnly)
         vsizer.Add(self.currentCb, 0, wx.TOP, 5)
 
+        self.autoLockCb = wx.CheckBox(
+            self,
+            -1,
+            _("Lock pages and scene numbers when revision mode is turned on"),
+        )
+        self.autoLockCb.SetValue(rv.autoLock)
+        vsizer.Add(self.autoLockCb, 0, wx.TOP, 5)
+
         if revisedPages:
             s = _("Pages revised in the current revision: {}").format(
                 ", ".join(revisedPages)
@@ -141,6 +149,7 @@ class RevisionsDlg(wx.Dialog):
         rv.level = self.getLevel()
         rv.showInHeader = self.headerCb.GetValue()
         rv.currentOnly = self.currentCb.GetValue()
+        rv.autoLock = self.autoLockCb.GetValue()
         rv.markChar = misc.fromGUI(self.markEntry.GetValue()).strip()[:1] or (
             revisions.DEFAULT_MARK
         )

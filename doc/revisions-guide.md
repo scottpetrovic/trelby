@@ -141,6 +141,8 @@ Open the script and make sure it's the version everyone will receive as the Whit
 3. Choose **Production > Show scene numbers**, so the numbers are shown on screen and printed. New scripts don't show them until you do.
 4. Save, and export the White draft with **File > Export > PDF**. This is what goes to the whole team.
 
+If you forget to lock, Trelby does it for you: turning on revision mode locks the pages and scene numbers if they aren't locked yet. You can turn that off in **Production > Revision settings**.
+
 > **Why lock before any revision?** If the pages aren't locked, a change on page 12 can push text onto every page after it. All of those pages would then count as changed, and you'd have to reissue the whole back half of the script.
 
 ### Step 2: Start the Blue revision
@@ -241,6 +243,7 @@ To stop marking changes for a while (to fix a typo you don't want flagged, for e
 - **Revision mark**: the character printed in the margin (default `*`).
 - **Show each revised page's revision above its header**: prints `Blue Rev. 10/17/26` (or similar) at the top right of each revised page.
 - **Mark only the current revision's changes**: asterisks only for the newest revision; older changes still count for the pages' revisions.
+- **Lock pages and scene numbers when revision mode is turned on**: on by default. Turning on revision mode then locks whichever of the pages and scene numbers aren't locked yet, in one step you can undo. Turn it off to mark changes on a script that isn't in production, such as a spec script between drafts.
 - The dialog also lists the pages revised in the current revision.
 
 **Putting the revision in your own header:** in **Script > Page headers**, use the `${REVISION}` variable, for example `${REVISION}   ${PAGE}.`. Trelby then doesn't add its own label above the header.

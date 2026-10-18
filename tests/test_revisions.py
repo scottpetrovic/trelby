@@ -268,6 +268,7 @@ def testSaveLoad():
     ed.sp.revisions.dates = {1: "10/1/26", 3: "10/17/26"}
     ed.sp.revisions.markChar = "+"
     ed.sp.revisions.currentOnly = True
+    ed.sp.revisions.autoLock = False
     ed.gotoPos(1, 0)
     ed.cmdChars("New ")
 
@@ -575,6 +576,7 @@ def testRevisionsDlg():
 
         # revision mode is the menu item's, not the dialog's
         assert not rv.active
+        assert rv.autoLock
         assert rv.dates == {1: "9/1/26", 2: revisions.today()}
     finally:
         app.Destroy()
@@ -754,3 +756,51 @@ def testToggleActive():
     assert rv.active
     assert rv.level == 2
     assert rv.dates == {1: "9/1/26"}
+
+
+# scripts saved before there was an AutoLock setting lock automatically
+def testAutoLockDefault():
+    rv = revisions.Revisions()
+    rv.load("Level:1\nActive:1\n")
+
+    assert rv.autoLock
+
+
+# turning revision mode on locks the pages and scene numbers in one undo
+# step, but only the ones that aren't locked yet
+def testLockForRevisions():
+    ed = makeScript()
+    sp = ed.sp
+
+    assert ed.lockForRevisions()
+    assert sp.hasPageLocks()
+    assert sp.hasSceneLocks()
+
+    # nothing more to lock
+    assert not ed.lockForRevisions()
+
+    # one undo step undoes both
+    ed.cmd("undo")
+    assert not sp.hasPageLocks()
+    assert not sp.hasAnySceneLock()
+    assert not ed.undoHistory.canUndo()
+
+
+# locked scene numbers are left alone, A-scenes and all
+def testLockForRevisionsKeepsSceneLocks():
+    ed = makeScript()
+    sp = ed.sp
+    ed.lockScenes()
+
+    at = sp.getSceneStarts()[1]
+    sp.lines[at:at] = [
+        Line(scr.LB_LAST, scr.SCENE, "INT. HALL - DAY"),
+        Line(scr.LB_LAST, scr.ACTION, "Something happens."),
+    ]
+    sp.paginate()
+    assert [n for i, n in sp.getSceneLabels()] == ["1", "1A", "2", "3"]
+    locks = [ln.sceneLock for ln in sp.lines]
+
+    assert ed.lockForRevisions()
+    assert sp.hasPageLocks()
+    assert [ln.sceneLock for ln in sp.lines] == locks

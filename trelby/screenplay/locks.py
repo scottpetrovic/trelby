@@ -207,6 +207,13 @@ class LocksEditMixin:
     def lockPages(self):
         u = undo.FullCopy(self)
 
+        self._lockPages()
+        self.sp.markChanged()
+
+        u.setAfter(self)
+        self.undoHistory.add(u)
+
+    def _lockPages(self):
         self.sp.paginate()
 
         for ln in self.sp.lines:
@@ -216,10 +223,6 @@ class LocksEditMixin:
             self.sp.lines[self.sp.pages[p - 1] + 1].pageLock = self.sp.pageLabels[p]
 
         self.sp.paginate()
-        self.sp.markChanged()
-
-        u.setAfter(self)
-        self.undoHistory.add(u)
 
     def unlockPages(self):
         if not self.sp.hasPageLocks():
@@ -248,16 +251,47 @@ class LocksEditMixin:
 
         u = undo.FullCopy(self)
 
+        self._lockScenes(labels)
+        self.sp.markChanged()
+
+        u.setAfter(self)
+        self.undoHistory.add(u)
+
+    # lock the scenes to labels, a list of (line, number) (see
+    # getSceneLabels)
+    def _lockScenes(self, labels):
         for ln in self.sp.lines:
             ln.sceneLock = None
 
         for i, label in labels:
             self.sp.lines[i].sceneLock = label
 
+    # lock the pages and the scene numbers, whichever aren't locked at all
+    # yet, as one undo step. this is what turning revision mode on does
+    # (see Revisions.autoLock); unlike lockPages / lockScenes, it leaves
+    # locks that are there alone, and so doesn't lock A-pages or A-scenes
+    # made since. returns whether it locked anything.
+    def lockForRevisions(self):
+        pages = not self.sp.hasPageLocks()
+        labels = [] if self.sp.hasAnySceneLock() else self.sp.getSceneLabels()
+
+        if not (pages or labels):
+            return False
+
+        u = undo.FullCopy(self)
+
+        if pages:
+            self._lockPages()
+
+        if labels:
+            self._lockScenes(labels)
+
         self.sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)
+
+        return True
 
     # replace the scene the cursor is in with an omitted scene: a scene
     # heading reading OMITTED, keeping the scene's number and color. does

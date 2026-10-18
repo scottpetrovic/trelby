@@ -192,6 +192,11 @@ class Revisions:
         # marks still count for the pages' revisions
         self.currentOnly = False
 
+        # whether turning revision mode on locks the pages and the scene
+        # numbers, if they aren't locked yet (see Editor.lockForRevisions),
+        # as production scripts are locked before their first revision
+        self.autoLock = True
+
     def __eq__(self, other):
         return isinstance(other, Revisions) and (vars(self) == vars(other))
 
@@ -236,6 +241,7 @@ class Revisions:
         s += "Mark:%s\n" % self.markChar
         s += "ShowInHeader:%d\n" % int(self.showInHeader)
         s += "CurrentOnly:%d\n" % int(self.currentOnly)
+        s += "AutoLock:%d\n" % int(self.autoLock)
 
         for level in sorted(self.dates):
             s += "Date/%d:%s\n" % (level, self.dates[level])
@@ -251,6 +257,7 @@ class Revisions:
         self.active = bool(self.level) and (vals.get("Active") == "1")
         self.showInHeader = vals.get("ShowInHeader", "1") != "0"
         self.currentOnly = vals.get("CurrentOnly") == "1"
+        self.autoLock = vals.get("AutoLock", "1") != "0"
 
         mark = vals.get("Mark", "").strip()
         self.markChar = mark[:1] or DEFAULT_MARK

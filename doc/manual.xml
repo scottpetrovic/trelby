@@ -919,14 +919,19 @@
 	  their text as it's edited and rewrapped, and are saved with the
 	  script. The status bar shows the current revision while revision
 	  mode is on. Turning it on before any revision has been started
-	  starts the first one, Blue, dated today.</para>
+	  starts the first one, Blue, dated today. Turning it on also locks
+	  the pages and the scene numbers (see below), if they aren't locked
+	  yet, as production scripts are locked before their first revision;
+	  undo unlocks them again.</para>
 
 	  <para>'Revision settings' chooses the current revision and its date,
 	  the revision mark, whether each revised page shows its revision
 	  above its header (for example "Blue Rev. 10/17/26"; a page's
-	  revision is the latest one marked on it), and whether only the
-	  current revision's changes get revision marks. Page headers can also
-	  show the page's revision with the ${REVISION} variable. Start a new
+	  revision is the latest one marked on it), whether only the current
+	  revision's changes get revision marks, and whether turning revision
+	  mode on locks the pages and scene numbers (on by default; turn it
+	  off to mark changes on a script that isn't in production). Page
+	  headers can also show the page's revision with the ${REVISION} variable. Start a new
 	  revision by choosing the next color here; the older marks keep their
 	  colors.</para>
 
