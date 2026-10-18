@@ -960,16 +960,15 @@
 	</sect1>
 
 	<sect1>
-	  <title>Production/Lock scene numbers, Production/Unlock scene numbers</title>
+	  <title>Production/Lock scene numbers</title>
 
 	  <para>'Lock scene numbers' makes every scene keep the number it has
 	  now. After that, a scene added after scene 12 becomes 12A (then 12B,
 	  ...), one added before scene 1 becomes A1, deleting a scene leaves an
 	  omitted scene in its place (see below) instead of renumbering the
 	  scenes after it, and a scene that is moved, in the outline or by
-	  cutting and pasting it, keeps its number. Locking again also locks
-	  any A-scenes created since. 'Unlock scene numbers' removes the locks
-	  and numbers the scenes 1, 2, 3, ... again. The numbers are shown in
+	  cutting and pasting it, keeps its number. Unchecking it removes the
+	  locks and numbers the scenes 1, 2, 3, ... again. The numbers are shown in
 	  the outline and the scene report, and on the pages if 'Show scene
 	  numbers' is on.</para>
 
@@ -989,15 +988,14 @@
 	</sect1>
 
 	<sect1>
-	  <title>Production/Lock pages, Production/Unlock pages</title>
+	  <title>Production/Lock pages</title>
 
 	  <para>'Lock pages' locks every page to start where it starts now,
 	  with its current page number. After that, adding text creates
 	  A-pages (12A, 12B, ...) instead of moving text onto later pages, and
 	  removing text leaves gaps instead of pulling text back. This is
-	  normally done once a script goes into production. Locking again also
-	  locks any A-pages created since. 'Unlock pages' removes the locks and
-	  repaginates the script normally.</para>
+	  normally done once a script goes into production. Unchecking it
+	  removes the locks and repaginates the script normally.</para>
 
 	</sect1>
 

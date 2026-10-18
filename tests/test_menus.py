@@ -158,11 +158,9 @@ def testProductionMenu():
         "ToggleRevisionMode",
         "RevisionsDlg",
         "ToggleSceneNumbers",
-        "LockScenes",
-        "UnlockScenes",
+        "ToggleSceneLocks",
         "OmitScene",
-        "LockPages",
-        "UnlockPages",
+        "TogglePageLocks",
         "ExportRevisedPages",
         "ClearRevisionMarks",
     ]
@@ -197,3 +195,31 @@ def testToggleSceneNumbers():
 
     a.run.func(None, ctrl)
     assert ed.sp.cfg.pdfShowSceneNumbers == shown
+
+
+class FakeLockCtrl(FakeCtrl):
+    def makeLineVisible(self, line):
+        pass
+
+
+# locking pages and scene numbers are check items that lock and unlock
+def testToggleLocks():
+    for name, isLocked in [
+        ("TogglePageLocks", lambda sp: sp.hasPageLocks()),
+        ("ToggleSceneLocks", lambda sp: sp.hasAnySceneLock()),
+    ]:
+        ed = u.loadEditor()
+        ctrl = FakeLockCtrl(ed)
+        a = actionMap()[name]
+
+        assert not isLocked(ed.sp)
+        assert not a.isChecked(None, ctrl)
+
+        a.run.func(None, ctrl)
+        assert isLocked(ed.sp)
+        assert a.isChecked(None, ctrl)
+
+        a.run.func(None, ctrl)
+        assert not isLocked(ed.sp)
+        assert not a.isChecked(None, ctrl)
+        assert ctrl.updates == 2

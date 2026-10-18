@@ -51,25 +51,24 @@ def changeType(frame, ctrl, lt):
     ctrl.changeType(lt)
 
 
-def lockPages(frame, ctrl):
-    ctrl.ed.lockPages()
+# lock the pages, or unlock them if any are locked
+def togglePageLocks(frame, ctrl):
+    if ctrl.sp.hasPageLocks():
+        ctrl.ed.unlockPages()
+    else:
+        ctrl.ed.lockPages()
+
     ctrl.makeLineVisible(ctrl.ed.line)
     ctrl.updateScreen()
 
 
-def unlockPages(frame, ctrl):
-    ctrl.ed.unlockPages()
-    ctrl.makeLineVisible(ctrl.ed.line)
-    ctrl.updateScreen()
+# lock the scene numbers, or unlock them if any are locked
+def toggleSceneLocks(frame, ctrl):
+    if ctrl.sp.hasAnySceneLock():
+        ctrl.ed.unlockScenes()
+    else:
+        ctrl.ed.lockScenes()
 
-
-def lockScenes(frame, ctrl):
-    ctrl.ed.lockScenes()
-    ctrl.updateScreen()
-
-
-def unlockScenes(frame, ctrl):
-    ctrl.ed.unlockScenes()
     ctrl.updateScreen()
 
 

@@ -216,7 +216,7 @@ Repeat steps 6 and 7 (Yellow, Green, …) for as long as the production needs.
 If the production decides to issue a fresh full draft:
 
 1. Choose **Production > Clear revision marks**. Every mark is removed and every page is White again. You can undo this.
-2. Choose **Production > Unlock pages** (and, if the production wants fully renumbered scenes, **Production > Unlock scene numbers**). This paginates the script normally again. OMITTED headings stay in the script as ordinary scenes after unlocking, so delete them first if the new draft shouldn't have them.
+2. Uncheck **Production > Lock pages** (and, if the production wants fully renumbered scenes, **Production > Lock scene numbers**). This paginates the script normally again. OMITTED headings stay in the script as ordinary scenes after unlocking, so delete them first if the new draft shouldn't have them.
 3. Export the new draft, then lock it again as the new baseline before the next round of revisions.
 
 To stop marking changes for a while (to fix a typo you don't want flagged, for example), choose **Production > Revision mode** again to turn it off. Changes made then aren't marked, but existing marks stay with their text.
@@ -227,9 +227,9 @@ To stop marking changes for a while (to fix a typo you don't want flagged, for e
 
 | Task | Where |
 |---|---|
-| Lock / unlock pages | **Production > Lock pages**, **Production > Unlock pages** |
+| Lock / unlock pages | **Production > Lock pages** (check or uncheck) |
 | Show or hide scene numbers | **Production > Show scene numbers** |
-| Lock / unlock scene numbers | **Production > Lock scene numbers**, **Production > Unlock scene numbers** |
+| Lock / unlock scene numbers | **Production > Lock scene numbers** (check or uncheck) |
 | Replace a scene with OMITTED | **Production > Omit scene** (cursor in the scene) |
 | Turn marking on or off | **Production > Revision mode** |
 | Choose the revision, date, mark and display options | **Production > Revision settings** |
