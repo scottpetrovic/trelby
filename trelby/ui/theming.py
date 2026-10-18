@@ -538,6 +538,32 @@ def _initWin():
 
         return default()
 
+    # the subclass procedure of the drop-down lists _drawChoiceThemed has
+    # done
+    def comboProc(hwnd, msg, wParam, lParam, idSubclass, refData):
+        if msg == _WM_NCDESTROY:
+            comctl32.RemoveWindowSubclass(hwnd, _win.comboProc, 4)
+        elif msg in _COMBO_SELECT or (
+            msg in _COMBO_INPUT
+            and not comctl32.DefSubclassProc(hwnd, _CB_GETDROPPEDSTATE, 0, 0)
+        ):
+            # the field showing the selected item is drawn straight on the
+            # screen when that changes, natively, not through WM_PAINT
+            # (_onChoicePaint), unless its drawing is turned off. so it is,
+            # and the field is drawn again.
+            comctl32.DefSubclassProc(hwnd, _WM_SETREDRAW, 0, 0)
+
+            try:
+                res = comctl32.DefSubclassProc(hwnd, msg, wParam, lParam)
+            finally:
+                comctl32.DefSubclassProc(hwnd, _WM_SETREDRAW, 1, 0)
+
+            user32.InvalidateRect(hwnd, None, False)
+
+            return res
+
+        return comctl32.DefSubclassProc(hwnd, msg, wParam, lParam)
+
     class COMBOBOXINFO(ctypes.Structure):
         _fields_ = [
             ("cbSize", wintypes.DWORD),
@@ -572,6 +598,7 @@ def _initWin():
         proc=SUBCLASSPROC(proc),
         headerProc=SUBCLASSPROC(headerProc),
         listProc=SUBCLASSPROC(listProc),
+        comboProc=SUBCLASSPROC(comboProc),
         HDITEMW=HDITEMW,
         COMBOBOXINFO=COMBOBOXINFO,
         SetWindowSubclass=comctl32.SetWindowSubclass,
@@ -980,6 +1007,25 @@ _LIST_INPUT = frozenset(
     )
 )
 
+# the messages after which a drop-down list's field may show another item:
+# its code changing the selection or the items, and the keyboard and the
+# mouse wheel while it's closed
+_COMBO_SELECT = frozenset(
+    (
+        0x144,  # CB_DELETESTRING
+        0x14B,  # CB_RESETCONTENT
+        0x14D,  # CB_SELECTSTRING
+        0x14E,  # CB_SETCURSEL
+    )
+)
+_COMBO_INPUT = frozenset(
+    (
+        0x100,  # WM_KEYDOWN
+        0x102,  # WM_CHAR
+        0x20A,  # WM_MOUSEWHEEL
+    )
+)
+
 # the lists of the drop-down lists _drawChoiceThemed has done, by native
 # window, as SimpleNamespaces: w, the wx.Choice or wx.ComboBox, and
 # selectionBg, the background of the selected item.
@@ -1013,6 +1059,7 @@ def _drawChoiceThemed(w, cfgGui):
         return
 
     w.drawnThemed = True
+    _win.SetWindowSubclass(hwnd, _win.comboProc, 4, 0)
     sendMessage(hwnd, _CB_SETITEMHEIGHT, 0, w.GetCharHeight() + w.FromDIP(10))
     w.SetBackgroundStyle(wx.BG_STYLE_PAINT)
     w.Bind(wx.EVT_PAINT, _onChoicePaint)
