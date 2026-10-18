@@ -108,3 +108,45 @@ def test_deepcopy():
     sp2.beatBoard.beats[0].text = "changed"
 
     assert ed.sp.beatBoard.beats[0].text == "The chase"
+
+
+def test_image():
+    b = beat("A face", 10, 10)
+    b.image = b"\x89PNG\r\n\x1a\n\x00\xff picture bytes"
+
+    board = beatboard.BeatBoard()
+    board.beats = [b, beat("No picture")]
+
+    s = board.save()
+    board2 = beatboard.BeatBoard()
+    board2.load(s)
+
+    assert board2.beats[0].image == b.image
+    assert board2.beats[1].image is None
+    assert board2.save() == s
+
+    # one that isn't base64 is dropped
+    board2.load("Beats:1\nBeat/1/Image:not base64!\n")
+    assert board2.beats[0].image is None
+    assert not board2.beats[0].extra
+
+
+def test_imageScriptRoundTrip():
+    ed = u.loadEditor()
+
+    board = beatboard.BeatBoard()
+    board.beats.append(beat("", 0, 0))
+    board.beats[0].image = bytes(range(256)) * 400
+    assert ed.setBeatBoard(board)
+
+    data = ed.sp.save().decode("UTF-8")
+    sp2 = u.loadString(data)
+    assert sp2.beatBoard.beats[0].image == board.beats[0].image
+    assert sp2.save().decode("UTF-8") == data
+
+    # the undo step keeps the picture too
+    board2 = copy.deepcopy(board)
+    board2.beats[0].image = None
+    assert ed.setBeatBoard(board2)
+    ed.cmd("undo")
+    assert ed.sp.beatBoard.beats[0].image == board.beats[0].image

@@ -1,4 +1,5 @@
 import copy
+import io
 
 import pytest
 import wx
@@ -334,3 +335,179 @@ def test_newCard(view):
     view.editing[1].SetValue("")
     view.finishEdit(True)
     assert view.board.beats[-1] is beat
+
+
+# a picture file's contents: w x h, all one color, as 'kind' (a
+# wx.BITMAP_TYPE_*)
+def pictureFile(w, h, color=(200, 30, 60), kind=wx.BITMAP_TYPE_PNG):
+    img = wx.Image(w, h)
+    img.SetRGB(wx.Rect(0, 0, w, h), *color)
+    stream = io.BytesIO()
+    assert img.SaveFile(stream, kind)
+
+    return stream.getvalue()
+
+
+# a wx.Image of w x h, all one color
+def pictureImage(w, h):
+    img = wx.Image(w, h)
+    img.SetRGB(wx.Rect(0, 0, w, h), 200, 30, 60)
+
+    return img
+
+
+def pictureSize(data):
+    img = beatboardview.decodePicture(data)
+
+    return (img.GetWidth(), img.GetHeight())
+
+
+def test_imageData(app):
+    # a small PNG or JPEG is kept as it is
+    png = pictureFile(40, 30)
+    assert beatboardview.imageData(png) == png
+
+    jpeg = pictureFile(40, 30, kind=wx.BITMAP_TYPE_JPEG)
+    assert beatboardview.imageData(jpeg) == jpeg
+
+    # other kinds are converted, to JPEG without transparency
+    bmp = pictureFile(40, 30, kind=wx.BITMAP_TYPE_BMP)
+    data = beatboardview.imageData(bmp)
+    assert beatboardview.isPngOrJpeg(data) and data.startswith(b"\xff\xd8")
+    assert pictureSize(data) == (40, 30)
+
+    # and big ones made smaller, keeping their shape
+    side = beatboard.MAX_IMAGE_SIDE
+    data = beatboardview.imageData(pictureFile(side * 2, side))
+    assert pictureSize(data) == (side, side // 2)
+
+    # with transparency, it stays a PNG
+    img = wx.Image(side + 10, 10)
+    img.InitAlpha()
+    data = beatboardview.encodePicture(img)
+    assert data.startswith(b"\x89PNG")
+
+    assert beatboardview.imageData(b"not a picture") is None
+    assert beatboardview.imageData(b"") is None
+
+
+def test_pictureFiles(view, tmp_path, monkeypatch):
+    wide = tmp_path / "wide.png"
+    wide.write_bytes(pictureFile(480, 120))
+    tall = tmp_path / "tall.jpg"
+    tall.write_bytes(pictureFile(60, 400, kind=wx.BITMAP_TYPE_JPEG))
+    text = tmp_path / "notes.txt"
+    text.write_text("hello")
+
+    messages = []
+    monkeypatch.setattr(
+        beatboardview.gutil, "messageBox", lambda msg, *a, **k: messages.append(msg)
+    )
+
+    n = len(view.board.beats)
+    pos = view.FromDIP(wx.Point(400, 400))
+    beats = view.addPictureFiles([str(wide), str(text), str(tall)], pos)
+
+    # a card for each picture, the first centered where they were dropped
+    # and the next one further down and right, the last one selected
+    assert len(beats) == 2
+    assert view.board.beats[n:] == beats
+    assert view.selected is beats[1]
+
+    def middle(beat):
+        w, h = view.cardSize(beat)
+
+        return (beat.x + w // 2, beat.y + h // 2)
+
+    assert middle(beats[0]) == (400, 400)
+    assert middle(beats[1]) == (400 + beatboardview.CASCADE,) * 2
+
+    # the pictures are fitted in the card's picture area, keeping their
+    # shape
+    assert view.pictureSize(beats[0]) == (beatboardview.PICTURE_WIDTH, 60)
+    assert view.pictureSize(beats[1]) == (27, beatboardview.PICTURE_HEIGHT)
+
+    # the narrow one's card isn't narrower than the minimum
+    assert view.cardSize(beats[1])[0] == beatboardview.PICTURE_CARD_MIN_WIDTH
+
+    # the file that isn't a picture is mentioned
+    assert len(messages) == 1 and "notes.txt" in messages[0]
+
+    # all in the script, as one undo step
+    sp = ed(view).sp
+    assert [b.image for b in sp.beatBoard.beats[n:]] == [b.image for b in beats]
+    ed(view).cmd("undo")
+    assert len(sp.beatBoard.beats) == n
+    assert not ed(view).undoHistory.canUndo()
+
+
+def test_pictureCard(view):
+    beat = view.addBitmap(wx.Bitmap(pictureImage(100, 50)))[0]
+    assert beat.image.startswith(b"\xff\xd8")
+    assert view.board.beats[-1] is beat
+
+    r = view.cardRect(beat)
+    pad = view.FromDIP(beatboardview.CARD_PAD)
+
+    # a picture card without text has no caption
+    assert r.height == view.FromDIP(50 + 2 * beatboardview.CARD_PAD)
+
+    view.scrollTo(r.x - 10, r.y - 10)
+    img = paint(view)
+    x, y = view.CalcScrolledPosition(r.x + r.width // 2, r.y + pad + 20)
+    color = pixel(img, x, y)
+    assert all(abs(a - b) < 8 for a, b in zip(color, (200, 30, 60)))
+
+    # text gives it a caption under the picture
+    view.startEdit(beat)
+    view.editing[1].SetValue("The villain\nnot shown")
+    view.finishEdit(True)
+    assert view.cardRect(beat).height == r.height + view.FromDIP(
+        beatboardview.CAPTION_HEIGHT
+    )
+    paint(view)
+
+    # emptying it doesn't remove the card, even though it's new
+    view.startEdit(beat, True)
+    view.editing[1].SetValue("")
+    view.finishEdit(True)
+    assert view.board.beats[-1] is beat
+
+    # taking the picture away makes it a text card again
+    view.setPicture(beat, None)
+    assert ed(view).sp.beatBoard.beats[-1].image is None
+    assert view.cardSize(beat) == (beatboard.CARD_WIDTH, beatboard.CARD_HEIGHT)
+
+
+def test_unreadablePicture(view):
+    # a card whose picture can't be read is shown as a text card
+    beat = view.board.beats[0]
+    beat.image = b"broken"
+    assert view.cardSize(beat) == (beatboard.CARD_WIDTH, beatboard.CARD_HEIGHT)
+    paint(view)
+
+
+def test_reloadForgetsPictures(view):
+    beat = view.addBitmap(wx.Bitmap(pictureImage(30, 30)))[0]
+    paint(view)
+    assert beat.image in view.pictures
+    assert view.bitmaps
+
+    ed(view).cmd("undo")
+    view.reload()
+    assert not view.pictures and not view.bitmaps
+
+
+def test_paste(view, monkeypatch):
+    # what's on the clipboard, without touching the real one
+    got = [("bitmap", wx.Bitmap(pictureImage(20, 10)))]
+    monkeypatch.setattr(view, "getClipboardPictures", lambda: got[0])
+
+    n = len(view.board.beats)
+    beats = view.paste(wx.Point(100, 100))
+    assert len(beats) == 1 and len(view.board.beats) == n + 1
+    assert view.pictureSize(beats[0]) == (20, 10)
+
+    got[0] = None
+    assert view.paste(wx.Point(100, 100)) == []
+    assert len(view.board.beats) == n + 1

@@ -223,3 +223,58 @@ def testToggleLocks():
         assert not isLocked(ed.sp)
         assert not a.isChecked(None, ctrl)
         assert ctrl.updates == 2
+
+
+# Actions that do something else on the beat board must be blocked there
+# otherwise, and run a method the board has
+def testOnBoardActions():
+    import trelby.ui.beatboardview as beatboardview
+
+    names = actionMap()
+
+    for name, method in menus.ON_BOARD.items():
+        assert name in names and name in menus.SCRIPT_ONLY, name
+        assert callable(getattr(beatboardview.BeatBoardView, method, None)), name
+
+
+# while the board is shown, Paste pastes on it instead of in the script,
+# and stays enabled, and Copy does nothing
+def testPasteOnBoard():
+    class Board:
+        pasted = 0
+
+        def paste(self):
+            self.pasted += 1
+
+    class Panel:
+        boardShown = True
+        board = Board()
+        ctrl = None
+
+    class Frame:
+        panel = Panel()
+
+    class Event:
+        def Enable(self, on):
+            self.enabled = on
+
+    frame = Frame()
+    acts = actionMap()
+    ran = []
+
+    for name in ("Paste", "Copy"):
+        acts[name].run = lambda f, name=name: ran.append(name)
+        menus.runAction(frame, acts[name])
+
+    assert frame.panel.board.pasted == 1
+    assert ran == []
+
+    for name, enabled in (("Paste", True), ("Copy", False)):
+        e = Event()
+        menus.onUpdateUI(frame, e, acts[name])
+        assert e.enabled == enabled, name
+
+    # with the script shown, Paste runs normally
+    frame.panel.boardShown = False
+    menus.runAction(frame, acts["Paste"])
+    assert ran == ["Paste"]

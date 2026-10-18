@@ -1136,18 +1136,38 @@ SCRIPT_ONLY = {
 }
 
 
-# whether Action a can't be used now because the beat board is shown
-def isBlockedByBoard(frame, a):
+# the Actions in SCRIPT_ONLY that do something else while the beat board
+# is shown: name -> the name of the BeatBoardView method they run instead.
+# they're not greyed out on the board. (CTRL-V must reach the board this
+# way, since a greyed-out menu item's accelerator swallows its key.)
+ON_BOARD = {
+    "Paste": "paste",
+    "PasteSystemCb": "paste",
+}
+
+
+# the beat board shown in frame's current tab, or None
+def shownBoard(frame):
     panel = getattr(frame, "panel", None)
 
-    return bool(panel) and panel.boardShown and (
+    return panel.board if (panel and panel.boardShown) else None
+
+
+# whether Action a can't be used now because the beat board is shown
+def isBlockedByBoard(frame, a):
+    return bool(shownBoard(frame)) and (
         (a.name in SCRIPT_ONLY) or a.name.startswith("ElemTo")
     )
 
 
-# run Action a, unless the beat board blocks it
+# run Action a, or what it does on the beat board (see ON_BOARD), unless
+# the board blocks it
 def runAction(frame, a):
-    if not isBlockedByBoard(frame, a):
+    board = shownBoard(frame)
+
+    if board and (a.name in ON_BOARD):
+        getattr(board, ON_BOARD[a.name])()
+    elif not isBlockedByBoard(frame, a):
         a.run(frame)
 
 
@@ -1172,7 +1192,9 @@ def onUpdateUI(frame, event, a):
     panel = getattr(frame, "panel", None)
 
     if panel:
-        if isBlockedByBoard(frame, a):
+        if shownBoard(frame) and (a.name in ON_BOARD):
+            event.Enable(True)
+        elif isBlockedByBoard(frame, a):
             event.Enable(False)
         elif a.canUse:
             event.Enable(a.canUse(frame, panel.ctrl))

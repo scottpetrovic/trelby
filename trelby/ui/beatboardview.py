@@ -7,8 +7,15 @@
 # made on it (a card added, moved, written on, colored or deleted) is put
 # in the script with ed.setBeatBoard, as one undo step. reload takes the
 # script's board again, after an undo or when the script is replaced.
+#
+# a card can have a picture (Beat.image), shown instead of its text with
+# its title under it. pictures are added from the right-click menu, by
+# dropping picture files (or pictures from other programs) on the board,
+# or by pasting them.
 
 import copy
+import io
+import os
 
 import wx
 from wx.lib.wordwrap import wordwrap
@@ -25,6 +32,132 @@ GRID_MAJOR = 5
 
 # space around the text on a card, in unscaled pixels
 CARD_PAD = 8
+
+# a card's picture is shown at most this big, in unscaled pixels, keeping
+# its shape, and its card is at least PICTURE_CARD_MIN_WIDTH wide. the
+# title under the picture takes CAPTION_HEIGHT more.
+PICTURE_WIDTH = 240
+PICTURE_HEIGHT = 180
+PICTURE_CARD_MIN_WIDTH = 80
+CAPTION_HEIGHT = 22
+
+# how far apart the cards of several pictures added at once are put
+CASCADE = 30
+
+# the picture files the file dialog offers
+PICTURE_WILDCARD = "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tif;*.tiff"
+
+
+# the picture file 'data' (bytes) as a wx.Image, or None if wx can't read
+# it
+def decodePicture(data):
+    if not data:
+        return None
+
+    # wx would show a message box for a file it can't read
+    noLog = wx.LogNull()
+    img = wx.Image(io.BytesIO(data), wx.BITMAP_TYPE_ANY)
+    del noLog
+
+    return img if img.IsOk() else None
+
+
+def isPngOrJpeg(data):
+    return data.startswith(b"\x89PNG\r\n\x1a\n") or data.startswith(b"\xff\xd8\xff")
+
+
+# 'img' (a wx.Image) as a card's picture: no bigger than
+# beatboard.MAX_IMAGE_SIDE, as a PNG if it has transparency and a JPEG
+# otherwise. None if it can't be saved.
+def encodePicture(img):
+    w, h = img.GetWidth(), img.GetHeight()
+    side = max(w, h)
+
+    if side > beatboard.MAX_IMAGE_SIDE:
+        scale = beatboard.MAX_IMAGE_SIDE / side
+        img = img.Scale(
+            max(1, round(w * scale)),
+            max(1, round(h * scale)),
+            wx.IMAGE_QUALITY_HIGH,
+        )
+
+    stream = io.BytesIO()
+
+    if img.HasAlpha() or img.HasMask():
+        ok = img.SaveFile(stream, wx.BITMAP_TYPE_PNG)
+    else:
+        img.SetOption(wx.IMAGE_OPTION_QUALITY, "85")
+        ok = img.SaveFile(stream, wx.BITMAP_TYPE_JPEG)
+
+    return stream.getvalue() if ok else None
+
+
+# a picture file's contents (bytes) as kept on a card (Beat.image): as they
+# are if it's a PNG or JPEG that isn't too big, otherwise made smaller and
+# converted (see encodePicture). None if it isn't a picture wx can read.
+def imageData(data):
+    img = decodePicture(data)
+
+    if not img:
+        return None
+
+    if (
+        isPngOrJpeg(data)
+        and (len(data) <= beatboard.MAX_IMAGE_BYTES)
+        and (max(img.GetWidth(), img.GetHeight()) <= beatboard.MAX_IMAGE_SIDE)
+    ):
+        return data
+
+    return encodePicture(img)
+
+
+# the picture in the file at 'path' as kept on a card, or None if it can't
+# be read or isn't a picture
+def loadPictureFile(path):
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return None
+
+    return imageData(data)
+
+
+# lets picture files, and pictures from other programs, be dropped on the
+# board
+class BoardDropTarget(wx.DropTarget):
+    def __init__(self, view):
+        wx.DropTarget.__init__(self)
+
+        self.view = view
+
+        self.files = wx.FileDataObject()
+        self.bitmap = wx.BitmapDataObject()
+
+        self.data = wx.DataObjectComposite()
+        self.data.Add(self.files, True)
+        self.data.Add(self.bitmap)
+        self.SetDataObject(self.data)
+
+    def OnDragOver(self, x, y, defResult):
+        return wx.DragCopy
+
+    def OnData(self, x, y, defResult):
+        if not self.GetData():
+            return wx.DragNone
+
+        pos = wx.Point(x, y)
+
+        # added after the drop has finished, so that the program the
+        # pictures came from doesn't wait for a message box
+        if self.data.GetReceivedFormat().GetType() == wx.DF_FILENAME:
+            paths = self.files.GetFilenames()
+            wx.CallAfter(self.view.addPictureFiles, paths, pos)
+        else:
+            bmp = self.bitmap.GetBitmap()
+            wx.CallAfter(self.view.addBitmap, bmp, pos)
+
+        return wx.DragCopy
 
 
 # a scrollable area with the cards drawn on it. board coordinates are
@@ -70,6 +203,14 @@ class BeatBoardView(wx.ScrolledWindow):
 
         self.cfgGui = theming.currentCfgGui()
 
+        # the cards' pictures, decoded: Beat.image -> wx.Image, or None if
+        # it can't be read. and those pictures as bitmaps at the size
+        # they're drawn at: (Beat.image, width, height) -> wx.Bitmap.
+        self.pictures = {}
+        self.bitmaps = {}
+
+        self.SetDropTarget(BoardDropTarget(self))
+
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
         # scrolling by pixels, so panning follows the mouse exactly. the
@@ -109,6 +250,12 @@ class BeatBoardView(wx.ScrolledWindow):
         self.pan = None
         self.selected = None
         self.board = copy.deepcopy(sp.beatBoard)
+
+        # forget the pictures of cards that are gone
+        used = {b.image for b in self.board.beats if b.image}
+        self.pictures = {k: v for k, v in self.pictures.items() if k in used}
+        self.bitmaps = {k: v for k, v in self.bitmaps.items() if k[0] in used}
+
         self.updateVirtualSize()
         self.updateCursor()
         self.Refresh()
@@ -130,6 +277,186 @@ class BeatBoardView(wx.ScrolledWindow):
         self.startEdit(beat, True)
 
         return beat
+
+    # add a card for each of 'images' (Beat.image values), the first one
+    # centered at the mouse position pos (or the middle of the window if
+    # None) and the others below and right of it, as one undo step. the
+    # last one is selected. returns the new cards.
+    def addPictureCards(self, images, pos=None):
+        if pos is None:
+            w, h = self.GetClientSize()
+            pos = wx.Point(w // 2, h // 2)
+
+        x, y = self.toBoard(pos)
+        beats = []
+
+        for i, image in enumerate(images):
+            beat = beatboard.Beat()
+            beat.image = image
+
+            w, h = self.cardSize(beat)
+            off = i * CASCADE
+            beat.x = min(max(0, x - w // 2 + off), beatboard.MAX_COORD)
+            beat.y = min(max(0, y - h // 2 + off), beatboard.MAX_COORD)
+
+            self.board.beats.append(beat)
+            beats.append(beat)
+
+        if beats:
+            self.updateVirtualSize()
+            self.select(beats[-1])
+            self.commit()
+
+        return beats
+
+    # add cards for the picture files in 'paths' (see addPictureCards),
+    # telling the user about the files that aren't pictures
+    def addPictureFiles(self, paths, pos=None):
+        self.finishEdit(True)
+
+        images = []
+        bad = []
+
+        for path in paths:
+            image = loadPictureFile(path)
+
+            if image:
+                images.append(image)
+            else:
+                bad.append(os.path.basename(path))
+
+        beats = self.addPictureCards(images, pos)
+        self.showUnreadable(bad)
+
+        return beats
+
+    # tell the user that the files called 'names' aren't pictures, if
+    # there are any
+    def showUnreadable(self, names):
+        if names:
+            gutil.messageBox(
+                _("These files are not pictures Trelby can read:")
+                + "\n\n"
+                + "\n".join(names),
+                _("Error"),
+                wx.OK | wx.ICON_ERROR,
+                self,
+            )
+
+    # add a card for a picture from another program, a wx.Bitmap
+    def addBitmap(self, bmp, pos=None):
+        self.finishEdit(True)
+
+        image = encodePicture(bmp.ConvertToImage()) if bmp.IsOk() else None
+
+        return self.addPictureCards([image] if image else [], pos)
+
+    # what the clipboard has that can be pasted on the board: ("files",
+    # paths), ("bitmap", wx.Bitmap) or None
+    def getClipboardPictures(self):
+        cb = wx.TheClipboard
+
+        if not cb.Open():
+            return None
+
+        try:
+            if cb.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
+                obj = wx.FileDataObject()
+
+                if cb.GetData(obj):
+                    return ("files", obj.GetFilenames())
+
+            if cb.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
+                obj = wx.BitmapDataObject()
+
+                if cb.GetData(obj):
+                    return ("bitmap", obj.GetBitmap())
+        finally:
+            cb.Close()
+
+        return None
+
+    def canPaste(self):
+        cb = wx.TheClipboard
+
+        if not cb.Open():
+            return False
+
+        try:
+            return cb.IsSupported(wx.DataFormat(wx.DF_FILENAME)) or cb.IsSupported(
+                wx.DataFormat(wx.DF_BITMAP)
+            )
+        finally:
+            cb.Close()
+
+    # paste the pictures on the clipboard at the mouse position pos, or
+    # where the mouse is if it's over the board, otherwise in the middle
+    def paste(self, pos=None):
+        if pos is None:
+            pos = self.ScreenToClient(wx.GetMousePosition())
+
+            if not wx.Rect(self.GetClientSize()).Contains(pos):
+                pos = None
+
+        got = self.getClipboardPictures()
+
+        if not got:
+            wx.Bell()
+
+            return []
+
+        if got[0] == "files":
+            return self.addPictureFiles(got[1], pos)
+
+        return self.addBitmap(got[1], pos)
+
+    # ask for picture files to add at the mouse position pos
+    def choosePictures(self, pos):
+        paths = self.askPictureFiles(True)
+
+        if paths:
+            self.addPictureFiles(paths, pos)
+
+    # ask for a picture to put on beat, replacing the one it has
+    def choosePicture(self, beat):
+        paths = self.askPictureFiles(False)
+
+        if not paths:
+            return
+
+        image = loadPictureFile(paths[0])
+
+        if image:
+            self.setPicture(beat, image)
+        else:
+            self.showUnreadable([os.path.basename(paths[0])])
+
+    # return the picture files the user picks, [] if none
+    def askPictureFiles(self, multiple):
+        style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+
+        if multiple:
+            style |= wx.FD_MULTIPLE
+
+        dlg = wx.FileDialog(
+            self,
+            _("Choose pictures") if multiple else _("Choose a picture"),
+            wildcard="%s|%s|%s|*" % (_("Pictures"), PICTURE_WILDCARD, _("All files")),
+            style=style,
+        )
+
+        paths = dlg.GetPaths() if dlg.ShowModal() == wx.ID_OK else []
+        dlg.Destroy()
+
+        return paths
+
+    # give beat the picture 'image' (a Beat.image value, or None to take
+    # its picture away)
+    def setPicture(self, beat, image):
+        beat.image = image
+        self.updateVirtualSize()
+        self.commit()
+        self.Refresh()
 
     def applyTheme(self, cfgGui):
         self.cfgGui = cfgGui
@@ -161,16 +488,51 @@ class BeatBoardView(wx.ScrolledWindow):
             ss(wx.SYS_COLOUR_HIGHLIGHT),
         )
 
+    # beat's picture as a wx.Image, or None if it has none or it can't be
+    # read
+    def getPicture(self, beat):
+        if not beat.image:
+            return None
+
+        if beat.image not in self.pictures:
+            self.pictures[beat.image] = decodePicture(beat.image)
+
+        return self.pictures[beat.image]
+
+    # the size beat's picture is shown at, (width, height) in unscaled
+    # pixels, or None if it has none
+    def pictureSize(self, beat):
+        img = self.getPicture(beat)
+
+        if not img:
+            return None
+
+        w, h = img.GetWidth(), img.GetHeight()
+        scale = min(PICTURE_WIDTH / w, PICTURE_HEIGHT / h, 1)
+
+        return (max(1, round(w * scale)), max(1, round(h * scale)))
+
+    # the size of beat's card, (width, height) in unscaled pixels
+    def cardSize(self, beat):
+        size = self.pictureSize(beat)
+
+        if not size:
+            return (beatboard.CARD_WIDTH, beatboard.CARD_HEIGHT)
+
+        w, h = size
+        h += 2 * CARD_PAD
+
+        if beat.getTitle():
+            h += CAPTION_HEIGHT
+
+        return (max(PICTURE_CARD_MIN_WIDTH, w + 2 * CARD_PAD), h)
+
     # the rectangle of a card, in the window's unscrolled coordinates
     def cardRect(self, beat):
         dip = self.FromDIP
+        w, h = self.cardSize(beat)
 
-        return wx.Rect(
-            dip(beat.x),
-            dip(beat.y),
-            dip(beatboard.CARD_WIDTH),
-            dip(beatboard.CARD_HEIGHT),
-        )
+        return wx.Rect(dip(beat.x), dip(beat.y), dip(w), dip(h))
 
     # convert a mouse position to the board's coordinates
     def toBoard(self, pos):
@@ -304,7 +666,7 @@ class BeatBoardView(wx.ScrolledWindow):
         if refocus:
             self.SetFocus()
 
-        if isNew and not beat.text.strip():
+        if isNew and not (beat.text.strip() or beat.image):
             self.board.beats.remove(beat)
             self.selected = None
             self.updateVirtualSize()
@@ -373,7 +735,7 @@ class BeatBoardView(wx.ScrolledWindow):
         dc.SetFont(self.GetFont().Scaled(1.4))
         dc.SetTextForeground(theming.blendColors(boardColor, textColor, 0.35))
 
-        text = _("Double-click to add a card")
+        text = _("Double-click to add a card, or drop pictures here")
         tw, th = dc.GetTextExtent(text)
         dc.DrawText(text, (w - tw) // 2, (h - th) // 2)
 
@@ -452,6 +814,20 @@ class BeatBoardView(wx.ScrolledWindow):
 
         title = beat.getTitle()
 
+        if self.getPicture(beat):
+            self.drawPicture(dc, beat, x, y, width)
+
+            if title:
+                dc.SetFont(font.Bold())
+                dc.SetTextForeground(cardFg)
+                s = wx.Control.Ellipsize(title, dc, wx.ELLIPSIZE_END, width)
+                th = dc.GetTextExtent(s)[1]
+                dc.DrawText(s, x, bottom - (dip(CAPTION_HEIGHT) + th) // 2)
+
+            dc.DestroyClippingRegion()
+
+            return
+
         if not title:
             dc.SetFont(font.Italic())
             dc.SetTextForeground(dim)
@@ -483,6 +859,19 @@ class BeatBoardView(wx.ScrolledWindow):
             y += dip(4)
 
         dc.DestroyClippingRegion()
+
+    # draw beat's picture at the top of its card, centered in 'width'
+    # pixels from x
+    def drawPicture(self, dc, beat, x, y, width):
+        w, h = (self.FromDIP(n) for n in self.pictureSize(beat))
+        key = (beat.image, w, h)
+        bmp = self.bitmaps.get(key)
+
+        if not bmp:
+            img = self.getPicture(beat).Scale(w, h, wx.IMAGE_QUALITY_HIGH)
+            bmp = self.bitmaps[key] = wx.Bitmap(img)
+
+        dc.DrawBitmap(bmp, x + (width - w) // 2, y, True)
 
     def OnLeftDown(self, event):
         self.finishEdit(True)
@@ -651,6 +1040,8 @@ class BeatBoardView(wx.ScrolledWindow):
         if not beat:
             x, y = self.toBoard(pos)
             add(menu, _("Add card here"), lambda: self.addCard(x, y))
+            add(menu, _("Add picture here..."), lambda: self.choosePictures(pos))
+            add(menu, _("Paste picture"), lambda: self.paste(pos), self.canPaste())
             self.PopupMenu(menu, pos)
             menu.Destroy()
             self.updateVirtualSize()
@@ -673,6 +1064,13 @@ class BeatBoardView(wx.ScrolledWindow):
             )
 
         menu.AppendSubMenu(colorMenu, _("Color"))
+
+        if beat.image:
+            add(menu, _("Change picture..."), lambda: self.choosePicture(beat))
+            add(menu, _("Remove picture"), lambda: self.setPicture(beat, None))
+        else:
+            add(menu, _("Add picture..."), lambda: self.choosePicture(beat))
+
         menu.AppendSeparator()
         add(menu, _("Delete card"), lambda: self.deleteCard(beat))
 
