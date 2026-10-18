@@ -14,6 +14,10 @@ SCROLL_UP = 0
 SCROLL_DOWN = 1
 SCROLL_CENTER = 2
 
+# CTRL+SHIFT+Space shows or hides the side panel. it used to insert a
+# non-breaking space (see config.ConfigGlobal.load).
+SIDE_PANEL_KEY = keys.Key(keys.WXK_SPACE, ctrl=True, shift=True).toInt()
+
 
 # command (an action in the main program)
 class Command:
@@ -293,7 +297,6 @@ def defaultCommands():
         Command(
             "InsertNbsp",
             _("Insert non-breaking space."),
-            [keys.Key(keys.WXK_SPACE, shift=True, ctrl=True).toInt()],
             isMenu=True,
         ),
         Command(
@@ -626,6 +629,7 @@ def defaultCommands():
         Command(
             "ToggleSidePanel",
             _("Show or hide the side panel with the outline and the notes."),
+            [SIDE_PANEL_KEY],
             isMenu=True,
         ),
         Command(

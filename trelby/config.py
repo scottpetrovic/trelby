@@ -774,6 +774,11 @@ class ConfigGlobal:
         # the bundled one (see migrateFont). older configs don't have it.
         v.addInt("fontVersion", 1, "FontVersion", 0, 1)
 
+        # 1 once CTRL+SHIFT+Space has been moved from inserting a
+        # non-breaking space to the side panel (see load). older configs
+        # don't have it.
+        v.addInt("keysVersion", 1, "KeysVersion", 0, 1)
+
         # default script directory
         v.addStrUnicode("scriptDir", misc.progPath, "DefaultScriptDirectory")
 
@@ -806,6 +811,8 @@ class ConfigGlobal:
                 if k in vals:
                     vals[k] = migrateFont(vals[k])
 
+        moveSidePanelKey = "KeysVersion" not in vals
+
         self.cvars.load(vals, "", self)
 
         for t in self.types.values():
@@ -822,6 +829,20 @@ class ConfigGlobal:
         for cmd in self.commands:
             if cmd.name == "SetMark":
                 cmd.keys = [k for k in cmd.keys if k != space]
+
+        # CTRL+SHIFT+Space inserted a non-breaking space until it became
+        # the side panel's key: move it, once, in older configs (which
+        # have every command's keys), unless the user had put it on
+        # something else
+        if moveSidePanelKey:
+            key = commands.SIDE_PANEL_KEY
+            cmds = {cmd.name: cmd for cmd in self.commands}
+            nbsp = cmds["InsertNbsp"]
+
+            nbsp.keys = [k for k in nbsp.keys if k != key]
+
+            if not any(key in cmd.keys for cmd in self.commands):
+                cmds["ToggleSidePanel"].keys.append(key)
 
         self.recalc()
 

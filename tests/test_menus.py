@@ -299,3 +299,53 @@ def testFixedKeyTakenFromOldBinding():
     assert cmds["SetMark"].keys == [f8]
     assert cmds["ToggleBeatBoard"].keys == [space]
     assert cfg.getKeyMap().get(space) is None
+
+
+# CTRL+SHIFT+Space moved from Insert non-breaking space to the side panel:
+# older configs (which have every command's keys) get it moved once, unless
+# it was on another command, and newer ones are left alone
+def testSidePanelKeyMovedFromNbsp():
+    import trelby.config as config
+
+    key = commands.SIDE_PANEL_KEY
+    f8 = commands.keys.Key(commands.keys.WXK_F8, ctrl=True).toInt()
+
+    def load(s):
+        cfg = config.ConfigGlobal()
+        cfg.load(s)
+
+        return {cmd.name: cmd.keys for cmd in cfg.commands}
+
+    nbspAndPanel = (
+        "Command/InsertNbsp/Keys:2\n"
+        "Command/InsertNbsp/Keys/1:%d\n"
+        "Command/InsertNbsp/Keys/2:%d\n"
+        "Command/ToggleSidePanel/Keys:1\n"
+        "Command/ToggleSidePanel/Keys/1:0\n" % (key, f8)
+    )
+
+    cmds = load(nbspAndPanel)
+    assert cmds["InsertNbsp"] == [f8]
+    assert cmds["ToggleSidePanel"] == [key]
+
+    # the user had moved it to another command
+    cmds = load(
+        "Command/InsertNbsp/Keys:1\n"
+        "Command/InsertNbsp/Keys/1:%d\n"
+        "Command/SetMark/Keys:1\n"
+        "Command/SetMark/Keys/1:%d\n"
+        "Command/ToggleSidePanel/Keys:1\n"
+        "Command/ToggleSidePanel/Keys/1:0\n" % (f8, key)
+    )
+    assert cmds["SetMark"] == [key]
+    assert cmds["ToggleSidePanel"] == []
+
+    # a config saved since then keeps what it has
+    cmds = load("KeysVersion:1\n" + nbspAndPanel)
+    assert cmds["InsertNbsp"] == [key, f8]
+    assert cmds["ToggleSidePanel"] == []
+
+    # and a new one gets the defaults
+    cmds = load("")
+    assert cmds["InsertNbsp"] == []
+    assert cmds["ToggleSidePanel"] == [key]

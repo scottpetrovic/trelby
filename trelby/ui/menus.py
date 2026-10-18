@@ -540,6 +540,7 @@ def makeTable():
                 _("Side panel"),
                 "d",
                 OnFrame("OnToggleSidePanel"),
+                "CTRL-SHIFT-SPACE",
                 kind=wx.ITEM_CHECK,
             ),
             Action(
