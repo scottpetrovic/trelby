@@ -1638,7 +1638,8 @@
 
 		<para>'Include scene numbers' causes scene numbers to be inserted
 		to the left and right of each scene element, on screen and in
-		exports. It is on by default.</para>
+		exports. This is usually only done for scripts in production, so
+		it is off by default.</para>
 
 		<para>'Show line numbers' prefixes each line with its line number
 		(starting from 1 at the top of the page). It can be considered a

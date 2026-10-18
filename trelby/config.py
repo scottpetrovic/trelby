@@ -443,7 +443,7 @@ class Config:
         v.addInt("sceneContinuedIndent", 45, "SceneContinuedIndent", -20, 80)
 
         # whether to include scene numbers
-        v.addBool("pdfShowSceneNumbers", True, "ShowSceneNumbers")
+        v.addBool("pdfShowSceneNumbers", False, "ShowSceneNumbers")
 
         # whether to include PDF TOC
         v.addBool("pdfIncludeTOC", True, "IncludeTOC")

@@ -639,14 +639,12 @@ def testFDXExportPlainScript():
     assert not root.xpath("//Text[@RevisionID]")
 
     # scene numbers only when they're printed (or locked)
-    assert [p.get("Number") for p in root.xpath("//Paragraph[@Number]")] == [
-        "1",
-        "2",
-        "3",
-    ]
+    assert not root.xpath("//Paragraph[@Number]")
 
-    sp.cfg.pdfShowSceneNumbers = False
-    assert not fdxRoot(sp).xpath("//Paragraph[@Number]")
+    sp.cfg.pdfShowSceneNumbers = True
+    assert [
+        p.get("Number") for p in fdxRoot(sp).xpath("//Paragraph[@Number]")
+    ] == ["1", "2", "3"]
 
 
 # every revision up to the latest one used gets a revision set
