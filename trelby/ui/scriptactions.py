@@ -120,6 +120,16 @@ def clearRevisionMarks(frame, ctrl):
     ctrl.updateScreen()
 
 
+# the script setting that shows scene numbers on screen and in exports.
+# they're drawn in the margins, so unlike the other settings (see
+# Editor.applyCfg) this changes no wrapping or page breaks, and the undo
+# history can stay.
+def toggleSceneNumbers(frame, ctrl):
+    ctrl.sp.cfg.pdfShowSceneNumbers = not ctrl.sp.cfg.pdfShowSceneNumbers
+    ctrl.sp.markChanged()
+    ctrl.updateScreen()
+
+
 # export the pages revised in the current revision as a PDF
 def exportRevisedPages(frame, ctrl):
     sp = getExportable(frame, ctrl, "export")

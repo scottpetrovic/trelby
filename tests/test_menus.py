@@ -129,3 +129,60 @@ def testElemTypesCoverAllTypes():
     for lt, id, label, mnemonic, cmdName in types:
         assert cmdName in trelbyctrl.EDITOR_COMMANDS
         assert acts["ElemTo" + cmdName[len("ChangeTo") :]].id == id
+
+
+def mnemonics(items):
+    return [it.mnemonic.lower() for it in items if it is not menus.SEP]
+
+
+def testProductionMenu():
+    bar = menus.makeTable()[0]
+    m = {it.label: it for it in bar}["Production"]
+    names = [it.name for it in m.items if it is not menus.SEP]
+
+    assert len(set(mnemonics(bar))) == len(bar)
+    assert len(set(mnemonics(m.items))) == len(names)
+
+    assert names == [
+        "ToggleRevisionMode",
+        "RevisionsDlg",
+        "ToggleSceneNumbers",
+        "LockScenes",
+        "UnlockScenes",
+        "OmitScene",
+        "LockPages",
+        "UnlockPages",
+        "ExportRevisedPages",
+        "ClearRevisionMarks",
+    ]
+
+
+class FakeCtrl:
+    def __init__(self, ed):
+        self.ed = ed
+        self.sp = ed.sp
+        self.updates = 0
+
+    def updateScreen(self):
+        self.updates += 1
+
+
+# showing scene numbers changes no wrapping, so it keeps the undo history
+def testToggleSceneNumbers():
+    ed = u.loadEditor()
+    ed.cmd("addChar", char="x")
+    ed.sp.markChanged(False)
+    ctrl = FakeCtrl(ed)
+    a = actionMap()["ToggleSceneNumbers"]
+    shown = ed.sp.cfg.pdfShowSceneNumbers
+
+    a.run.func(None, ctrl)
+
+    assert ed.sp.cfg.pdfShowSceneNumbers == (not shown)
+    assert a.isChecked(None, ctrl) == (not shown)
+    assert ed.sp.hasChanged
+    assert ed.undoHistory.canUndo()
+    assert ctrl.updates == 1
+
+    a.run.func(None, ctrl)
+    assert ed.sp.cfg.pdfShowSceneNumbers == shown

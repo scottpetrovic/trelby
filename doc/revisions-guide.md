@@ -134,18 +134,18 @@ The first two changes go out as the **Blue** revision, and the third as **Pink**
 
 Open the script and make sure it's the version everyone will receive as the White draft.
 
-1. Choose **Script > Lock pages**.
+1. Choose **Production > Lock pages**.
    Every page now keeps its number. The status bar shows `Page 1 / 104 (locked)`, and in the page views a small lock icon appears beside each page number.
-2. Choose **Script > Lock scene numbers**.
+2. Choose **Production > Lock scene numbers**.
    Every scene keeps its number, and a lock icon appears beside each scene heading.
-3. Make sure scene numbers are printed: in **Script > Script settings**, on the **Formatting** page, turn on *Include scene numbers*.
+3. Choose **Production > Show scene numbers**, so the numbers are shown on screen and printed. New scripts don't show them until you do.
 4. Save, and export the White draft with **File > Export > PDF**. This is what goes to the whole team.
 
 > **Why lock before any revision?** If the pages aren't locked, a change on page 12 can push text onto every page after it. All of those pages would then count as changed, and you'd have to reissue the whole back half of the script.
 
 ### Step 2: Start the Blue revision
 
-1. Choose **Script > Revisions > Revision mode**.
+1. Choose **Production > Revision mode**.
    Because no revision has been started yet, the **Revisions** dialog opens first.
 2. In the dialog:
    - **Current revision:** *Blue* (the first revision; it's already selected).
@@ -167,7 +167,7 @@ As you type, each changed word is highlighted in blue on screen, and a `*` appea
 
 If the new material overflows page 23, the overflow goes onto a new page **23A**. Page 24 stays page 24.
 
-**Cut scene 15.** Put the cursor anywhere in scene 15 and choose **Script > Omit scene**. The whole scene is replaced by a single heading reading **OMITTED**, still numbered 15 and marked Blue. When printed with scene numbers, it reads:
+**Cut scene 15.** Put the cursor anywhere in scene 15 and choose **Production > Omit scene**. The whole scene is replaced by a single heading reading **OMITTED**, still numbered 15 and marked Blue. When printed with scene numbers, it reads:
 
 ```
 15   OMITTED                                                    15   *
@@ -180,13 +180,13 @@ You'd get the same result by selecting the whole scene and deleting it: once sce
 Before issuing anything, review the revision:
 
 - **On screen**, switch to a page view (**View > Page** or **View > Side by side**). Revised pages show `Blue Rev. 10/17/26` above the header, changed text is highlighted, and margin marks show the changed lines.
-- **Script > Revisions > Revision settings** lists the pages revised in the current revision, for example *"Pages revised in the current revision: 23, 23A, 31"*. Close the dialog with **Cancel** to change nothing.
+- **Production > Revision settings** lists the pages revised in the current revision, for example *"Pages revised in the current revision: 23, 23A, 31"*. Close the dialog with **Cancel** to change nothing.
 
 Check that the list matches what you expect. A page you didn't mean to touch might mean an accidental keystroke: undo it with **Edit > Undo**. Undo is the only way to unmark a single change; there's no command to unmark one word.
 
 ### Step 5: Issue the Blue pages
 
-1. Choose **Script > Revisions > Export revised pages**.
+1. Choose **Production > Export revised pages**.
 2. Choose a file name, such as `Night Freight - Blue Pages.pdf`.
 
 The PDF contains only the pages with Blue changes, each with its locked page number, `Blue Rev. 10/17/26` at the top, and asterisks beside the changed lines. The production office prints them on blue paper and hands them out. Everyone swaps them into their copy: page 23 replaces the old 23, page 23A goes in after it, and so on.
@@ -199,7 +199,7 @@ Save the script. The marks, the revision and its date are saved in the `.trelby`
 
 A week later, the lead's notes on scene 22 come in.
 
-1. Choose **Script > Revisions > Revision settings**.
+1. Choose **Production > Revision settings**.
 2. Set **Current revision** to *Pink*. Today's date is filled in for it.
 3. Click **OK**. The status bar now says `Pink revision`.
 
@@ -209,7 +209,7 @@ If scene 22 is on page 31, which already had Blue changes, page 31 now becomes a
 
 ### Step 7: Issue the Pink pages
 
-Choose **Script > Revisions > Export revised pages** again. This time you get only the pages with **Pink** changes. Page 23, which has only Blue changes, isn't included, because everyone already has it.
+Choose **Production > Export revised pages** again. This time you get only the pages with **Pink** changes. Page 23, which has only Blue changes, isn't included, because everyone already has it.
 
 On page 31, both the Blue and the Pink changes carry asterisks by default. If your production wants asterisks only for the newest changes, turn on **Mark only the current revision's changes** in Revision settings. The page is still a Pink page, and the older Blue changes just lose their asterisks.
 
@@ -219,11 +219,11 @@ Repeat steps 6 and 7 (Yellow, Green, …) for as long as the production needs.
 
 If the production decides to issue a fresh full draft:
 
-1. Choose **Script > Revisions > Clear revision marks**. Every mark is removed and every page is White again. You can undo this.
-2. Choose **Script > Unlock pages** (and, if the production wants fully renumbered scenes, **Script > Unlock scene numbers**). This paginates the script normally again. OMITTED headings stay in the script as ordinary scenes after unlocking, so delete them first if the new draft shouldn't have them.
+1. Choose **Production > Clear revision marks**. Every mark is removed and every page is White again. You can undo this.
+2. Choose **Production > Unlock pages** (and, if the production wants fully renumbered scenes, **Production > Unlock scene numbers**). This paginates the script normally again. OMITTED headings stay in the script as ordinary scenes after unlocking, so delete them first if the new draft shouldn't have them.
 3. Export the new draft, then lock it again as the new baseline before the next round of revisions.
 
-To stop marking changes for a while (to fix a typo you don't want flagged, for example), choose **Script > Revisions > Revision mode** again to turn it off. Changes made then aren't marked, but existing marks stay with their text.
+To stop marking changes for a while (to fix a typo you don't want flagged, for example), choose **Production > Revision mode** again to turn it off. Changes made then aren't marked, but existing marks stay with their text.
 
 ---
 
@@ -231,13 +231,14 @@ To stop marking changes for a while (to fix a typo you don't want flagged, for e
 
 | Task | Where |
 |---|---|
-| Lock / unlock pages | **Script > Lock pages**, **Script > Unlock pages** |
-| Lock / unlock scene numbers | **Script > Lock scene numbers**, **Script > Unlock scene numbers** |
-| Replace a scene with OMITTED | **Script > Omit scene** (cursor in the scene) |
-| Turn marking on or off | **Script > Revisions > Revision mode** |
-| Choose the revision, date, mark and display options | **Script > Revisions > Revision settings** |
-| Export only this revision's pages as a PDF | **Script > Revisions > Export revised pages** |
-| Remove all revision marks | **Script > Revisions > Clear revision marks** |
+| Lock / unlock pages | **Production > Lock pages**, **Production > Unlock pages** |
+| Show or hide scene numbers | **Production > Show scene numbers** |
+| Lock / unlock scene numbers | **Production > Lock scene numbers**, **Production > Unlock scene numbers** |
+| Replace a scene with OMITTED | **Production > Omit scene** (cursor in the scene) |
+| Turn marking on or off | **Production > Revision mode** |
+| Choose the revision, date, mark and display options | **Production > Revision settings** |
+| Export only this revision's pages as a PDF | **Production > Export revised pages** |
+| Remove all revision marks | **Production > Clear revision marks** |
 
 **Revision settings dialog:**
 

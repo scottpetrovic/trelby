@@ -901,49 +901,10 @@
 	</sect1>
 
 	<sect1>
-	  <title>Script/Lock pages, Script/Unlock pages</title>
+	  <title>Production/Revisions</title>
 
-	  <para>'Lock pages' locks every page to start where it starts now,
-	  with its current page number. After that, adding text creates
-	  A-pages (12A, 12B, ...) instead of moving text onto later pages, and
-	  removing text leaves gaps instead of pulling text back. This is
-	  normally done once a script goes into production. Locking again also
-	  locks any A-pages created since. 'Unlock pages' removes the locks and
-	  repaginates the script normally.</para>
-
-	</sect1>
-
-	<sect1>
-	  <title>Script/Lock scene numbers, Script/Unlock scene numbers</title>
-
-	  <para>'Lock scene numbers' makes every scene keep the number it has
-	  now. After that, a scene added after scene 12 becomes 12A (then 12B,
-	  ...), one added before scene 1 becomes A1, deleting a scene leaves an
-	  omitted scene in its place (see below) instead of renumbering the
-	  scenes after it, and a scene that is moved, in the outline or by
-	  cutting and pasting it, keeps its number. Locking again also locks
-	  any A-scenes created since. 'Unlock scene numbers' removes the locks
-	  and numbers the scenes 1, 2, 3, ... again. The numbers are shown in
-	  the outline and the scene report, and printed if 'Include scene
-	  numbers' is on in the script's Formatting settings.</para>
-
-	</sect1>
-
-	<sect1>
-	  <title>Script/Omit scene</title>
-
-	  <para>'Omit scene' replaces the scene the cursor is in with a scene
-	  heading reading OMITTED, which keeps the scene's number, as shooting
-	  scripts do with cut scenes. Once the scene numbers are locked,
-	  deleting a whole scene (selecting it and deleting or cutting it)
-	  does this by itself. Pasting a cut scene back gives it its number
-	  back, and its OMITTED heading goes away. Deleting an OMITTED heading
-	  removes the number for good.</para>
-
-	</sect1>
-
-	<sect1>
-	  <title>Script/Revisions</title>
+	  <para>The Production menu has what's used once a script is in production:
+	  revisions, scene numbers, and locking scenes and pages.</para>
 
 	  <para>Once a script is in production, each round of changes is a
 	  revision, named after the color of the paper its pages are printed
@@ -970,7 +931,7 @@
 
 	  <para>'Export revised pages' exports a PDF of only the pages with
 	  changes marked with the current revision, for handing out as
-	  replacement pages; lock the pages first (Script/Lock pages) so that
+	  replacement pages; lock the pages first (Production/Lock pages) so that
 	  the other pages keep their numbers. 'Clear revision marks' removes
 	  all the marks, making every page White again.</para>
 
@@ -978,6 +939,59 @@
 	  Final Draft revision sets, and the scene numbers when they're locked
 	  or printed. Importing an FDX file reads its revision marks
 	  back.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Production/Show scene numbers</title>
+
+	  <para>'Show scene numbers' puts each scene's number to the left and
+	  right of its scene heading, on screen and in exports. This is usually
+	  only done once a script is in production, so it's off for new
+	  scripts. It's the same setting as 'Include scene numbers' in the
+	  script's Formatting settings.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Production/Lock scene numbers, Production/Unlock scene numbers</title>
+
+	  <para>'Lock scene numbers' makes every scene keep the number it has
+	  now. After that, a scene added after scene 12 becomes 12A (then 12B,
+	  ...), one added before scene 1 becomes A1, deleting a scene leaves an
+	  omitted scene in its place (see below) instead of renumbering the
+	  scenes after it, and a scene that is moved, in the outline or by
+	  cutting and pasting it, keeps its number. Locking again also locks
+	  any A-scenes created since. 'Unlock scene numbers' removes the locks
+	  and numbers the scenes 1, 2, 3, ... again. The numbers are shown in
+	  the outline and the scene report, and on the pages if 'Show scene
+	  numbers' is on.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Production/Omit scene</title>
+
+	  <para>'Omit scene' replaces the scene the cursor is in with a scene
+	  heading reading OMITTED, which keeps the scene's number, as shooting
+	  scripts do with cut scenes. Once the scene numbers are locked,
+	  deleting a whole scene (selecting it and deleting or cutting it)
+	  does this by itself. Pasting a cut scene back gives it its number
+	  back, and its OMITTED heading goes away. Deleting an OMITTED heading
+	  removes the number for good.</para>
+
+	</sect1>
+
+	<sect1>
+	  <title>Production/Lock pages, Production/Unlock pages</title>
+
+	  <para>'Lock pages' locks every page to start where it starts now,
+	  with its current page number. After that, adding text creates
+	  A-pages (12A, 12B, ...) instead of moving text onto later pages, and
+	  removing text leaves gaps instead of pulling text back. This is
+	  normally done once a script goes into production. Locking again also
+	  locks any A-pages created since. 'Unlock pages' removes the locks and
+	  repaginates the script normally.</para>
 
 	</sect1>
 
@@ -1639,7 +1653,8 @@
 		<para>'Include scene numbers' causes scene numbers to be inserted
 		to the left and right of each scene element, on screen and in
 		exports. This is usually only done for scripts in production, so
-		it is off by default.</para>
+		it is off by default. Production/Show scene numbers turns it on
+		and off too.</para>
 
 		<para>'Show line numbers' prefixes each line with its line number
 		(starting from 1 at the top of the page). It can be considered a
