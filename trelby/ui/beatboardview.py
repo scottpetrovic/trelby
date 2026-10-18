@@ -12,6 +12,10 @@
 # its title under it. pictures are added from the right-click menu, by
 # dropping picture files (or pictures from other programs) on the board,
 # or by pasting them.
+#
+# a card is resized by dragging its bottom right corner (with shift held
+# down, keeping its shape). its picture is fitted in it, so it grows and
+# shrinks with the card.
 
 import copy
 import io
@@ -40,6 +44,10 @@ PICTURE_WIDTH = 240
 PICTURE_HEIGHT = 180
 PICTURE_CARD_MIN_WIDTH = 80
 CAPTION_HEIGHT = 22
+
+# the size of the corner of a card that resizes it when dragged, in
+# unscaled pixels
+RESIZE_GRIP = 14
 
 # how far apart the cards of several pictures added at once are put
 CASCADE = 30
@@ -123,6 +131,18 @@ def loadPictureFile(path):
     return imageData(data)
 
 
+# the size of 'img' (a wx.Image) fitted in w x h, keeping its shape, and
+# not made bigger unless 'grow'
+def fitPicture(img, w, h, grow):
+    iw, ih = img.GetWidth(), img.GetHeight()
+    scale = min(w / iw, h / ih)
+
+    if not grow:
+        scale = min(scale, 1)
+
+    return (max(1, round(iw * scale)), max(1, round(ih * scale)))
+
+
 # lets picture files, and pictures from other programs, be dropped on the
 # board
 class BoardDropTarget(wx.DropTarget):
@@ -187,6 +207,15 @@ class BeatBoardView(wx.ScrolledWindow):
         # is where the card was. otherwise None.
         self.drag = None
 
+        # while a card is being resized: (card, x, y, width, height, its
+        # Beat.width, its Beat.height), where (x, y) is where the mouse was
+        # pressed, on the board, and the rest are the card's size when it
+        # was. otherwise None.
+        self.resize = None
+
+        # whether the mouse is over a card's resizing corner
+        self.overGrip = False
+
         # while the board is being panned (dragged with the middle button,
         # or the left one with space held down): (x, y, view x, view y),
         # the mouse position and the scroll position when it started, in
@@ -247,6 +276,7 @@ class BeatBoardView(wx.ScrolledWindow):
             self.ReleaseMouse()
 
         self.drag = None
+        self.resize = None
         self.pan = None
         self.selected = None
         self.board = copy.deepcopy(sp.beatBoard)
@@ -500,20 +530,37 @@ class BeatBoardView(wx.ScrolledWindow):
         return self.pictures[beat.image]
 
     # the size beat's picture is shown at, (width, height) in unscaled
-    # pixels, or None if it has none
+    # pixels, or None if it has none. on a card that hasn't been resized,
+    # it's at most PICTURE_WIDTH x PICTURE_HEIGHT, and the card is made to
+    # fit it; on one that has, it fills the card's picture area.
     def pictureSize(self, beat):
         img = self.getPicture(beat)
 
         if not img:
             return None
 
-        w, h = img.GetWidth(), img.GetHeight()
-        scale = min(PICTURE_WIDTH / w, PICTURE_HEIGHT / h, 1)
+        if not beat.width:
+            return fitPicture(img, PICTURE_WIDTH, PICTURE_HEIGHT, False)
 
-        return (max(1, round(w * scale)), max(1, round(h * scale)))
+        return fitPicture(img, *self.pictureArea(beat), True)
+
+    # the space for beat's picture on its card, (width, height) in
+    # unscaled pixels: the card without its padding and caption
+    def pictureArea(self, beat):
+        w, h = self.cardSize(beat)
+        w -= 2 * CARD_PAD
+        h -= 2 * CARD_PAD
+
+        if beat.getTitle():
+            h -= CAPTION_HEIGHT
+
+        return (max(1, w), max(1, h))
 
     # the size of beat's card, (width, height) in unscaled pixels
     def cardSize(self, beat):
+        if beat.width:
+            return (beat.width, beat.height)
+
         size = self.pictureSize(beat)
 
         if not size:
@@ -550,6 +597,24 @@ class BeatBoardView(wx.ScrolledWindow):
 
         return None
 
+    # the corner of beat's card that resizes it, in the window's
+    # unscrolled coordinates
+    def gripRect(self, beat):
+        r = self.cardRect(beat)
+        size = self.FromDIP(RESIZE_GRIP)
+
+        return wx.Rect(r.GetRight() + 1 - size, r.GetBottom() + 1 - size, size, size)
+
+    # the card whose resizing corner is at the mouse position pos (and
+    # isn't under another card), or None
+    def gripHitTest(self, pos):
+        beat = self.hitTest(pos)
+
+        if beat and self.gripRect(beat).Contains(self.CalcUnscrolledPosition(pos)):
+            return beat
+
+        return None
+
     # make the board big enough to scroll to every card, and a screenful
     # past them, so there's always empty space to pan to and put cards in
     def updateVirtualSize(self):
@@ -579,15 +644,17 @@ class BeatBoardView(wx.ScrolledWindow):
             self.scrollTo(r.x - gap, r.y - gap)
 
     # show the hand cursor while space is held down or the board is being
-    # panned
+    # panned, and the resizing one over a card's corner or while resizing
     def updateCursor(self):
         if self.pan or self.spaceDown:
             self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        elif self.resize or self.overGrip:
+            self.SetCursor(wx.Cursor(wx.CURSOR_SIZENWSE))
         else:
             self.SetCursor(wx.NullCursor)
 
     def startPan(self, event):
-        if self.drag or self.pan:
+        if self.drag or self.resize or self.pan:
             return
 
         pos = event.GetPosition()
@@ -801,13 +868,21 @@ class BeatBoardView(wx.ScrolledWindow):
         dc.SetBrush(wx.Brush(cardBg))
         dc.DrawRoundedRectangle(r, radius)
 
-        pad = dip(CARD_PAD)
-        width = r.width - 2 * pad
-        x = r.x + pad
-        y = r.y + pad
-        bottom = r.GetBottom() - pad
+        inside = self.textRect(beat)
+        dc.SetClippingRegion(inside)
+        self.drawContents(dc, beat, inside, cardBg, cardFg)
+        dc.DestroyClippingRegion()
 
-        dc.SetClippingRegion(r.x + pad, r.y + pad, width, r.height - 2 * pad)
+        if beat is self.selected:
+            self.drawGrip(dc, beat, theming.blendColors(cardFg, cardBg, 0.5))
+
+    # draw beat's text or picture in 'r', the inside of its card
+    def drawContents(self, dc, beat, r, cardBg, cardFg):
+        dip = self.FromDIP
+        width = r.width
+        x = r.x
+        y = r.y
+        bottom = r.GetBottom()
 
         font = self.GetFont()
         dim = theming.blendColors(cardFg, cardBg, 0.4)
@@ -815,16 +890,17 @@ class BeatBoardView(wx.ScrolledWindow):
         title = beat.getTitle()
 
         if self.getPicture(beat):
-            self.drawPicture(dc, beat, x, y, width)
+            height = r.height
 
             if title:
+                height -= dip(CAPTION_HEIGHT)
                 dc.SetFont(font.Bold())
                 dc.SetTextForeground(cardFg)
                 s = wx.Control.Ellipsize(title, dc, wx.ELLIPSIZE_END, width)
                 th = dc.GetTextExtent(s)[1]
                 dc.DrawText(s, x, bottom - (dip(CAPTION_HEIGHT) + th) // 2)
 
-            dc.DestroyClippingRegion()
+            self.drawPicture(dc, beat, x, y, width, height)
 
             return
 
@@ -832,7 +908,6 @@ class BeatBoardView(wx.ScrolledWindow):
             dc.SetFont(font.Italic())
             dc.SetTextForeground(dim)
             dc.DrawText(_("Empty card"), x, y)
-            dc.DestroyClippingRegion()
 
             return
 
@@ -858,20 +933,37 @@ class BeatBoardView(wx.ScrolledWindow):
 
             y += dip(4)
 
-        dc.DestroyClippingRegion()
-
-    # draw beat's picture at the top of its card, centered in 'width'
-    # pixels from x
-    def drawPicture(self, dc, beat, x, y, width):
+    # draw beat's picture centered in the width x height pixels at (x, y)
+    def drawPicture(self, dc, beat, x, y, width, height):
         w, h = (self.FromDIP(n) for n in self.pictureSize(beat))
         key = (beat.image, w, h)
         bmp = self.bitmaps.get(key)
 
-        if not bmp:
+        if bmp:
+            pass
+        elif self.resize and (self.resize[0] is beat):
+            # while the card is being resized, scaled quicker and not kept
+            img = self.getPicture(beat).Scale(w, h, wx.IMAGE_QUALITY_BILINEAR)
+            bmp = wx.Bitmap(img)
+        else:
             img = self.getPicture(beat).Scale(w, h, wx.IMAGE_QUALITY_HIGH)
             bmp = self.bitmaps[key] = wx.Bitmap(img)
 
-        dc.DrawBitmap(bmp, x + (width - w) // 2, y, True)
+        dc.DrawBitmap(bmp, x + (width - w) // 2, y + (height - h) // 2, True)
+
+    # draw the lines in the corner of beat's card that show it can be
+    # resized from there
+    def drawGrip(self, dc, beat, color):
+        dip = self.FromDIP
+        r = self.cardRect(beat)
+        right = r.GetRight() - dip(3)
+        bottom = r.GetBottom() - dip(3)
+
+        dc.SetPen(wx.Pen(color, max(1, dip(1))))
+
+        for n in (4, 8):
+            d = dip(n)
+            dc.DrawLine(right - d, bottom, right, bottom - d)
 
     def OnLeftDown(self, event):
         self.finishEdit(True)
@@ -885,13 +977,23 @@ class BeatBoardView(wx.ScrolledWindow):
 
             return
 
-        beat = self.hitTest(event.GetPosition())
+        pos = event.GetPosition()
+        beat = self.hitTest(pos)
         self.select(beat)
 
-        if beat:
-            x, y = self.toBoard(event.GetPosition())
+        if not beat:
+            return
+
+        x, y = self.toBoard(pos)
+
+        if self.gripHitTest(pos) is beat:
+            w, h = self.cardSize(beat)
+            self.resize = (beat, x, y, w, h, beat.width, beat.height)
+            self.updateCursor()
+        else:
             self.drag = (beat, x - beat.x, y - beat.y, beat.x, beat.y)
-            self.CaptureMouse()
+
+        self.CaptureMouse()
 
     def OnMotion(self, event):
         if self.pan:
@@ -900,6 +1002,19 @@ class BeatBoardView(wx.ScrolledWindow):
             self.scrollTo(vx - (pos.x - x), vy - (pos.y - y))
 
             return
+
+        if self.resize:
+            if event.Dragging() and event.LeftIsDown():
+                self.resizeTo(event)
+
+            return
+
+        if not self.drag:
+            over = bool(self.gripHitTest(event.GetPosition()))
+
+            if over != self.overGrip:
+                self.overGrip = over
+                self.updateCursor()
 
         if not (self.drag and event.Dragging() and event.LeftIsDown()):
             return
@@ -926,6 +1041,62 @@ class BeatBoardView(wx.ScrolledWindow):
             self.commit()
             self.Refresh()
 
+    # resize the card being resized for the mouse event 'event', keeping
+    # its shape if shift is held down
+    def resizeTo(self, event):
+        beat, x0, y0, w0, h0 = self.resize[:5]
+        x, y = self.toBoard(event.GetPosition())
+        w = w0 + x - x0
+        h = h0 + y - y0
+
+        if event.ShiftDown():
+            scale = max(
+                w / w0,
+                h / h0,
+                beatboard.MIN_CARD_WIDTH / w0,
+                beatboard.MIN_CARD_HEIGHT / h0,
+            )
+            w, h = round(w0 * scale), round(h0 * scale)
+
+        beat.setSize(w, h)
+        self.updateVirtualSize()
+        self.Refresh()
+
+    # a card that was resized comes to the front
+    def endResize(self):
+        if not self.resize:
+            return
+
+        beat, _x, _y, w, h, oldWidth, oldHeight = self.resize
+        self.resize = None
+        self.updateCursor()
+
+        # back where it started, it keeps its old size, which may be the
+        # default one
+        if self.cardSize(beat) == (w, h):
+            beat.width, beat.height = oldWidth, oldHeight
+            self.Refresh()
+
+            return
+
+        self.board.beats.remove(beat)
+        self.board.beats.append(beat)
+
+        # forget the pictures at the sizes they're no longer shown at
+        shown = set()
+
+        for b in self.board.beats:
+            size = self.pictureSize(b)
+
+            if size:
+                shown.add((b.image,) + tuple(self.FromDIP(n) for n in size))
+
+        self.bitmaps = {k: v for k, v in self.bitmaps.items() if k in shown}
+
+        self.updateVirtualSize()
+        self.commit()
+        self.Refresh()
+
     def OnLeftUp(self, event):
         if self.pan:
             self.endPan()
@@ -936,9 +1107,11 @@ class BeatBoardView(wx.ScrolledWindow):
             self.ReleaseMouse()
 
         self.endDrag()
+        self.endResize()
 
     def OnCaptureLost(self, event):
         self.endDrag()
+        self.endResize()
         self.pan = None
         self.updateCursor()
 
@@ -1071,11 +1244,21 @@ class BeatBoardView(wx.ScrolledWindow):
         else:
             add(menu, _("Add picture..."), lambda: self.choosePicture(beat))
 
+        if beat.width:
+            add(menu, _("Reset size"), lambda: self.setSize(beat, None))
+
         menu.AppendSeparator()
         add(menu, _("Delete card"), lambda: self.deleteCard(beat))
 
         self.PopupMenu(menu, pos)
         menu.Destroy()
+
+    # resize beat to w x h, or back to its default size if w is None
+    def setSize(self, beat, w, h=None):
+        beat.setSize(w, h)
+        self.updateVirtualSize()
+        self.commit()
+        self.Refresh()
 
     def setColor(self, beat, color):
         beat.color = color

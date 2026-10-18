@@ -511,3 +511,101 @@ def test_paste(view, monkeypatch):
     got[0] = None
     assert view.paste(wx.Point(100, 100)) == []
     assert len(view.board.beats) == n + 1
+
+
+# drag beat's resizing corner by (dx, dy) unscaled pixels
+def resizeCard(view, beat, dx, dy, shift=False):
+    r = view.gripRect(beat)
+    x, y = view.CalcScrolledPosition(r.x + r.width // 2, r.y + r.height // 2)
+    assert view.gripHitTest(wx.Point(x, y)) is beat
+
+    view.OnLeftDown(mouse(wx.wxEVT_LEFT_DOWN, x, y))
+    e = drag(x + view.FromDIP(dx), y + view.FromDIP(dy))
+    e.SetShiftDown(shift)
+    view.OnMotion(e)
+    view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, x, y))
+
+
+def test_resizeCard(view):
+    beat = view.board.beats[0]
+
+    # a click on the corner leaves it the default size
+    r = view.gripRect(beat)
+    x, y = view.CalcScrolledPosition(r.x + 2, r.y + 2)
+    view.OnLeftDown(mouse(wx.wxEVT_LEFT_DOWN, x, y))
+    assert view.resize and not view.drag
+    view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, x, y))
+    assert beat.width is None
+    assert not ed(view).undoHistory.canUndo()
+
+    # the grip is drawn on the selected card
+    paint(view)
+
+    resizeCard(view, beat, 100, 40)
+    assert (beat.width, beat.height) == (
+        beatboard.CARD_WIDTH + 100,
+        beatboard.CARD_HEIGHT + 40,
+    )
+    assert (beat.x, beat.y) == (20, 20)
+    assert view.board.beats[-1] is beat
+    assert ed(view).sp.beatBoard.beats[-1].width == beatboard.CARD_WIDTH + 100
+
+    # not smaller than the minimum
+    resizeCard(view, beat, -1000, -1000)
+    assert (beat.width, beat.height) == (
+        beatboard.MIN_CARD_WIDTH,
+        beatboard.MIN_CARD_HEIGHT,
+    )
+
+    # with shift, it keeps its shape
+    resizeCard(view, beat, 80, 0, True)
+    assert (beat.width, beat.height) == (2 * 80, 2 * 50)
+
+    # each resize is an undo step
+    ed(view).cmd("undo")
+    view.reload()
+    assert view.board.beats[-1].width == beatboard.MIN_CARD_WIDTH
+
+    # and the size can be reset
+    beat = view.board.beats[-1]
+    view.setSize(beat, None)
+    assert view.cardSize(beat) == (beatboard.CARD_WIDTH, beatboard.CARD_HEIGHT)
+    assert ed(view).sp.beatBoard.beats[-1].width is None
+
+
+def test_resizePicture(view):
+    beat = view.addBitmap(wx.Bitmap(pictureImage(100, 50)))[0]
+    view.scrollTo(0, 0)
+    pad = beatboardview.CARD_PAD
+    assert view.cardSize(beat) == (100 + 2 * pad, 50 + 2 * pad)
+
+    # the picture grows with the card, keeping its shape
+    resizeCard(view, beat, 200, 100)
+    assert view.cardSize(beat) == (300 + 2 * pad, 150 + 2 * pad)
+    assert view.pictureSize(beat) == (300, 150)
+
+    # and fits a card of another shape, centered in it
+    view.setSize(beat, 300 + 2 * pad, 50 + 2 * pad)
+    assert view.pictureSize(beat) == (100, 50)
+
+    r = view.cardRect(beat)
+    view.scrollTo(r.x - 10, r.y - 10)
+    img = paint(view)
+    middle = view.CalcScrolledPosition(r.x + r.width // 2, r.y + r.height // 2)
+    color = pixel(img, *middle)
+    assert all(abs(a - b) < 8 for a, b in zip(color, (200, 30, 60)))
+    left = view.CalcScrolledPosition(r.x + view.FromDIP(pad + 20), 0)[0]
+    assert pixel(img, left, middle[1]) != color
+
+    # and shrinks with it, leaving room for the caption
+    beat.text = "Caption"
+    view.setSize(beat, 80, 60)
+    area = view.pictureArea(beat)
+    assert area == (80 - 2 * pad, 60 - 2 * pad - beatboardview.CAPTION_HEIGHT)
+    assert view.pictureSize(beat) == (area[1] * 2, area[1])
+
+    # only the bitmaps of the sizes shown are kept
+    paint(view)
+    resizeCard(view, beat, 40, 40)
+    shown = tuple(view.FromDIP(n) for n in view.pictureSize(beat))
+    assert all(k[1:] == shown for k in view.bitmaps)

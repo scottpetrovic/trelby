@@ -1,7 +1,8 @@
 # the beat board: index cards ("beats") laid out freely on a canvas, for
 # planning a story before or while writing it. a card is just text in a
-# place on the board, with a color, and maybe a picture. the board is kept
-# apart from the script's scenes and outline.
+# place on the board, with a color, maybe a picture, and a size if it has
+# been resized. the board is kept apart from the script's scenes and
+# outline.
 
 import base64
 import binascii
@@ -15,6 +16,11 @@ from trelby.screenplay.datatypes import isValidColor
 # size of a card on the board, in the board's units (unscaled pixels)
 CARD_WIDTH = 200
 CARD_HEIGHT = 120
+
+# the sizes a card can be resized to, in the same units
+MIN_CARD_WIDTH = 80
+MIN_CARD_HEIGHT = 50
+MAX_CARD_SIZE = 4000
 
 # space kept between a card and the edge of the window when scrolling to
 # it
@@ -44,6 +50,12 @@ class Beat:
         # the card's color ("rrggbb"), or None for the default
         self.color = None
 
+        # the card's size, if it has been resized, otherwise None for both,
+        # when it's the default size for its contents (see
+        # ui/beatboardview.BeatBoardView.cardSize)
+        self.width = None
+        self.height = None
+
         # the card's picture, the contents of a PNG or JPEG file (bytes),
         # or None. saved in the file, so the script doesn't depend on
         # where the picture came from.
@@ -62,6 +74,14 @@ class Beat:
 
         return ""
 
+    # resize the card to w x h, or back to its default size if w is None
+    def setSize(self, w, h=None):
+        if w is None:
+            self.width = self.height = None
+        else:
+            self.width = util.clamp(w, MIN_CARD_WIDTH, MAX_CARD_SIZE)
+            self.height = util.clamp(h, MIN_CARD_HEIGHT, MAX_CARD_SIZE)
+
     def save(self, prefix):
         s = "%s/X:%d\n%s/Y:%d\n" % (prefix, self.x, prefix, self.y)
 
@@ -70,6 +90,14 @@ class Beat:
 
         if self.color:
             s += "%s/Color:%s\n" % (prefix, self.color)
+
+        if self.width:
+            s += "%s/Width:%d\n%s/Height:%d\n" % (
+                prefix,
+                self.width,
+                prefix,
+                self.height,
+            )
 
         if self.image:
             data = base64.b64encode(self.image).decode("ascii")
@@ -89,6 +117,16 @@ class Beat:
 
         color = vals.pop(prefix + "/Color", "")
         self.color = color.lower() if isValidColor(color) else None
+
+        self.width = self.height = None
+        w = vals.pop(prefix + "/Width", "")
+        h = vals.pop(prefix + "/Height", "")
+
+        if w and h:
+            self.setSize(
+                util.str2int(w, CARD_WIDTH),
+                util.str2int(h, CARD_HEIGHT),
+            )
 
         self.image = decodeImage(vals.pop(prefix + "/Image", ""))
 

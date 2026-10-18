@@ -150,3 +150,40 @@ def test_imageScriptRoundTrip():
     assert ed.setBeatBoard(board2)
     ed.cmd("undo")
     assert ed.sp.beatBoard.beats[0].image == board.beats[0].image
+
+
+def test_size():
+    b = beat("Resized", 10, 10)
+    b.setSize(300, 90)
+
+    board = beatboard.BeatBoard()
+    board.beats = [b, beat("Default size")]
+
+    s = board.save()
+    assert "Beat/1/Width:300\nBeat/1/Height:90\n" in s
+    assert "Beat/2/Width" not in s
+
+    board2 = beatboard.BeatBoard()
+    board2.load(s)
+    assert (board2.beats[0].width, board2.beats[0].height) == (300, 90)
+    assert (board2.beats[1].width, board2.beats[1].height) == (None, None)
+    assert board2.save() == s
+
+    # kept within the limits
+    b.setSize(1, 10**6)
+    assert (b.width, b.height) == (
+        beatboard.MIN_CARD_WIDTH,
+        beatboard.MAX_CARD_SIZE,
+    )
+
+    b.setSize(None)
+    assert (b.width, b.height) == (None, None)
+
+    # a size needs both, and bad values are clamped
+    board2.load("Beats:2\nBeat/1/Width:500\nBeat/2/Width:x\nBeat/2/Height:-4\n")
+    assert board2.beats[0].width is None
+    assert not board2.beats[0].extra
+    assert (board2.beats[1].width, board2.beats[1].height) == (
+        beatboard.CARD_WIDTH,
+        beatboard.MIN_CARD_HEIGHT,
+    )
