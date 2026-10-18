@@ -140,6 +140,17 @@ def testProductionMenu():
     m = {it.label: it for it in bar}["Production"]
     names = [it.name for it in m.items if it is not menus.SEP]
 
+    assert [it.label for it in bar] == [
+        "File",
+        "Edit",
+        "Script",
+        "View",
+        "Tools",
+        "Reports",
+        "Production",
+        "Language",
+        "Help",
+    ]
     assert len(set(mnemonics(bar))) == len(bar)
     assert len(set(mnemonics(m.items))) == len(names)
 

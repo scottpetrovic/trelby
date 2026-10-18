@@ -966,11 +966,11 @@ def makeTable():
     menus = [
         fileMenu,
         editMenu,
-        viewMenu,
         scriptMenu,
-        productionMenu,
-        reportsMenu,
+        viewMenu,
         toolsMenu,
+        reportsMenu,
+        productionMenu,
         Menu(_("Language"), "L", "language"),
         helpMenu,
     ]
