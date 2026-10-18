@@ -1143,6 +1143,7 @@ SCRIPT_ONLY = {
 ON_BOARD = {
     "Paste": "paste",
     "PasteSystemCb": "paste",
+    "SelectAll": "selectAll",
 }
 
 

@@ -300,7 +300,7 @@ def test_undo(view):
     beat = view.board.beats[1]
     old = view.board.save()
 
-    view.setColor(beat, "b8d4ff")
+    view.setColor([beat], "b8d4ff")
     assert ed(view).sp.beatBoard.beats[1].color == "b8d4ff"
 
     view.deleteCard(view.board.beats[0])
@@ -772,3 +772,157 @@ def test_deleteButton(view):
     view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, x - 40, y + 30))
     assert view.selected is view.board.beats[0]
     assert len(view.board.beats) == n
+
+
+# the middle of beat's card, in the window's coordinates
+def middle(view, beat):
+    r = view.cardRect(beat)
+
+    return view.CalcScrolledPosition(r.x + r.width // 2, r.y + r.height // 2)
+
+
+def click(view, x, y, ctrl=False, shift=False):
+    e = mouse(wx.wxEVT_LEFT_DOWN, x, y)
+    e.SetControlDown(ctrl)
+    e.SetShiftDown(shift)
+    view.OnLeftDown(e)
+    view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, x, y))
+
+
+def test_ctrlClickSelects(view):
+    opening, catalyst, midpoint = view.board.beats[:3]
+
+    click(view, *middle(view, opening))
+    click(view, *middle(view, catalyst), ctrl=True)
+    click(view, *middle(view, midpoint), shift=True)
+    assert view.selection == [opening, catalyst, midpoint]
+    assert view.selected is midpoint
+
+    # again, it's unselected
+    click(view, *middle(view, catalyst), ctrl=True)
+    assert view.selection == [opening, midpoint]
+
+    # a click on one of them without moving it selects it alone
+    click(view, *middle(view, midpoint))
+    assert view.selection == [midpoint]
+
+    # and on the empty board, nothing
+    w, h = view.GetClientSize()
+    click(view, 10, h - 10)
+    assert view.selection == []
+    assert not ed(view).undoHistory.canUndo()
+
+
+def test_boxSelect(view):
+    opening, catalyst, midpoint, empty = view.board.beats
+    w, h = view.GetClientSize()
+
+    # a box from below the cards up to the middle of the first two
+    x0, y0 = 5, h - 10
+    x1, y1 = middle(view, catalyst)
+
+    view.OnLeftDown(mouse(wx.wxEVT_LEFT_DOWN, x0, y0))
+    view.OnMotion(drag(x1, y1))
+    assert view.band
+    assert view.selection == [opening, catalyst]
+
+    # it's drawn
+    img = paint(view)
+    view.band, band = None, view.band
+    without = paint(view)
+    view.band = band
+    assert pixel(img, x0 + 20, y0 - 20) != pixel(without, x0 + 20, y0 - 20)
+
+    view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, x1, y1))
+    assert not view.band
+    assert not view.HasCapture()
+    assert view.selection == [opening, catalyst]
+
+    # with ctrl held down, it adds to the selection
+    e = mouse(wx.wxEVT_LEFT_DOWN, w - 5, h - 5)
+    e.SetControlDown(True)
+    view.OnLeftDown(e)
+    view.OnMotion(drag(*middle(view, empty)))
+    view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, *middle(view, empty)))
+    assert view.selection == [opening, catalyst, empty]
+
+    # selecting is no change to the script
+    assert not ed(view).undoHistory.canUndo()
+
+
+def test_moveSeveral(view):
+    opening, catalyst, midpoint = view.board.beats[:3]
+    view.setSelection([opening, midpoint])
+    before = [(b.x, b.y) for b in view.board.beats]
+
+    x, y = middle(view, midpoint)
+    view.OnLeftDown(mouse(wx.wxEVT_LEFT_DOWN, x, y))
+    assert view.selection == [opening, midpoint]
+
+    view.OnMotion(drag(x + view.px(40), y + view.px(100)))
+    view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, x + view.px(40), y + view.px(100)))
+
+    assert (opening.x, opening.y) == (before[0][0] + 40, before[0][1] + 100)
+    assert (midpoint.x, midpoint.y) == (before[2][0] + 40, before[2][1] + 100)
+    assert (catalyst.x, catalyst.y) == before[1]
+
+    # they come to the front, in their order, and stay selected
+    assert view.board.beats[-2:] == [opening, midpoint]
+    assert view.selection == [opening, midpoint]
+
+    # as one undo step
+    assert view.board.save() == ed(view).sp.beatBoard.save()
+    ed(view).cmd("undo")
+    view.reload()
+    assert [(b.x, b.y) for b in view.board.beats] == before
+
+
+def test_moveSeveralStaysOnBoard(view):
+    opening, catalyst = view.board.beats[:2]
+    view.setSelection([opening, catalyst])
+
+    # dragged far up and left, they stop when the first one reaches the
+    # edge, keeping their distance
+    x, y = middle(view, catalyst)
+    view.OnLeftDown(mouse(wx.wxEVT_LEFT_DOWN, x, y))
+    view.OnMotion(drag(x - view.px(500), y - view.px(500)))
+    view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, x - view.px(500), y - view.px(500)))
+
+    assert (opening.x, opening.y) == (0, 0)
+    assert (catalyst.x, catalyst.y) == (280, 0)
+
+
+def test_deleteSeveral(view):
+    opening, catalyst, midpoint, empty = view.board.beats
+    view.setSelection([catalyst, empty])
+
+    view.OnKeyDown(key(wx.wxEVT_KEY_DOWN, wx.WXK_DELETE))
+    assert view.board.beats == [opening, midpoint]
+    assert view.selection == []
+    assert len(ed(view).sp.beatBoard.beats) == 2
+
+    # as one undo step
+    ed(view).cmd("undo")
+    view.reload()
+    assert len(view.board.beats) == 4
+
+
+def test_selectAllAndEscape(view):
+    e = key(wx.wxEVT_KEY_DOWN, ord("A"))
+    e.SetControlDown(True)
+    view.OnKeyDown(e)
+    assert view.selection == view.board.beats
+
+    view.OnKeyDown(key(wx.wxEVT_KEY_DOWN, wx.WXK_ESCAPE))
+    assert view.selection == []
+
+
+def test_colorSeveral(view):
+    opening, catalyst = view.board.beats[:2]
+    view.setColor([opening, catalyst], "b8d4ff")
+
+    assert [b.color for b in ed(view).sp.beatBoard.beats[:2]] == ["b8d4ff"] * 2
+
+    ed(view).cmd("undo")
+    view.reload()
+    assert view.board.beats[1].color == "ffd1a3"

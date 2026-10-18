@@ -19,6 +19,12 @@
 #
 # each card has an "x" in its top right corner that deletes it.
 #
+# several cards can be selected, by ctrl- or shift-clicking them or by
+# dragging a box around them on the empty board (with ctrl or shift held
+# down, adding to the selection), or all of them with ctrl+A. dragging one
+# of them moves them all, and Delete deletes them all, each as one undo
+# step.
+#
 # the board has its own zoom level (self.zoom, GlobalData.boardZoom), which
 # scales the cards, their text and the grid, and the cards' text is in
 # Courier Prime, like the script's.
@@ -340,13 +346,23 @@ class BeatBoardView(wx.ScrolledWindow):
         # module)
         self.board = beatboard.BeatBoard()
 
-        # the selected card, or None
-        self.selected = None
+        # the selected cards, the last one selected last (see selected)
+        self.selection = []
 
-        # while a card is being dragged: (card, x, y, start x, start y),
-        # where (x, y) is where on the card it was grabbed, and the start
-        # is where the card was. otherwise None.
+        # while cards are being dragged: (card, x, y, starts, click),
+        # where card is the one grabbed, (x, y) is where on it, starts is
+        # [(card, x, y)] for each card being moved, where it was, and click
+        # is a card to select alone if the mouse is let go without moving
+        # it (one of several selected ones that was clicked), or None.
+        # otherwise None.
         self.drag = None
+
+        # while a box is being dragged out on the board to select the cards
+        # in it: (x, y, x, y, cards), the corner it started at and the
+        # mouse position, in the window's unscrolled coordinates, and the
+        # cards selected before it (when it adds to them, otherwise []).
+        # otherwise None.
+        self.band = None
 
         # while a card is being resized: (card, x, y, width, height, its
         # Beat.width, its Beat.height), where (x, y) is where the mouse was
@@ -431,9 +447,10 @@ class BeatBoardView(wx.ScrolledWindow):
             self.ReleaseMouse()
 
         self.drag = None
+        self.band = None
         self.resize = None
         self.pan = None
-        self.selected = None
+        self.selection = []
         self.hover = None
         self.board = copy.deepcopy(sp.beatBoard)
 
@@ -888,7 +905,7 @@ class BeatBoardView(wx.ScrolledWindow):
             self.SetCursor(wx.NullCursor)
 
     def startPan(self, event):
-        if self.drag or self.resize or self.pan:
+        if self.drag or self.band or self.resize or self.pan:
             return
 
         pos = event.GetPosition()
@@ -909,10 +926,29 @@ class BeatBoardView(wx.ScrolledWindow):
         if self.HasCapture():
             self.ReleaseMouse()
 
-    # select beat, or nothing if None
+    # the card selected last, or None if none is
+    @property
+    def selected(self):
+        return self.selection[-1] if self.selection else None
+
+    # select beat alone, or nothing if None
     def select(self, beat):
-        self.selected = beat
+        self.setSelection([beat] if beat else [])
+
+    # select the cards in the list 'beats', in that order
+    def setSelection(self, beats):
+        self.selection = list(beats)
         self.Refresh()
+
+    # select or unselect beat, keeping the others selected
+    def toggleSelected(self, beat):
+        if beat in self.selection:
+            self.setSelection([b for b in self.selection if b is not beat])
+        else:
+            self.setSelection(self.selection + [beat])
+
+    def selectAll(self):
+        self.setSelection(self.board.beats)
 
     # edit beat's text on the board, in a text control on top of the card.
     # a new card is deleted if it's left empty.
@@ -969,7 +1005,7 @@ class BeatBoardView(wx.ScrolledWindow):
 
         if isNew and not (beat.text.strip() or beat.image):
             self.board.beats.remove(beat)
-            self.selected = None
+            self.selection = [b for b in self.selection if b is not beat]
             self.updateVirtualSize()
 
         self.commit()
@@ -997,11 +1033,22 @@ class BeatBoardView(wx.ScrolledWindow):
         wx.CallAfter(finish)
 
     def deleteCard(self, beat):
-        self.board.beats.remove(beat)
+        self.deleteCards([beat])
 
-        if self.selected is beat:
-            self.selected = None
+    # delete the cards in the list 'beats', as one undo step
+    def deleteCards(self, beats):
+        if not beats:
+            return
 
+        beats = list(beats)
+        self.board.beats = [b for b in self.board.beats if b not in beats]
+        self.selection = [b for b in self.selection if b not in beats]
+
+        if self.hover in beats:
+            self.hover = None
+            self.UnsetToolTip()
+
+        self.updateVirtualSize()
         self.commit()
         self.Refresh()
 
@@ -1026,6 +1073,30 @@ class BeatBoardView(wx.ScrolledWindow):
         for beat in self.board.beats:
             self.drawCard(dc, beat)
 
+        self.drawBand(dc)
+
+    # draw the box being dragged out to select cards, if one is, in a tint
+    # of the accent color
+    def drawBand(self, dc):
+        if not self.band:
+            return
+
+        accent = self.getColors()[5]
+        tint = wx.Colour(accent.Red(), accent.Green(), accent.Blue(), 40)
+
+        gc = wx.GraphicsContext.Create(dc)
+        gc.SetPen(wx.Pen(accent, max(1, self.FromDIP(1))))
+        gc.SetBrush(wx.Brush(tint))
+
+        r = self.bandRect()
+        gc.DrawRectangle(r.x, r.y, r.width, r.height)
+
+    # the box being dragged out to select cards, in the window's unscrolled
+    # coordinates
+    def bandRect(self):
+        x0, y0, x1, y1 = self.band[:4]
+
+        return wx.Rect(min(x0, x1), min(y0, y1), abs(x1 - x0), abs(y1 - y0))
 
     # draw the button that deletes beat, an x that gets a circle behind it
     # when the mouse is over it
@@ -1134,7 +1205,7 @@ class BeatBoardView(wx.ScrolledWindow):
         dc.SetBrush(wx.Brush(shadow))
         dc.DrawRoundedRectangle(r.x + px(2), r.y + px(3), r.width, r.height, radius)
 
-        if beat is self.selected:
+        if beat in self.selection:
             dc.SetPen(wx.Pen(accent, dip(2)))
         else:
             dc.SetPen(wx.Pen(border))
@@ -1149,7 +1220,7 @@ class BeatBoardView(wx.ScrolledWindow):
 
         self.drawClose(dc, beat, cardBg, cardFg)
 
-        if beat is self.selected:
+        if beat in self.selection:
             self.drawGrip(dc, beat, theming.blendColors(cardFg, cardBg, 0.5))
 
     # draw beat's text or picture in 'r', the inside of its card
@@ -1267,20 +1338,48 @@ class BeatBoardView(wx.ScrolledWindow):
             return
 
         beat = self.hitTest(pos)
-        self.select(beat)
+        adding = event.ControlDown() or event.ShiftDown()
 
+        # on the empty board, start a box selecting the cards in it
         if not beat:
+            x, y = self.CalcUnscrolledPosition(pos.x, pos.y)
+            self.band = (x, y, x, y, self.selection if adding else [])
+            self.setSelection(self.band[4])
+            self.CaptureMouse()
+
             return
 
         x, y = self.toBoard(pos)
 
         if self.gripHitTest(pos) is beat:
+            if beat not in self.selection:
+                self.select(beat)
+
             w, h = self.cardSize(beat)
             self.resize = (beat, x, y, w, h, beat.width, beat.height)
             self.updateCursor()
-        else:
-            self.drag = (beat, x - beat.x, y - beat.y, beat.x, beat.y)
+            self.CaptureMouse()
 
+            return
+
+        click = None
+
+        if adding:
+            self.toggleSelected(beat)
+
+            # one that was unselected isn't moved
+            if beat not in self.selection:
+                return
+        elif beat in self.selection:
+            # the others stay selected, to be moved along with it, unless
+            # it's let go without moving it
+            if len(self.selection) > 1:
+                click = beat
+        else:
+            self.select(beat)
+
+        starts = [(b, b.x, b.y) for b in self.selection]
+        self.drag = (beat, x - beat.x, y - beat.y, starts, click)
         self.CaptureMouse()
 
     def OnMotion(self, event):
@@ -1297,6 +1396,12 @@ class BeatBoardView(wx.ScrolledWindow):
 
             return
 
+        if self.band:
+            if event.Dragging() and event.LeftIsDown():
+                self.bandTo(event.GetPosition())
+
+            return
+
         if not self.drag:
             over = bool(self.gripHitTest(event.GetPosition()))
 
@@ -1309,33 +1414,72 @@ class BeatBoardView(wx.ScrolledWindow):
         if not (self.drag and event.Dragging() and event.LeftIsDown()):
             return
 
-        beat, dx, dy, _x, _y = self.drag
+        beat, grabX, grabY, starts = self.drag[:4]
         x, y = self.toBoard(event.GetPosition())
-        beat.x = min(max(0, x - dx), beatboard.MAX_COORD)
-        beat.y = min(max(0, y - dy), beatboard.MAX_COORD)
+        xs = [sx for _b, sx, _sy in starts]
+        ys = [sy for _b, _sx, sy in starts]
+        startX, startY = next((sx, sy) for b, sx, sy in starts if b is beat)
+
+        # how far they're moved, keeping them all on the board
+        dx = min(max(x - grabX - startX, -min(xs)), beatboard.MAX_COORD - max(xs))
+        dy = min(max(y - grabY - startY, -min(ys)), beatboard.MAX_COORD - max(ys))
+
+        for b, sx, sy in starts:
+            b.x = sx + dx
+            b.y = sy + dy
 
         self.Refresh()
 
     def OnLeaveWindow(self, event):
         event.Skip()
 
-        if not (self.drag or self.resize or self.pan):
+        if not (self.drag or self.band or self.resize or self.pan):
             self.setHover(None)
 
-    # a card that was moved comes to the front
+    # cards that were moved come to the front, in the order they were in,
+    # as one undo step. a card clicked among several selected ones without
+    # moving it is selected alone.
     def endDrag(self):
         if not self.drag:
             return
 
-        beat, _dx, _dy, x, y = self.drag
+        _beat, _x, _y, starts, click = self.drag
         self.drag = None
 
-        if (beat.x, beat.y) != (x, y):
-            self.board.beats.remove(beat)
-            self.board.beats.append(beat)
+        if any((b.x, b.y) != (x, y) for b, x, y in starts):
+            moved = [b for b, _x, _y in starts]
+            beats = self.board.beats
+            self.board.beats = [b for b in beats if b not in moved] + [
+                b for b in beats if b in moved
+            ]
             self.updateVirtualSize()
             self.commit()
             self.Refresh()
+        elif click:
+            self.select(click)
+
+    # the box selecting cards was dragged to the mouse position pos: select
+    # the cards it touches, after the ones selected before it
+    def bandTo(self, pos):
+        x0, y0, _x, _y, before = self.band
+        x, y = self.CalcUnscrolledPosition(pos.x, pos.y)
+        self.band = (x0, y0, x, y, before)
+
+        r = self.bandRect()
+        inside = [
+            b
+            for b in self.board.beats
+            if (b not in before) and r.Intersects(self.cardRect(b))
+        ]
+
+        self.setSelection(before + inside)
+
+    def endBand(self):
+        if not self.band:
+            return
+
+        self.band = None
+        self.Refresh()
 
     # resize the card being resized for the mouse event 'event', keeping
     # its shape if shift is held down
@@ -1403,10 +1547,12 @@ class BeatBoardView(wx.ScrolledWindow):
             self.ReleaseMouse()
 
         self.endDrag()
+        self.endBand()
         self.endResize()
 
     def OnCaptureLost(self, event):
         self.endDrag()
+        self.endBand()
         self.endResize()
         self.pan = None
         self.updateCursor()
@@ -1480,10 +1626,14 @@ class BeatBoardView(wx.ScrolledWindow):
             if not (self.spaceDown or event.ControlDown()):
                 self.spaceDown = True
                 self.updateCursor()
-        elif self.selected and (kc in (wx.WXK_DELETE, wx.WXK_BACK)):
-            self.deleteCard(self.selected)
+        elif self.selection and (kc in (wx.WXK_DELETE, wx.WXK_BACK)):
+            self.deleteCards(self.selection)
         elif self.selected and (kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)):
             self.startEdit(self.selected)
+        elif event.ControlDown() and (kc == ord("A")):
+            self.selectAll()
+        elif self.selection and (kc == wx.WXK_ESCAPE):
+            self.select(None)
         else:
             event.Skip()
 
@@ -1515,7 +1665,12 @@ class BeatBoardView(wx.ScrolledWindow):
             pos = self.ScreenToClient(pos)
             beat = self.hitTest(pos)
 
-        self.select(beat)
+        # a card among several selected ones keeps them selected, and the
+        # color and deleting are for all of them
+        if beat not in self.selection:
+            self.select(beat)
+
+        cards = list(self.selection) if beat else []
         menu = wx.Menu()
 
         def add(m, label, handler, enable=True):
@@ -1540,7 +1695,7 @@ class BeatBoardView(wx.ScrolledWindow):
         add(menu, _("Edit text"), lambda: self.startEdit(beat))
 
         colorMenu = wx.Menu()
-        add(colorMenu, _("No color"), lambda: self.setColor(beat, None))
+        add(colorMenu, _("No color"), lambda: self.setColor(cards, None))
 
         for name, color in getSceneColors():
             item = wx.MenuItem(colorMenu, -1, name)
@@ -1548,7 +1703,7 @@ class BeatBoardView(wx.ScrolledWindow):
             colorMenu.Append(item)
             self.Bind(
                 wx.EVT_MENU,
-                lambda e, c=color: self.setColor(beat, c),
+                lambda e, c=color: self.setColor(cards, c),
                 id=item.GetId(),
             )
 
@@ -1564,7 +1719,13 @@ class BeatBoardView(wx.ScrolledWindow):
             add(menu, _("Reset size"), lambda: self.setSize(beat, None))
 
         menu.AppendSeparator()
-        add(menu, _("Delete card"), lambda: self.deleteCard(beat))
+
+        if len(cards) > 1:
+            label = _("Delete %d cards") % len(cards)
+        else:
+            label = _("Delete card")
+
+        add(menu, label, lambda: self.deleteCards(cards))
         self.addScriptItem(menu)
 
         self.PopupMenu(menu, pos)
@@ -1585,7 +1746,10 @@ class BeatBoardView(wx.ScrolledWindow):
         self.commit()
         self.Refresh()
 
-    def setColor(self, beat, color):
-        beat.color = color
+    # give the cards in the list 'beats' the color 'color', as one undo step
+    def setColor(self, beats, color):
+        for beat in beats:
+            beat.color = color
+
         self.commit()
         self.Refresh()
