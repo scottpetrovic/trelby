@@ -25,8 +25,9 @@ class PDFFontsPanel(wx.Panel):
             widgets.WrappedText(
                 self,
                 _(
-                    "Leave all the fields empty to use the default PDF Courier "
-                    "fonts. This is highly recommended.\n\n"
+                    "Leave all the fields empty to use Courier Prime, the font "
+                    "that comes with Trelby and is also the default screen "
+                    "font. This is highly recommended.\n\n"
                     "Otherwise, fill in the font filename to use the specified "
                     "TrueType font. See the manual for the full details."
                 ),

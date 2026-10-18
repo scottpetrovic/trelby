@@ -4,7 +4,7 @@ import trelby.pdf.pml as pml
 import trelby.screenplay as screenplay
 import trelby.ui.gutil as gutil
 import trelby.util as util
-from trelby.dialogs.titlespreview import BASELINE, FACE_NAMES
+from trelby.dialogs.titlespreview import BASELINE, faceName
 
 # gap around the page, in pixels
 MARGIN = 12
@@ -122,7 +122,7 @@ class HeadersPreview(wx.Window):
         gc.SetFont(
             gc.CreateFont(
                 fontPx,
-                FACE_NAMES[pml.COURIER],
+                faceName(pml.COURIER),
                 wx.FONTFLAG_DEFAULT,
                 wx.Colour(150, 150, 150),
             )
@@ -162,7 +162,7 @@ class HeadersPreview(wx.Window):
         if hs.isUnderlined:
             flags |= wx.FONTFLAG_UNDERLINED
 
-        gc.SetFont(gc.CreateFont(fontPx, FACE_NAMES[pml.COURIER], flags, wx.BLACK))
+        gc.SetFont(gc.CreateFont(fontPx, faceName(pml.COURIER), flags, wx.BLACK))
 
         text = hs.getText(self.ctrl.pvars)
         x, y = hs.getPos(self.cfg)

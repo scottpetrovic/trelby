@@ -1,6 +1,7 @@
 import wx
 
 import trelby.misc as misc
+import trelby.pdf.fontinfo as fontinfo
 import trelby.ui.theming as theming
 import trelby.util as util
 
@@ -20,6 +21,31 @@ def init(doWX=True):
         # we're measuring...
         permDc = wx.MemoryDC()
         permDc.SelectObject(wx.Bitmap(512, 32))
+
+        # on Windows, graphics contexts (GDI+) only see the fonts added
+        # before the first one is created
+        loadBundledFonts()
+
+
+# whether the bundled fonts could be loaded, or None before the first
+# loadBundledFonts call
+_bundledFontsLoaded = None
+
+
+# make the bundled fonts (fontinfo.BUNDLED_FONTS) usable in this process,
+# once. returns True if they all loaded, so fonts can use BUNDLED_FACE.
+def loadBundledFonts():
+    global _bundledFontsLoaded
+
+    if _bundledFontsLoaded is None:
+        _bundledFontsLoaded = all(
+            [
+                wx.Font.AddPrivateFont(fontinfo.bundledFontPath(fileName))
+                for name, fileName in fontinfo.BUNDLED_FONTS.values()
+            ]
+        )
+
+    return _bundledFontsLoaded
 
 
 # return True if given font is a fixed-width one.

@@ -1,16 +1,26 @@
 import wx
 
+import trelby.pdf.fontinfo as fontinfo
 import trelby.pdf.pml as pml
 import trelby.ui.gutil as gutil
 import trelby.util as util
 from trelby.ui.textedit import TextEdit
 
-# screen fonts that match the metrics of the PDF fonts
+# screen fonts that match the metrics of the PDF fonts. Courier is the
+# bundled font the PDFs use (see faceName).
 FACE_NAMES = {
-    pml.COURIER: "Courier New",
+    pml.COURIER: fontinfo.BUNDLED_FACE,
     pml.HELVETICA: "Arial",
     pml.TIMES_ROMAN: "Times New Roman",
 }
+
+
+# the screen font face for the given pml font family
+def faceName(font):
+    if (font == pml.COURIER) and not gutil.loadBundledFonts():
+        return "Courier New"
+
+    return FACE_NAMES[font]
 
 # distance from the top of the text to its baseline in the PDF output, as
 # a fraction of the font size (see pdf.PDFTextOp)
@@ -428,7 +438,7 @@ class TitlesPreview(wx.Window):
         sizeMM = util.getTextHeight(ts.size)
         fontPx = max(1.0, sizeMM * scale)
 
-        gc.SetFont(gc.CreateFont(fontPx, FACE_NAMES[ts.font], flags, wx.BLACK))
+        gc.SetFont(gc.CreateFont(fontPx, faceName(ts.font), flags, wx.BLACK))
 
         # (text, x, y) of each line, and the box around them all
         lines = []

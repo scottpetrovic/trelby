@@ -6,6 +6,7 @@ from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
 
+import trelby.pdf.fontinfo as fontinfo
 import trelby.pdf.pml as pml
 import trelby.pdf.pml as util
 import trelby.textfmt as textfmt
@@ -29,11 +30,14 @@ def generate(doc: "pml.Document") -> bytes:
 
 
 # return the characters in doc's text that its fonts can't show, sorted
-# and without duplicates, as a string. the standard PDF fonts (used when
-# no TrueType font is set for a style) only have the WinAnsi (cp1252)
-# characters. reportlab draws others with a fallback font: Greek letters
-# come out in the proportional Symbol font, most others as black boxes.
+# and without duplicates, as a string. the standard PDF fonts (Helvetica
+# and Times) only have the WinAnsi (cp1252) characters, and reportlab
+# draws others with a fallback font: Greek letters come out in the
+# proportional Symbol font, most others as black boxes. TrueType fonts
+# (Courier Prime, or the script's own) show the ones they don't have as
+# boxes.
 def unsupportedChars(doc: "pml.Document") -> str:
+    pe = PDFExporter(doc)
     chars = set()
 
     for page in doc.pages:
@@ -50,11 +54,8 @@ def unsupportedChars(doc: "pml.Document") -> str:
                 runs = [(0, len(op.text), op.flags)]
 
             for a, b, flags in runs:
-                if (flags & 15) in doc.fonts:
-                    continue
-
                 for ch in op.text[a:b]:
-                    if isWinAnsi(ch):
+                    if pe.hasChar(flags, ch):
                         continue
 
                     # double-width text uses CJK_FONT for these
@@ -221,7 +222,6 @@ class PDFTextOp(PDFDrawOp):
                 flags |= pml.UNDERLINED
 
             font = pe.getFontForFlags(flags)
-            hasCustomFont = (flags & 15) in pe.doc.fonts
 
             for i in range(a, b):
                 ch = pmlOp.text[i]
@@ -231,7 +231,7 @@ class PDFTextOp(PDFDrawOp):
 
                 chFont = font
 
-                if not hasCustomFont and not isWinAnsi(ch) and isInCJKFont(ch):
+                if not pe.hasChar(flags, ch) and isInCJKFont(ch):
                     chFont = pe.getCJKFont()
 
                 w = canvas.stringWidth(ch, chFont, size)
@@ -469,9 +469,22 @@ class PDFExporter:
         customFontInfo = self.doc.fonts.get(flags & 15)
 
         # user fonts can only be set for the Courier styles (keys 0 - 3),
-        # so Helvetica and Times text always uses the standard fonts
+        # which otherwise use the bundled Courier Prime. Helvetica and
+        # Times text always uses the standard fonts.
         if not customFontInfo:
-            return fontInfo.name
+            bundled = fontinfo.BUNDLED_FONTS.get(flags & 15)
+
+            if not bundled:
+                return fontInfo.name
+
+            name, fileName = bundled
+
+            if name not in pdfmetrics.getRegisteredFontNames():
+                pdfmetrics.registerFont(
+                    TTFont(name, fontinfo.bundledFontPath(fileName))
+                )
+
+            return name
 
         # reportlab's font registry is global to the process, so a name is
         # only registered (and its file read) once; pointing the same name
@@ -488,6 +501,15 @@ class PDFExporter:
             )
 
         return customFontInfo.name
+
+    # return True if the font for the given flags has the character ch
+    def hasChar(self, flags: int, ch: str) -> bool:
+        font = pdfmetrics.getFont(self.getFontForFlags(flags))
+
+        if isinstance(font, TTFont):
+            return ord(ch) in font.face.charToGlyph
+
+        return isWinAnsi(ch)
 
     # get the name of CJK_FONT, registering it with reportlab if needed
     def getCJKFont(self) -> str:

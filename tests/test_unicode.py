@@ -1,3 +1,6 @@
+import os.path
+import re
+
 import wx
 
 import tests.u as u
@@ -222,11 +225,11 @@ def testPDFUnsupportedChars():
 
     chars = pdf.unsupportedChars(doc)
     # character names and scene headings are uppercased
-    for ch in "łŁČПЁТРΩμ":
+    for ch in "ПЁТРαγ":
         assert ch in chars, ch
 
-    # WinAnsi has these
-    for ch in "€óäß«»—ž":
+    # Courier Prime has WinAnsi, Latin Extended-A and a few Greek letters
+    for ch in "€óäß«»—žłŁČΩμ":
         assert ch not in chars, ch
 
     # renders without errors anyway
@@ -243,8 +246,16 @@ def testPDFCustomFont():
         pf.filename = u.fixtureFilePath("custom-font/Jost-400-Book.ttf")
 
     doc = render.generatePML(ed.sp)
+    chars = pdf.unsupportedChars(doc)
 
-    assert pdf.unsupportedChars(doc) == ""
+    # checked against the font's own characters: Jost has Cyrillic but no
+    # Greek
+    for ch in "ПЁТРłŁČ":
+        assert ch not in chars, ch
+
+    for ch in "αγ":
+        assert ch in chars, ch
+
     assert pdf.generate(doc)[:8] == b"%PDF-1.5"
 
 
@@ -253,13 +264,39 @@ def testPDFFormattedRuns():
     pg = pml.Page(doc)
     doc.add(pg)
 
-    # "ł" is bold, and only the bold font is a custom one
-    pg.add(pml.TextOp("ał", 10, 10, 12, fmt="\x00\x01"))
-    doc.addFont(pml.COURIER | pml.BOLD, pml.PDFFontInfo("Jost", "x.ttf"))
+    # "П" is bold, and only the bold font (Jost) has it
+    pg.add(pml.TextOp("aП", 10, 10, 12, fmt="\x00\x01"))
+    doc.addFont(
+        pml.COURIER | pml.BOLD,
+        pml.PDFFontInfo("Jost", u.fixtureFilePath("custom-font/Jost-400-Book.ttf")),
+    )
     assert pdf.unsupportedChars(doc) == ""
 
-    pg.add(pml.TextOp("łč", 10, 20, 12))
-    assert pdf.unsupportedChars(doc) == "čł"
+    pg.add(pml.TextOp("ПЁ", 10, 20, 12))
+    assert pdf.unsupportedChars(doc) == "ЁП"
+
+
+def testPDFUsesBundledFont():
+    ed = u.loadEditor("unicode.trelby")
+    ed.sp.paginate()
+    data = export.generatePDF(ed.sp)
+
+    # Courier text is in Courier Prime, embedded, not the standard Courier
+    assert b"CourierPrime-Regular" in data
+    assert not re.search(rb"/BaseFont\s*/Courier\b", data)
+
+    # a script's own fonts replace it
+    for pfi in ed.sp.cfg.getPDFFontIds():
+        pf = ed.sp.cfg.getPDFFont(pfi)
+        pf.pdfName = "Jost"
+        pf.filename = u.fixtureFilePath("custom-font/Jost-400-Book.ttf")
+
+    assert b"CourierPrime" not in export.generatePDF(ed.sp)
+
+
+def testBundledFontsExist():
+    for name, fileName in fontinfo.BUNDLED_FONTS.values():
+        assert os.path.isfile(fontinfo.bundledFontPath(fileName)), fileName
 
 
 def testTextWidth():

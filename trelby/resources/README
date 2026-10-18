@@ -2,3 +2,8 @@ The icons in this directory that are not custom drawn for this program
 come from the Faenza icon set, which can be found at
 http://gnome-look.org/content/show.php/Faenza?content=128143, and is
 available under GPL.
+
+fonts/ has Courier Prime, the screen and PDF font, from
+https://github.com/quoteunquoteapps/CourierPrime (as packaged in
+https://github.com/google/fonts), available under the SIL Open Font
+License 1.1 (fonts/OFL.txt).

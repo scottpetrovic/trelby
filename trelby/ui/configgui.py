@@ -5,6 +5,7 @@
 import wx
 
 import trelby.config as config
+import trelby.pdf.fontinfo as fontinfo
 import trelby.ui.gutil as gutil
 import trelby.screenplay as screenplay
 import trelby.ui.themes as themes
@@ -180,6 +181,8 @@ class ConfigGui:
         # bits of pml.TextOp.flags.
         self.fonts = []
 
+        haveBundled = gutil.loadBundledFonts()
+
         for fname in ["fontNormal", "fontBold", "fontItalic", "fontBoldItalic"]:
             fi = FontInfo()
 
@@ -192,6 +195,11 @@ class ConfigGui:
             if s:
                 nfi = wx.NativeFontInfo()
                 nfi.FromString(s)
+
+                # the default fonts are the bundled ones; if they didn't
+                # load, use the fonts that were the defaults before them
+                if not haveBundled and nfi.GetFaceName() == fontinfo.BUNDLED_FACE:
+                    nfi.SetFaceName(config.oldDefaultFace())
 
                 try:
                     fi.font = wx.Font(nfi)

@@ -1,4 +1,8 @@
+import os.path
+
 from reportlab.pdfbase import pdfmetrics
+
+import trelby
 
 # text flags (pml.TextOp.flags, re-exported by pml). don't change these
 # unless you know what you're doing.
@@ -2330,3 +2334,23 @@ for _style, _name in {
     TIMES_ROMAN | BOLD | ITALIC: "Times-BoldItalic",
 }.items():
     _fontMetrics[_style].pdfName = _name
+
+# the TrueType fonts that come with Trelby, in trelby/resources/fonts:
+# Courier Prime (SIL Open Font License, see OFL.txt there), whose
+# characters are as wide as Courier's. Courier text uses them, on the
+# screen (the default screen fonts) and in PDFs (unless the script sets
+# its own fonts on the PDF/Fonts page), so both look the same.
+BUNDLED_FACE = "Courier Prime"
+
+# key = style, value = (PostScript name, file name)
+BUNDLED_FONTS = {
+    COURIER: ("CourierPrime-Regular", "CourierPrime-Regular.ttf"),
+    COURIER | BOLD: ("CourierPrime-Bold", "CourierPrime-Bold.ttf"),
+    COURIER | ITALIC: ("CourierPrime-Italic", "CourierPrime-Italic.ttf"),
+    COURIER | BOLD | ITALIC: ("CourierPrime-BoldItalic", "CourierPrime-BoldItalic.ttf"),
+}
+
+
+# the full path of a file in trelby/resources/fonts
+def bundledFontPath(fileName):
+    return os.path.join(trelby.__path__[0], "resources", "fonts", fileName)

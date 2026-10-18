@@ -8,7 +8,7 @@ import trelby.ui.gutil as gutil
 import trelby.ui.widgets as widgets
 import trelby.util as util
 from trelby.dialogs.headerspreview import MARGIN, SAMPLE_LINES
-from trelby.dialogs.titlespreview import BASELINE, FACE_NAMES
+from trelby.dialogs.titlespreview import BASELINE, faceName
 
 
 class FooterDlg(wx.Dialog):
@@ -239,7 +239,7 @@ class FooterPreview(wx.Window):
         gc.SetFont(
             gc.CreateFont(
                 fontPx,
-                FACE_NAMES[pml.COURIER],
+                faceName(pml.COURIER),
                 wx.FONTFLAG_DEFAULT,
                 wx.Colour(150, 150, 150),
             )
@@ -256,7 +256,7 @@ class FooterPreview(wx.Window):
             y += sizeMM
 
         gc.SetFont(
-            gc.CreateFont(fontPx, FACE_NAMES[pml.COURIER], wx.FONTFLAG_DEFAULT, wx.BLACK)
+            gc.CreateFont(fontPx, faceName(pml.COURIER), wx.FONTFLAG_DEFAULT, wx.BLACK)
         )
 
         top = oy + headers.Footer.getY(cfg) * scale

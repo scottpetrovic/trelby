@@ -6,6 +6,7 @@ import os
 import trelby.commands as commands
 import trelby.misc as misc
 import trelby.mypickle as mypickle
+import trelby.pdf.fontinfo as fontinfo
 import trelby.pdf.pml as pml
 import trelby.screenplay as screenplay
 import trelby.textutil as textutil
@@ -584,6 +585,42 @@ class Config:
         return (PDF_FONT_NORMAL, PDF_FONT_BOLD, PDF_FONT_ITALIC, PDF_FONT_BOLD_ITALIC)
 
 
+# the face of the default screen fonts before the bundled font, and the
+# fallback when it can't be loaded
+def oldDefaultFace():
+    return "Courier New" if misc.isWindows else "Monospace"
+
+
+# the old default screen fonts on Unix, which only differ from other
+# Monospace fonts by their size
+_oldUnixFonts = (
+    "Monospace 12",
+    "Monospace Bold 12",
+    "Monospace Italic 12",
+    "Monospace Bold Italic 12",
+)
+
+
+# return the font string s (see ConfigGlobal.setDefaultFonts) with the
+# bundled face in place of Courier New, or the old Unix defaults' Monospace
+def migrateFont(s):
+    face = fontinfo.BUNDLED_FACE
+    fields = s.split(";")
+
+    # Windows: the face name is the last field
+    if (len(fields) > 1) and (fields[-1] == "Courier New"):
+        return ";".join(fields[:-1] + [face])
+
+    # Pango: the family comes first
+    if s.startswith("Courier New "):
+        return face + s[len("Courier New") :]
+
+    if s in _oldUnixFonts:
+        return face + s[len("Monospace") :]
+
+    return s
+
+
 # global config. there is only ever one of these active.
 class ConfigGlobal:
     cvars = None
@@ -733,6 +770,10 @@ class ConfigGlobal:
         v.addStrBinary("fontItalic", "", "FontItalic")
         v.addStrBinary("fontBoldItalic", "", "FontBoldItalic")
 
+        # 1 once the fonts have been moved from the old default face to
+        # the bundled one (see migrateFont). older configs don't have it.
+        v.addInt("fontVersion", 1, "FontVersion", 0, 1)
+
         # default script directory
         v.addStrUnicode("scriptDir", misc.progPath, "DefaultScriptDirectory")
 
@@ -756,6 +797,14 @@ class ConfigGlobal:
         if not any(k.startswith(new) for k in vals):
             for k in [k for k in vals if k.startswith(old)]:
                 vals[new + k[len(old) :]] = vals[k]
+
+        # the default screen fonts used to be Courier New (Monospace on
+        # Unix): move fonts still using them to the bundled font, once, so
+        # that choosing one of them again afterwards sticks
+        if "FontVersion" not in vals:
+            for k in ("FontNormal", "FontBold", "FontItalic", "FontBoldItalic"):
+                if k in vals:
+                    vals[k] = migrateFont(vals[k])
 
         self.cvars.load(vals, "", self)
 
@@ -816,20 +865,24 @@ class ConfigGlobal:
     # orientation, weight (400 normal, 700 bold), italic (255 = on),
     # underline, strikeout, charset, out precision, clip precision,
     # quality, pitch and family (49 = fixed pitch, modern), face name.
+    #
+    # the face is the bundled Courier Prime (see fontinfo.BUNDLED_FONTS),
+    # which ConfigGui replaces with oldDefaultFace() if it can't be loaded.
     def setDefaultFonts(self):
         fn = ["", "", "", ""]
+        face = fontinfo.BUNDLED_FACE
 
         if misc.isUnix:
-            fn[0] = "Monospace 12"
-            fn[1] = "Monospace Bold 12"
-            fn[2] = "Monospace Italic 12"
-            fn[3] = "Monospace Bold Italic 12"
+            fn[0] = "%s 12" % face
+            fn[1] = "%s Bold 12" % face
+            fn[2] = "%s Italic 12" % face
+            fn[3] = "%s Bold Italic 12" % face
 
         elif misc.isWindows:
-            fn[0] = "0;-13;0;0;0;400;0;0;0;0;3;2;1;49;Courier New"
-            fn[1] = "0;-13;0;0;0;700;0;0;0;0;3;2;1;49;Courier New"
-            fn[2] = "0;-13;0;0;0;400;255;0;0;0;3;2;1;49;Courier New"
-            fn[3] = "0;-13;0;0;0;700;255;0;0;0;3;2;1;49;Courier New"
+            fn[0] = "0;-13;0;0;0;400;0;0;0;0;3;2;1;49;" + face
+            fn[1] = "0;-13;0;0;0;700;0;0;0;0;3;2;1;49;" + face
+            fn[2] = "0;-13;0;0;0;400;255;0;0;0;3;2;1;49;" + face
+            fn[3] = "0;-13;0;0;0;700;255;0;0;0;3;2;1;49;" + face
 
         else:
             raise ConfigError(_("Unknown platform"))

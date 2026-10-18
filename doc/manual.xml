@@ -1704,10 +1704,12 @@
 		<title>PDF/Fonts</title>
 
 		<para>Here you can configure the fonts used in generating the PDF
-		files. Normally they use the standard PDF Courier fonts that are
-		guaranteed to work everywhere, and it is strongly recommended to
-		leave things as they are unless you have specific reasons to use
-		other fonts.</para>
+		files. Normally they use Courier Prime, a Courier font that comes
+		with Trelby and is also the default font on the screen, so the
+		PDF looks like the script does in Trelby. It is embedded in the
+		PDF files, so they look the same everywhere, and it is strongly
+		recommended to leave things as they are unless you have specific
+		reasons to use other fonts.</para>
 
 		<para>So, assuming you have a good enough reason, you can use the
 		TrueType fonts of your choosing. There are four different font
@@ -1724,9 +1726,8 @@
 		generated PDF files.
 		</para>
 
-		<para>Embedding a font  will increase the size of the PDF
-		files drastically, and not all fonts allow embedding in their
-		license terms.</para>
+		<para>Embedding a font will increase the size of the PDF files,
+		and not all fonts allow embedding in their license terms.</para>
 
 		<para>When you use the 'Browse' button to locate a font file, the
 		following things happen:</para>

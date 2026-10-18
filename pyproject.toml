@@ -52,6 +52,7 @@ trelby = [
     "sample.trelby",
     "thesaurus_en.dat.gz",
     "resources/*",
+    "resources/fonts/*",
     "trelby.1.gz",
     "locales/*/*/*",
     "dialogs/configpages/*",
