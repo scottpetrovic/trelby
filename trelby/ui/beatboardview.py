@@ -1715,8 +1715,10 @@ class BeatBoardView(wx.ScrolledWindow):
         else:
             add(menu, _("Add picture..."), lambda: self.choosePicture(beat))
 
-        if beat.width:
-            add(menu, _("Reset size"), lambda: self.setSize(beat, None))
+        resized = [b for b in cards if b.width]
+
+        if resized:
+            add(menu, _("Reset size"), lambda: self.resetSizes(resized))
 
         menu.AppendSeparator()
 
@@ -1742,6 +1744,16 @@ class BeatBoardView(wx.ScrolledWindow):
     # resize beat to w x h, or back to its default size if w is None
     def setSize(self, beat, w, h=None):
         beat.setSize(w, h)
+        self.updateVirtualSize()
+        self.commit()
+        self.Refresh()
+
+    # put the cards in the list 'beats' back to their default size, as one
+    # undo step
+    def resetSizes(self, beats):
+        for beat in beats:
+            beat.setSize(None)
+
         self.updateVirtualSize()
         self.commit()
         self.Refresh()

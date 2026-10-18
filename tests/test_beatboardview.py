@@ -634,7 +634,7 @@ def test_resizeCard(view):
 
     # and the size can be reset
     beat = view.board.beats[-1]
-    view.setSize(beat, None)
+    view.resetSizes([beat])
     assert view.cardSize(beat) == (beatboard.CARD_WIDTH, beatboard.CARD_HEIGHT)
     assert ed(view).sp.beatBoard.beats[-1].width is None
 
@@ -926,3 +926,18 @@ def test_colorSeveral(view):
     ed(view).cmd("undo")
     view.reload()
     assert view.board.beats[1].color == "ffd1a3"
+
+
+def test_resetSeveralSizes(view):
+    opening, catalyst, midpoint = view.board.beats[:3]
+    view.setSize(opening, 300, 200)
+    view.setSize(catalyst, 320, 220)
+
+    view.resetSizes([opening, catalyst])
+    assert (opening.width, catalyst.width) == (None, None)
+    assert [b.width for b in ed(view).sp.beatBoard.beats[:2]] == [None, None]
+
+    # as one undo step
+    ed(view).cmd("undo")
+    view.reload()
+    assert [b.width for b in view.board.beats[:2]] == [300, 320]
