@@ -195,3 +195,21 @@ def guessImportFormat(fileName):
             return f
 
     return find(IMPORT_FORMATS, "text")
+
+
+# what a file dropped on the main window is opened as, going by its
+# extension: SCRIPT for a Trelby script, the import Format for one some
+# import format lists (picked like guessImportFormat), or None
+SCRIPT = "trelby"
+
+
+def openFormat(fileName):
+    ext = os.path.splitext(fileName)[1].lower().lstrip(".")
+
+    if ext == SCRIPT:
+        return SCRIPT
+
+    if any(ext in f.extensions for f in IMPORT_FORMATS):
+        return guessImportFormat(fileName)
+
+    return None

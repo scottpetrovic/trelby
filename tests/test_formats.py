@@ -63,6 +63,29 @@ def testGuessImportFormat(fileName, key):
     assert formats.guessImportFormat(fileName).key == key
 
 
+@pytest.mark.parametrize(
+    "fileName, key",
+    [
+        ("a.trelby", "trelby"),
+        ("dir/A.TRELBY", "trelby"),
+        ("a.fdx", "fdx"),
+        ("a.fountain", "fountain"),
+        ("a.txt", "text"),
+        ("a.pdf", "pdf"),
+        ("a.png", None),
+        ("a.doc", None),
+        ("a", None),
+    ],
+)
+def testOpenFormat(fileName, key):
+    fmt = formats.openFormat(fileName)
+
+    if fmt is formats.SCRIPT:
+        assert key == "trelby"
+    else:
+        assert (fmt.key if fmt else None) == key
+
+
 def testWildcard():
     f = formats.find(formats.IMPORT_FORMATS, "fountain")
 

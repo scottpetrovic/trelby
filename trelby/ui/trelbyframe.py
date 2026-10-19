@@ -16,6 +16,7 @@ import trelby.dialogs.commandsdlg as commandsdlg
 import trelby.config as config
 import trelby.ui.configgui as configgui
 import trelby.ui.fileio as fileio
+import trelby.formats as formats
 import trelby.ui.gutil as gutil
 import trelby.mcpserver.app as mcpapp
 import trelby.ui.icons as icons
@@ -35,6 +36,25 @@ import trelby.translations as translations
 import trelby.util as util
 from trelby.ui.ids import *
 from trelby.ui.trelbypanel import MyPanel
+
+
+# lets scripts, and the files of the import formats, be dropped on the main
+# window to open them (formats.openFormat)
+class ScriptDropTarget(wx.FileDropTarget):
+    def __init__(self, frame):
+        wx.FileDropTarget.__init__(self)
+
+        self.frame = frame
+
+    def OnDragOver(self, x, y, defResult):
+        return wx.DragCopy
+
+    def OnDropFiles(self, x, y, filenames):
+        # opened after the drop has finished, so that the program the
+        # files came from doesn't wait for the loading or a message box
+        wx.CallAfter(self.frame.openFiles, list(filenames))
+
+        return True
 
 
 class MyFrame(wx.Frame):
@@ -165,6 +185,10 @@ class MyFrame(wx.Frame):
             accels += self.menuBar.getAccelEntries()
 
         self.SetAcceleratorTable(wx.AcceleratorTable(accels))
+
+        # the windows in it without drop targets of their own pass drops on
+        # to it
+        self.SetDropTarget(ScriptDropTarget(self))
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
@@ -435,13 +459,46 @@ class MyFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             misc.scriptDir = dlg.GetDirectory()
 
-            if not self.tabCtrl.getPage(self.findPage(self.panel)).ctrl.isUntouched():
-                self.panel = self.createNewPanel()
-
-            self.panel.ctrl.importFile(dlg.GetPath(), fmt)
-            self.panel.ctrl.updateScreen()
+            self.importScript(dlg.GetPath(), fmt)
 
         dlg.Destroy()
+
+    # import the file at path in the formats.Format fmt, in the current tab
+    # if it's untouched, or in a new one otherwise
+    def importScript(self, path, fmt):
+        if not self.tabCtrl.getPage(self.findPage(self.panel)).ctrl.isUntouched():
+            self.panel = self.createNewPanel()
+
+        self.panel.ctrl.importFile(path, fmt)
+        self.panel.ctrl.updateScreen()
+
+    # open files dropped on the window: scripts are opened and the import
+    # formats' files imported, each in its own tab. returns the names of
+    # the ones that are neither.
+    def openFiles(self, paths):
+        bad = []
+
+        for path in paths:
+            fmt = formats.openFormat(path)
+
+            if fmt is formats.SCRIPT:
+                self.openScript(path)
+            elif fmt:
+                self.importScript(path, fmt)
+            else:
+                bad.append(os.path.basename(path))
+
+        if bad:
+            gutil.messageBox(
+                _("These files are not scripts Trelby can open:")
+                + "\n\n"
+                + "\n".join(bad),
+                _("Error"),
+                wx.OK | wx.ICON_ERROR,
+                self,
+            )
+
+        return bad
 
     def OnCloseScript(self, event=None):
         if not self.panel.ctrl.canBeClosed():

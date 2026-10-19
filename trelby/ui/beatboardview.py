@@ -41,6 +41,7 @@ import random
 import wx
 from wx.lib.wordwrap import wordwrap
 
+import trelby.formats as formats
 import trelby.screenplay.beatboard as beatboard
 import trelby.ui.gutil as gutil
 import trelby.ui.ids as ids
@@ -291,7 +292,8 @@ def fitPicture(img, w, h, grow):
 
 
 # lets picture files, and pictures from other programs, be dropped on the
-# board
+# board. scripts dropped on it are opened, as on the rest of the main window
+# (trelbyframe.ScriptDropTarget).
 class BoardDropTarget(wx.DropTarget):
     def __init__(self, view):
         wx.DropTarget.__init__(self)
@@ -319,7 +321,14 @@ class BoardDropTarget(wx.DropTarget):
         # pictures came from doesn't wait for a message box
         if self.data.GetReceivedFormat().GetType() == wx.DF_FILENAME:
             paths = self.files.GetFilenames()
-            wx.CallAfter(self.view.addPictureFiles, paths, pos)
+            scripts = [p for p in paths if formats.openFormat(p)]
+            pictures = [p for p in paths if not formats.openFormat(p)]
+
+            if scripts:
+                wx.CallAfter(self.view.panel.gd.mainFrame.openFiles, scripts)
+
+            if pictures:
+                wx.CallAfter(self.view.addPictureFiles, pictures, pos)
         else:
             bmp = self.bitmap.GetBitmap()
             wx.CallAfter(self.view.addBitmap, bmp, pos)
