@@ -160,6 +160,8 @@ class MyApp(wx.App):
             if s:
                 gd.scDict.load(s)
 
+        gd.loadWritingLog()
+
         # built in two steps: init creates the first script tab, and a
         # MyCtrl's constructor already calls the frame through gd.mainFrame
         # (tab names, status bar, toolbar), so that has to be set first

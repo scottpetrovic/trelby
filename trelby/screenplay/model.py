@@ -88,6 +88,11 @@ class Screenplay(
         # load/save/creation.
         self.hasChanged = False
 
+        # how many times it's been marked changed, which goes up with every
+        # edit, so that watchers can tell whether it has changed since they
+        # last looked (see writingsession.py)
+        self.changeCount = 0
+
     def isModified(self):
         if not self.hasChanged:
             return False
@@ -100,6 +105,9 @@ class Screenplay(
 
     def markChanged(self, state=True):
         self.hasChanged = state
+
+        if state:
+            self.changeCount += 1
 
     # we implement our own custom deepcopy because it's 8-10x faster than
     # the generic one (times reported by cmdSpeedTest using a 119-page

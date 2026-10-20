@@ -88,6 +88,8 @@ class AppDoc(mcptools.LiveDoc):
             )
 
     def changed(self):
+        # the assistant's words aren't the writer's (see writingsession.py)
+        self.ctrl.writing.exclude(self.ctrl.sp)
         self.ctrl.makeLineVisible(self.ed.line)
         self.ctrl.updateScreen()
 

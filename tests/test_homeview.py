@@ -10,6 +10,7 @@ import trelby.translations as translations
 import trelby.ui.configgui as configgui
 import trelby.ui.gutil as gutil
 import trelby.ui.themes as themes
+import trelby.writinglog as writinglog
 
 _ = translations.trelby_translations_load()
 
@@ -38,8 +39,10 @@ class GD:
         if theme:
             cfgGl.theme = theme
 
+        self.cfgGl = cfgGl
         self.cfgGui = configgui.ConfigGui(cfgGl, 100)
         self.mru = mrufiles.MRUFiles(5)
+        self.writingLog = writinglog.WritingLog()
 
 
 class Owner:
@@ -58,10 +61,28 @@ class Owner:
         self.opened.append(i)
 
     # like MyFrame's, refreshing the view
+    def openPath(self, path):
+        self.opened.append(path)
+
     def removeRecent(self, i):
         self.removed.append(i)
         self.gd.mru.remove(i)
         self.view.refresh()
+
+
+# the time the view is shown at, 15:00 on 20 October 2026
+NOW = time.mktime((2026, 10, 20, 15, 0, 0, 0, 0, -1))
+
+
+# a session of 'words' words in the script at path, starting 'days' days
+# before NOW, at hour h
+def session(days, words, path="/s/Pilot.trelby", h=10, active=1800):
+    start = NOW - days * 86400 - (15 - h) * 3600
+
+    return writinglog.Session(
+        start, start + active, path, writinglog.scriptName(path or "Untitled"),
+        words, words / 250, active,
+    )
 
 
 @pytest.fixture
@@ -71,15 +92,19 @@ def frame(app):
     f.Destroy()
 
 
-def makeView(frame, files=(), size=(900, 800), theme=None):
+def makeView(frame, files=(), size=(900, 800), theme=None, sessions=(), goal=0):
     gd = GD(theme)
+    gd.cfgGl.dailyGoal = goal
+
+    for s in sessions:
+        gd.writingLog.put(s)
 
     # added in reverse, so that they're listed in the given order
     for path in reversed(files):
         gd.mru.add(path)
 
     owner = Owner(gd)
-    view = homeview.HomeView(frame, owner)
+    view = homeview.HomeView(frame, owner, clock=lambda: NOW)
     owner.view = view
     view.SetSize(0, 0, *size)
     view.layout()
@@ -112,9 +137,9 @@ def testHelpers():
     assert homeview.shortcutText("CTRL-N") == "Ctrl+N"
     assert homeview.shortcutText("CTRL-SHIFT-O") == "Ctrl+Shift+O"
 
-    assert homeview.scriptName(os.path.join("a", "b", "Pilot.trelby")) == "Pilot"
-    assert homeview.scriptName(os.path.join("a", "Pilot.TRELBY")) == "Pilot"
-    assert homeview.scriptName("notes.txt") == "notes.txt"
+    assert writinglog.scriptName(os.path.join("a", "b", "Pilot.trelby")) == "Pilot"
+    assert writinglog.scriptName(os.path.join("a", "Pilot.TRELBY")) == "Pilot"
+    assert writinglog.scriptName("notes.txt") == "notes.txt"
 
     now = time.mktime((2026, 10, 20, 15, 0, 0, 0, 0, -1))
     assert homeview.changedText(now - 3600, now) == "Today 14:00"
@@ -150,8 +175,8 @@ def testRows(frame, tmp_path):
         assert a.rect.GetBottom() < b.rect.y
 
     for r in view.rows:
-        assert view.card.Contains(r.rect.GetTopLeft())
-        assert view.card.Contains(r.rect.GetBottomRight())
+        assert view.cards[0].Contains(r.rect.GetTopLeft())
+        assert view.cards[0].Contains(r.rect.GetBottomRight())
 
 
 def testNoRecentFilesSaysSo(frame):
@@ -270,11 +295,16 @@ def testDraws(frame, tmp_path, theme):
     there = tmp_path / "Pilot.trelby"
     there.write_text("")
     view, owner = makeView(
-        frame, [str(there), str(tmp_path / "Gone.trelby")], theme=theme
+        frame,
+        [str(there), str(tmp_path / "Gone.trelby")],
+        size=(1300, 800),
+        theme=theme,
+        sessions=[session(0, 412), session(1, 900), session(3, 150, path=None)],
+        goal=1000,
     )
     view.hover = 0
 
-    bmp = wx.Bitmap(900, 800)
+    bmp = wx.Bitmap(1300, 800)
     dc = wx.MemoryDC(bmp)
     view.draw(dc)
     dc.SelectObject(wx.NullBitmap)
@@ -287,7 +317,7 @@ def testDraws(frame, tmp_path, theme):
 
     assert color(2, 2) == cfgGui.workspaceColor.Get(False)
 
-    card = view.card
+    card = view.cards[0]
     assert color(card.x + 10, card.GetBottom() - 4) == cfgGui.textBgColor.Get(False)
 
     if os.environ.get("HOMEVIEW_PNG"):
@@ -295,3 +325,88 @@ def testDraws(frame, tmp_path, theme):
             os.path.join(os.environ["HOMEVIEW_PNG"], "home-%s.png" % theme),
             wx.BITMAP_TYPE_PNG,
         )
+
+
+# the writing card: today's words, the chart's bars, the goal, and a row
+# per script written in lately
+def testWritingCard(frame):
+    sessions = [
+        session(0, 300, h=9),
+        session(0, 112, path="/s/Other.trelby", h=11, active=600),
+        session(1, 900),
+        session(3, 150, path=None),
+        # only touched: left out of the recent writing
+        session(2, 0, path="/s/Touched.trelby", active=20),
+    ]
+    view, owner = makeView(frame, sessions=sessions, goal=1000)
+
+    texts = [t[0] for t in view.texts]
+    assert "412 words" in texts
+    assert "40 min  ·  2-day streak" in texts
+    assert "41% of 1,000 words" in texts
+    assert "1,462 words" in texts
+
+    kinds = [k for k, r in view.shapes]
+    assert kinds.count(homeview.TRACK) == kinds.count(homeview.FILL) == 1
+    assert kinds.count(homeview.TODAY_BAR) == 1
+    assert kinds.count(homeview.BAR) == 2
+    assert kinds.count(homeview.NO_BAR) == homeview.CHART_DAYS - 3
+    assert kinds.count(homeview.GOAL_LINE) == 1
+
+    track = [r for k, r in view.shapes if k == homeview.TRACK][0]
+    fill = [r for k, r in view.shapes if k == homeview.FILL][0]
+    assert fill.width == int(track.width * 0.412)
+
+    act = [r for r in view.rows if r.kind == homeview.ACTIVITY]
+    assert [(r.label, r.note) for r in act] == [
+        ("Other", "112 words  ·  10 min"),
+        ("Pilot", "300 words  ·  30 min"),
+        ("Pilot", "900 words  ·  30 min"),
+        ("Untitled", "150 words  ·  30 min"),
+    ]
+    assert act[0].detail.startswith("Today")
+    assert act[2].detail.startswith("Yesterday")
+
+    # clicking one opens its script; one never saved can't be
+    view.OnLeftDown(mouse(view, wx.wxEVT_LEFT_DOWN, centre(act[1].rect)))
+    view.OnLeftDown(mouse(view, wx.wxEVT_LEFT_DOWN, centre(act[3].rect)))
+    assert owner.opened == ["/s/Pilot.trelby"]
+
+    # nor picked with the keys
+    key(view, wx.WXK_END)
+    assert view.rows[view.picked] is act[2]
+
+
+def testWritingCardEmpty(frame):
+    view, owner = makeView(frame)
+
+    texts = [t[0] for t in view.texts]
+    assert "0 words" in texts
+    assert _("What you write in any script is counted here.") in texts
+    assert not any(k == homeview.TRACK for k, r in view.shapes)
+
+
+def testGoalInPages(frame):
+    view, owner = makeView(frame, sessions=[session(0, 500)], goal=3)
+    owner.gd.cfgGl.dailyGoalPages = True
+    view.refresh()
+
+    texts = [t[0] for t in view.texts]
+    assert "2 pages" in texts
+    assert "66% of 3 pages" in texts
+
+    view, owner = makeView(frame, sessions=[session(0, 1000)], goal=3)
+    owner.gd.cfgGl.dailyGoalPages = True
+    view.refresh()
+    assert _("Daily goal reached") in [t[0] for t in view.texts]
+
+
+# side by side in a wide window, one above the other in a narrow one
+def testCardsLayout(frame):
+    view, owner = makeView(frame, size=(1300, 800))
+    a, b = view.cards
+    assert a.y == b.y and a.GetRight() < b.x
+
+    view, owner = makeView(frame, size=(700, 800))
+    a, b = view.cards
+    assert a.x == b.x and a.GetBottom() < b.y

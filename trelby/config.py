@@ -758,6 +758,13 @@ class ConfigGlobal:
         # page break indicators to show
         v.addInt("pbi", PBI_REAL, "PageBreakIndicators", PBI_FIRST, PBI_LAST)
 
+        # the daily writing goal, shown in the status bar and on the Home
+        # screen (see writinglog.py): how many words, or pages if
+        # dailyGoalPages is set, to write each day across all scripts. 0
+        # for none.
+        v.addInt("dailyGoal", 0, "Goals/Daily", 0, 100000)
+        v.addBool("dailyGoalPages", False, "Goals/DailyInPages")
+
         # whether to run the MCP server that lets AI assistants read and
         # edit the open scripts (see mcpserver/app.py), and the localhost port it
         # listens on. the default port must match mcpserver.DEFAULT_PORT.

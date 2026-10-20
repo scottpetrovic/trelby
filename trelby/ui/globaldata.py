@@ -13,6 +13,7 @@ import trelby.opts as opts
 import trelby.spellcheck as spellcheck
 import trelby.util as util
 import trelby.ui.viewmode as viewmode
+import trelby.writinglog as writinglog
 
 
 # older versions saved the recently used files list under the translated
@@ -74,6 +75,15 @@ class GlobalData:
         self.confFilename = misc.confPath + "/default.conf"
         self.stateFilename = misc.confPath + "/state"
         self.scDictFilename = misc.confPath + "/spell_checker_dictionary"
+
+        # the writing sessions in every script (see writinglog.py), loaded
+        # at startup by loadWritingLog
+        self.writingLogFilename = misc.confPath + "/writinglog.json"
+        self.writingLog = writinglog.WritingLog()
+
+        # why saving the writing log last failed, or None. it's saved
+        # every minute or so, so that's not told in a message box each time.
+        self.writingLogError = None
 
         # current script config path
         self.scriptSettingsPath = misc.confPath
@@ -226,3 +236,35 @@ class GlobalData:
     # save global spell checker dictionary to disk
     def saveScDict(self):
         fileio.writeToFile(self.scDictFilename, self.scDict.save(), self.mainFrame)
+
+    # load the writing log. a file that can't be read is kept as
+    # writinglog.json.bad, and the log starts again.
+    def loadWritingLog(self):
+        self.writingLog, err = writinglog.loadFile(self.writingLogFilename)
+
+        if err:
+            wx.MessageBox(
+                _(
+                    "The writing log could not be read, and has been started again. The old one was kept as\n\n{}\n\nThe error was: {}"
+                ).format(self.writingLogFilename + ".bad", err),
+                _("Error"),
+                wx.OK,
+                None,
+            )
+
+    # save the writing log if it has changed
+    def saveWritingLog(self):
+        log = self.writingLog
+
+        if not log.dirty:
+            return
+
+        try:
+            util.atomicWrite(self.writingLogFilename, log.save())
+        except OSError as e:
+            self.writingLogError = e.strerror or str(e)
+
+            return
+
+        log.dirty = False
+        self.writingLogError = None

@@ -17,3 +17,14 @@ def testFormatRuntime():
     assert statusbar.formatRuntime(59) == "Runtime: ~59 min"
     assert statusbar.formatRuntime(60) == "Runtime: ~1 h 0 min"
     assert statusbar.formatRuntime(135) == "Runtime: ~2 h 15 min"
+
+
+def testFormatToday():
+    assert statusbar.formatToday(0, 0, 0, False) == "0 words today"
+    assert statusbar.formatToday(1, 0, 0, False) == "1 word today"
+    assert statusbar.formatToday(1234, 0, 0, False) == "1,234 words today"
+    assert statusbar.formatToday(412, 0, 1000, False) == "412 / 1,000 words today"
+
+    assert statusbar.formatToday(0, 1.0, 0, True) == "1 page today"
+    assert statusbar.formatToday(0, 1.54, 0, True) == "1.5 pages today"
+    assert statusbar.formatToday(0, 0.0, 3, True) == "0 / 3 pages today"

@@ -58,6 +58,11 @@ class ScriptDropTarget(wx.FileDropTarget):
         return True
 
 
+# how often the writing sessions are checked for having gone quiet, and the
+# writing log saved
+WRITING_TIMER_SECONDS = 60
+
+
 class MyFrame(wx.Frame):
 
     def __init__(self, parent, id, title, gd, myApp):
@@ -208,6 +213,11 @@ class MyFrame(wx.Frame):
         self.autosaveTimer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnAutosaveTimer, self.autosaveTimer)
 
+        # ends the writing sessions that have gone quiet, and saves the
+        # writing log (see writingsession.py)
+        self.writingTimer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnWritingTimer, self.writingTimer)
+
         self.Layout()
 
     # with no script open, so the Home screen is shown. the first tab is
@@ -218,6 +228,7 @@ class MyFrame(wx.Frame):
         self.panel = self.createNewPanel()
         self.setHomeShown(True)
         self.updateAutosaveTimer()
+        self.writingTimer.Start(WRITING_TIMER_SECONDS * 1000)
 
     # show the Home screen in place of the tabs, or the tabs again. it's
     # shown while no script is open: at startup, and after closing the last
@@ -289,6 +300,16 @@ class MyFrame(wx.Frame):
     def OnAutosaveTimer(self, event=None):
         for c in self.getCtrls():
             c.autosave()
+
+    def OnWritingTimer(self, event=None):
+        for c in self.getCtrls():
+            c.writing.tick()
+
+        self.gd.saveWritingLog()
+
+        # a new day starts with nothing written
+        if not self.homeShown:
+            self.statusBar.showToday()
 
     # show the current script's autosave state in the status bar. if ctrl
     # is given, only does anything if that's the current script.
@@ -519,6 +540,21 @@ class MyFrame(wx.Frame):
 
         self.openScript(filename)
 
+    # open the script at path, from the Home screen's recent writing, or say
+    # it's not there
+    def openPath(self, path):
+        if not os.path.exists(path):
+            wx.MessageBox(
+                _("File not found:\n\n{}").format(path),
+                _("Error"),
+                wx.OK,
+                self,
+            )
+
+            return
+
+        self.openScript(path)
+
     # take the i'th file off the recent files
     def removeRecent(self, i):
         self.gd.mru.remove(i)
@@ -618,6 +654,8 @@ class MyFrame(wx.Frame):
             return
 
         ctrl.removeRecovery()
+        ctrl.writing.end()
+        self.gd.saveWritingLog()
 
         if self.tabCtrl.getPageCount() > 1:
             self.tabCtrl.deletePage(i)
@@ -995,7 +1033,13 @@ class MyFrame(wx.Frame):
 
         if doExit:
             self.autosaveTimer.Stop()
+            self.writingTimer.Stop()
             self.reader.close()
+
+            for c in self.getCtrls():
+                c.writing.end()
+
+            self.gd.saveWritingLog()
 
             # for the restart to open them again
             self.myApp.restartFiles = [

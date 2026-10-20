@@ -7,6 +7,7 @@ import wx
 
 import trelby.screenplay.revisions as revisions
 import trelby.screenplay.scriptformats as scriptformats
+import trelby.writinglog as writinglog
 
 
 # a status bar drawn in the theme's colors. wx.StatusBar can't be used: the
@@ -121,6 +122,34 @@ def formatWordCount(cnt):
     return _("%s words") % "{:,}".format(cnt)
 
 
+# a number of pages, to a tenth of a page: "3", "1.5"
+def formatPages(pages):
+    return ("%.1f" % pages).rstrip("0").rstrip(".")
+
+
+# what's been written today across all scripts, for the status bar: the
+# words or, if inPages, the pages, out of the daily goal unless it's 0
+def formatToday(words, pages, goal, inPages):
+    if inPages:
+        if goal:
+            return _("{} / {} pages today").format(formatPages(pages), goal)
+
+        if formatPages(pages) == "1":
+            return _("1 page today")
+
+        return _("{} pages today").format(formatPages(pages))
+
+    if goal:
+        return _("{} / {} words today").format(
+            "{:,}".format(words), "{:,}".format(goal)
+        )
+
+    if words == 1:
+        return _("1 word today")
+
+    return _("{} words today").format("{:,}".format(words))
+
+
 # estimated running time, using the usual rule of thumb of one minute of
 # screen time per script page
 def formatRuntime(minutes):
@@ -132,7 +161,8 @@ def formatRuntime(minutes):
 
 # the main window's status bar. a narrow spacer field keeps the text off the
 # window's left edge. the help field shows whether the script has been
-# autosaved, then come the element types Enter / Tab would create, the
+# autosaved, then come what's been written today in all scripts (see
+# writinglog.py), the element types Enter / Tab would create, the
 # script's word count and estimated running time, the current page and the
 # zoom buttons, which call onAction(name) with the name of the
 # menus.Action to run.
@@ -140,14 +170,15 @@ class MainStatusBar(StatusBar):
     # the fields
     SB_SPACER = 0
     SB_HELP = 1
-    SB_NEXT = 2
-    SB_WORDS = 3
-    SB_RUNTIME = 4
-    SB_PAGE = 5
-    SB_ZOOM = 6
+    SB_GOAL = 2
+    SB_NEXT = 3
+    SB_WORDS = 4
+    SB_RUNTIME = 5
+    SB_PAGE = 6
+    SB_ZOOM = 7
 
     def __init__(self, parent, gd, onAction):
-        StatusBar.__init__(self, parent, self.SB_NEXT)
+        StatusBar.__init__(self, parent, self.SB_GOAL)
 
         self.gd = gd
 
@@ -194,7 +225,17 @@ class MainStatusBar(StatusBar):
         nextW = self.GetTextExtent(_("Enter: %s    Tab: %s") % (longest, longest))[0]
         wordsW = self.GetTextExtent(formatWordCount(999999))[0] + pad
         runtimeW = self.GetTextExtent(formatRuntime(599))[0] + pad
-        widths = [self.FromDIP(6), -1, nextW + pad, wordsW, runtimeW, pageW, zoomW]
+        goalW = self.GetTextExtent(formatToday(99999, 0, 99999, False))[0] + pad
+        widths = [
+            self.FromDIP(6),
+            -1,
+            goalW,
+            nextW + pad,
+            wordsW,
+            runtimeW,
+            pageW,
+            zoomW,
+        ]
         self.SetFieldsCount(len(widths), widths)
 
         self.Bind(wx.EVT_SIZE, self.OnMainSize)
@@ -307,6 +348,22 @@ class MainStatusBar(StatusBar):
         self.SetStatusText(s, self.SB_PAGE)
         self.SetStatusText(formatWordCount(sp.getWordCount()), self.SB_WORDS)
         self.SetStatusText(formatRuntime(round(sp.getPageLength())), self.SB_RUNTIME)
+        self.showToday()
+
+    # show what's been written today in all scripts, against the daily goal
+    def showToday(self):
+        cfgGl = self.gd.cfgGl
+        today = self.gd.writingLog.dayTotal(writinglog.localDay(time.time()))
+
+        self.SetStatusText(
+            formatToday(
+                today.shownWords(),
+                today.shownPages(),
+                cfgGl.dailyGoal,
+                cfgGl.dailyGoalPages,
+            ),
+            self.SB_GOAL,
+        )
 
     # show whether the trelbyctrl.MyCtrl ctrl's script has been autosaved
     def showAutosave(self, ctrl):

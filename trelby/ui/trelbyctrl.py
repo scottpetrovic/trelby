@@ -29,6 +29,8 @@ import trelby.dialogs.textdlg as textdlg
 import trelby.textutil as textutil
 import trelby.thesaurus as thesaurus
 import trelby.util as util
+import trelby.writinglog as writinglog
+import trelby.writingsession as writingsession
 from trelby.error import TrelbyError
 
 # Boolean to determine if toolbar should be shown or not.
@@ -204,6 +206,10 @@ class MyCtrl(wx.Control):
 
         for id in self.synonymIds:
             self.Bind(wx.EVT_MENU, self.OnSynonymMenu, id=id)
+
+        # records the writing sessions in the script in the writing log
+        # (see writingsession.py), told about it in updateScreen
+        self.writing = writingsession.Tracker(gd.writingLog)
 
         self.createEmptySp()
         self.updateScreen(redraw=False)
@@ -440,6 +446,17 @@ class MyCtrl(wx.Control):
 
         self.setTabText()
 
+    # (path, name) of the script for the writing log: its file, absolute,
+    # or None if it has none, and the name its file gives it, or the
+    # untitled one
+    def writingInfo(self):
+        if self.fileName:
+            path = os.path.abspath(self.fileName)
+
+            return (path, writinglog.scriptName(path))
+
+        return (None, self.untitledName())
+
     # the name of the script while it has no file: "Untitled Screenplay",
     # "Untitled Stage Play"... (see scriptformats)
     def untitledName(self):
@@ -531,6 +548,8 @@ class MyCtrl(wx.Control):
 
         if reader:
             reader.checkScript(self)
+
+        self.writing.update(self.sp, self.writingInfo)
 
         self.adjustScrollBar()
         self.updateModifiedMark()
