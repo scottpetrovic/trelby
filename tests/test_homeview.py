@@ -294,7 +294,7 @@ def testScrolling(frame, tmp_path):
     assert view.scrollY == 0
 
 
-# it draws in every theme, the card in the page color on the workspace
+# it draws in every theme, all on the workspace color, with no card
 @pytest.mark.parametrize("theme", [t.name for t in themes.BUILTIN])
 def testDraws(frame, tmp_path, theme):
     there = tmp_path / "Pilot.trelby"
@@ -323,7 +323,7 @@ def testDraws(frame, tmp_path, theme):
     assert color(2, 2) == cfgGui.workspaceColor.Get(False)
 
     card = view.card
-    assert color(card.x + 10, card.GetBottom() - 4) == cfgGui.textBgColor.Get(False)
+    assert color(card.x + 10, card.GetBottom() - 4) == cfgGui.workspaceColor.Get(False)
 
     if os.environ.get("HOMEVIEW_PNG"):
         bmp.SaveFile(

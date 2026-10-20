@@ -1,7 +1,8 @@
 # the Home screen, shown in place of the tabs while no script is open (see
-# MyFrame.setHomeShown). it's drawn by hand, in the theme's colors, as one
-# card with two sections, side by side with a line between them in a wide
-# window and one above the other otherwise:
+# MyFrame.setHomeShown). it's drawn by hand, in the theme's colors, straight
+# on the workspace color: the logo, and under it two sections, side by side
+# with a line between them in a wide window and one above the other
+# otherwise:
 #
 # - the ways to start a script, and the scripts opened recently
 # - what's been written, in all scripts (see writinglog.py): today against
@@ -193,8 +194,9 @@ class HomeView(wx.Window):
         self.contentH = 0
 
         # what layout places besides the rows: the texts, as (text, x, y,
-        # font name (see fonts), dim), the shapes, as (kind, wx.Rect), the
-        # card and the sections in it, as wx.Rects
+        # font name (see fonts), dim), the shapes, as (kind, wx.Rect), and
+        # the area the sections take up (card, not drawn) and the sections,
+        # as wx.Rects
         self.texts = []
         self.shapes = []
         self.card = wx.Rect()
@@ -702,7 +704,7 @@ class HomeView(wx.Window):
         textColor = cfgGui.textColor
         dimColor = cfgGui.textHdrColor
         accent = cfgGui.accentColor
-        bg = cfgGui.textBgColor
+        bg = cfgGui.workspaceColor
         hiColor = theming.blendColors(bg, accent, theming.ACCENT_TINT)
 
         shapeColors = {
@@ -715,13 +717,8 @@ class HomeView(wx.Window):
             DIVIDER: cfgGui.pageBorderColor,
         }
 
-        dc.SetBackground(wx.Brush(cfgGui.workspaceColor))
+        dc.SetBackground(wx.Brush(bg))
         dc.Clear()
-
-        dc.SetPen(wx.Pen(cfgGui.pageBorderColor))
-        dc.SetBrush(wx.Brush(bg))
-
-        dc.DrawRoundedRectangle(self.card, px(8))
 
         dc.DrawBitmap(self.getLogo(), self.logoPos)
 
