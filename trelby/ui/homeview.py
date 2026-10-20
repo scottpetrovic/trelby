@@ -325,7 +325,7 @@ class HomeView(wx.Window):
                 )
             )
 
-        rows.append(Row(ACTION, _("Writing goals") + "...", "WritingGoals", section=1))
+        rows.append(Row(ACTION, _("Manage Writing Goals") + "...", "WritingGoals", section=1))
 
         # what was written in each script lately, leaving out the days a
         # script was only touched

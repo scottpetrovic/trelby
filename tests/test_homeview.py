@@ -456,7 +456,7 @@ def testSprintSection(frame):
 
     assert writingActions(view) == [
         ("Start a 15-minute sprint", "ToggleSprint"),
-        (_("Writing goals") + "...", "WritingGoals"),
+        (_("Manage Writing Goals") + "...", "WritingGoals"),
     ]
     assert [r.note for r in view.rows if r.value == "ToggleSprint"] == ["F7"]
 
