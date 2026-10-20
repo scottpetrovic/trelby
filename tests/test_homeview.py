@@ -1,0 +1,297 @@
+import os
+import time
+
+import pytest
+import wx
+
+import tests.u as u
+import trelby.config as config
+import trelby.translations as translations
+import trelby.ui.configgui as configgui
+import trelby.ui.gutil as gutil
+import trelby.ui.themes as themes
+
+_ = translations.trelby_translations_load()
+
+import trelby.ui.homeview as homeview  # noqa: E402
+import trelby.ui.menus as menus  # noqa: E402
+import trelby.ui.mrufiles as mrufiles  # noqa: E402
+
+# the Home screen (ui/homeview.py), shown while no script is open: its rows,
+# what clicking them and the keys do, and drawing it in every theme
+
+
+@pytest.fixture(scope="module")
+def app():
+    a = wx.App(False)
+    gutil.init()
+    yield a
+    a.Destroy()
+
+
+# stand-ins for the GlobalData and the main window the view acts through
+class GD:
+    def __init__(self, theme=None):
+        u.init()
+        cfgGl = config.ConfigGlobal()
+
+        if theme:
+            cfgGl.theme = theme
+
+        self.cfgGui = configgui.ConfigGui(cfgGl, 100)
+        self.mru = mrufiles.MRUFiles(5)
+
+
+class Owner:
+    def __init__(self, gd):
+        self.gd = gd
+        menuTable, others = menus.makeTable()
+        self.actions = {a.name: a for a in menus.allActions(menuTable, others)}
+        self.ran = []
+        self.opened = []
+        self.removed = []
+
+    def runAction(self, name):
+        self.ran.append(name)
+
+    def openRecent(self, i):
+        self.opened.append(i)
+
+    # like MyFrame's, refreshing the view
+    def removeRecent(self, i):
+        self.removed.append(i)
+        self.gd.mru.remove(i)
+        self.view.refresh()
+
+
+@pytest.fixture
+def frame(app):
+    f = wx.Frame(None, size=(900, 800))
+    yield f
+    f.Destroy()
+
+
+def makeView(frame, files=(), size=(900, 800), theme=None):
+    gd = GD(theme)
+
+    # added in reverse, so that they're listed in the given order
+    for path in reversed(files):
+        gd.mru.add(path)
+
+    owner = Owner(gd)
+    view = homeview.HomeView(frame, owner)
+    owner.view = view
+    view.SetSize(0, 0, *size)
+    view.layout()
+
+    return view, owner
+
+
+def centre(rect):
+    return wx.Point(rect.x + rect.width // 2, rect.y + rect.height // 2)
+
+
+def mouse(view, kind, pos):
+    e = wx.MouseEvent(kind)
+    e.SetPosition(pos)
+
+    return e
+
+
+def key(view, code):
+    e = wx.KeyEvent(wx.wxEVT_KEY_DOWN)
+    e.SetKeyCode(code)
+    view.OnKeyDown(e)
+
+
+def kinds(view):
+    return [r.kind for r in view.rows]
+
+
+def testHelpers():
+    assert homeview.shortcutText("CTRL-N") == "Ctrl+N"
+    assert homeview.shortcutText("CTRL-SHIFT-O") == "Ctrl+Shift+O"
+
+    assert homeview.scriptName(os.path.join("a", "b", "Pilot.trelby")) == "Pilot"
+    assert homeview.scriptName(os.path.join("a", "Pilot.TRELBY")) == "Pilot"
+    assert homeview.scriptName("notes.txt") == "notes.txt"
+
+    now = time.mktime((2026, 10, 20, 15, 0, 0, 0, 0, -1))
+    assert homeview.changedText(now - 3600, now) == "Today 14:00"
+    assert homeview.changedText(now - 3 * 86400, now) == "2026-10-17"
+
+
+# the four ways to start a script, then a row per recent file, the gone
+# ones dimmed
+def testRows(frame, tmp_path):
+    there = tmp_path / "Pilot.trelby"
+    there.write_text("")
+    gone = str(tmp_path / "Gone.trelby")
+
+    view, owner = makeView(frame, [str(there), gone])
+
+    assert kinds(view) == [homeview.ACTION, homeview.MENU] * 2 + [homeview.RECENT] * 2
+    assert [r.value for r in view.rows if r.kind == homeview.ACTION] == [
+        "NewScript",
+        "OpenScript",
+    ]
+    assert view.rows[0].note == "Ctrl+N"
+
+    templates = view.rows[1].value
+    assert templates and all(n.startswith("NewScript-") for n in templates)
+    assert "ImportScript" in view.rows[3].value
+
+    pilot, goneRow = view.rows[4:]
+    assert (pilot.label, pilot.detail, pilot.dim) == ("Pilot", str(tmp_path), False)
+    assert (goneRow.label, goneRow.note, goneRow.dim) == ("Gone", _("Not found"), True)
+
+    # nothing overlaps, top to bottom, and all inside the card
+    for a, b in zip(view.rows, view.rows[1:]):
+        assert a.rect.GetBottom() < b.rect.y
+
+    for r in view.rows:
+        assert view.card.Contains(r.rect.GetTopLeft())
+        assert view.card.Contains(r.rect.GetBottomRight())
+
+
+def testNoRecentFilesSaysSo(frame):
+    view, owner = makeView(frame)
+
+    assert kinds(view) == [homeview.ACTION, homeview.MENU] * 2
+    assert _("The scripts you open will be listed here.") in [
+        t[0] for t in view.texts
+    ]
+
+
+# a click runs the row's Action, or opens the recent file
+def testClicks(frame, tmp_path):
+    view, owner = makeView(frame, [str(tmp_path / "a.trelby")])
+
+    view.OnLeftDown(mouse(view, wx.wxEVT_LEFT_DOWN, centre(view.rows[2].rect)))
+    view.OnLeftDown(mouse(view, wx.wxEVT_LEFT_DOWN, centre(view.rows[4].rect)))
+
+    # between the rows, nothing
+    view.OnLeftDown(mouse(view, wx.wxEVT_LEFT_DOWN, wx.Point(2, 2)))
+
+    assert owner.ran == ["OpenScript"]
+    assert owner.opened == [0]
+
+
+# hovering a row highlights it, and a recent file's shows its path
+def testHover(frame, tmp_path):
+    path = str(tmp_path / "a.trelby")
+    view, owner = makeView(frame, [path])
+
+    view.OnMotion(mouse(view, wx.wxEVT_MOTION, centre(view.rows[4].rect)))
+    assert view.hover == 4
+    assert view.GetToolTipText() == path
+
+    view.OnMotion(mouse(view, wx.wxEVT_MOTION, centre(view.rows[0].rect)))
+    assert view.hover == 0
+    assert view.GetToolTipText() == ""
+
+
+# the arrow keys pick a row, Enter does what it does, and Delete takes a
+# recent file off the list
+def testKeys(frame, tmp_path):
+    paths = [str(tmp_path / ("%s.trelby" % n)) for n in "abc"]
+    view, owner = makeView(frame, paths)
+
+    # Enter before a row has been picked does nothing
+    key(view, wx.WXK_RETURN)
+    assert owner.ran == []
+
+    key(view, wx.WXK_DOWN)
+    assert view.picked == 0
+    key(view, wx.WXK_RETURN)
+    assert owner.ran == ["NewScript"]
+
+    key(view, wx.WXK_UP)
+    assert view.picked == 0
+
+    key(view, wx.WXK_END)
+    assert view.picked == 6
+    key(view, wx.WXK_DOWN)
+    assert view.picked == 6
+
+    # the picked row stays in range as the list gets shorter
+    key(view, wx.WXK_DELETE)
+    assert owner.removed == [2]
+    assert len(view.rows) == 6
+    assert view.picked == 5
+
+    # Delete on a row that's not a recent file does nothing
+    key(view, wx.WXK_HOME)
+    key(view, wx.WXK_DELETE)
+    assert owner.removed == [2]
+
+
+# in a window too low for it all, the wheel scrolls it, but not past either
+# end
+def testScrolling(frame, tmp_path):
+    paths = [str(tmp_path / ("%d.trelby" % i)) for i in range(5)]
+    view, owner = makeView(frame, paths, size=(600, 300))
+
+    assert view.contentH > 300
+
+    def wheel(rotation):
+        e = wx.MouseEvent(wx.wxEVT_MOUSEWHEEL)
+        e.SetWheelRotation(rotation)
+        e.SetWheelDelta(120)
+        view.OnWheel(e)
+
+    top = view.rows[0].rect.y
+
+    wheel(120)
+    assert view.scrollY == 0
+
+    wheel(-120)
+    assert view.scrollY > 0
+    assert view.rows[0].rect.y == top - view.scrollY
+
+    for i in range(50):
+        wheel(-120)
+
+    assert view.scrollY == view.contentH - 300
+
+    # picking the first row with the keys scrolls back up to it
+    key(view, wx.WXK_HOME)
+    assert view.rows[0].rect.y >= 0
+
+    # growing the window brings the scroll position back in range
+    view.SetSize(0, 0, 600, 2000)
+    view.layout()
+    assert view.scrollY == 0
+
+
+# it draws in every theme, the card in the page color on the workspace
+@pytest.mark.parametrize("theme", [t.name for t in themes.BUILTIN])
+def testDraws(frame, tmp_path, theme):
+    there = tmp_path / "Pilot.trelby"
+    there.write_text("")
+    view, owner = makeView(
+        frame, [str(there), str(tmp_path / "Gone.trelby")], theme=theme
+    )
+    view.hover = 0
+
+    bmp = wx.Bitmap(900, 800)
+    dc = wx.MemoryDC(bmp)
+    view.draw(dc)
+    dc.SelectObject(wx.NullBitmap)
+
+    img = bmp.ConvertToImage()
+    cfgGui = owner.gd.cfgGui
+
+    def color(x, y):
+        return (img.GetRed(x, y), img.GetGreen(x, y), img.GetBlue(x, y))
+
+    assert color(2, 2) == cfgGui.workspaceColor.Get(False)
+
+    card = view.card
+    assert color(card.x + 10, card.GetBottom() - 4) == cfgGui.textBgColor.Get(False)
+
+    if os.environ.get("HOMEVIEW_PNG"):
+        bmp.SaveFile(
+            os.path.join(os.environ["HOMEVIEW_PNG"], "home-%s.png" % theme),
+            wx.BITMAP_TYPE_PNG,
+        )

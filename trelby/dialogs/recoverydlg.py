@@ -49,6 +49,7 @@ def offerRecovery(frame):
 
             frame.panel.ctrl.loadRecovery(e)
             frame.panel.ctrl.updateScreen()
+            frame.leaveHome()
 
     elif response == wx.ID_NO:
         if (

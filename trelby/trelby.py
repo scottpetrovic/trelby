@@ -177,7 +177,7 @@ class MyApp(wx.App):
         mainFrame.Show(True)
 
         # windows needs this for some reason
-        mainFrame.panel.ctrl.SetFocus()
+        mainFrame.focusCurrent()
 
         self.SetTopWindow(mainFrame)
 

@@ -1117,9 +1117,6 @@ def fillLanguageMenu(menu, gd, onLanguage):
             item.Check(True)
 
 
-# bind the actions that have an id to frame: their menu items and toolbar
-# buttons run them, and those with a canUse are enabled only when they can
-# be used
 # the Actions that work on the script at its cursor, or on how it's shown.
 # they do nothing while the beat board is shown in the script's place (see
 # MyPanel.showBeatBoard), and their menu items and buttons are greyed out,
@@ -1185,10 +1182,42 @@ def isBlockedByBoard(frame, a):
     )
 
 
+# the Actions that can be used while the Home screen is shown, when no
+# script is open (see MyFrame.setHomeShown): those that don't need one.
+# the others are greyed out and do nothing, since the script they'd work
+# on is the hidden empty one the next script will be opened in. the new
+# from template and import Actions are allowed by their prefixes.
+ON_HOME = {
+    "About",
+    "Fullscreen",
+    "HelpCommands",
+    "HelpManual",
+    "LoadSettings",
+    "NewScript",
+    "OpenScript",
+    "Quit",
+    "SaveSettingsAs",
+    "Settings",
+    "SpellCheckerDictionaryDlg",
+}
+
+
+# whether Action a can't be used now because the Home screen is shown
+def isBlockedByHome(frame, a):
+    return getattr(frame, "homeShown", False) and not (
+        (a.name in ON_HOME)
+        or a.name.startswith("NewScript-")
+        or a.name.startswith("Import")
+    )
+
+
 # run Action a, or what it does on the beat board (see ON_BOARD), unless
-# the board blocks it
+# the board or the Home screen blocks it
 def runAction(frame, a):
     board = shownBoard(frame)
+
+    if isBlockedByHome(frame, a):
+        return
 
     if board and (a.name in ON_BOARD):
         getattr(board, ON_BOARD[a.name])()
@@ -1196,19 +1225,20 @@ def runAction(frame, a):
         a.run(frame)
 
 
+# bind the Actions that have an id to frame: their menu items and toolbar
+# buttons run them, and they're enabled only when they can be used. every
+# one gets an update handler, since the Home screen blocks most of them.
 def bind(frame, actions):
     for a in actions:
         if a.id is None:
             continue
 
         frame.Bind(wx.EVT_MENU, lambda event, a=a: runAction(frame, a), id=a.id)
-
-        if a.canUse or a.isChecked or (a.name in SCRIPT_ONLY):
-            frame.Bind(
-                wx.EVT_UPDATE_UI,
-                lambda event, a=a: onUpdateUI(frame, event, a),
-                id=a.id,
-            )
+        frame.Bind(
+            wx.EVT_UPDATE_UI,
+            lambda event, a=a: onUpdateUI(frame, event, a),
+            id=a.id,
+        )
 
 
 # this can be called while MyFrame.init creates the first tab, before
@@ -1216,7 +1246,12 @@ def bind(frame, actions):
 def onUpdateUI(frame, event, a):
     panel = getattr(frame, "panel", None)
 
-    if panel:
+    if isBlockedByHome(frame, a):
+        event.Enable(False)
+
+        if a.isChecked:
+            event.Check(False)
+    elif panel:
         if shownBoard(frame) and (a.name in ON_BOARD):
             event.Enable(True)
         elif isBlockedByBoard(frame, a):

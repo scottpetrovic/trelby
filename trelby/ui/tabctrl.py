@@ -85,6 +85,9 @@ class MyTabCtrl(wx.Window):
         # function to call when the "+" button is clicked
         self.newTabFunc = None
 
+        # function to call when a tab's close button is clicked
+        self.closeFunc = None
+
         # width, height, spacing, y-pos of arrows
         self.arrowWidth = 8
         self.arrowHeight = 13
@@ -246,6 +249,11 @@ class MyTabCtrl(wx.Window):
     def setNewTabFunc(self, func):
         self.newTabFunc = func
 
+    # set function to call when a tab's close button is clicked, with the
+    # index of its page. it closes the page if it can be closed.
+    def setCloseFunc(self, func):
+        self.closeFunc = func
+
     def OnMotion(self, event):
         self.setNewTabHover(self.isOnNewTab(event.GetPosition().x))
         event.Skip()
@@ -300,15 +308,7 @@ class MyTabCtrl(wx.Window):
                 hitX = pageOffset >= (self.closeX - self.paddingX)
 
                 if hitX:
-                    panel = self.pages[page][0]
-                    if not panel.ctrl.canBeClosed():
-                        return
-
-                    if self.getPageCount() > 1:
-                        self.deletePage(page)
-                    else:
-                        panel.ctrl.createEmptySp()
-                        panel.ctrl.updateScreen()
+                    self.closeFunc(page)
                 else:
                     self.selectPage(page)
         else:

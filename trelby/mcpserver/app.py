@@ -95,6 +95,11 @@ class AppDoc(mcptools.LiveDoc):
 # return the ctrl of the open script with the given path, or of the
 # active tab if path is None.
 def findCtrl(gd, path):
+    if gd.mainFrame.homeShown:
+        raise mcptools.ToolError(
+            "No script is open in Trelby. Ask the user to open one."
+        )
+
     if path is None:
         return gd.mainFrame.panel.ctrl
 
@@ -114,6 +119,10 @@ def findCtrl(gd, path):
 def listOpenScripts(gd):
     active = gd.mainFrame.panel.ctrl
     scripts = []
+
+    # the Home screen's hidden empty script isn't one
+    if gd.mainFrame.homeShown:
+        return {"scripts": scripts}
 
     for ctrl in gd.mainFrame.getCtrls():
         scripts.append(

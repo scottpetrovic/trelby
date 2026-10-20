@@ -18,6 +18,7 @@ import trelby.ui.configgui as configgui
 import trelby.ui.fileio as fileio
 import trelby.formats as formats
 import trelby.ui.gutil as gutil
+import trelby.ui.homeview as homeview
 import trelby.mcpserver.app as mcpapp
 import trelby.ui.icons as icons
 import trelby.ui.menubar as menubar
@@ -139,8 +140,18 @@ class MyFrame(wx.Frame):
 
         vsizer.Add(hsizer, 0, wx.EXPAND)
 
-        tmp = tabctrl.MyTabCtrl2(self, -1, self.tabCtrl)
-        vsizer.Add(tmp, 1, wx.EXPAND)
+        # where the tabs' pages are shown
+        self.tabArea = tabctrl.MyTabCtrl2(self, -1, self.tabCtrl)
+        vsizer.Add(self.tabArea, 1, wx.EXPAND)
+
+        # whether the Home screen is shown in place of the tabs, the
+        # toolbar and the status bar, which it is while no script is open
+        # (see setHomeShown)
+        self.homeShown = False
+
+        self.home = homeview.HomeView(self, self)
+        self.home.Hide()
+        vsizer.Add(self.home, 1, wx.EXPAND)
 
         vsizer.Add(self.statusBar, 0, wx.EXPAND)
 
@@ -148,6 +159,7 @@ class MyFrame(wx.Frame):
 
         self.tabCtrl.setPageChangedFunc(self.OnPageChange)
         self.tabCtrl.setNewTabFunc(lambda: self.runAction("NewScript"))
+        self.tabCtrl.setCloseFunc(self.closeScript)
         self.applyThemeColors()
 
         menus.bind(self, self.actions.values())
@@ -198,10 +210,72 @@ class MyFrame(wx.Frame):
 
         self.Layout()
 
+    # with no script open, so the Home screen is shown. the first tab is
+    # still made, as the hidden empty script the next one opened or made
+    # goes in.
     def init(self):
         self.updateKeyMap()
         self.panel = self.createNewPanel()
+        self.setHomeShown(True)
         self.updateAutosaveTimer()
+
+    # show the Home screen in place of the tabs, or the tabs again. it's
+    # shown while no script is open: at startup, and after closing the last
+    # one, whose tab stays, hidden, with an empty script in it. opening or
+    # making a script puts it in that tab (see leaveHome), as the current
+    # tab's script is replaced when it's untouched.
+    def setHomeShown(self, show):
+        self.homeShown = show
+
+        if show:
+            self.reader.stop()
+            self.home.refresh()
+
+        self.home.Show(show)
+        self.tabArea.Show(not show)
+        self.updateBars()
+        self.updateTitle()
+        self.focusCurrent()
+
+    # leave the Home screen if the current tab's script is no longer the
+    # empty one, after something was opened in it. if opening it failed,
+    # Home stays, with the recent files as they now are.
+    def leaveHome(self):
+        if not self.homeShown:
+            return
+
+        if self.panel.ctrl.isUntouched():
+            self.home.refresh()
+        else:
+            self.setHomeShown(False)
+
+    # show or hide the tab bar, the toolbar and the status bar for the
+    # Home screen, fullscreen and the View menu's toolbar item
+    def updateBars(self):
+        full = self.IsFullScreen()
+        home = self.homeShown
+
+        self.noFSBtn.Show(full)
+        self.tabCtrl.Show(not home)
+        self.statusBar.Show(not (full or home))
+
+        # in fullscreen the frame hides the bars it manages itself
+        if self.ownMenuBar:
+            self.menuBar.Show(not full)
+
+        if self.ownMenuBar or not full:
+            self.toolBar.Show(
+                not (full or home) and self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR)
+            )
+
+        self.Layout()
+
+    # give the keyboard focus to the Home screen or the current script
+    def focusCurrent(self):
+        if self.homeShown:
+            self.home.SetFocus()
+        else:
+            self.panel.ctrl.SetFocus()
 
     # (re)start or stop the autosave timer according to the configuration
     def updateAutosaveTimer(self):
@@ -280,7 +354,10 @@ class MyFrame(wx.Frame):
         if not panel or ((ctrl is not None) and (ctrl is not panel.ctrl)):
             return
 
-        self.SetTitle("Trelby - %s" % panel.ctrl.getTitleText())
+        if self.homeShown:
+            self.SetTitle("Trelby")
+        else:
+            self.SetTitle("Trelby - %s" % panel.ctrl.getTitleText())
 
     def setTabText(self, panel, text):
         i = self.findPage(panel)
@@ -345,9 +422,12 @@ class MyFrame(wx.Frame):
         if not self.tabCtrl.getPage(self.findPage(self.panel)).ctrl.isUntouched():
             self.panel = self.createNewPanel()
 
-        self.panel.ctrl.loadFile(filename)
+        # absolute, since the Home screen shows the recent files' folders
+        if self.panel.ctrl.loadFile(filename):
+            self.gd.mru.add(os.path.abspath(filename))
+
         self.panel.ctrl.updateScreen()
-        self.gd.mru.add(filename)
+        self.leaveHome()
 
     def checkFonts(self):
         names = ["Normal", "Bold", "Italic", "Bold-Italic"]
@@ -367,9 +447,9 @@ class MyFrame(wx.Frame):
                 self,
             )
 
-    # If we get focus, pass it on to ctrl.
+    # If we get focus, pass it on to ctrl, or the Home screen.
     def OnFocus(self, event):
-        self.panel.ctrl.SetFocus()
+        self.focusCurrent()
 
     def OnMenuHighlight(self, event):
         # default implementation modifies status bar, so we need to
@@ -407,13 +487,21 @@ class MyFrame(wx.Frame):
     # a new script, laid out in the format with the given key (see
     # scriptformats), or as a screenplay
     def OnNewScript(self, formatKey=None):
-        self.panel = self.createNewPanel()
+        # on the Home screen, the hidden tab's empty script is the new one
+        if self.homeShown:
+            self.setHomeShown(False)
+        else:
+            self.panel = self.createNewPanel()
 
         if formatKey:
             self.panel.ctrl.useFormat(formatKey)
 
     def OnMRUFile(self, event):
-        i = event.GetId() - self.gd.mru.getIds()[0]
+        self.openRecent(event.GetId() - self.gd.mru.getIds()[0])
+
+    # open the i'th recent file, or if it's gone, say so and take it off
+    # the list
+    def openRecent(self, i):
         filename = self.gd.mru.get(i)
 
         if not os.path.exists(filename):
@@ -425,14 +513,24 @@ class MyFrame(wx.Frame):
                 wx.OK,
                 self,
             )
-            self.gd.mru.remove(i)
+            self.removeRecent(i)
 
             return
 
         self.openScript(filename)
 
+    # take the i'th file off the recent files
+    def removeRecent(self, i):
+        self.gd.mru.remove(i)
+
+        if self.homeShown:
+            self.home.refresh()
+
     def OnClearRecentFiles(self, event=None):
         self.gd.mru.clear()
+
+        if self.homeShown:
+            self.home.refresh()
 
     def OnOpen(self, event=None):
         dlg = wx.FileDialog(
@@ -477,6 +575,7 @@ class MyFrame(wx.Frame):
 
         self.panel.ctrl.importFile(path, fmt)
         self.panel.ctrl.updateScreen()
+        self.leaveHome()
 
     # open files dropped on the window: scripts are opened and the import
     # formats' files imported, each in its own tab. returns the names of
@@ -507,15 +606,25 @@ class MyFrame(wx.Frame):
         return bad
 
     def OnCloseScript(self, event=None):
-        if not self.panel.ctrl.canBeClosed():
+        self.closeScript(self.tabCtrl.getSelectedPageIndex())
+
+    # close the script in tab i, from File / Close or the tab's close
+    # button, after asking about unsaved changes. closing the last one
+    # empties its tab and shows the Home screen.
+    def closeScript(self, i):
+        ctrl = self.tabCtrl.getPage(i).ctrl
+
+        if not ctrl.canBeClosed():
             return
 
+        ctrl.removeRecovery()
+
         if self.tabCtrl.getPageCount() > 1:
-            self.panel.ctrl.removeRecovery()
-            self.tabCtrl.deletePage(self.tabCtrl.getSelectedPageIndex())
+            self.tabCtrl.deletePage(i)
         else:
-            self.panel.ctrl.createEmptySp()
-            self.panel.ctrl.updateScreen()
+            ctrl.createEmptySp()
+            ctrl.updateScreen()
+            self.setHomeShown(True)
 
     def OnSettings(self):
         dlg = cfgdlg.CfgDlg(
@@ -575,6 +684,7 @@ class MyFrame(wx.Frame):
         self.tools.refreshColors()
         self.noFSBtn.Refresh(False)
         self.applyThemeColors()
+        self.home.Refresh(False)
 
         # and the open dialogs, like the settings dialog this may have been
         # applied from
@@ -612,7 +722,7 @@ class MyFrame(wx.Frame):
     # control, and give the keyboard focus back to the script
     def runBarAction(self, name):
         self.runAction(name)
-        self.panel.ctrl.SetFocus()
+        self.focusCurrent()
 
     # the LoadSettings / SaveSettingsAs keyboard commands. the settings
     # dialog has buttons for these too.
@@ -730,8 +840,7 @@ class MyFrame(wx.Frame):
             self.tabCtrl.getPage(i).applyTheme(cfgGui)
 
     def ShowHideToolbar(self, event=None):
-        self.toolBar.Show(self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR))
-        self.Layout()
+        self.updateBars()
 
     # from the View menu items, or the keyboard commands
     def setViewMode(self, mode):
@@ -801,21 +910,11 @@ class MyFrame(wx.Frame):
             page.board.setZoom(zoom, pos if page is self.panel else None)
 
     def ToggleFullscreen(self, event=None):
-        fullScreen = not self.IsFullScreen()
-
-        self.noFSBtn.Show(fullScreen)
-        self.statusBar.Show(not fullScreen)
-
-        # FULLSCREEN_ALL only hides the bars the frame manages
-        if self.ownMenuBar:
-            self.menuBar.Show(not fullScreen)
-            self.toolBar.Show(
-                not fullScreen and self.menuBar.IsChecked(ID_SHOW_HIDE_TOOLBAR)
-            )
-
-        self.ShowFullScreen(fullScreen, wx.FULLSCREEN_ALL)
-        self.Layout()
-        self.panel.ctrl.SetFocus()
+        # FULLSCREEN_ALL only hides the bars the frame manages, so
+        # updateBars does the rest
+        self.ShowFullScreen(not self.IsFullScreen(), wx.FULLSCREEN_ALL)
+        self.updateBars()
+        self.focusCurrent()
 
     def OnSpellCheckerDictionaryDlg(self, event=None):
         dlg = spellcheckcfgdlg.SCDictDlg(self, copy.deepcopy(self.gd.scDict), True)

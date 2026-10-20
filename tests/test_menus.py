@@ -280,6 +280,57 @@ def testPasteOnBoard():
     assert ran == ["Paste"]
 
 
+# while the Home screen is shown, only the Actions that don't need a script
+# run, and the others are greyed out
+def testHomeBlocksScriptActions():
+    class Panel:
+        boardShown = False
+        ctrl = None
+
+    class Frame:
+        homeShown = True
+        panel = Panel()
+
+    class Event:
+        def Enable(self, on):
+            self.enabled = on
+
+        def Check(self, on):
+            self.checked = on
+
+    frame = Frame()
+    acts = actionMap()
+    ran = []
+
+    for a in acts.values():
+        a.run = lambda f, name=a.name: ran.append(name)
+
+    allowed = ["NewScript", "NewScript-sitcom", "OpenScript", "ImportFdx", "Quit"]
+    blocked = ["Copy", "SaveScript", "CloseScript", "ZoomIn", "ToggleRevisionMode"]
+
+    for name in allowed + blocked:
+        menus.runAction(frame, acts[name])
+
+        e = Event()
+        menus.onUpdateUI(frame, e, acts[name])
+        assert e.enabled == (name in allowed), name
+
+    assert ran == allowed
+
+    # with a script shown, they all run
+    frame.homeShown = False
+    menus.runAction(frame, acts["Copy"])
+    assert ran[-1] == "Copy"
+
+
+# every Action ON_HOME allows exists
+def testOnHomeActionsExist():
+    names = actionMap()
+
+    for name in menus.ON_HOME:
+        assert name in names, name
+
+
 # CTRL-SPACE switches to the beat board, a fixed key: a config saved when
 # it was Set mark's loses it there, keeping Set mark's other keys
 def testFixedKeyTakenFromOldBinding():
