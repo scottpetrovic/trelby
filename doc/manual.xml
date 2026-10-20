@@ -667,6 +667,14 @@
 	  before the first scene heading, such as 'FADE IN:', stays where it
 	  is. Moving scenes can be undone like any other edit.</para>
 
+	  <para>An act can be collapsed to hide its scenes, by clicking the
+	  arrow left of its act break, pressing Left in the list (Right
+	  expands it again), or from the right-click menu, which can also
+	  collapse or expand all acts. A collapsed act shows how many scenes
+	  it has, and moving it moves the whole act. A scene moved below a
+	  collapsed act goes at the end of that act, which is expanded to
+	  show it.</para>
+
 	</sect1>
 
 	<sect1>

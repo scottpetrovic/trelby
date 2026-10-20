@@ -208,20 +208,24 @@ class OutlineEditMixin:
 
         return self.moveSceneTo(line, idx + direction)
 
-    # move the scene (or act break) containing the given line so that it
+    # move the scene (or act break) containing the given line, and the
+    # count - 1 items after it (a folded act in the outline), so that it
     # becomes item number newIndex (0-based) in the outline, shifting the
-    # ones in between by one. material before the first scene / act break
-    # is never moved, and nothing can be moved above it. on success, the
+    # ones in between. material before the first scene / act break is
+    # never moved, and nothing can be moved above it. on success, the
     # cursor is placed at the start of the moved scene and True is
     # returned.
-    def moveSceneTo(self, line, newIndex):
+    def moveSceneTo(self, line, newIndex, count=1):
         starts = self.sp.getOutlineStarts()
         idx = self.sp.getOutlineIndex(starts, line)
 
-        if (idx == -1) or (newIndex == idx):
+        if (idx == -1) or (newIndex == idx) or (count < 1):
             return False
 
-        if (newIndex < 0) or (newIndex >= len(starts)):
+        if (newIndex < 0) or (newIndex + count > len(starts)):
+            return False
+
+        if idx + count > len(starts):
             return False
 
         self.clearAutoComp()
@@ -234,13 +238,18 @@ class OutlineEditMixin:
         # moving a scene is like cutting and pasting it: the pages it was
         # locked to stay where they were, starting from whatever followed
         # the scene.
-        if idx + 1 < len(blocks):
-            self.sp.movePageLocksForward(starts[idx], bounds[idx + 1] - 1)
-        else:
-            for ln in blocks[idx]:
-                ln.pageLock = None
+        end = idx + count
 
-        blocks.insert(newIndex, blocks.pop(idx))
+        if end < len(blocks):
+            self.sp.movePageLocksForward(starts[idx], bounds[end] - 1)
+        else:
+            for block in blocks[idx:]:
+                for ln in block:
+                    ln.pageLock = None
+
+        moved = [ln for block in blocks[idx:end] for ln in block]
+        del blocks[idx:end]
+        blocks.insert(newIndex, moved)
 
         newLines = []
 

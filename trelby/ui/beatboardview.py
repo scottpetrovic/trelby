@@ -31,6 +31,15 @@
 #
 # the board is drawn on a paper texture in the theme's board color (made
 # when it's first needed, see paperShading), with the grid over it.
+#
+# acts (beatboard.Act) are frames on the board, under the cards, that hold
+# cards in order, laid out inside them (BeatBoard.layout, which runs after
+# every change that can move or resize a card). dropping cards on an act
+# puts them in it where the mouse is, shown by a line between its cards
+# while dragging, and dropping them outside takes them out of it. an act's
+# title bar has an arrow that folds it (hiding its cards) and an "x" that
+# deletes it, leaving its cards on the board; dragging it moves the act,
+# and dragging its bottom right corner makes it wider or narrower.
 
 import copy
 import io
@@ -89,6 +98,12 @@ CLOSE_MARGIN = 3
 
 # how far apart the cards of several pictures added at once are put
 CASCADE = 30
+
+# acts' titles' font size at 100% zoom, in points, and the width of the
+# arrow that folds an act, at the left of its title bar, in unscaled
+# pixels
+ACT_FONT_SIZE = 11
+ACT_FOLD_WIDTH = 32
 
 # the picture files the file dialog offers
 PICTURE_WILDCARD = "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tif;*.tiff"
@@ -379,10 +394,25 @@ class BeatBoardView(wx.ScrolledWindow):
         # was. otherwise None.
         self.resize = None
 
-        # whether the mouse is over a card's resizing corner
-        self.overGrip = False
+        # while an act is being moved by its title bar: (act, x, y), where
+        # (x, y) is where on it it was grabbed, and whether it has moved.
+        # otherwise None.
+        self.actDrag = None
 
-        # the card whose delete button the mouse is over, or None
+        # while an act is being made wider or narrower: (act, x, its
+        # width), where x is where the mouse was pressed, on the board.
+        # otherwise None.
+        self.actResize = None
+
+        # while cards are being dragged: where they'd go if dropped, (act,
+        # index among its other cards), or None if not in an act
+        self.dropTarget = None
+
+        # what kind of resizing corner the mouse is over: "card", "act" or
+        # None
+        self.overGrip = None
+
+        # the card (or act) whose delete button the mouse is over, or None
         self.hover = None
 
         # whether the last left button press was on a delete button
@@ -397,9 +427,9 @@ class BeatBoardView(wx.ScrolledWindow):
         # whether the space bar is held down, which makes dragging pan
         self.spaceDown = False
 
-        # while a card's text is being edited on the board: (card, the
-        # text control on top of it, whether the card is new). otherwise
-        # None.
+        # while a card's text (or an act's title) is being edited on the
+        # board: (card or act, the text control on top of it, whether the
+        # card is new). otherwise None.
         self.editing = None
 
         self.cfgGui = theming.currentCfgGui()
@@ -458,10 +488,14 @@ class BeatBoardView(wx.ScrolledWindow):
         self.drag = None
         self.band = None
         self.resize = None
+        self.actDrag = None
+        self.actResize = None
+        self.dropTarget = None
         self.pan = None
         self.selection = []
         self.hover = None
         self.board = copy.deepcopy(sp.beatBoard)
+        self.layout()
 
         # forget the pictures of cards that are gone
         used = {b.image for b in self.board.beats if b.image}
@@ -472,24 +506,58 @@ class BeatBoardView(wx.ScrolledWindow):
         self.updateCursor()
         self.Refresh()
 
+    # put the acts' cards in place, after anything that can change their
+    # sizes or order
+    def layout(self):
+        self.board.layout(self.cardSize)
+
     # put the board in the script, if it has changed, as an undo step
     def commit(self):
+        self.layout()
         ctrl = self.panel.ctrl
 
         if ctrl.ed.setBeatBoard(copy.deepcopy(self.board)):
             # the modified mark and the undo buttons
             ctrl.updateScreen(redraw=False)
 
-    # add a new card at (x, y) and let the user write on it. the card goes
-    # away again if nothing is written on it.
-    def addCard(self, x, y):
+    # add a new card at (x, y) and let the user write on it, or in 'act'
+    # at 'index' among its cards if it's given. the card goes away again
+    # if nothing is written on it.
+    def addCard(self, x, y, act=None, index=None):
         beat = beatboard.Beat("", x, y)
         beat.color = beatboard.DEFAULT_COLOR
         self.board.beats.append(beat)
+
+        if act:
+            act.beats.insert(len(act.beats) if index is None else index, beat)
+            self.layout()
+
         self.updateVirtualSize()
         self.startEdit(beat, True)
 
         return beat
+
+    # the act whose unfolded frame is at (x, y) on the board, and where in
+    # it a card dropped there would go, leaving out the cards in 'skip':
+    # (act, index), or None
+    def actSlotAt(self, x, y, skip=()):
+        for act in reversed(self.board.acts):
+            if act.folded or not self.actBoardRect(act).Contains(x, y):
+                continue
+
+            return (act, act.insertIndex(x, y, self.cardSize, skip))
+
+        return None
+
+    # put the cards in the list 'beats' in the act that's at (x, y) on the
+    # board, if there's one, where they'd be dropped there
+    def putInActAt(self, beats, x, y):
+        slot = self.actSlotAt(x, y)
+
+        if slot:
+            act, index = slot
+            act.beats[index:index] = beats
+            self.layout()
 
     # add a card for each of 'images' (Beat.image values), the first one
     # centered at the mouse position pos (or the middle of the window if
@@ -517,6 +585,7 @@ class BeatBoardView(wx.ScrolledWindow):
             beats.append(beat)
 
         if beats:
+            self.putInActAt(beats, x, y)
             self.updateVirtualSize()
             self.select(beats[-1])
             self.commit()
@@ -668,6 +737,7 @@ class BeatBoardView(wx.ScrolledWindow):
     # its picture away)
     def setPicture(self, beat, image):
         beat.image = image
+        self.layout()
         self.updateVirtualSize()
         self.commit()
         self.Refresh()
@@ -810,15 +880,89 @@ class BeatBoardView(wx.ScrolledWindow):
 
         return (self.unpx(x), self.unpx(y))
 
-    # return the topmost card at the mouse position pos, or None
+    # return the topmost card at the mouse position pos, or None. cards in
+    # folded acts aren't there.
     def hitTest(self, pos):
         x, y = self.CalcUnscrolledPosition(pos.x, pos.y)
 
-        for beat in reversed(self.board.beats):
+        for beat in reversed(self.board.shownBeats()):
             if self.cardRect(beat).Contains(x, y):
                 return beat
 
         return None
+
+    # an act's frame, on the board
+    def actBoardRect(self, act):
+        return wx.Rect(act.x, act.y, act.width, act.height)
+
+    # an act's frame, in the window's unscrolled coordinates
+    def actRect(self, act):
+        px = self.px
+
+        return wx.Rect(px(act.x), px(act.y), px(act.width), px(act.height))
+
+    # an act's title bar, in the window's unscrolled coordinates
+    def actTitleRect(self, act):
+        r = self.actRect(act)
+        r.height = self.px(beatboard.ACT_TITLE_HEIGHT)
+
+        return r
+
+    # the arrow that folds an act, at the left of its title bar
+    def actFoldRect(self, act):
+        r = self.actTitleRect(act)
+        r.width = self.px(ACT_FOLD_WIDTH)
+
+        return r
+
+    # the button that deletes an act, at the right of its title bar
+    def actCloseRect(self, act):
+        r = self.actTitleRect(act)
+        size = self.px(CLOSE_SIZE)
+        margin = (r.height - size) // 2
+
+        return wx.Rect(r.GetRight() + 1 - margin - size, r.y + margin, size, size)
+
+    # the corner of an unfolded act that makes it wider or narrower
+    def actGripRect(self, act):
+        r = self.actRect(act)
+        size = self.px(RESIZE_GRIP)
+
+        return wx.Rect(r.GetRight() + 1 - size, r.GetBottom() + 1 - size, size, size)
+
+    # the topmost act at the mouse position pos, and which part of it is
+    # there: (act, "close" / "fold" / "title" / "grip" / "body"), or (None,
+    # None). cards on top of it aren't looked at.
+    def actHitTest(self, pos):
+        x, y = self.CalcUnscrolledPosition(pos.x, pos.y)
+
+        for act in reversed(self.board.acts):
+            if not self.actRect(act).Contains(x, y):
+                continue
+
+            if self.actCloseRect(act).Contains(x, y):
+                return (act, "close")
+
+            if self.actFoldRect(act).Contains(x, y):
+                return (act, "fold")
+
+            if self.actTitleRect(act).Contains(x, y):
+                return (act, "title")
+
+            if (not act.folded) and self.actGripRect(act).Contains(x, y):
+                return (act, "grip")
+
+            return (act, "body")
+
+        return (None, None)
+
+    # the act at the mouse position pos, with nothing on top of it there,
+    # and which part of it is there (see actHitTest)
+    def actAt(self, pos):
+        if self.hitTest(pos):
+            return (None, None)
+
+        return self.actHitTest(pos)
 
     # the corner of beat's card that resizes it, in the window's
     # unscrolled coordinates
@@ -857,18 +1001,26 @@ class BeatBoardView(wx.ScrolledWindow):
 
         return None
 
-    # note which card's delete button the mouse is over at pos (None when
-    # it's not in the window), redrawing it and changing the tooltip if
-    # that changed
+    # note which card's (or act's) delete button the mouse is over at pos
+    # (None when it's not in the window), redrawing it and changing the
+    # tooltip if that changed
     def setHover(self, pos):
         hover = self.closeHitTest(pos) if pos else None
+
+        if pos and not hover:
+            act, part = self.actAt(pos)
+
+            if part == "close":
+                hover = act
 
         if hover is self.hover:
             return
 
         self.hover = hover
 
-        if hover:
+        if isinstance(hover, beatboard.Act):
+            self.SetToolTip(_("Delete act, keeping its cards"))
+        elif hover:
             self.SetToolTip(_("Delete card"))
         else:
             self.UnsetToolTip()
@@ -881,8 +1033,10 @@ class BeatBoardView(wx.ScrolledWindow):
         cw, ch = self.GetClientSize()
         w = h = 0
 
-        for beat in self.board.beats:
-            r = self.cardRect(beat)
+        rects = [self.cardRect(b) for b in self.board.shownBeats()]
+        rects += [self.actRect(act) for act in self.board.acts]
+
+        for r in rects:
             w = max(w, r.GetRight())
             h = max(h, r.GetBottom())
 
@@ -904,17 +1058,31 @@ class BeatBoardView(wx.ScrolledWindow):
             self.scrollTo(r.x - gap, r.y - gap)
 
     # show the hand cursor while space is held down or the board is being
-    # panned, and the resizing one over a card's corner or while resizing
+    # panned, and the resizing ones over a card's or an act's corner or
+    # while resizing
     def updateCursor(self):
         if self.pan or self.spaceDown:
             self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
-        elif self.resize or self.overGrip:
+        elif self.resize or (self.overGrip == "card"):
             self.SetCursor(wx.Cursor(wx.CURSOR_SIZENWSE))
+        elif self.actResize or (self.overGrip == "act"):
+            self.SetCursor(wx.Cursor(wx.CURSOR_SIZEWE))
         else:
             self.SetCursor(wx.NullCursor)
 
+    # whether something is being dragged with the mouse
+    def isDragging(self):
+        return bool(
+            self.drag
+            or self.band
+            or self.resize
+            or self.actDrag
+            or self.actResize
+            or self.pan
+        )
+
     def startPan(self, event):
-        if self.drag or self.band or self.resize or self.pan:
+        if self.isDragging():
             return
 
         pos = event.GetPosition()
@@ -957,7 +1125,7 @@ class BeatBoardView(wx.ScrolledWindow):
             self.setSelection(self.selection + [beat])
 
     def selectAll(self):
-        self.setSelection(self.board.beats)
+        self.setSelection(self.board.shownBeats())
 
     # edit beat's text on the board, in a text control on top of the card.
     # a new card is deleted if it's left empty.
@@ -993,14 +1161,72 @@ class BeatBoardView(wx.ScrolledWindow):
         ctrl.SetFocus()
         ctrl.SetInsertionPointEnd()
 
-    # stop editing a card's text, if one is being edited, keeping the new
-    # text or not. 'refocus' gives the board the focus back.
+    # edit act's title on the board, in a text control on its title bar
+    def startTitleEdit(self, act):
+        self.finishEdit(True)
+
+        r = self.actTitleRect(act)
+        fold = self.actFoldRect(act)
+        close = self.actCloseRect(act)
+        font = self.actFont()
+
+        dc = wx.ClientDC(self)
+        dc.SetFont(font)
+        h = dc.GetTextExtent("Ag")[1] + self.FromDIP(6)
+
+        rect = wx.Rect(
+            fold.GetRight() + 1,
+            r.y + (r.height - h) // 2,
+            close.x - self.px(8) - fold.GetRight(),
+            h,
+        )
+
+        ctrl = wx.TextCtrl(
+            self,
+            -1,
+            act.title,
+            self.CalcScrolledPosition(rect.GetTopLeft()),
+            rect.GetSize(),
+            style=wx.BORDER_NONE,
+        )
+        bg, fg = self.getActColors(act)[1:3]
+        ctrl.SetBackgroundColour(bg)
+        ctrl.SetForegroundColour(fg)
+        ctrl.SetFont(font)
+        ctrl.SetToolTip(_("Enter or click outside to finish, Esc to cancel"))
+
+        ctrl.Bind(wx.EVT_CHAR_HOOK, self.OnEditKey)
+        ctrl.Bind(wx.EVT_KILL_FOCUS, lambda e: self.OnEditKillFocus(e, ctrl))
+
+        self.editing = (act, ctrl, False)
+
+        ctrl.SetFocus()
+        ctrl.SelectAll()
+
+    # stop editing a card's text (or an act's title), if one is being
+    # edited, keeping the new text or not. 'refocus' gives the board the
+    # focus back.
     def finishEdit(self, keep, refocus=False):
         if not self.editing:
             return
 
         beat, ctrl, isNew = self.editing
         self.editing = None
+
+        if isinstance(beat, beatboard.Act):
+            if keep and ctrl.GetValue().strip():
+                beat.title = ctrl.GetValue().strip()
+
+            ctrl.Hide()
+            wx.CallAfter(ctrl.Destroy)
+
+            if refocus:
+                self.SetFocus()
+
+            self.commit()
+            self.Refresh()
+
+            return
 
         if keep:
             beat.text = ctrl.GetValue()
@@ -1014,7 +1240,7 @@ class BeatBoardView(wx.ScrolledWindow):
             self.SetFocus()
 
         if isNew and not (beat.text.strip() or beat.image):
-            self.board.beats.remove(beat)
+            self.board.remove([beat])
             self.selection = [b for b in self.selection if b is not beat]
             self.updateVirtualSize()
 
@@ -1024,9 +1250,14 @@ class BeatBoardView(wx.ScrolledWindow):
     def OnEditKey(self, event):
         kc = event.GetKeyCode()
 
+        # an act's title is one line, which Enter ends
+        oneLine = bool(self.editing) and isinstance(self.editing[0], beatboard.Act)
+
         if kc == wx.WXK_ESCAPE:
             self.finishEdit(False, True)
-        elif event.ControlDown() and (kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)):
+        elif (event.ControlDown() or oneLine) and (
+            kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
+        ):
             self.finishEdit(True, True)
         else:
             event.Skip()
@@ -1051,7 +1282,7 @@ class BeatBoardView(wx.ScrolledWindow):
             return
 
         beats = list(beats)
-        self.board.beats = [b for b in self.board.beats if b not in beats]
+        self.board.remove(beats)
         self.selection = [b for b in self.selection if b not in beats]
 
         if self.hover in beats:
@@ -1059,6 +1290,103 @@ class BeatBoardView(wx.ScrolledWindow):
             self.UnsetToolTip()
 
         self.updateVirtualSize()
+        self.commit()
+        self.Refresh()
+
+    # add a new act with its top left corner at (x, y) on the board,
+    # holding the cards in the list 'beats' (taken out of their acts), in
+    # the order they're read in, and let the user name it
+    def addAct(self, x, y, beats=()):
+        act = beatboard.Act(
+            _("Act %d") % (len(self.board.acts) + 1),
+            min(max(0, x), beatboard.MAX_COORD),
+            min(max(0, y), beatboard.MAX_COORD),
+        )
+
+        beats = sorted(beats, key=lambda b: (b.y, b.x))
+        self.board.takeOut(beats)
+        act.beats = list(beats)
+
+        if beats:
+            # wide enough for the cards side by side, up to the usual
+            # number of them
+            widths = [self.cardSize(b)[0] for b in beats[: beatboard.ACT_COLUMNS]]
+            act.setWidth(
+                sum(widths)
+                + beatboard.ACT_GAP * (len(widths) - 1)
+                + 2 * beatboard.ACT_PAD
+            )
+
+        self.board.acts.append(act)
+        self.commit()
+        self.updateVirtualSize()
+        self.Refresh()
+        self.startTitleEdit(act)
+
+        return act
+
+    # put the cards in the list 'beats' in a new act just above where they
+    # are
+    def addActAround(self, beats):
+        x = min(b.x for b in beats) - beatboard.ACT_PAD
+        y = min(b.y for b in beats) - beatboard.ACT_TOP
+
+        return self.addAct(x, y, beats)
+
+    # delete act, leaving its cards on the board where they are, or
+    # deleting them too if 'withCards' is True, as one undo step
+    def deleteAct(self, act, withCards=False):
+        if withCards:
+            self.selection = [b for b in self.selection if b not in act.beats]
+            self.board.remove(act.beats)
+
+        self.board.acts = [a for a in self.board.acts if a is not act]
+
+        if self.hover is act:
+            self.hover = None
+            self.UnsetToolTip()
+
+        self.updateVirtualSize()
+        self.commit()
+        self.Refresh()
+
+    # fold act if it's unfolded, or the other way around
+    def toggleFold(self, act):
+        act.folded = not act.folded
+
+        # the cards hidden by folding it aren't selected
+        if act.folded:
+            self.selection = [b for b in self.selection if b not in act.beats]
+
+        self.commit()
+        self.updateVirtualSize()
+        self.Refresh()
+
+    # fold or unfold every act
+    def foldAll(self, fold):
+        for act in self.board.acts:
+            if act.folded != fold:
+                act.folded = fold
+
+                if fold:
+                    self.selection = [
+                        b for b in self.selection if b not in act.beats
+                    ]
+
+        self.commit()
+        self.updateVirtualSize()
+        self.Refresh()
+
+    # take the cards in the list 'beats' out of their acts, leaving them
+    # where they are
+    def takeOutOfActs(self, beats):
+        self.board.takeOut(beats)
+        self.commit()
+        self.Refresh()
+
+    # give act the color 'color'
+    def setActColor(self, act, color):
+        act.color = color
         self.commit()
         self.Refresh()
 
@@ -1080,10 +1408,185 @@ class BeatBoardView(wx.ScrolledWindow):
         self.drawGrid(dc, boardColor, textColor)
         self.drawHint(dc, boardColor, textColor)
 
-        for beat in self.board.beats:
+        for act in self.board.acts:
+            self.drawAct(dc, act)
+
+        for beat in self.board.shownBeats():
             self.drawCard(dc, beat)
 
+        self.drawDropMark(dc)
         self.drawBand(dc)
+
+    # the font of acts' titles, at the zoom level
+    def actFont(self):
+        font = wx.Font(self.GetFont()).Bold()
+        font.SetFractionalPointSize(ACT_FONT_SIZE * self.zoom / 100)
+
+        return font
+
+    # the colors of an act: (its frame's background, its title bar's
+    # background, its title's color, its border)
+    def getActColors(self, act):
+        board, _card, text = self.getColors()[:3]
+        base = str2color(act.color) if act.color else text
+
+        fill = theming.blendColors(board, base, 0.22 if act.color else 0.06)
+        bar = theming.blendColors(board, base, 0.45 if act.color else 0.12)
+        border = theming.blendColors(board, base if act.color else text, 0.4)
+
+        fg = text
+
+        if abs(luminance(bar) - luminance(fg)) < 0.4:
+            fg = wx.Colour(32, 32, 32) if luminance(bar) > 0.5 else wx.WHITE
+
+        return (fill, bar, fg, border)
+
+    # the text shown after a folded act's title
+    def foldedText(self, act):
+        cnt = len(act.beats)
+
+        if cnt == 1:
+            return _("1 card")
+
+        return _("%d cards") % cnt
+
+    def drawAct(self, dc, act):
+        px = self.px
+        _board, _bg, _fg, _border, _shadow, accent = self.getColors()
+        fill, bar, fg, border = self.getActColors(act)
+
+        r = self.actRect(act)
+        title = self.actTitleRect(act)
+        radius = px(10)
+
+        target = self.dropTarget and (self.dropTarget[0] is act)
+
+        dc.SetPen(wx.Pen(accent, self.FromDIP(2)) if target else wx.Pen(border))
+        dc.SetBrush(wx.Brush(fill))
+        dc.DrawRoundedRectangle(r, radius)
+
+        # the title bar, its bottom corners square unless it's all there is
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.SetBrush(wx.Brush(bar))
+        inner = wx.Rect(title).Deflate(self.FromDIP(1))
+        dc.DrawRoundedRectangle(inner, radius)
+
+        if not act.folded:
+            dc.DrawRectangle(
+                inner.x, inner.y + inner.height // 2, inner.width, inner.height // 2
+            )
+            dc.SetPen(wx.Pen(border))
+            dc.DrawLine(r.x, title.GetBottom(), r.GetRight() + 1, title.GetBottom())
+
+        # the arrow
+        fold = self.actFoldRect(act)
+        cx = fold.x + fold.width // 2
+        cy = fold.y + fold.height // 2
+        h = max(2, px(5))
+
+        if act.folded:
+            pts = [(cx - h // 2, cy - h), (cx - h // 2, cy + h), (cx + h, cy)]
+        else:
+            pts = [(cx - h, cy - h // 2), (cx + h, cy - h // 2), (cx, cy + h)]
+
+        dc.SetPen(wx.Pen(fg))
+        dc.SetBrush(wx.Brush(fg))
+        dc.DrawPolygon([wx.Point(x, y) for x, y in pts])
+
+        # the title, and how many cards a folded act has
+        close = self.actCloseRect(act)
+        x = fold.GetRight() + 1
+        width = close.x - px(8) - x
+
+        titleFont = self.actFont()
+        extraFont = wx.Font(titleFont)
+        extraFont.SetWeight(wx.FONTWEIGHT_NORMAL)
+
+        text = act.title.upper()
+        extra = self.foldedText(act) if act.folded else ""
+        extraW = 0
+
+        if extra:
+            dc.SetFont(extraFont)
+            extraW = dc.GetTextExtent(extra)[0] + px(12)
+
+        dc.SetFont(titleFont)
+        dc.SetTextForeground(fg)
+
+        if width - extraW > 0:
+            text = wx.Control.Ellipsize(text, dc, wx.ELLIPSIZE_END, width - extraW)
+            tw, th = dc.GetTextExtent(text)
+            dc.DrawText(text, x, cy - th // 2)
+
+            if extra:
+                dc.SetFont(extraFont)
+                dc.SetTextForeground(theming.blendColors(fg, bar, 0.4))
+                eh = dc.GetTextExtent(extra)[1]
+                dc.DrawText(extra, x + tw + px(12), cy - eh // 2)
+
+        self.drawCloseAt(dc, close, self.hover is act, bar, fg)
+
+        if act.folded:
+            return
+
+        # where cards go in an empty act
+        if not act.beats:
+            dc.SetFont(self.cardFont().Italic())
+            dc.SetTextForeground(theming.blendColors(fg, fill, 0.5))
+            hint = _("Drag cards here")
+            tw, th = dc.GetTextExtent(hint)
+            top = title.GetBottom()
+            height = r.GetBottom() - top
+
+            if tw < r.width:
+                dc.DrawText(hint, r.x + (r.width - tw) // 2, top + (height - th) // 2)
+
+        # the corner that resizes it
+        right = r.GetRight() - px(4)
+        bottom = r.GetBottom() - px(4)
+        dc.SetPen(wx.Pen(border, max(1, self.FromDIP(1))))
+
+        for n in (4, 8):
+            d = px(n)
+            dc.DrawLine(right - d, bottom, right, bottom - d)
+
+    # draw where the cards being dragged would go in an act, a line in the
+    # accent color before the card they'd go in front of, or after the
+    # last one
+    def drawDropMark(self, dc):
+        if not (self.drag and self.dropTarget):
+            return
+
+        act, index = self.dropTarget
+
+        if act.folded:
+            return
+
+        px = self.px
+        moved = {id(b) for b, _x, _y in self.drag[3]}
+        others = [b for b in act.beats if id(b) not in moved]
+        gap = beatboard.ACT_GAP
+
+        if index < len(others):
+            b = others[index]
+            x = b.x - gap // 2
+            y, h = b.y, self.cardSize(b)[1]
+        elif others:
+            b = others[-1]
+            w, h = self.cardSize(b)
+            x = b.x + w + gap // 2
+            y = b.y
+        else:
+            x = act.x + beatboard.ACT_PAD // 2
+            y = act.y + beatboard.ACT_TOP
+            h = beatboard.CARD_HEIGHT
+
+        accent = self.getColors()[5]
+        width = max(2, px(4))
+
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.SetBrush(wx.Brush(accent))
+        dc.DrawRoundedRectangle(px(x) - width // 2, px(y), width, px(h), width // 2)
 
     # draw the box being dragged out to select cards, if one is, in a tint
     # of the accent color
@@ -1111,11 +1614,14 @@ class BeatBoardView(wx.ScrolledWindow):
     # draw the button that deletes beat, an x that gets a circle behind it
     # when the mouse is over it
     def drawClose(self, dc, beat, cardBg, cardFg):
-        r = self.closeRect(beat)
+        self.drawCloseAt(dc, self.closeRect(beat), self.hover is beat, cardBg, cardFg)
+
+    # draw a delete button in r, on the background cardBg
+    def drawCloseAt(self, dc, r, hovered, cardBg, cardFg):
         cx = r.x + r.width // 2
         cy = r.y + r.height // 2
 
-        if self.hover is beat:
+        if hovered:
             dc.SetPen(wx.TRANSPARENT_PEN)
             dc.SetBrush(wx.Brush(theming.blendColors(cardBg, cardFg, 0.15)))
             dc.DrawCircle(cx, cy, r.width // 2)
@@ -1339,11 +1845,38 @@ class BeatBoardView(wx.ScrolledWindow):
 
         pos = event.GetPosition()
         closing = self.closeHitTest(pos)
-        self.lastClickButton = bool(closing)
+        act, part = self.actAt(pos)
+        self.lastClickButton = bool(closing) or (part in ("close", "fold"))
 
         if closing:
             self.deleteCard(closing)
             self.setHover(pos)
+
+            return
+
+        if part == "close":
+            self.deleteAct(act)
+            self.setHover(pos)
+
+            return
+
+        if part == "fold":
+            self.toggleFold(act)
+
+            return
+
+        if part == "title":
+            x, y = self.toBoard(pos)
+            self.actDrag = (act, x - act.x, y - act.y, False)
+            self.CaptureMouse()
+
+            return
+
+        if part == "grip":
+            x, _y = self.toBoard(pos)
+            self.actResize = (act, x, act.width)
+            self.updateCursor()
+            self.CaptureMouse()
 
             return
 
@@ -1406,6 +1939,23 @@ class BeatBoardView(wx.ScrolledWindow):
 
             return
 
+        if self.actDrag:
+            if event.Dragging() and event.LeftIsDown():
+                self.moveActTo(event.GetPosition())
+
+            return
+
+        if self.actResize:
+            if event.Dragging() and event.LeftIsDown():
+                act, x0, w0 = self.actResize
+                x, _y = self.toBoard(event.GetPosition())
+                act.setWidth(w0 + x - x0)
+                self.layout()
+                self.updateVirtualSize()
+                self.Refresh()
+
+            return
+
         if self.band:
             if event.Dragging() and event.LeftIsDown():
                 self.bandTo(event.GetPosition())
@@ -1413,7 +1963,12 @@ class BeatBoardView(wx.ScrolledWindow):
             return
 
         if not self.drag:
-            over = bool(self.gripHitTest(event.GetPosition()))
+            over = None
+
+            if self.gripHitTest(event.GetPosition()):
+                over = "card"
+            elif self.actAt(event.GetPosition())[1] == "grip":
+                over = "act"
 
             if over != self.overGrip:
                 self.overGrip = over
@@ -1438,23 +1993,84 @@ class BeatBoardView(wx.ScrolledWindow):
             b.x = sx + dx
             b.y = sy + dy
 
+        self.dropTarget = self.dropTargetAt(event.GetPosition())
+        self.Refresh()
+
+    # where the cards being dragged would go if dropped with the mouse at
+    # pos (see self.dropTarget)
+    def dropTargetAt(self, pos):
+        moved = [b for b, _x, _y in self.drag[3]]
+        x, y = self.toBoard(pos)
+
+        for act in reversed(self.board.acts):
+            if not self.actBoardRect(act).Contains(x, y):
+                continue
+
+            if act.folded:
+                others = [b for b in act.beats if b not in moved]
+
+                return (act, len(others))
+
+            return (act, act.insertIndex(x, y, self.cardSize, moved))
+
+        return None
+
+    # move the act being dragged by its title bar to the mouse position
+    # pos, its cards with it
+    def moveActTo(self, pos):
+        act, grabX, grabY, _moved = self.actDrag
+        x, y = self.toBoard(pos)
+
+        act.x = min(max(0, x - grabX), beatboard.MAX_COORD)
+        act.y = min(max(0, y - grabY), beatboard.MAX_COORD)
+        self.actDrag = (act, grabX, grabY, True)
+
+        self.layout()
+        self.updateVirtualSize()
+        self.Refresh()
+
+    # an act that was moved comes to the front, as one undo step
+    def endActDrag(self):
+        if not self.actDrag:
+            return
+
+        act, _x, _y, moved = self.actDrag
+        self.actDrag = None
+
+        if moved:
+            self.board.acts.remove(act)
+            self.board.acts.append(act)
+            self.commit()
+            self.Refresh()
+
+    def endActResize(self):
+        if not self.actResize:
+            return
+
+        self.actResize = None
+        self.updateCursor()
+        self.commit()
         self.Refresh()
 
     def OnLeaveWindow(self, event):
         event.Skip()
 
-        if not (self.drag or self.band or self.resize or self.pan):
+        if not self.isDragging():
             self.setHover(None)
 
     # cards that were moved come to the front, in the order they were in,
-    # as one undo step. a card clicked among several selected ones without
-    # moving it is selected alone.
+    # as one undo step. dropped on an act, they go in it where they were
+    # dropped, in the order they're read in, and dropped elsewhere they're
+    # taken out of their acts. a card clicked among several selected ones
+    # without moving it is selected alone.
     def endDrag(self):
         if not self.drag:
             return
 
         _beat, _x, _y, starts, click = self.drag
+        target = self.dropTarget
         self.drag = None
+        self.dropTarget = None
 
         if any((b.x, b.y) != (x, y) for b, x, y in starts):
             moved = [b for b, _x, _y in starts]
@@ -1462,8 +2078,16 @@ class BeatBoardView(wx.ScrolledWindow):
             self.board.beats = [b for b in beats if b not in moved] + [
                 b for b in beats if b in moved
             ]
-            self.updateVirtualSize()
+
+            self.board.takeOut(moved)
+
+            if target:
+                act, index = target
+                order = sorted(starts, key=lambda s: (s[2], s[1]))
+                act.beats[index:index] = [b for b, _x, _y in order]
+
             self.commit()
+            self.updateVirtualSize()
             self.Refresh()
         elif click:
             self.select(click)
@@ -1478,7 +2102,7 @@ class BeatBoardView(wx.ScrolledWindow):
         r = self.bandRect()
         inside = [
             b
-            for b in self.board.beats
+            for b in self.board.shownBeats()
             if (b not in before) and r.Intersects(self.cardRect(b))
         ]
 
@@ -1509,6 +2133,7 @@ class BeatBoardView(wx.ScrolledWindow):
             w, h = round(w0 * scale), round(h0 * scale)
 
         beat.setSize(w, h)
+        self.layout()
         self.updateVirtualSize()
         self.Refresh()
 
@@ -1525,6 +2150,7 @@ class BeatBoardView(wx.ScrolledWindow):
         # default one
         if self.cardSize(beat) == (w, h):
             beat.width, beat.height = oldWidth, oldHeight
+            self.layout()
             self.Refresh()
 
             return
@@ -1559,11 +2185,15 @@ class BeatBoardView(wx.ScrolledWindow):
         self.endDrag()
         self.endBand()
         self.endResize()
+        self.endActDrag()
+        self.endActResize()
 
     def OnCaptureLost(self, event):
         self.endDrag()
         self.endBand()
         self.endResize()
+        self.endActDrag()
+        self.endActResize()
         self.pan = None
         self.updateCursor()
 
@@ -1612,15 +2242,34 @@ class BeatBoardView(wx.ScrolledWindow):
         if self.spaceDown:
             return
 
-        beat = self.hitTest(event.GetPosition())
+        pos = event.GetPosition()
+        beat = self.hitTest(pos)
 
         if beat:
             self.startEdit(beat)
 
             return
 
+        act, part = self.actAt(pos)
+
+        if part == "title":
+            self.startTitleEdit(act)
+
+            return
+
+        if part in ("grip", "fold", "close"):
+            return
+
+        x, y = self.toBoard(pos)
+
+        # a new card in the act, where the board was clicked
+        if part == "body":
+            index = act.insertIndex(x, y, self.cardSize)
+            self.addCard(x, y, act, index)
+
+            return
+
         # a new card, centered where the board was clicked
-        x, y = self.toBoard(event.GetPosition())
         x = max(0, x - beatboard.CARD_WIDTH // 2)
         y = max(0, y - beatboard.CARD_HEIGHT // 2)
 
@@ -1692,9 +2341,24 @@ class BeatBoardView(wx.ScrolledWindow):
 
         if not beat:
             x, y = self.toBoard(pos)
-            add(menu, _("Add card here"), lambda: self.addCard(x, y))
+            act, _part = self.actAt(pos)
+
+            if act and not act.folded:
+                index = act.insertIndex(x, y, self.cardSize)
+                add(menu, _("Add card here"), lambda: self.addCard(x, y, act, index))
+            else:
+                add(menu, _("Add card here"), lambda: self.addCard(x, y))
+
             add(menu, _("Add picture here..."), lambda: self.choosePictures(pos))
             add(menu, _("Paste picture"), lambda: self.paste(pos), self.canPaste())
+
+            if act:
+                self.addActItems(menu, add, act)
+            else:
+                menu.AppendSeparator()
+                add(menu, _("Add act here"), lambda: self.addAct(x, y))
+                self.addFoldAllItems(menu, add)
+
             self.addScriptItem(menu)
             self.PopupMenu(menu, pos)
             menu.Destroy()
@@ -1732,6 +2396,15 @@ class BeatBoardView(wx.ScrolledWindow):
 
         menu.AppendSeparator()
 
+        inActs = [b for b in cards if self.board.actOf(b)]
+
+        if inActs:
+            add(menu, _("Take out of act"), lambda: self.takeOutOfActs(inActs))
+
+        add(menu, _("Put in new act"), lambda: self.addActAround(cards))
+
+        menu.AppendSeparator()
+
         if len(cards) > 1:
             label = _("Delete %d cards") % len(cards)
         else:
@@ -1742,6 +2415,62 @@ class BeatBoardView(wx.ScrolledWindow):
 
         self.PopupMenu(menu, pos)
         menu.Destroy()
+
+    # add the items for act to a right-click menu, with add(menu, label,
+    # handler, enable) adding one
+    def addActItems(self, menu, add, act):
+        menu.AppendSeparator()
+        add(menu, _("Rename act"), lambda: self.startTitleEdit(act))
+
+        colorMenu = wx.Menu()
+        add(colorMenu, _("No color"), lambda: self.setActColor(act, None))
+
+        for name, color in getSceneColors():
+            item = wx.MenuItem(colorMenu, -1, name)
+            item.SetBitmap(swatchBitmap(color, color == act.color))
+            colorMenu.Append(item)
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, c=color: self.setActColor(act, c),
+                id=item.GetId(),
+            )
+
+        menu.AppendSubMenu(colorMenu, _("Act color"))
+
+        if act.folded:
+            add(menu, _("Expand act"), lambda: self.toggleFold(act))
+        else:
+            add(menu, _("Collapse act"), lambda: self.toggleFold(act))
+
+        self.addFoldAllItems(menu, add)
+
+        menu.AppendSeparator()
+        add(menu, _("Delete act, keeping its cards"), lambda: self.deleteAct(act))
+
+        if act.beats:
+            add(
+                menu,
+                _("Delete act and its cards"),
+                lambda: self.deleteAct(act, True),
+            )
+
+    # add the items that fold and unfold all acts, if there are any
+    def addFoldAllItems(self, menu, add):
+        acts = self.board.acts
+
+        if acts:
+            add(
+                menu,
+                _("Collapse all acts"),
+                lambda: self.foldAll(True),
+                any(not a.folded for a in acts),
+            )
+            add(
+                menu,
+                _("Expand all acts"),
+                lambda: self.foldAll(False),
+                any(a.folded for a in acts),
+            )
 
     # add the item that goes back to the script to a right-click menu. it
     # has the View menu's Beat board item's id, so the main window runs it.
@@ -1754,8 +2483,8 @@ class BeatBoardView(wx.ScrolledWindow):
     # resize beat to w x h, or back to its default size if w is None
     def setSize(self, beat, w, h=None):
         beat.setSize(w, h)
-        self.updateVirtualSize()
         self.commit()
+        self.updateVirtualSize()
         self.Refresh()
 
     # put the cards in the list 'beats' back to their default size, as one
@@ -1764,8 +2493,8 @@ class BeatBoardView(wx.ScrolledWindow):
         for beat in beats:
             beat.setSize(None)
 
-        self.updateVirtualSize()
         self.commit()
+        self.updateVirtualSize()
         self.Refresh()
 
     # give the cards in the list 'beats' the color 'color', as one undo step

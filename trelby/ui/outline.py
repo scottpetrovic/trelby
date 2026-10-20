@@ -65,6 +65,56 @@ def swatchBitmap(color, checked):
     return wx.BitmapBundle.FromSVG(svg.encode(), wx.Size(16, 16))
 
 
+# the keys acts are folded by in the outline, for each of 'items'
+# (screenplay.OutlineItems), None for the ones that aren't act breaks: its
+# heading, and how many act breaks before it have the same one, so that an
+# act stays folded when scenes or other acts are added or moved around
+def actKeys(items):
+    seen = {}
+    keys = []
+
+    for it in items:
+        if it.lt == screenplay.ACTBREAK:
+            n = seen.get(it.heading, 0)
+            seen[it.heading] = n + 1
+            keys.append((it.heading, n))
+        else:
+            keys.append(None)
+
+    return keys
+
+
+# the index in 'items' of the last item of the act starting at item i:
+# the one before the next act break, or the last one
+def actEnd(items, i):
+    j = i + 1
+
+    while (j < len(items)) and (items[j].lt != screenplay.ACTBREAK):
+        j += 1
+
+    return j - 1
+
+
+# the outline's rows, as (first, last) indexes in 'items': one item each,
+# except a folded act (one whose key is in the set 'folded'), which is its
+# act break and everything up to the next one
+def makeRows(items, folded):
+    keys = actKeys(items)
+    rows = []
+    i = 0
+
+    while i < len(items):
+        last = i
+
+        if (keys[i] is not None) and (keys[i] in folded):
+            last = actEnd(items, i)
+
+        rows.append((i, last))
+        i = last + 1
+
+    return rows
+
+
 # the outline's list of items. each row shows the scene number, heading
 # and page on one line, with the scene's summary wrapped underneath.
 class OutlineList(wx.VListBox):
@@ -73,6 +123,10 @@ class OutlineList(wx.VListBox):
 
         # screenplay.OutlineItems shown
         self.items = []
+
+        # for each item shown: None if it isn't an act break, otherwise
+        # (whether the act is folded, how many scenes it has)
+        self.folds = []
 
         # index of the item highlighted while its color menu is shown, or
         # None
@@ -110,8 +164,9 @@ class OutlineList(wx.VListBox):
 
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
-    def setItems(self, items):
+    def setItems(self, items, folds=None):
         self.items = items
+        self.folds = folds or [None] * len(items)
         self.summaryCache = {}
 
         self.nrWidth = max(
@@ -147,6 +202,43 @@ class OutlineList(wx.VListBox):
     # x position of the heading and summary text, relative to the row
     def getTextX(self):
         return self.pad.x + self.nrWidth + self.gap
+
+    # whether clicking at x (in the list's client coordinates) on row n
+    # folds or unfolds it: on an act break's arrow, left of its heading
+    def isFoldToggle(self, n, x):
+        return (
+            (0 <= n < len(self.folds))
+            and (self.folds[n] is not None)
+            and (x < self.getTextX())
+        )
+
+    # draw the arrow that shows act break n is folded (pointing right) or
+    # not (down), at the right of the scene number column, in the middle
+    # of the line starting at y
+    def drawFoldArrow(self, dc, rect, n, y, color):
+        folded = self.folds[n][0]
+        size = max(4, (self.lineHeight * 9) // 20)
+        cx = rect.x + self.pad.x + self.nrWidth - size // 2
+        cy = y + self.lineHeight // 2
+        h = size // 2
+
+        if folded:
+            pts = [(cx - h // 2, cy - h), (cx - h // 2, cy + h), (cx + h, cy)]
+        else:
+            pts = [(cx - h, cy - h // 2), (cx + h, cy - h // 2), (cx, cy + h)]
+
+        dc.SetPen(wx.Pen(color))
+        dc.SetBrush(wx.Brush(color))
+        dc.DrawPolygon([wx.Point(px, py) for px, py in pts])
+
+    # the text shown after a folded act's heading
+    def foldedText(self, n):
+        cnt = self.folds[n][1]
+
+        if cnt == 1:
+            return _("1 scene")
+
+        return _("%d scenes") % cnt
 
     # return the summary of item n wrapped to fit the list's width
     def getSummaryLines(self, n):
@@ -312,13 +404,36 @@ class OutlineList(wx.VListBox):
             dc.DrawText(it.page, right - pageW + 1, y)
 
         headingW = right - textX - ((pageW + self.gap) if pageW else 0)
+        fold = self.folds[n]
+        dim = blendColors(fg, rowBg, 0.4)
 
-        if headingW > 0:
-            dc.DrawText(
-                wx.Control.Ellipsize(it.heading, dc, wx.ELLIPSIZE_END, headingW),
-                textX,
-                y,
+        if fold is not None:
+            self.drawFoldArrow(dc, rect, n, y, fg if self.isHighlighted(n) else dim)
+
+        # a folded act's count of scenes, after its heading
+        count = ""
+        countW = 0
+
+        if fold and fold[0]:
+            count = self.foldedText(n)
+            dc.SetFont(self.normalFont)
+            countW = dc.GetTextExtent(count).width + self.gap
+            dc.SetFont(
+                self.boldFont if it.lt == screenplay.ACTBREAK else self.normalFont
             )
+
+        if headingW - countW > 0:
+            heading = wx.Control.Ellipsize(
+                it.heading, dc, wx.ELLIPSIZE_END, headingW - countW
+            )
+            dc.DrawText(heading, textX, y)
+
+            if count:
+                x = textX + dc.GetTextExtent(heading).width + self.gap
+                dc.SetFont(self.normalFont)
+                dc.SetTextForeground(dim)
+                dc.DrawText(count, x, y)
+                dc.SetTextForeground(fg)
 
         dc.SetFont(self.normalFont)
 
@@ -351,6 +466,12 @@ class OutlineList(wx.VListBox):
 # selecting an item jumps to it in the script, and scenes can be reordered
 # by dragging them, with the buttons, or with Ctrl+Up / Ctrl+Down. the
 # selection follows the cursor as the user moves around in the script.
+#
+# an act can be folded, hiding its scenes, by clicking the arrow left of
+# its act break, with Left / Right, or from the right-click menu. a folded
+# act is one row, which moves the whole act when it's moved. the list's
+# rows (self.rows) are ranges of self.items, and the list's indexes are
+# rows, not items.
 class OutlinePanel(wx.Panel):
 
     # how long to wait after the last change before refreshing, in ms. we
@@ -371,6 +492,15 @@ class OutlinePanel(wx.Panel):
 
         # screenplay.OutlineItems currently shown in the list
         self.items = []
+
+        # the list's rows, (first, last) indexes in self.items (see
+        # makeRows)
+        self.rows = []
+
+        # the keys of the folded acts (see actKeys), and the script they're
+        # for
+        self.folded = set()
+        self.foldedSp = None
 
         # True while we change the list's selection ourselves, so that we
         # don't mistake it for the user picking an item
@@ -467,6 +597,7 @@ class OutlinePanel(wx.Panel):
         self.list.Bind(wx.EVT_LISTBOX, self.OnItemSelected)
         self.list.Bind(wx.EVT_LISTBOX_DCLICK, self.OnItemActivated)
         self.list.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDClick)
         self.list.Bind(wx.EVT_MOTION, self.OnMouseMotion)
         self.list.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.list.Bind(wx.EVT_MOUSE_CAPTURE_LOST, self.OnCaptureLost)
@@ -571,7 +702,14 @@ class OutlinePanel(wx.Panel):
         if self.dragIdx is not None:
             return
 
-        items = self.getCtrl().sp.getOutline()
+        sp = self.getCtrl().sp
+        items = sp.getOutline()
+
+        # another script's acts aren't folded
+        if sp is not self.foldedSp:
+            self.foldedSp = sp
+            self.folded = set()
+            self.items = None
 
         # OutlineItems compare by value, so the list is only refilled (and
         # its rows re-measured) when something it shows has changed
@@ -581,15 +719,103 @@ class OutlinePanel(wx.Panel):
 
         self.selectCurrent()
 
-    # update the list's contents from self.items
+    # update the list's contents from self.items and self.folded
     def fillList(self):
-        self.list.setItems(self.items)
+        items = self.items
+        keys = actKeys(items)
+        self.rows = makeRows(items, self.folded)
+        folds = []
 
-    # return index of the item containing the given line, or -1
-    def findItem(self, line):
-        for i, it in enumerate(self.items):
-            if it.startLine <= line <= it.endLine:
+        for first, _last in self.rows:
+            if keys[first] is None:
+                folds.append(None)
+            else:
+                end = actEnd(items, first)
+                scenes = sum(
+                    1 for it in items[first + 1 : end + 1] if it.lt == screenplay.SCENE
+                )
+                folds.append((keys[first] in self.folded, scenes))
+
+        self.list.setItems([items[first] for first, _last in self.rows], folds)
+
+    # the key of the act break at the start of row n, or None if it isn't
+    # one
+    def rowKey(self, n):
+        return actKeys(self.items)[self.rows[n][0]]
+
+    # the first item of row n
+    def rowItem(self, n):
+        return self.items[self.rows[n][0]]
+
+    # the lines row n covers, (start, end)
+    def rowLines(self, n):
+        first, last = self.rows[n]
+
+        return (self.items[first].startLine, self.items[last].endLine)
+
+    # fold or unfold the acts with the given keys, keeping the rows above
+    # the first one changed where they are
+    def setFolded(self, keys, fold):
+        keys = {k for k in keys if k is not None}
+
+        if fold:
+            changed = keys - self.folded
+            self.folded |= keys
+        else:
+            changed = keys & self.folded
+            self.folded -= keys
+
+        if not changed:
+            return
+
+        lc = self.list
+        top = lc.GetVisibleRowsBegin()
+
+        self.fillList()
+
+        if 0 <= top < lc.GetItemCount():
+            lc.ScrollToRow(top)
+
+        self.selectCurrent()
+
+    # fold row n's act if it's unfolded, or the other way around
+    def toggleFold(self, n):
+        if 0 <= n < len(self.rows):
+            key = self.rowKey(n)
+            self.setFolded([key], key not in self.folded)
+
+    def foldAll(self, fold):
+        self.setFolded(actKeys(self.items), fold)
+
+    # the row of the act containing row n, which can be row n itself, or
+    # -1 if it isn't in an act
+    def actRow(self, n):
+        for i in range(n, -1, -1):
+            if self.rowKey(i) is not None:
                 return i
+
+        return -1
+
+    # unfold the act the cursor is in, if it's hidden in it
+    def revealCursor(self):
+        line = self.getCtrl().ed.line
+        keys = actKeys(self.items)
+
+        for first, last in self.rows:
+            if (last > first) and (
+                self.items[first].endLine < line <= self.items[last].endLine
+            ):
+                self.setFolded([keys[first]], False)
+
+                return
+
+    # return index of the row containing the given line, or -1
+    def findItem(self, line):
+        for n in range(len(self.rows)):
+            start, end = self.rowLines(n)
+
+            if start <= line <= end:
+                return n
 
         return -1
 
@@ -613,13 +839,26 @@ class OutlinePanel(wx.Panel):
         idx = self.list.GetSelection()
 
         self.upBtn.Enable(idx > 0)
-        self.downBtn.Enable((idx != -1) and (idx < (len(self.items) - 1)))
+        self.downBtn.Enable((idx != -1) and (idx < (len(self.rows) - 1)))
         self.colorBtn.Enable(idx != -1)
 
-    # move item number idx so that it becomes item number newIndex
-    def moveItem(self, idx, newIndex):
-        self.getCtrl().moveSceneTo(self.items[idx].startLine, newIndex)
+    # move row number idx to where row number dst is: after it when moving
+    # down, before it when moving up. a folded act moves as a whole, and
+    # something moved below one goes at the end of its act, which is
+    # unfolded to show it.
+    def moveItem(self, idx, dst):
+        first, last = self.rows[idx]
+        dstFirst, dstLast = self.rows[dst]
+        count = last - first + 1
+
+        if dst > idx:
+            newIndex = dstLast - count + 1
+        else:
+            newIndex = dstFirst
+
+        self.getCtrl().moveSceneTo(self.items[first].startLine, newIndex, count)
         self.refresh()
+        self.revealCursor()
 
     def moveScene(self, direction):
         idx = self.list.GetSelection()
@@ -699,7 +938,14 @@ class OutlinePanel(wx.Panel):
         self.dragTimer.Start(self.DRAG_SCROLL_INTERVAL)
 
     def OnLeftDown(self, event):
-        idx = self.list.VirtualHitTest(event.GetPosition().y)
+        pos = event.GetPosition()
+        idx = self.list.VirtualHitTest(pos.y)
+
+        if self.list.isFoldToggle(idx, pos.x):
+            self.pressPos = None
+            self.toggleFold(idx)
+
+            return
 
         if idx != wx.NOT_FOUND:
             self.pressPos = event.GetPosition()
@@ -708,6 +954,17 @@ class OutlinePanel(wx.Panel):
             self.pressPos = None
 
         event.Skip()
+
+    # the second click of a double-click on an act's arrow folds or
+    # unfolds it again, rather than going to the act
+    def OnLeftDClick(self, event):
+        pos = event.GetPosition()
+        idx = self.list.VirtualHitTest(pos.y)
+
+        if self.list.isFoldToggle(idx, pos.x):
+            self.toggleFold(idx)
+        else:
+            event.Skip()
 
     def OnMouseMotion(self, event):
         if self.dragIdx is None:
@@ -779,19 +1036,19 @@ class OutlinePanel(wx.Panel):
 
         idx = event.GetSelection()
 
-        if not (0 <= idx < len(self.items)):
+        if not (0 <= idx < len(self.rows)):
             return
 
-        it = self.items[idx]
+        start, end = self.rowLines(idx)
         ctrl = self.getCtrl()
 
         # selection was caused by the cursor moving into this item
-        if it.startLine <= ctrl.ed.line <= it.endLine:
+        if start <= ctrl.ed.line <= end:
             self.updateButtons()
 
             return
 
-        ctrl.gotoLine(it.startLine)
+        ctrl.gotoLine(start)
         self.updateButtons()
 
     # Enter / double-click: go to the item and start editing there
@@ -799,12 +1056,12 @@ class OutlinePanel(wx.Panel):
         self.activateItem(event.GetSelection())
 
     def activateItem(self, idx):
-        if not (0 <= idx < len(self.items)):
+        if not (0 <= idx < len(self.rows)):
             return
 
         ctrl = self.getCtrl()
 
-        ctrl.gotoLine(self.items[idx].startLine)
+        ctrl.gotoLine(self.rowItem(idx).startLine)
         ctrl.SetFocus()
 
     def OnKeyDown(self, event):
@@ -823,15 +1080,42 @@ class OutlinePanel(wx.Panel):
             self.moveScene(1)
         elif kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
             self.activateItem(self.list.GetSelection())
+        elif kc in (wx.WXK_LEFT, wx.WXK_RIGHT) and not event.HasAnyModifiers():
+            self.foldKey(self.list.GetSelection(), kc == wx.WXK_LEFT)
         elif kc == wx.WXK_ESCAPE:
             self.getCtrl().SetFocus()
         else:
             event.Skip()
 
-    # let the user pick the color of item number idx from a menu shown at
-    # pos (in win's client coordinates), and set it
-    def showColorMenu(self, idx, win, pos):
-        it = self.items[idx]
+    # Left on row n folds the act it's in, selecting the act's row, and
+    # Right unfolds a folded act
+    def foldKey(self, n, fold):
+        if n == -1:
+            return
+
+        if fold:
+            act = self.actRow(n)
+
+            if act != -1:
+                self.setFolded([self.rowKey(act)], True)
+
+                # the cursor stays where it was, inside the act
+                self.updating = True
+
+                try:
+                    self.list.SetSelection(act)
+                finally:
+                    self.updating = False
+
+                self.updateButtons()
+        elif self.rowKey(n) is not None:
+            self.setFolded([self.rowKey(n)], False)
+
+    # let the user pick the color of row number idx from a menu shown at
+    # pos (in win's client coordinates), and set it. with 'folding', the
+    # menu starts with the items that fold and unfold acts.
+    def showColorMenu(self, idx, win, pos, folding=False):
+        it = self.rowItem(idx)
         colors = getSceneColors()
         menu = wx.Menu()
 
@@ -839,11 +1123,41 @@ class OutlinePanel(wx.Panel):
         customId = wx.NewIdRef()
         colorIds = {}
 
-        menu.AppendCheckItem(noneId, _("No color")).Check(it.color is None)
-        menu.AppendSeparator()
+        # menu item id -> function to run
+        actions = {}
 
         # ids are only reserved while their WindowIDRefs exist
         idRefs = []
+
+        def addAction(label, func, enable=True):
+            idRefs.append(wx.NewIdRef())
+            menu.Append(idRefs[-1], label).Enable(enable)
+            actions[int(idRefs[-1])] = func
+
+        if folding:
+            key = self.rowKey(idx)
+            keys = [k for k in actKeys(self.items) if k is not None]
+
+            if key is not None:
+                if key in self.folded:
+                    addAction(_("Expand act"), lambda: self.toggleFold(idx))
+                else:
+                    addAction(_("Collapse act"), lambda: self.toggleFold(idx))
+
+            addAction(
+                _("Collapse all acts"),
+                lambda: self.foldAll(True),
+                any(k not in self.folded for k in keys),
+            )
+            addAction(
+                _("Expand all acts"),
+                lambda: self.foldAll(False),
+                any(k in self.folded for k in keys),
+            )
+            menu.AppendSeparator()
+
+        menu.AppendCheckItem(noneId, _("No color")).Check(it.color is None)
+        menu.AppendSeparator()
 
         for name, color in colors:
             idRefs.append(wx.NewIdRef())
@@ -871,7 +1185,11 @@ class OutlinePanel(wx.Panel):
             self.list.setMarkedIndex(None)
             menu.Destroy()
 
-        if sel == int(noneId):
+        if sel in actions:
+            actions[sel]()
+
+            return
+        elif sel == int(noneId):
             color = None
         elif sel in colorIds:
             color = colorIds[sel]
@@ -929,7 +1247,7 @@ class OutlinePanel(wx.Panel):
             if idx == wx.NOT_FOUND:
                 return
 
-        self.showColorMenu(idx, lc, pos)
+        self.showColorMenu(idx, lc, pos, True)
 
     def OnColorBtn(self, event):
         idx = self.list.GetSelection()
@@ -952,7 +1270,8 @@ class OutlinePanel(wx.Panel):
         idx = self.list.GetSelection()
 
         if idx != -1:
-            return self.items[idx].startLine
+            # after a folded act's last scene
+            return self.items[self.rows[idx][1]].startLine
 
         return self.getCtrl().ed.line
 
@@ -962,6 +1281,7 @@ class OutlinePanel(wx.Panel):
         ctrl = self.getCtrl()
         ctrl.insertScenes(self.getInsertLine(), lines)
         self.refresh()
+        self.revealCursor()
         ctrl.SetFocus()
 
     def OnAddScene(self, event):

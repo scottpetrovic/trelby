@@ -1303,12 +1303,13 @@ class MyCtrl(wx.Control):
         self.makeLineVisible(line)
         self.updateScreen()
 
-    # move the scene containing the given line to position newIndex in the
-    # outline. used by the outline view.
-    def moveSceneTo(self, line, newIndex):
+    # move the scene containing the given line, and the count - 1 items
+    # after it, to position newIndex in the outline. used by the outline
+    # view.
+    def moveSceneTo(self, line, newIndex, count=1):
         self.clearAutoComp()
 
-        if not self.ed.moveSceneTo(line, newIndex):
+        if not self.ed.moveSceneTo(line, newIndex, count):
             return
 
         self.sp.paginate()

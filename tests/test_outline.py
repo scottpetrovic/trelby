@@ -271,3 +271,42 @@ def testSummaryJoinsActionParagraphs():
     # stops once it has enough
     assert items[1].summary.startswith("A very long sentence")
     assert "Not reached" not in items[1].summary
+
+
+def testMoveSceneToSeveral():
+    ed = loadSmall()
+    items = ed.sp.getOutline()
+
+    # the act break and its scene, up to the top
+    assert ed.moveSceneTo(items[2].startLine, 0, 2)
+
+    assert headings(ed) == [
+        "ACT TWO",
+        "INT. CAR - DAY",
+        "INT. KITCHEN - DAY",
+        "EXT. GARDEN - NIGHT",
+    ]
+    assert ed.sp.lines[0].text == "Fade in:"
+    assert ed.line == 1
+    ed._validate()
+
+    # and back down to the end
+    assert ed.moveSceneTo(1, 2, 2)
+
+    assert headings(ed) == [
+        "INT. KITCHEN - DAY",
+        "EXT. GARDEN - NIGHT",
+        "ACT TWO",
+        "INT. CAR - DAY",
+    ]
+    assert ed.line == ed.sp.getOutline()[2].startLine
+
+
+def testMoveSceneToSeveralInvalid():
+    ed = loadSmall()
+
+    # past the end, or more items than there are after it
+    assert not ed.moveSceneTo(1, 3, 2)
+    assert not ed.moveSceneTo(ed.sp.getOutline()[2].startLine, 0, 3)
+    assert not ed.moveSceneTo(1, 1, 0)
+    assert not ed.undoHistory.canUndo()
