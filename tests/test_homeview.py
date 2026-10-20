@@ -129,9 +129,9 @@ def key(view, code):
     view.OnKeyDown(e)
 
 
-# the start card's rows' kinds
+# the start section's rows' kinds
 def kinds(view):
-    return [r.kind for r in view.rows if r.card == 0]
+    return [r.kind for r in view.rows if r.section == 0]
 
 
 def testHelpers():
@@ -157,7 +157,7 @@ def testRows(frame, tmp_path):
     view, owner = makeView(frame, [str(there), gone])
 
     assert kinds(view) == [homeview.ACTION, homeview.MENU] * 2 + [homeview.RECENT] * 2
-    assert [r.value for r in view.rows if r.kind == homeview.ACTION and r.card == 0] == [
+    assert [r.value for r in view.rows if r.kind == homeview.ACTION and r.section == 0] == [
         "NewScript",
         "OpenScript",
     ]
@@ -171,14 +171,14 @@ def testRows(frame, tmp_path):
     assert (pilot.label, pilot.detail, pilot.dim) == ("Pilot", str(tmp_path), False)
     assert (goneRow.label, goneRow.note, goneRow.dim) == ("Gone", _("Not found"), True)
 
-    # nothing overlaps, top to bottom, and all inside the card
+    # nothing overlaps, top to bottom, and all inside the section
     for a, b in zip(view.rows, view.rows[1:]):
         assert a.rect.GetBottom() < b.rect.y
 
     for r in view.rows:
-        card = view.cards[r.card]
-        assert card.Contains(r.rect.GetTopLeft())
-        assert card.Contains(r.rect.GetBottomRight())
+        section = view.sections[r.section]
+        assert section.Contains(r.rect.GetTopLeft())
+        assert section.Contains(r.rect.GetBottomRight())
 
 
 def testNoRecentFilesSaysSo(frame):
@@ -236,7 +236,7 @@ def testKeys(frame, tmp_path):
     key(view, wx.WXK_UP)
     assert view.picked == 0
 
-    # the writing card's rows come after the start card's
+    # the writing section's rows come after the start section's
     key(view, wx.WXK_END)
     assert view.rows[view.picked].value == "WritingGoals"
     key(view, wx.WXK_DOWN)
@@ -322,7 +322,7 @@ def testDraws(frame, tmp_path, theme):
 
     assert color(2, 2) == cfgGui.workspaceColor.Get(False)
 
-    card = view.cards[0]
+    card = view.card
     assert color(card.x + 10, card.GetBottom() - 4) == cfgGui.textBgColor.Get(False)
 
     if os.environ.get("HOMEVIEW_PNG"):
@@ -332,7 +332,7 @@ def testDraws(frame, tmp_path, theme):
         )
 
 
-# the writing card: today's words, the chart's bars, the goal, and a row
+# the writing section: today's words, the chart's bars, the goal, and a row
 # per script written in lately
 def testWritingCard(frame):
     sessions = [
@@ -406,15 +406,25 @@ def testGoalInPages(frame):
     assert _("Daily goal reached") in [t[0] for t in view.texts]
 
 
-# side by side in a wide window, one above the other in a narrow one
-def testCardsLayout(frame):
+# one card, its sections side by side with a line down between them in a
+# wide window, one above the other with a line across in a narrow one
+def testSectionsLayout(frame):
+    def divider(view):
+        return [r for kind, r in view.shapes if kind == homeview.DIVIDER]
+
     view, owner = makeView(frame, size=(1300, 800))
-    a, b = view.cards
+    a, b = view.sections
     assert a.y == b.y and a.GetRight() < b.x
+    assert view.card.Contains(a) and view.card.Contains(b)
+    (line,) = divider(view)
+    assert line.width == 1 and line.x == b.x
 
     view, owner = makeView(frame, size=(700, 800))
-    a, b = view.cards
+    a, b = view.sections
     assert a.x == b.x and a.GetBottom() < b.y
+    assert view.card.Contains(a) and view.card.Contains(b)
+    (line,) = divider(view)
+    assert line.height == 1 and line.y == b.y
 
 
 # a stand-in for the frame's sprinttimer.SprintTimer
@@ -434,7 +444,7 @@ class Timer:
 
 
 def writingActions(view):
-    return [(r.label, r.value) for r in view.rows if r.card == 1 and r.kind == homeview.ACTION]
+    return [(r.label, r.value) for r in view.rows if r.section == 1 and r.kind == homeview.ACTION]
 
 
 # the sprint's rows start or stop one, and the sprint going on and today's

@@ -1,6 +1,7 @@
 # the Home screen, shown in place of the tabs while no script is open (see
-# MyFrame.setHomeShown). it's drawn by hand, in the theme's colors, as two
-# cards, side by side in a wide window and one above the other otherwise:
+# MyFrame.setHomeShown). it's drawn by hand, in the theme's colors, as one
+# card with two sections, side by side with a line between them in a wide
+# window and one above the other otherwise:
 #
 # - the ways to start a script, and the scripts opened recently
 # - what's been written, in all scripts (see writinglog.py): today against
@@ -22,17 +23,17 @@ import trelby.ui.theming as theming
 import trelby.writinglog as writinglog
 from trelby.writinglog import scriptName
 
-# sizes, in DIPs: a card's width at most, the space around and between the
-# cards and inside them, the rows' heights, the gap before a section's
-# heading, and the bar chart's height
-CARD_WIDTH = 560
+# sizes, in DIPs: a section's width at most, the space around the card and
+# inside the sections, the rows' heights, the gap before a heading, the
+# logo above the card and the gap under it, and the bar chart's height
+SECTION_WIDTH = 560
 MARGIN = 32
-CARD_GAP = 24
-PAD = 28
+PAD = 40
 ACTION_ROW = 34
 RECENT_ROW = 48
 SECTION_GAP = 24
-LOGO_SIZE = 48
+LOGO_SIZE = 128
+LOGO_GAP = 20
 CHART_HEIGHT = 72
 
 # how many days the chart shows, and how many scripts' days the recent
@@ -47,21 +48,21 @@ ACTION, MENU, RECENT, ACTIVITY = list(range(4))
 # the kinds of shape drawn besides the texts and the rows (see
 # HomeView.shapes): the goal's progress bar, empty and filled, the chart's
 # bars, today's, the mark for a day with nothing written, and the goal's
-# line across the chart
-TRACK, FILL, BAR, TODAY_BAR, NO_BAR, GOAL_LINE = list(range(6))
+# line across the chart, and the line between the sections
+TRACK, FILL, BAR, TODAY_BAR, NO_BAR, GOAL_LINE, DIVIDER = list(range(7))
 
 
 # a row: its kind, its label, the dimmer text under the label (a script's
 # folder) and at its right (a shortcut, or when the script was changed, or
 # how much was written), and what it does: an Action's name, a list of
 # them, the index of the recent file, or the path of the script written
-# in (None for one never saved, which can't be opened). card is the card
-# it's on: 0 for the start card, 1 for the writing card. rect is where it
+# in (None for one never saved, which can't be opened). section is the
+# section it's in: 0 for the start section, 1 for the writing section. rect is where it
 # is, set by HomeView.layout.
 class Row:
-    def __init__(self, kind, label, value, detail="", note="", dim=False, card=0):
+    def __init__(self, kind, label, value, detail="", note="", dim=False, section=0):
         self.kind = kind
-        self.card = card
+        self.section = section
         self.label = label
         self.value = value
         self.detail = detail
@@ -160,11 +161,11 @@ class HomeView(wx.Window):
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
-        # the rows, made by refresh: the start card's, then the writing
-        # card's
+        # the rows, made by refresh: the start section's, then the
+        # writing section's
         self.rows = []
 
-        # what the writing card shows, made by refresh: today's
+        # what the writing section shows, made by refresh: today's
         # writinglog.Total, the chart's days' Totals, oldest first, the
         # streak, in days, and today's date
         self.todayTotal = None
@@ -192,11 +193,12 @@ class HomeView(wx.Window):
         self.contentH = 0
 
         # what layout places besides the rows: the texts, as (text, x, y,
-        # font name (see fonts), dim), the shapes, as (kind, wx.Rect), and
-        # the cards, as wx.Rects
+        # font name (see fonts), dim), the shapes, as (kind, wx.Rect), the
+        # card and the sections in it, as wx.Rects
         self.texts = []
         self.shapes = []
-        self.cards = []
+        self.card = wx.Rect()
+        self.sections = []
 
         self.logoPos = wx.Point()
         self.logo = None
@@ -298,7 +300,7 @@ class HomeView(wx.Window):
                     _("Stop the sprint"),
                     "ToggleSprint",
                     note=commandKeyText(cfgGl, "ToggleSprint"),
-                    card=1,
+                    section=1,
                 )
             )
             rows.append(
@@ -307,7 +309,7 @@ class HomeView(wx.Window):
                     _("Resume the sprint") if timer.isPaused() else _("Pause the sprint"),
                     "PauseSprint",
                     note=commandKeyText(cfgGl, "PauseSprint"),
-                    card=1,
+                    section=1,
                 )
             )
         else:
@@ -317,11 +319,11 @@ class HomeView(wx.Window):
                     _("Start a %d-minute sprint") % cfgGl.sprintMinutes,
                     "ToggleSprint",
                     note=commandKeyText(cfgGl, "ToggleSprint"),
-                    card=1,
+                    section=1,
                 )
             )
 
-        rows.append(Row(ACTION, _("Writing goals") + "...", "WritingGoals", card=1))
+        rows.append(Row(ACTION, _("Writing goals") + "...", "WritingGoals", section=1))
 
         # what was written in each script lately, leaving out the days a
         # script was only touched
@@ -345,7 +347,7 @@ class HomeView(wx.Window):
                     note="%s  ·  %s"
                     % (self.amountText(t), durationText(t.active)),
                     dim=bool(t.path) and not os.path.exists(t.path),
-                    card=1,
+                    section=1,
                 )
             )
 
@@ -366,15 +368,14 @@ class HomeView(wx.Window):
         base = self.GetFont()
 
         return {
-            "title": base.Scaled(2.0).Bold(),
             "big": base.Scaled(1.8).Bold(),
             "heading": base.Bold(),
             "label": base.Scaled(1.1),
             "base": base,
         }
 
-    # place the cards, their texts, shapes and rows for the window's size
-    # and the scroll position
+    # place the card, its sections' texts, shapes and rows for the window's
+    # size and the scroll position
     def layout(self):
         px = self.px
         w, h = self.GetClientSize()
@@ -383,24 +384,35 @@ class HomeView(wx.Window):
         self.fontSet = self.fonts()
         self.texts = []
         self.shapes = []
-        self.cards = []
+        self.sections = []
 
-        cardW = max(px(200), min(px(CARD_WIDTH), w - px(MARGIN) * 2))
-        wide = w >= px(CARD_WIDTH) * 2 + px(CARD_GAP) + px(MARGIN) * 2
+        secW = max(px(200), min(px(SECTION_WIDTH), w - px(MARGIN) * 2))
+        wide = w >= px(SECTION_WIDTH) * 2 + px(MARGIN) * 2
         top = px(MARGIN) - self.scrollY
 
-        start = [r for r in self.rows if r.card == 0]
-        activity = [r for r in self.rows if r.card == 1]
+        # the logo, centered above the card
+        self.logoPos = wx.Point((w - px(LOGO_SIZE)) // 2, top)
+        top += px(LOGO_SIZE) + px(LOGO_GAP)
 
+        start = [r for r in self.rows if r.section == 0]
+        activity = [r for r in self.rows if r.section == 1]
+
+        # the line between the sections stops short of the card's edges
         if wide:
-            x = (w - cardW * 2 - px(CARD_GAP)) // 2
-            bottom1 = self.layoutStart(x, top, cardW, start)
-            bottom2 = self.layoutWriting(x + cardW + px(CARD_GAP), top, cardW, activity)
+            x = (w - secW * 2) // 2
+            bottom1 = self.layoutStart(x, top, secW, start)
+            bottom2 = self.layoutWriting(x + secW, top, secW, activity)
             bottom = max(bottom1, bottom2)
+            self.card = wx.Rect(x, top, secW * 2, bottom - top)
+            divider = wx.Rect(x + secW, top + px(PAD), 1, bottom - top - px(PAD) * 2)
         else:
-            x = (w - cardW) // 2
-            bottom = self.layoutStart(x, top, cardW, start)
-            bottom = self.layoutWriting(x, bottom + px(CARD_GAP), cardW, activity)
+            x = (w - secW) // 2
+            middle = self.layoutStart(x, top, secW, start)
+            bottom = self.layoutWriting(x, middle, secW, activity)
+            self.card = wx.Rect(x, top, secW, bottom - top)
+            divider = wx.Rect(x + px(PAD), middle, secW - px(PAD) * 2, 1)
+
+        self.shapes.append((DIVIDER, divider))
 
         del self.dc
 
@@ -423,7 +435,7 @@ class HomeView(wx.Window):
 
         return self.dc.GetTextExtent(text)[0]
 
-    # put the rows one after the other from y, as wide as the card's inside
+    # put the rows one after the other from y, as wide as the section's inside
     # (x, width). returns where they end.
     def placeRows(self, rows, x, y, width):
         px = self.px
@@ -431,7 +443,7 @@ class HomeView(wx.Window):
         for row in rows:
             rowH = px(ACTION_ROW if row.kind in (ACTION, MENU) else RECENT_ROW)
 
-            # the rows' highlights reach a bit into the card's padding
+            # the rows' highlights reach a bit into the section's padding
             row.rect = wx.Rect(x - px(10), y, width + px(20), rowH)
             y += rowH
 
@@ -448,28 +460,13 @@ class HomeView(wx.Window):
 
         return y + self.lineH("base") + self.px(8)
 
-    # the start card, at (cardX, top), cardW wide, with the rows. returns
+    # the start section, at (secX, top), secW wide, with the rows. returns
     # where it ends.
-    def layoutStart(self, cardX, top, cardW, rows):
+    def layoutStart(self, secX, top, secW, rows):
         px = self.px
-        x = cardX + px(PAD)
-        innerW = cardW - px(PAD) * 2
+        x = secX + px(PAD)
+        innerW = secW - px(PAD) * 2
         y = top + px(PAD)
-
-        # the logo, with the name beside it
-        logoH = px(LOGO_SIZE)
-        self.logoPos = wx.Point(x, y)
-        self.texts.append(
-            (
-                "Trelby",
-                x + logoH + px(14),
-                y + (logoH - self.lineH("title")) // 2,
-                "title",
-                False,
-            )
-        )
-        y += logoH + px(SECTION_GAP)
-
         y = self.heading(_("Start"), x, y)
         actions = [r for r in rows if r.kind != RECENT]
         recent = [r for r in rows if r.kind == RECENT]
@@ -486,7 +483,7 @@ class HomeView(wx.Window):
             )
 
         y += px(PAD)
-        self.cards.append(wx.Rect(cardX, top, cardW, y - top))
+        self.sections.append(wx.Rect(secX, top, secW, y - top))
 
         return y
 
@@ -506,14 +503,14 @@ class HomeView(wx.Window):
 
         return self.note(reached if done >= goal else text(int(100 * part)), x, y)
 
-    # the writing card, at (cardX, top), cardW wide, with its rows: the
+    # the writing section, at (secX, top), secW wide, with its rows: the
     # sprint's and the goals', and the recent activity's. returns where it
     # ends.
-    def layoutWriting(self, cardX, top, cardW, rows):
+    def layoutWriting(self, secX, top, secW, rows):
         px = self.px
         cfgGl = self.owner.gd.cfgGl
-        x = cardX + px(PAD)
-        innerW = cardW - px(PAD) * 2
+        x = secX + px(PAD)
+        innerW = secW - px(PAD) * 2
         right = x + innerW
         y = top + px(PAD)
         today = self.todayTotal
@@ -662,16 +659,21 @@ class HomeView(wx.Window):
             )
 
         y += px(PAD)
-        self.cards.append(wx.Rect(cardX, top, cardW, y - top))
+        self.sections.append(wx.Rect(secX, top, secW, y - top))
 
         return y
 
     def getLogo(self):
         size = self.px(LOGO_SIZE)
 
+        # home-silhouette.png is 256 pixels, scaled down to the logo's size
         if (self.logo is None) or (self.logo.GetWidth() != size):
-            img = icons.getBitmap("trelby/resources/icon128.png").ConvertToImage()
-            self.logo = wx.Bitmap(img.Scale(size, size, wx.IMAGE_QUALITY_HIGH))
+            img = icons.getBitmap("trelby/resources/home-silhouette.png").ConvertToImage()
+
+            if img.GetWidth() != size:
+                img = img.Scale(size, size, wx.IMAGE_QUALITY_HIGH)
+
+            self.logo = wx.Bitmap(img)
 
         return self.logo
 
@@ -710,6 +712,7 @@ class HomeView(wx.Window):
             TODAY_BAR: accent,
             NO_BAR: theming.blendColors(bg, dimColor, 0.35),
             GOAL_LINE: dimColor,
+            DIVIDER: cfgGui.pageBorderColor,
         }
 
         dc.SetBackground(wx.Brush(cfgGui.workspaceColor))
@@ -718,8 +721,7 @@ class HomeView(wx.Window):
         dc.SetPen(wx.Pen(cfgGui.pageBorderColor))
         dc.SetBrush(wx.Brush(bg))
 
-        for card in self.cards:
-            dc.DrawRoundedRectangle(card, px(8))
+        dc.DrawRoundedRectangle(self.card, px(8))
 
         dc.DrawBitmap(self.getLogo(), self.logoPos)
 
@@ -729,6 +731,10 @@ class HomeView(wx.Window):
             if kind == GOAL_LINE:
                 dc.SetPen(wx.Pen(color, 1, wx.PENSTYLE_SHORT_DASH))
                 dc.DrawLine(r.x, r.y, r.GetRight(), r.y)
+            elif kind == DIVIDER:
+                dc.SetPen(wx.TRANSPARENT_PEN)
+                dc.SetBrush(wx.Brush(color))
+                dc.DrawRectangle(r)
             else:
                 dc.SetPen(wx.TRANSPARENT_PEN)
                 dc.SetBrush(wx.Brush(color))
