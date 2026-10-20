@@ -392,9 +392,51 @@
 	<para>This chapter describes commands not discussed elsewhere.</para>
 
 	<sect1>
-	  <title>File/New,Open,Save,Save as,Close</title>
+	  <title>File/New screenplay,Open,Save,Save as,Close</title>
 
 	  <para>These do what you'd expect them to do.</para>
+
+	</sect1>
+
+	<sect1 id="script_formats">
+	  <title>File/New from template, Script/Change format</title>
+
+	  <para>Besides screenplays, &trelby; can lay a script out as a
+	  multi-camera sitcom, a stage play, an audio drama or a comic.
+	  File/New from template starts a new script in one of these
+	  formats, and Script/Change format switches the current script to
+	  another one.</para>
+
+	  <para>A format uses the usual element types, but lays them out its
+	  own way and may call them something else, in the toolbar, the
+	  right-click menu and the status bar:</para>
+
+	  <itemizedlist>
+		<listitem><para>Multi-camera sitcom: action in capitals,
+		dialogue double-spaced, scene headings underlined, and each
+		scene and act on a new page.</para></listitem>
+
+		<listitem><para>Stage play: the dialogue across the page under
+		the speaker's name, and stage directions (Action) indented and
+		in italics. Act breaks are acts, and Shot isn't
+		used.</para></listitem>
+
+		<listitem><para>Audio drama: Shot is for sound effects and
+		Transition for music cues, both in capitals and underlined, and
+		Action is for descriptions.</para></listitem>
+
+		<listitem><para>Comic: Scene headings are the comic's pages
+		(PAGE ONE), Shot its panels (PANEL 1), Action describes a
+		panel, Dialogue is for balloons, and act breaks are chapters.
+		Write captions and sound effects as speeches, with CAPTION or
+		SFX as the character. Transition isn't used.</para></listitem>
+	  </itemizedlist>
+
+	  <para>A format's layout is ordinary script settings (see
+	  <xref linkend="format_settings"/>), so you can change it afterwards
+	  like any others. Changing the format replaces the element styles and
+	  the page break settings with the new format's, and clears the undo
+	  history; the paper, margins, fonts and the rest are kept.</para>
 
 	</sect1>
 

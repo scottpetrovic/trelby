@@ -2,6 +2,7 @@ import trelby.config as config
 import trelby.ui.gutil as gutil
 import trelby.misc as misc
 import trelby.screenplay as screenplay
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.ui.widgets as widgets
 import wx
 
@@ -24,8 +25,12 @@ class ElementsPanel(wx.Panel):
 
         self.elementsCombo = wx.ComboBox(self, -1, style=wx.CB_READONLY)
 
+        # the names the script's format gives them, if any (see
+        # scriptformats)
         for t in config.getTIs():
-            self.elementsCombo.Append(t.name, t.lt)
+            self.elementsCombo.Append(
+                scriptformats.typeLabel(cfg, t.lt, withUsual=True), t.lt
+            )
 
         hsizer.Add(self.elementsCombo, 0)
 

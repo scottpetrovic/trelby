@@ -4,6 +4,8 @@ from collections import namedtuple
 
 import wx
 
+import trelby.config as config
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.ui.icons as icons
 import trelby.ui.ids as ids
 import trelby.keys as keys
@@ -51,15 +53,27 @@ class MyElemTypeBar(wx.Control):
         # BarIcons' wx.BitmapBundles by (filename, color)
         self.bitmaps = {}
 
-        # every item is as wide as its label in bold, so selecting one
-        # doesn't shift the others
-        padX = self.FromDIP(10)
         self.margin = self.FromDIP(2)
+        self.height = height
+        self.layoutItems()
+
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDown)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeave)
+
+    # work out where each item goes, and the control's size. every item is
+    # as wide as its label in bold, so selecting one doesn't shift the
+    # others.
+    def layoutItems(self):
+        padX = self.FromDIP(10)
+        height = self.height
 
         self.rects = []
         x = self.margin
 
-        for lt, label in items:
+        for lt, label in self.items:
             if isinstance(label, BarIcon):
                 w = self.FromDIP(self.ICON)
             else:
@@ -73,11 +87,22 @@ class MyElemTypeBar(wx.Control):
         self.SetMinSize(size)
         self.SetSize(size)
 
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
-        self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDown)
-        self.Bind(wx.EVT_MOTION, self.OnMotion)
-        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeave)
+    # replace the items with new (value, label) ones. returns whether they
+    # changed, in which case the toolbar holding the bar has to be
+    # realized again for its new size.
+    def setItems(self, items):
+        if items == self.items:
+            return False
+
+        self.items = items
+        self.layoutItems()
+
+        lt = self.curLt
+        self.curLt = None
+        self.hover = -1
+        self.SetValue(lt)
+
+        return True
 
     def AcceptsFocus(self):
         return False
@@ -405,7 +430,7 @@ class MainToolBar:
             tb,
             -1,
             self.getCfgGui,
-            [(lt, label) for lt, id, label, mnemonic, cmd in menus.elemTypes()],
+            self.elemTypeItems(None),
             lambda lt: self.onAction(elemActions[lt]),
             self.getElemTypeToolTip,
             height,
@@ -498,11 +523,32 @@ class MainToolBar:
             " Only Action elements can be centered."
         )
 
+    # the element type bar's items for a script with config cfg, whose
+    # format names the types and may not use all of them (see
+    # scriptformats), or with None, for a screenplay
+    def elemTypeItems(self, cfg):
+        if cfg is None:
+            cfg = config.Config()
+
+        used = scriptformats.usedTypes(cfg)
+
+        return [
+            (lt, scriptformats.typeLabel(cfg, lt))
+            for lt, id, label, mnemonic, cmd in menus.elemTypes()
+            if lt in used
+        ]
+
+    # show the element types of the script with config cfg
+    def setElemTypes(self, cfg):
+        if self.elemTypeBar.setItems(self.elemTypeItems(cfg)):
+            self.tb.Realize()
+
     def getElemTypeToolTip(self, lt):
         for itemLt, id, label, mnemonic, cmdName in menus.elemTypes():
             if itemLt == lt:
                 break
 
+        label = dict(self.elemTypeBar.items).get(lt, label)
         s = _("Change element to %s") % label
 
         for cmd in self.gd.cfgGl.commands:

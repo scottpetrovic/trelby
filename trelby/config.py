@@ -428,6 +428,10 @@ class Config:
         # Screenplay.isActStart)
         v.addBool("pbActNewPage", True, "PageBreakActNewPage")
 
+        # whether each scene starts on a new page, as in multi-camera
+        # sitcoms (see Screenplay.isSceneStart)
+        v.addBool("pbSceneNewPage", False, "PageBreakSceneNewPage")
+
         # whether every character takes up two columns instead of one, for
         # Chinese, Japanese and Korean, whose characters are twice as wide
         # as Latin ones (see getCharWidth)
@@ -459,6 +463,11 @@ class Config:
 
         # whether to show line numbers next to each line
         v.addBool("pdfShowLineNumbers", False, "ShowLineNumbers")
+
+        # the kind of script, the key of one of scriptformats.FORMATS. it
+        # only gives the element types their names (the format's settings
+        # are ordinary ones), and an unknown one is taken as a screenplay.
+        v.addStrLatin1("scriptFormat", "screenplay", "ScriptFormat")
 
         # cursor position, line
         v.addInt("cursorLine", 0, "Cursor/Line", 0, 1000000)

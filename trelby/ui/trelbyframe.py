@@ -229,6 +229,7 @@ class MyFrame(wx.Frame):
     def showScriptState(self, ctrl):
         ed = ctrl.ed
 
+        self.tools.setElemTypes(ctrl.sp.cfg)
         self.tools.setState(
             ctrl.sp.lines[ed.line].lt, ed.getFormatState(), ed.getCenteredState()
         )
@@ -403,8 +404,13 @@ class MyFrame(wx.Frame):
 
         self.tabCtrl.selectPage(pageNr)
 
-    def OnNewScript(self, event=None):
+    # a new script, laid out in the format with the given key (see
+    # scriptformats), or as a screenplay
+    def OnNewScript(self, formatKey=None):
         self.panel = self.createNewPanel()
+
+        if formatKey:
+            self.panel.ctrl.useFormat(formatKey)
 
     def OnMRUFile(self, event):
         i = event.GetId() - self.gd.mru.getIds()[0]

@@ -28,6 +28,7 @@ from mcp.types import ToolAnnotations
 
 import trelby.formats as formats
 import trelby.mcpserver.tools as mcptools
+import trelby.screenplay.scriptformats as scriptformats
 
 # port the server in the app listens on by default
 DEFAULT_PORT = 7789
@@ -49,6 +50,22 @@ Every result includes the script's revision. Every edit must be given the
 revision it is based on, and is refused if the script has changed since, so
 read again (list_scenes / read_scenes) after an error like that. Edits return
 the new revision and the new list of scenes, whose indexes may have shifted.
+
+A script has a format (get_script_info), which is how it's laid out and
+what some element types stand for in it:
+- screenplay: a film or single-camera TV script, the default.
+- sitcom: a multi-camera sitcom, with the usual element types. Each scene
+  starts on a new page.
+- stageplay: a stage play. Action elements are stage directions and act
+  breaks are the acts (ACT ONE); shots aren't used.
+- audiodrama: a radio play or podcast drama. Shot elements are sound
+  effects, transitions are music cues, and action elements describe the
+  scene.
+- comic: a comic book script. Scene headings are the comic's pages (PAGE
+  ONE), shots are its panels (PANEL 1), action elements describe what a
+  panel shows, and act breaks are chapters. Captions and sound effects are
+  speeches (character CAPTION or SFX, then dialogue); transitions aren't
+  used.
 
 A script can also have world building notes (get_world_building), the
 writer's free-text notes about the story's world, and character profiles
@@ -431,11 +448,21 @@ def makeServer(run, inApp):
             *,
             path: Annotated[str, Field(description="Absolute path of the new file.")],
             elements: Elements,
+            format: Annotated[
+                Literal[tuple(f.key for f in scriptformats.FORMATS)],
+                Field(
+                    description="The kind of script, which sets its layout "
+                    "and what the element types stand for (see the "
+                    "instructions)."
+                ),
+            ] = scriptformats.SCREENPLAY,
         ) -> Result:
-            """Create a new script with default settings and the given
-            elements. Refuses to overwrite an existing file."""
+            """Create a new script with the given elements, laid out as a
+            screenplay or another format. Refuses to overwrite an existing
+            file."""
             return await run(
-                "create_script", {"path": path, "elements": toDicts(elements)}
+                "create_script",
+                {"path": path, "elements": toDicts(elements), "format": format},
             )
 
     return server
@@ -461,7 +488,12 @@ def makeFileServer():
             path = args.pop("path")
 
             if name == "create_script":
-                return callTool(mcptools.createScript, path, args["elements"])
+                return callTool(
+                    mcptools.createScript,
+                    path,
+                    args["elements"],
+                    args.get("format", scriptformats.SCREENPLAY),
+                )
 
             return callTool(
                 lambda: mcptools.OPS[name](mcptools.FileDoc(path), args)

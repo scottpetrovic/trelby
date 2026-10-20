@@ -21,6 +21,7 @@ import trelby.ui.myimport as myimport
 import trelby.ui.noteeditor as noteeditor
 import trelby.opts as opts
 import trelby.screenplay as screenplay
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.spellcheck as spellcheck
 import trelby.ui.scriptactions as scriptactions
 import trelby.ui.scriptpainter as scriptpainter
@@ -255,6 +256,16 @@ class MyCtrl(wx.Control):
         self.refreshCache()
         self.panel.board.reload(self.sp)
 
+    # lay the new, empty script out in the format with the given key (see
+    # scriptformats)
+    def useFormat(self, key):
+        scriptformats.get(key).apply(self.sp.cfg)
+        self.sp.reformatAll()
+        self.sp.paginate()
+        self.setFile(None)
+        self.refreshCache()
+        self.updateScreen()
+
     # update stuff that depends on configuration / view mode etc.
     # (see scriptpainter.Viewport for what these are)
     def refreshCache(self):
@@ -425,9 +436,14 @@ class MyCtrl(wx.Control):
         if fileName:
             self.setDisplayName(os.path.basename(fileName))
         else:
-            self.setDisplayName(_("untitled"))
+            self.setDisplayName(self.untitledName())
 
         self.setTabText()
+
+    # the name of the script while it has no file: "Untitled Screenplay",
+    # "Untitled Stage Play"... (see scriptformats)
+    def untitledName(self):
+        return scriptformats.ofConfig(self.sp.cfg).untitled()
 
     # set the name shown for the script to name, made unique among the open
     # scripts
@@ -571,6 +587,11 @@ class MyCtrl(wx.Control):
     # apply per-script config
     def applyCfg(self, newCfg):
         self.ed.applyCfg(newCfg)
+
+        # the format, and with it an unsaved script's name, may have
+        # changed
+        if not self.fileName:
+            self.setFile(None)
 
         self.refreshCache()
         self.makeLineVisible(self.ed.line)
@@ -958,6 +979,7 @@ class MyCtrl(wx.Control):
 
         m = menus.makeRightClickMenu(
             self.gd.mainFrame.actions,
+            self.sp.cfg,
             curLt,
             bool(self.ed.mark),
             dualState,

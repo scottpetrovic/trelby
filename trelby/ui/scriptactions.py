@@ -35,6 +35,8 @@ import trelby.screenplay.plaintext as plaintext
 import trelby.screenplay.proofing as proofing
 import trelby.screenplay.render as render
 import trelby.dialogs.scriptchooserdlg as scriptchooserdlg
+import trelby.dialogs.scriptformatdlg as scriptformatdlg
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.spellcheck as spellcheck
 import trelby.dialogs.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.dialogs.spellcheckdlg as spellcheckdlg
@@ -917,6 +919,20 @@ def scriptSettings(frame, ctrl):
 
     if dlg.ShowModal() == wx.ID_OK:
         ctrl.applyCfg(dlg.cfg)
+
+    dlg.Destroy()
+
+
+# Script > Change format: lay the script out as a stage play, a sitcom...
+# (see scriptformats). like changing the script settings, this clears the
+# undo history.
+def changeFormat(frame, ctrl):
+    dlg = scriptformatdlg.ScriptFormatDlg(frame, scriptformats.ofConfig(ctrl.sp.cfg))
+
+    if dlg.ShowModal() == wx.ID_OK:
+        cfg = copy.deepcopy(ctrl.sp.cfg)
+        dlg.format.apply(cfg)
+        ctrl.applyCfg(cfg)
 
     dlg.Destroy()
 

@@ -66,10 +66,14 @@ class PaginationMixin:
 
         self.initDualPagination()
 
+        # the lines that start a page of their own
+        self.pageStarts = set()
+
         if self.cfg.pbActNewPage:
-            self.actStarts = {i for i in range(1, length) if self.isActStart(i)}
-        else:
-            self.actStarts = set()
+            self.pageStarts.update(i for i in range(1, length) if self.isActStart(i))
+
+        if self.cfg.pbSceneNewPage:
+            self.pageStarts.update(self.getScenePageStarts())
 
         if not locks:
             self.paginateRange(0, length - 1)
@@ -100,6 +104,26 @@ class PaginationMixin:
     # the previous page break), 'cost' is how much height the line adds,
     # in the same units as in paginateRange; together they add whatever
     # the right column is taller than the left one, if anything.
+    # the first lines of the scene headings that start a new page when
+    # each scene does (Config.pbSceneNewPage): every scene but the
+    # script's first, unless an act heading comes right before it, which
+    # already starts the page.
+    def getScenePageStarts(self):
+        ls = self.lines
+        ret = []
+        seen = False
+
+        for i, ln in enumerate(ls):
+            if (ln.lt != SCENE) or ((i > 0) and (ls[i - 1].lb != LB_LAST)):
+                continue
+
+            if seen and (i > 0) and (ls[i - 1].lt not in (SCENE, ACTBREAK)):
+                ret.append(i)
+
+            seen = True
+
+        return ret
+
     def initDualPagination(self):
         self.dualBlockAt = {}
         self.dualCost = {}
@@ -150,7 +174,7 @@ class PaginationMixin:
         hdrLines = self.headers.getNrOfLines()
         dualBlockAt = self.dualBlockAt
         dualCost = self.dualCost
-        actStarts = self.actStarts
+        pageStarts = self.pageStarts
 
         # each iteration makes one page, starting at line i. heights are
         # in tenths of a line, like the spacing settings: lp is the room on
@@ -185,7 +209,7 @@ class PaginationMixin:
 
                 while i < (length - 1):
 
-                    if (i + 1) in actStarts:
+                    if (i + 1) in pageStarts:
                         break
 
                     dual = dualCost.get(i + 1)

@@ -12,6 +12,7 @@ import wx
 import trelby.formats as formats
 import trelby.misc as misc
 import trelby.screenplay as screenplay
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.ui.scriptactions as scriptactions
 import trelby.textfmt as textfmt
 import trelby.translations as translations
@@ -227,6 +228,20 @@ def makeTable():
         ),
     )
 
+    # File > New from template: a new script in each format but the
+    # screenplay, which File > New makes
+    templateItems = [
+        Action(
+            "NewScript-" + f.key,
+            wx.NewIdRef(),
+            f.name(),
+            None,
+            OnFrame("OnNewScript", f.key),
+        )
+        for f in scriptformats.FORMATS
+        if f.key != scriptformats.SCREENPLAY
+    ]
+
     fileMenu = Menu(
         _("File"),
         "F",
@@ -234,11 +249,12 @@ def makeTable():
             Action(
                 "NewScript",
                 ID_FILE_NEW,
-                _("New"),
+                _("New screenplay"),
                 "N",
                 OnFrame("OnNewScript"),
                 "CTRL-N",
             ),
+            Menu(_("New from template"), "T", templateItems),
             Action(
                 "OpenScript",
                 ID_FILE_OPEN,
@@ -637,6 +653,14 @@ def makeTable():
                 _("Script settings"),
                 "S",
                 OnScript(scriptactions.scriptSettings),
+                dots=True,
+            ),
+            Action(
+                "ChangeScriptFormat",
+                ID_SCRIPT_FORMAT,
+                _("Change format"),
+                "g",
+                OnScript(scriptactions.changeFormat),
                 dots=True,
             ),
             Action(
@@ -1206,8 +1230,9 @@ def onUpdateUI(frame, event, a):
             event.Check(a.isChecked(frame, panel.ctrl))
 
 
-# build the editor's right-click menu from the actions ({name: Action}).
-# curLt is the type of the element(s) it applies to, or None if they're of
+# build the editor's right-click menu from the actions ({name: Action}),
+# for a script with config cfg, whose format names the element types and
+# may not use all of them (see scriptformats). curLt is the type of the element(s) it applies to, or None if they're of
 # more than one type. dualState: None if dual dialogue can't be toggled at
 # the cursor, otherwise whether the cursor is in a dual dialogue.
 # centeredState is likewise for centering action elements. spelling, for a
@@ -1215,6 +1240,7 @@ def onUpdateUI(frame, event, a):
 # None making the label a disabled item.
 def makeRightClickMenu(
     actions,
+    cfg,
     curLt,
     withCut,
     dualState=None,
@@ -1251,15 +1277,16 @@ def makeRightClickMenu(
     if curLt is None:
         header = _("Multiple types")
     else:
-        header = next(label for lt, id, label, mnemonic, cmd in types if lt == curLt)
+        header = scriptformats.typeLabel(cfg, curLt)
 
     m.Append(wx.ID_ANY, header).Enable(False)
 
     switchMenu = wx.Menu()
+    used = scriptformats.usedTypes(cfg)
 
     for lt, id, label, mnemonic, cmdName in types:
-        if lt != curLt:
-            append(switchMenu, "ElemTo" + cmdName[len("ChangeTo") :])
+        if (lt != curLt) and (lt in used):
+            switchMenu.Append(id, scriptformats.typeLabel(cfg, lt))
 
     m.AppendSubMenu(switchMenu, _("Switch type"))
 

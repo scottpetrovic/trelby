@@ -22,6 +22,7 @@ import trelby.error as error
 import trelby.formats as formats
 import trelby.misc as misc
 import trelby.screenplay as screenplay
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.screenplay.speeches as speeches
 import trelby.textutil as textutil
 import trelby.translations as translations
@@ -558,6 +559,7 @@ def getInfo(doc):
     ret.update(
         {
             "revision": rev,
+            "format": scriptformats.ofConfig(sp.cfg).key,
             "title_page": titles,
             "pages": len(sp.pages) - 1,
             "page_length": round(sp.getPageLength(), 2),
@@ -978,7 +980,7 @@ def deleteCharacterProfile(doc, revision, name):
 
 
 # create a new .trelby file containing the given elements.
-def createScript(path, elements):
+def createScript(path, elements, format=scriptformats.SCREENPLAY):
     init()
     path = checkPath(path, False)
 
@@ -988,7 +990,14 @@ def createScript(path, elements):
     if not os.path.isdir(os.path.dirname(path)):
         raise ToolError("Directory '%s' doesn't exist." % os.path.dirname(path))
 
+    if format not in [f.key for f in scriptformats.FORMATS]:
+        raise ToolError(
+            "Unknown format '%s'. The formats are %s."
+            % (format, ", ".join(f.key for f in scriptformats.FORMATS))
+        )
+
     sp = screenplay.Screenplay(_cfgGl)
+    scriptformats.get(format).apply(sp.cfg)
     sp.lines = buildLines(elements, False)
 
     rev = save(screenplay.Editor(sp), path, False)

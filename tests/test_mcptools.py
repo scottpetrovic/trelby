@@ -116,6 +116,7 @@ def testInfo(sample):
     assert info["words"] > 0
     assert info["characters"] > 0
     assert not info["has_world_building"]
+    assert info["format"] == "screenplay"
 
 
 def testListCharacters(small):
@@ -461,6 +462,25 @@ def testCreateScript(tmp_path):
 
     with pytest.raises(m.ToolError, match="already exists"):
         m.createScript(path, [{"type": "scene", "text": "x"}])
+
+
+def testCreateScriptInFormat(tmp_path):
+    path = str(tmp_path / "play.trelby")
+
+    m.createScript(
+        path,
+        [
+            {"type": "act break", "text": "ACT ONE"},
+            {"type": "scene", "text": "A KITCHEN"},
+            {"type": "action", "text": "Lights up."},
+        ],
+        "stageplay",
+    )
+
+    assert m.getInfo(m.FileDoc(path))["format"] == "stageplay"
+
+    with pytest.raises(m.ToolError, match="Unknown format"):
+        m.createScript(str(tmp_path / "x.trelby"), [], "opera")
 
 
 # scripts open in the app are edited in memory, with undo

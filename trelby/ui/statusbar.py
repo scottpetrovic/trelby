@@ -6,6 +6,7 @@ import time
 import wx
 
 import trelby.screenplay.revisions as revisions
+import trelby.screenplay.scriptformats as scriptformats
 
 
 # a status bar drawn in the theme's colors. wx.StatusBar can't be used: the
@@ -270,14 +271,17 @@ class MainStatusBar(StatusBar):
         cur = cfgGl.getType(sp.lines[ctrl.ed.line].lt)
 
         if ctrl.ed.tabMakesNew():
-            tabNext = cfgGl.getType(cur.newTypeTab).ti.name
+            tabNext = cur.newTypeTab
         else:
-            tabNext = cfgGl.getType(cur.nextTypeTab).ti.name
+            tabNext = cur.nextTypeTab
 
-        enterNext = cfgGl.getType(cur.newTypeEnter).ti.name
+        # in the script's format's names for them (see scriptformats)
+        def label(lt):
+            return scriptformats.typeLabel(sp.cfg, lt)
 
         self.SetStatusText(
-            _("Enter: %s    Tab: %s") % (_(enterNext), _(tabNext)), self.SB_NEXT
+            _("Enter: %s    Tab: %s") % (label(cur.newTypeEnter), label(tabNext)),
+            self.SB_NEXT,
         )
 
         page = sp.line2pageLabel(ctrl.ed.line)
