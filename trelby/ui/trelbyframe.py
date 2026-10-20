@@ -546,21 +546,6 @@ class MyFrame(wx.Frame):
 
         self.openScript(filename)
 
-    # open the script at path, from the Home screen's recent writing, or say
-    # it's not there
-    def openPath(self, path):
-        if not os.path.exists(path):
-            wx.MessageBox(
-                _("File not found:\n\n{}").format(path),
-                _("Error"),
-                wx.OK,
-                self,
-            )
-
-            return
-
-        self.openScript(path)
-
     # take the i'th file off the recent files
     def removeRecent(self, i):
         self.gd.mru.remove(i)

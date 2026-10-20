@@ -61,9 +61,6 @@ class Owner:
         self.opened.append(i)
 
     # like MyFrame's, refreshing the view
-    def openPath(self, path):
-        self.opened.append(path)
-
     def removeRecent(self, i):
         self.removed.append(i)
         self.gd.mru.remove(i)
@@ -332,24 +329,25 @@ def testDraws(frame, tmp_path, theme):
         )
 
 
-# the writing section: today's words, the chart's bars, the goal, and a row
-# per script written in lately
+# the writing section: the chart's bars, its totals on the heading's line,
+# and the goal
 def testWritingCard(frame):
     sessions = [
         session(0, 300, h=9),
         session(0, 112, path="/s/Other.trelby", h=11, active=600),
         session(1, 900),
         session(3, 150, path=None),
-        # only touched: left out of the recent writing
         session(2, 0, path="/s/Touched.trelby", active=20),
     ]
     view, owner = makeView(frame, sessions=sessions, goal=1000)
 
+    # the two weeks' words, time and streak on one line; today's words
+    # only in the goal's progress
     texts = [t[0] for t in view.texts]
-    assert "412 words" in texts
-    assert "40 min  ·  2-day streak" in texts
-    assert "41% of 1,000 words" in texts
-    assert "1,462 words" in texts
+    assert _("Activity Tracker") in texts
+    assert "1,462 words  ·  1 h 40 min  ·  2-day streak" in texts
+    assert "Daily goal: 41% of 1,000 words" in texts
+    assert "412 words" not in texts
 
     kinds = [k for k, r in view.shapes]
     assert kinds.count(homeview.TRACK) == kinds.count(homeview.FILL) == 1
@@ -362,24 +360,8 @@ def testWritingCard(frame):
     fill = [r for k, r in view.shapes if k == homeview.FILL][0]
     assert fill.width == int(track.width * 0.412)
 
-    act = [r for r in view.rows if r.kind == homeview.ACTIVITY]
-    assert [(r.label, r.note) for r in act] == [
-        ("Other", "112 words  ·  10 min"),
-        ("Pilot", "300 words  ·  30 min"),
-        ("Pilot", "900 words  ·  30 min"),
-        ("Untitled", "150 words  ·  30 min"),
-    ]
-    assert act[0].detail.startswith("Today")
-    assert act[2].detail.startswith("Yesterday")
-
-    # clicking one opens its script; one never saved can't be
-    view.OnLeftDown(mouse(view, wx.wxEVT_LEFT_DOWN, centre(act[1].rect)))
-    view.OnLeftDown(mouse(view, wx.wxEVT_LEFT_DOWN, centre(act[3].rect)))
-    assert owner.opened == ["/s/Pilot.trelby"]
-
-    # nor picked with the keys
-    key(view, wx.WXK_END)
-    assert view.rows[view.picked] is act[2]
+    # the writing section's only rows are the sprint's and the goals'
+    assert {r.kind for r in view.rows if r.section == 1} == {homeview.ACTION}
 
 
 def testWritingCardEmpty(frame):
@@ -387,7 +369,6 @@ def testWritingCardEmpty(frame):
 
     texts = [t[0] for t in view.texts]
     assert "0 words" in texts
-    assert _("What you write in any script is counted here.") in texts
     assert not any(k == homeview.TRACK for k, r in view.shapes)
 
 
@@ -397,8 +378,8 @@ def testGoalInPages(frame):
     view.refresh()
 
     texts = [t[0] for t in view.texts]
-    assert "2 pages" in texts
-    assert "66% of 3 pages" in texts
+    assert "2 pages  ·  30 min" in texts
+    assert "Daily goal: 66% of 3 pages" in texts
 
     view, owner = makeView(frame, sessions=[session(0, 1000)], goal=3)
     owner.gd.cfgGl.dailyGoalPages = True

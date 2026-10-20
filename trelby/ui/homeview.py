@@ -5,14 +5,13 @@
 # otherwise:
 #
 # - the ways to start a script, and the scripts opened recently
-# - what's been written, in all scripts (see writinglog.py): today against
-#   the daily goal, the last two weeks as a bar chart, and which scripts
-#   were written in lately
+# - what's been written, in all scripts (see writinglog.py): the last two
+#   weeks as a bar chart, today against the daily goal, the sprints, and
+#   which scripts were written in lately
 #
 # a click on a row (or Enter on the one picked with the arrow keys) runs
 # its Action, pops up a menu of Actions, or opens the script.
 
-import datetime
 import os
 import time
 
@@ -37,14 +36,12 @@ LOGO_SIZE = 128
 LOGO_GAP = 20
 CHART_HEIGHT = 72
 
-# how many days the chart shows, and how many scripts' days the recent
-# activity lists at most
+# how many days the chart shows
 CHART_DAYS = 14
-ACTIVITY_ROWS = 6
 
 # the kinds of row: one that runs an Action, one that pops up a menu of
-# Actions, a recent script, and a script written in lately
-ACTION, MENU, RECENT, ACTIVITY = list(range(4))
+# Actions, and a recent script
+ACTION, MENU, RECENT = list(range(3))
 
 # the kinds of shape drawn besides the texts and the rows (see
 # HomeView.shapes): the goal's progress bar, empty and filled, the chart's
@@ -54,12 +51,10 @@ TRACK, FILL, BAR, TODAY_BAR, NO_BAR, GOAL_LINE, DIVIDER = list(range(7))
 
 
 # a row: its kind, its label, the dimmer text under the label (a script's
-# folder) and at its right (a shortcut, or when the script was changed, or
-# how much was written), and what it does: an Action's name, a list of
-# them, the index of the recent file, or the path of the script written
-# in (None for one never saved, which can't be opened). section is the
-# section it's in: 0 for the start section, 1 for the writing section. rect is where it
-# is, set by HomeView.layout.
+# folder) and at its right (a shortcut, or when the script was changed),
+# and what it does: an Action's name, a list of them, or the index of the
+# recent file. section is the section it's in: 0 for the start section, 1
+# for the writing section. rect is where it is, set by HomeView.layout.
 class Row:
     def __init__(self, kind, label, value, detail="", note="", dim=False, section=0):
         self.kind = kind
@@ -73,10 +68,6 @@ class Row:
         self.dim = dim
 
         self.rect = wx.Rect()
-
-    # whether clicking it does something
-    def isEnabled(self):
-        return not ((self.kind == ACTIVITY) and (self.value is None))
 
 
 # the first key of the keyboard command 'name' in the global config cfgGl,
@@ -105,17 +96,6 @@ def changedText(mtime, now=None):
         return _("Today %s") % time.strftime("%H:%M", time.localtime(mtime))
 
     return time.strftime("%Y-%m-%d", time.localtime(mtime))
-
-
-# "Today", "Yesterday", or the date, for day 'day' seen on day 'today'
-def dayText(day, today):
-    if day == today:
-        return _("Today")
-
-    if day == today - datetime.timedelta(days=1):
-        return _("Yesterday")
-
-    return day.strftime("%a %d %b")
 
 
 # time spent writing, in seconds: "35 min", "1 h 5 min", or "<1 min"
@@ -150,7 +130,7 @@ def pagesText(pages):
 
 # owner is what the rows act through, the main window (trelbyframe.MyFrame):
 # its actions ({name: menus.Action}), runAction(name), openRecent(i),
-# removeRecent(i) and openPath(path), and gd (globaldata.GlobalData) for the
+# and removeRecent(i), and gd (globaldata.GlobalData) for the
 # recent files, the writing log, the daily goal and the theme. clock gives
 # the time (seconds since the epoch).
 class HomeView(wx.Window):
@@ -327,32 +307,6 @@ class HomeView(wx.Window):
 
         rows.append(Row(ACTION, _("Manage Writing Goals") + "...", "WritingGoals", section=1))
 
-        # what was written in each script lately, leaving out the days a
-        # script was only touched
-        activity = [
-            t for t in log.recentActivity(ACTIVITY_ROWS * 3)
-            if (t.words != 0) or (t.active >= 60)
-        ][:ACTIVITY_ROWS]
-
-        for t in activity:
-            detail = dayText(t.day, self.today)
-
-            if t.path:
-                detail += "  ·  " + os.path.dirname(t.path)
-
-            rows.append(
-                Row(
-                    ACTIVITY,
-                    t.title,
-                    t.path,
-                    detail=detail,
-                    note="%s  ·  %s"
-                    % (self.amountText(t), durationText(t.active)),
-                    dim=bool(t.path) and not os.path.exists(t.path),
-                    section=1,
-                )
-            )
-
         # refreshed every second during a sprint, the row under the mouse
         # stays highlighted
         if (self.hover is not None) and (self.hover >= len(rows)):
@@ -371,7 +325,7 @@ class HomeView(wx.Window):
 
         return {
             "big": base.Scaled(1.8).Bold(),
-            "heading": base.Bold(),
+            "heading": base.Scaled(1.25).Bold(),
             "label": base.Scaled(1.1),
             "base": base,
         }
@@ -397,20 +351,20 @@ class HomeView(wx.Window):
         top += px(LOGO_SIZE) + px(LOGO_GAP)
 
         start = [r for r in self.rows if r.section == 0]
-        activity = [r for r in self.rows if r.section == 1]
+        writing = [r for r in self.rows if r.section == 1]
 
         # the line between the sections stops short of the card's edges
         if wide:
             x = (w - secW * 2) // 2
             bottom1 = self.layoutStart(x, top, secW, start)
-            bottom2 = self.layoutWriting(x + secW, top, secW, activity)
+            bottom2 = self.layoutWriting(x + secW, top, secW, writing)
             bottom = max(bottom1, bottom2)
             self.card = wx.Rect(x, top, secW * 2, bottom - top)
             divider = wx.Rect(x + secW, top + px(PAD), 1, bottom - top - px(PAD) * 2)
         else:
             x = (w - secW) // 2
             middle = self.layoutStart(x, top, secW, start)
-            bottom = self.layoutWriting(x, middle, secW, activity)
+            bottom = self.layoutWriting(x, middle, secW, writing)
             self.card = wx.Rect(x, top, secW, bottom - top)
             divider = wx.Rect(x + px(PAD), middle, secW - px(PAD) * 2, 1)
 
@@ -506,8 +460,8 @@ class HomeView(wx.Window):
         return self.note(reached if done >= goal else text(int(100 * part)), x, y)
 
     # the writing section, at (secX, top), secW wide, with its rows: the
-    # sprint's and the goals', and the recent activity's. returns where it
-    # ends.
+    # sprint's and the goals'. the chart comes first, then the goals'
+    # progress and the sprint. returns where it ends.
     def layoutWriting(self, secX, top, secW, rows):
         px = self.px
         cfgGl = self.owner.gd.cfgGl
@@ -518,108 +472,42 @@ class HomeView(wx.Window):
         today = self.todayTotal
         goal = cfgGl.dailyGoal
 
-        y = self.heading(_("Today"), x, y)
-
-        # what's been written today, big, and how long it took and the
-        # streak beside it
-        bigH = self.lineH("big")
-        self.texts.append((self.amountText(today), x, y, "big", False))
-
-        parts = []
-
-        if today.active:
-            parts.append(durationText(today.active))
-
-        if self.streak > 1:
-            parts.append(_("%d-day streak") % self.streak)
-
-        if parts:
-            side = "  ·  ".join(parts)
-            sideW = self.textW(side, "base")
-            self.texts.append(
-                (side, right - sideW, y + bigH - self.lineH("base"), "base", True)
-            )
-
-        y += bigH + px(10)
-
         def amount(t):
             return t.shownPages() if self.inPages() else t.shownWords()
 
         def goalText(n):
             return pagesText(n) if self.inPages() else wordsText(n)
 
-        if goal:
-            y = self.progress(
-                x,
-                y,
-                innerW,
-                amount(today),
-                goal,
-                _("Daily goal reached"),
-                lambda pc: _("%d%% of %s") % (pc, goalText(goal)),
-            )
-
-        weekly = cfgGl.weeklyGoal
-
-        if weekly:
-            week = self.weekTotal
-            y += px(4)
-            y = self.progress(
-                x,
-                y,
-                innerW,
-                amount(week),
-                weekly,
-                _("Weekly goal reached: %s this week") % self.amountText(week),
-                lambda pc: _("%s of %s this week")
-                % (self.amountText(week), goalText(weekly)),
-            )
-
-        y += px(SECTION_GAP)
-
-        # the sprint going on, today's sprints, and the rows to start or
-        # stop one and set the goals
-        y = self.heading(_("Sprint"), x, y)
-
-        if self.sprintText:
-            self.texts.append((self.sprintText, x, y, "label", False))
-            y += self.lineH("label") + px(8)
-
-        if self.sprintsToday:
-            n = len(self.sprintsToday)
-            words = sum(sp.words for sp in self.sprintsToday)
-
-            if n == 1:
-                text = _("1 sprint today, %s") % wordsText(words)
-            else:
-                text = _("%d sprints today, %s") % (n, wordsText(words))
-
-            y = self.note(text, x, y)
-
-        actions = [r for r in rows if r.kind == ACTION]
-        rows = [r for r in rows if r.kind != ACTION]
-        y = self.placeRows(actions, x, y, innerW)
-
-        y += px(SECTION_GAP)
-
-        # the last two weeks, a bar per day, today's last
-        y = self.heading(_("Last %d days") % CHART_DAYS, x, y)
+        # the last two weeks, a bar per day, today's last, with how much
+        # was written in them, how long it took and the streak at the right
+        # of the heading, lined up with its bottom
+        y = self.heading(_("Activity Tracker"), x, y)
         total = writinglog.Total(self.today)
 
         for t in self.chartDays:
             total.words += t.shownWords()
             total.pages += t.shownPages()
+            total.active += t.active
 
-        totalText = self.amountText(total)
+        parts = [self.amountText(total)]
+
+        if total.active:
+            parts.append(durationText(total.active))
+
+        if self.streak > 1:
+            parts.append(_("%d-day streak") % self.streak)
+
+        side = "  ·  ".join(parts)
         self.texts.append(
             (
-                totalText,
-                right - self.textW(totalText, "base"),
-                y - self.lineH("heading") - px(6),
+                side,
+                right - self.textW(side, "base"),
+                y - px(6) - self.lineH("base"),
                 "base",
                 True,
             )
         )
+        y += px(12)
 
         scale = max([amount(t) for t in self.chartDays] + [goal, 1])
         chartH = px(CHART_HEIGHT)
@@ -651,14 +539,55 @@ class HomeView(wx.Window):
         self.texts.append((last, right - self.textW(last, "base"), y, "base", True))
         y += self.lineH("base") + px(SECTION_GAP)
 
-        y = self.heading(_("Recent writing"), x, y)
-
-        if rows:
-            y = self.placeRows(rows, x, y, innerW)
-        else:
-            y = self.note(
-                _("What you write in any script is counted here."), x, y + px(4)
+        # today against the daily goal, and this week against the weekly
+        if goal:
+            y = self.progress(
+                x,
+                y,
+                innerW,
+                amount(today),
+                goal,
+                _("Daily goal reached"),
+                lambda pc: _("Daily goal: %d%% of %s") % (pc, goalText(goal)),
             )
+
+        weekly = cfgGl.weeklyGoal
+
+        if weekly:
+            week = self.weekTotal
+            y += px(10)
+            y = self.progress(
+                x,
+                y,
+                innerW,
+                amount(week),
+                weekly,
+                _("Weekly goal reached: %s this week") % self.amountText(week),
+                lambda pc: _("%s of %s this week")
+                % (self.amountText(week), goalText(weekly)),
+            )
+
+        y += px(SECTION_GAP)
+
+        # the sprint going on, today's sprints, and the rows to start or
+        # stop one and set the goals
+
+        if self.sprintText:
+            self.texts.append((self.sprintText, x, y, "label", False))
+            y += self.lineH("label") + px(8)
+
+        if self.sprintsToday:
+            n = len(self.sprintsToday)
+            words = sum(sp.words for sp in self.sprintsToday)
+
+            if n == 1:
+                text = _("1 sprint today, %s") % wordsText(words)
+            else:
+                text = _("%d sprints today, %s") % (n, wordsText(words))
+
+            y = self.note(text, x, y)
+
+        y = self.placeRows(rows, x, y, innerW)
 
         y += px(PAD)
         self.sections.append(wx.Rect(secX, top, secW, y - top))
@@ -682,7 +611,7 @@ class HomeView(wx.Window):
     # the index of the row at pos that can be clicked, or None
     def rowAt(self, pos):
         for i, row in enumerate(self.rows):
-            if row.rect.Contains(pos) and row.isEnabled():
+            if row.rect.Contains(pos):
                 return i
 
         return None
@@ -819,8 +748,6 @@ class HomeView(wx.Window):
 
         if row and (row.kind == RECENT):
             self.SetToolTip(self.owner.gd.mru.get(row.value))
-        elif row and (row.kind == ACTIVITY):
-            self.SetToolTip(row.value)
         else:
             self.UnsetToolTip()
 
@@ -884,19 +811,6 @@ class HomeView(wx.Window):
         elif r.GetBottom() > h:
             self.scrollTo(self.scrollY + r.GetBottom() - h + self.px(MARGIN))
 
-    # the index of the next row from i that can be clicked, going by step
-    # (1 or -1), or i if there's none
-    def nextEnabled(self, i, step):
-        j = i + step
-
-        while 0 <= j < len(self.rows):
-            if self.rows[j].isEnabled():
-                return j
-
-            j += step
-
-        return i
-
     def OnKeyDown(self, event):
         key = event.GetKeyCode()
         n = len(self.rows)
@@ -905,13 +819,13 @@ class HomeView(wx.Window):
             if key == wx.WXK_HOME:
                 i = 0
             elif key == wx.WXK_END:
-                i = self.nextEnabled(n, -1)
+                i = n - 1
             elif not self.keyNav or (self.picked is None):
                 i = 0
             elif key == wx.WXK_UP:
-                i = self.nextEnabled(self.picked, -1)
+                i = max(0, self.picked - 1)
             else:
-                i = self.nextEnabled(self.picked, 1)
+                i = min(n - 1, self.picked + 1)
 
             self.keyNav = True
             self.picked = i
@@ -943,8 +857,6 @@ class HomeView(wx.Window):
             self.popupActions(row)
         elif row.kind == RECENT:
             self.owner.openRecent(row.value)
-        elif row.value:
-            self.owner.openPath(row.value)
 
     # pop up a menu of the row's Actions below it. their menu items have
     # the Actions' ids, which the main window has bound.

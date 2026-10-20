@@ -390,34 +390,6 @@ class WritingLog:
 
         return days
 
-    # what was written in each script on each day, newest first, at most
-    # n of them: Totals with the script's latest name and path
-    def recentActivity(self, n):
-        ret = []
-        seen = {}
-
-        for s in reversed(self.sessions):
-            key = (s.day(), s.scriptKey())
-            t = seen.get(key)
-
-            if t is None:
-                if len(ret) == n:
-                    # the sessions are in order, so no later one can be
-                    # for a day and script already listed... unless it's
-                    # the same day, so keep going until the day changes
-                    if s.day() != ret[-1].day:
-                        break
-
-                    continue
-
-                t = Total(s.day(), s.title, s.path)
-                seen[key] = t
-                ret.append(t)
-
-            t.add(s)
-
-        return ret
-
 
 # the log in the file at path, or a new one if there's no file. if the
 # file can't be read, it's renamed to <path>.bad, so that the next save

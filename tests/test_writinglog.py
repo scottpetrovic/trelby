@@ -9,7 +9,7 @@ import trelby.writinglog as writinglog
 from trelby.writinglog import Session, WritingLog
 
 # the writing log (writinglog.py): the sessions in every script, saved as
-# JSON, and the day totals, streak and recent activity worked out from them
+# JSON, and the day totals and streak worked out from them
 
 TODAY = datetime.date(2026, 10, 20)
 
@@ -159,34 +159,6 @@ def testStreak():
     # a day whose words came to nothing doesn't count
     log = makeLog(session(0, 100), session(1, 100), session(1, -100, h=12))
     assert log.streak(TODAY) == 1
-
-
-# the recent activity is per day and script, newest first, a script being
-# its path, or for one never saved, its name
-def testRecentActivity():
-    log = makeLog(
-        session(2, 100),
-        session(1, 300, path="/s/Other.trelby", title="Other"),
-        session(0, 200, h=9),
-        session(0, 50, path=None, title="Untitled Screenplay", h=10),
-        session(0, 25, h=11),
-        # renamed: the latest name is shown
-        session(0, 5, title="Pilot v2", h=12),
-    )
-
-    act = log.recentActivity(10)
-
-    assert [(a.day, a.title, a.path, a.words) for a in act] == [
-        (TODAY, "Pilot v2", "/s/Pilot.trelby", 230),
-        (TODAY, "Untitled Screenplay", None, 50),
-        (TODAY - datetime.timedelta(days=1), "Other", "/s/Other.trelby", 300),
-        (TODAY - datetime.timedelta(days=2), "Pilot", "/s/Pilot.trelby", 100),
-    ]
-
-    # cut short, a day's script still gets all its sessions
-    act = log.recentActivity(1)
-
-    assert [(a.title, a.words) for a in act] == [("Pilot v2", 230)]
 
 
 def testLoadFile(tmp_path):
