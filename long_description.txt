@@ -17,7 +17,8 @@ Features:
    versions.
  * Import: Screenplay formatted text, Final Draft XML (.fdx)
     and Celtx (.celtx).
- * Export: PDF, formatted text, HTML, RTF, Final Draft XML (.fdx).
+ * Export: PDF, formatted text, HTML, RTF, Word (.docx), Final Draft XML
+   (.fdx).
  * PDF: Built-in, highly configurable PDF generator. Supports embedding your
    chosen font. Also supports generating PDFs with custom watermarks,
    to help track shared files.

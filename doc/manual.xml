@@ -2146,8 +2146,8 @@ Something starts beeping.
 	<sect1>
 	  <title>Export</title>
 
-	  <para>You can export the script in PDF, RTF, formatted ASCII, HTML,
-      Final Draft XML (.fdx) and Fountain (.fountain) format.</para>
+	  <para>You can export the script in PDF, RTF, Word (.docx), formatted ASCII,
+      HTML, Final Draft XML (.fdx) and Fountain (.fountain) format.</para>
 
 	  <para>Each has its own entry in the File/Export menu. To print the
 	  script, export it as PDF and print that. If you export as a text file, &trelby;
@@ -2159,6 +2159,14 @@ Something starts beeping.
 	  reading programs support, so if you get unexpected output check with
 	  something like OpenOffice to see whether the problem is with the
 	  file or with the program you tried to use.</para>
+
+	  <para>The Word file also uses a style for each element type, so it
+	  stays easy to edit. Word lays out the pages itself, so its page
+	  breaks can differ from &trelby;'s, and it doesn't add (MORE) and
+	  (CONT'D) where a speech goes on to the next page. The title pages,
+	  page headers and footer are kept, with the page numbers as Word
+	  fields, but notes, revision marks and scene numbers are left
+	  out.</para>
 
 	</sect1>
 

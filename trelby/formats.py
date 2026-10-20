@@ -82,6 +82,15 @@ EXPORT_FORMATS = [
         export.generateRTF,
     ),
     Format(
+        "docx",
+        lambda: "Word",
+        lambda: _("Word (DOCX)"),
+        "W",
+        ["docx"],
+        export.generateDocx,
+        binary=True,
+    ),
+    Format(
         "fdx",
         lambda: "Final Draft XML",
         lambda: _("Final Draft (FDX)"),

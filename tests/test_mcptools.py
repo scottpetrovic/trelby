@@ -432,7 +432,7 @@ def testExport(small, tmp_path):
         m.export(D(small), "pdf")
 
     with pytest.raises(m.ToolError, match="Unknown format"):
-        m.export(D(small), "docx")
+        m.export(D(small), "odt")
 
     with pytest.raises(m.ToolError):
         m.export(D(small), "text", str(tmp_path / "other.trelby"))
@@ -442,6 +442,13 @@ def testExport(small, tmp_path):
 
     with open(out, "rb") as f:
         assert f.read(4) == b"%PDF"
+
+    # DOCX is a zip file
+    out = str(tmp_path / "small.docx")
+    m.export(D(small), "docx", out)
+
+    with open(out, "rb") as f:
+        assert f.read(2) == b"PK"
 
 
 def testCreateScript(tmp_path):
