@@ -25,6 +25,9 @@ NOTE_WIDTH = 240
 NOTE_MIN_WIDTH = 120
 NOTE_LINES = 3
 
+# how far focus mode fades the text it dims into the page's color
+FOCUS_FADE = 0.7
+
 # what's shown in an editor window: the script and its Editor (for the
 # cursor, selection and scroll position), the configgui.ConfigGui with the
 # screen fonts and colors, the window's size (wx.Size), and the scale:
@@ -85,7 +88,9 @@ class ScriptPainter:
     # line of a paragraph that gets a blank card after its notes, for a
     # note being written there (see noteeditor.py), or None. readingLines
     # is (first line, last line) of the element being read aloud, which is
-    # highlighted, or None.
+    # highlighted, or None. focusLines is (first line, last line) of the
+    # text focus mode keeps, everything else being faded into the page,
+    # or None for none faded.
     def __init__(
         self,
         vp,
@@ -95,6 +100,7 @@ class ScriptPainter:
         scDict=None,
         newNoteLine=None,
         readingLines=None,
+        focusLines=None,
     ):
         self.vp = vp
         self.vm = vm
@@ -103,6 +109,7 @@ class ScriptPainter:
         self.showFormatting = showFormatting
         self.newNoteLine = newNoteLine
         self.readingLines = readingLines
+        self.focusLines = focusLines
 
         self.spellChecker = None
 
@@ -147,6 +154,9 @@ class ScriptPainter:
         # for header texts. list objects are (x, y, width) tuples.
         ulines = []
         ulinesHdr = []
+
+        # and one for the text focus mode fades
+        ulinesFaded = []
 
         # misspelled words to underline, as (x, y, width) tuples, y being
         # the bottom of the text
@@ -281,10 +291,16 @@ class ScriptPainter:
                     color = self.cfgGui.textHdrColor
                     uli = ulinesHdr
 
+                faded = self.isFaded(t.line)
+
+                if faded:
+                    color = self.fadeColor(color)
+                    uli = ulinesFaded
+
                 if t.isUnderlined:
                     uli.append((t.x, y + lineh - 1, len(t.text) * cfx - 1))
 
-                if self.spellChecker and (t.line != -1):
+                if self.spellChecker and (t.line != -1) and not faded:
                     cursorCol = vp.ed.column if t.line == vp.ed.line else None
 
                     # in the page modes the lines are closer than the
@@ -350,6 +366,12 @@ class ScriptPainter:
             for ul in ulinesHdr:
                 gutil.drawLine(dc, ul[0], ul[1], ul[2], 0)
 
+        if ulinesFaded:
+            dc.SetPen(wx.Pen(self.fadeColor(self.cfgGui.textColor)))
+
+            for ul in ulinesFaded:
+                gutil.drawLine(dc, ul[0], ul[1], ul[2], 0)
+
         for tl in texts:
             self.vm.drawTexts(vp, dc, tl)
 
@@ -367,6 +389,17 @@ class ScriptPainter:
             self.drawAutoComp(dc, posX, cursorY, acFi)
 
         return self.titleButtonRect
+
+    # whether focus mode fades line i (-1 for headers and other text
+    # that's not a line)
+    def isFaded(self, i):
+        focus = self.focusLines
+
+        return bool(focus) and not (focus[0] <= i <= focus[1])
+
+    # color faded into the page, for text focus mode fades
+    def fadeColor(self, color):
+        return blendColors(color, self.cfgGui.textBgColor, FOCUS_FADE)
 
     # highlight line i, being read aloud, drawn at t.x, y: a band in a
     # light version of the selection color the width of its element type,

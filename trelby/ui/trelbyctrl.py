@@ -25,6 +25,7 @@ import trelby.screenplay.scriptformats as scriptformats
 import trelby.spellcheck as spellcheck
 import trelby.ui.scriptactions as scriptactions
 import trelby.ui.scriptpainter as scriptpainter
+import trelby.ui.viewmode as viewmode
 import trelby.dialogs.textdlg as textdlg
 import trelby.textutil as textutil
 import trelby.thesaurus as thesaurus
@@ -503,7 +504,24 @@ class MyCtrl(wx.Control):
         # left one
         return any(t.line == line for t in texts)
 
+    # whether the cursor's line is kept at the same height on screen (View
+    # / Typewriter scrolling), in the view modes that can
+    def isTypewriter(self):
+        return self.gd.cfgGl.typewriterScrolling and self.gd.vm.typewriter
+
+    # where typewriter scrolling keeps the cursor's line, in pixels from
+    # the top
+    def typewriterY(self):
+        return int(self.GetClientSize().height * viewmode.TYPEWRITER_POSITION)
+
+    # with typewriter scrolling, line is scrolled to its place even if
+    # it's visible
     def makeLineVisible(self, line, direction=commands.SCROLL_CENTER):
+        if self.isTypewriter():
+            self.gd.vm.scrollLineTo(self, line, self.typewriterY())
+
+            return
+
         texts = self.gd.vm.getScreen(self, False)[0]
 
         if self.isLineVisible(line, texts):
@@ -1158,11 +1176,28 @@ class MyCtrl(wx.Control):
         else:
             delta = self.gd.cfgGl.mouseWheelLines
 
-        self.ed.setTopLine(self.ed.getTopLine() + delta)
+        self.scrollBy(delta)
         self.updateScreen()
+
+    # scroll delta lines down (up if negative). where typewriter scrolling
+    # has left blank space above the start of the script, or moved its
+    # start above the screen, that's scrolled first, so that the text
+    # moves smoothly and the start can be scrolled to.
+    def scrollBy(self, delta):
+        ed = self.ed
+        offset = ed.topOffset
+        pixels = delta * self.gd.vm.getLineHeight(self)
+
+        if (offset > 0) and (delta > 0):
+            ed.topOffset = max(0, offset - pixels)
+        elif (offset < 0) and (delta < 0) and (ed.getTopLine() == 0):
+            ed.topOffset = min(0, offset - pixels)
+        else:
+            ed.setTopLine(ed.getTopLine() + delta)
 
     def OnScroll(self, event):
         pos = self.panel.scrollBar.GetThumbPosition()
+        self.ed.topOffset = 0
         self.ed.setTopLine(pos)
         self.ed.clearAutoComp()
         self.updateScreen()
@@ -1204,6 +1239,19 @@ class MyCtrl(wx.Control):
             return
 
         self.ed.maybeMark(cs.mark)
+
+        # the screen follows the cursor, so move that by a screenful
+        if self.isTypewriter():
+            ed = self.ed
+            shown = len({t.line for t in texts if t.line != -1})
+
+            ed.line = util.clamp(
+                ed.line + dir * max(1, shown - 2), 0, len(self.sp.lines) - 1
+            )
+            ed.column = min(ed.column, len(self.sp.lines[ed.line].text))
+
+            return
+
         self.gd.vm.pageCmd(self, cs, dir, texts, dpages)
 
     # returns True if something was deleted
@@ -1482,6 +1530,23 @@ class MyCtrl(wx.Control):
 
         self.updateScreen()
 
+    # the (first, last) lines that focus mode doesn't dim, or None if it
+    # dims nothing (or isn't on)
+    def focusLines(self):
+        gd = self.gd
+        sp = self.sp
+
+        if not gd.focusMode:
+            return None
+
+        if gd.cfgGl.focusDim == config.FOCUS_DIM_ELEMENT:
+            return sp.getElemIndexesFromLine(self.ed.line)
+
+        if gd.cfgGl.focusDim == config.FOCUS_DIM_SCENE:
+            return sp.getSceneIndexesFromLine(self.ed.line)
+
+        return None
+
     # what's on screen, for drawing (see scriptpainter.Viewport). if
     # refresh, its scale is worked out anew.
     def getViewport(self, refresh=False):
@@ -1522,6 +1587,7 @@ class MyCtrl(wx.Control):
             self.gd.scDict if self.gd.cfgGl.checkSpelling else None,
             self.newNoteLine,
             self.readingLines,
+            self.focusLines(),
         )
         self.titleButtonRect = painter.paint(dc)
         self.noteMarkers = painter.noteMarkers

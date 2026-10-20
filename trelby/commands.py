@@ -253,6 +253,13 @@ def defaultCommands():
             isFixed=True,
             isMenu=True,
         ),
+        Command(
+            "FocusMode",
+            _("Toggle focus mode, fading all but the current element or scene."),
+            [keys.Key(keys.WXK_F11, shift=True).toInt()],
+            isFixed=True,
+            isMenu=True,
+        ),
         Command("FooterDlg", _("Open the page footer dialog."), isMenu=True),
         Command(
             "ForcedLineBreak",
@@ -642,6 +649,11 @@ def defaultCommands():
             "ToggleSprint",
             _("Start a writing sprint, or stop the one going on."),
             [keys.Key(keys.WXK_F7).toInt()],
+            isMenu=True,
+        ),
+        Command(
+            "ToggleTypewriter",
+            _("Toggle typewriter scrolling, keeping the cursor's line in place."),
             isMenu=True,
         ),
         Command(

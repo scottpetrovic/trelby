@@ -59,6 +59,14 @@ PBI_REAL_AND_UNADJ = 2
 # for range checking above value
 PBI_FIRST, PBI_LAST = PBI_NONE, PBI_REAL_AND_UNADJ
 
+# what focus mode dims (see MyFrame.setFocusMode): nothing, everything but
+# the element the cursor is in, or everything but its scene
+FOCUS_DIM_NONE = 0
+FOCUS_DIM_ELEMENT = 1
+FOCUS_DIM_SCENE = 2
+
+FOCUS_DIM_FIRST, FOCUS_DIM_LAST = FOCUS_DIM_NONE, FOCUS_DIM_SCENE
+
 # standard paper sizes, (width, height) in mm, by name
 PAPER_SIZES = {
     "A4": (210.0, 297.0),
@@ -751,6 +759,19 @@ class ConfigGlobal:
 
         # whether to recenter screen when cursor moves out of it
         v.addBool("recenterOnScroll", False, "RecenterOnScroll")
+
+        # whether to keep the cursor's line at the same height on screen,
+        # scrolling the script past it (View / Typewriter scrolling)
+        v.addBool("typewriterScrolling", False, "TypewriterScrolling")
+
+        # what focus mode dims, a FOCUS_DIM_* value
+        v.addInt(
+            "focusDim",
+            FOCUS_DIM_ELEMENT,
+            "FocusDim",
+            FOCUS_DIM_FIRST,
+            FOCUS_DIM_LAST,
+        )
 
         # whether to overwrite selected text on typing
         v.addBool("overwriteSelectionOnInsert", True, "OverwriteSelectionOnInsert")

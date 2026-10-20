@@ -155,6 +155,9 @@ class GlobalData:
         # starts with it hidden.
         self.showSidePanel = False
 
+        # whether focus mode is on (see MyFrame.setFocusMode). not saved.
+        self.focusMode = False
+
         self.height = min(
             self.height, wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y) - 50
         )

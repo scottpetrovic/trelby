@@ -630,6 +630,23 @@ def makeTable():
             ),
             SEP,
             Action(
+                "ToggleTypewriter",
+                ID_VIEW_TYPEWRITER,
+                _("Typewriter scrolling"),
+                "w",
+                OnFrame("OnToggleTypewriter"),
+                kind=wx.ITEM_CHECK,
+            ),
+            Action(
+                "FocusMode",
+                ID_VIEW_FOCUS_MODE,
+                _("Focus mode"),
+                "m",
+                OnFrame("OnToggleFocusMode"),
+                "SHIFT-F11",
+                kind=wx.ITEM_CHECK,
+            ),
+            Action(
                 "Fullscreen",
                 ID_VIEW_FULL_SCREEN,
                 _("Fullscreen"),

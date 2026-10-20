@@ -183,6 +183,8 @@ class MyFrame(wx.Frame):
         self.menuBar.Check(ID_SHOW_HIDE_TOOLBAR, True)
         self.checkSideItems()
         self.menuBar.Check(ID_VIEW_BEAT_BOARD, gd.showBeatBoard)
+        self.menuBar.Check(ID_VIEW_TYPEWRITER, gd.cfgGl.typewriterScrolling)
+        self.menuBar.Check(ID_VIEW_FOCUS_MODE, gd.focusMode)
 
         self.Bind(
             wx.EVT_MENU_RANGE,
@@ -720,9 +722,14 @@ class MyFrame(wx.Frame):
         for c in self.getCtrls():
             c.sp.cfgGl = self.gd.cfgGl
             c.refreshCache()
+
+            if not c.isTypewriter():
+                c.ed.topOffset = 0
+
             c.makeLineVisible(c.ed.line)
             c.adjustScrollBar()
 
+        self.menuBar.Check(ID_VIEW_TYPEWRITER, self.gd.cfgGl.typewriterScrolling)
         self.panel.ctrl.updateScreen()
 
         # in case tab colors have been changed
@@ -964,6 +971,39 @@ class MyFrame(wx.Frame):
         self.ShowFullScreen(not self.IsFullScreen(), wx.FULLSCREEN_ALL)
         self.updateBars()
         self.focusCurrent()
+
+    def OnToggleFocusMode(self):
+        self.setFocusMode(not self.gd.focusMode)
+
+    # focus mode fades the text around the cursor's element or scene into
+    # the page (cfgGl.focusDim), in every tab
+    def setFocusMode(self, on):
+        self.gd.focusMode = on
+        self.menuBar.Check(ID_VIEW_FOCUS_MODE, on)
+
+        for c in self.getCtrls():
+            c.Refresh(False)
+
+    # from the View menu item or the keyboard command. it's a setting
+    # (also in Settings / Misc), so it's saved at once.
+    def OnToggleTypewriter(self):
+        cfgGl = self.gd.cfgGl
+        cfgGl.typewriterScrolling = not cfgGl.typewriterScrolling
+        self.menuBar.Check(ID_VIEW_TYPEWRITER, cfgGl.typewriterScrolling)
+        fileio.writeToFile(self.gd.confFilename, cfgGl.save(), self)
+
+        self.scrollingChanged()
+
+    # typewriter scrolling was turned on or off: the scripts are drawn
+    # from their top lines again, the current one's cursor scrolled to
+    def scrollingChanged(self):
+        for c in self.getCtrls():
+            c.ed.topOffset = 0
+
+        if not self.homeShown:
+            c = self.panel.ctrl
+            c.makeLineVisible(c.ed.line)
+            c.updateScreen()
 
     def OnToggleSprint(self):
         self.sprint.toggle()

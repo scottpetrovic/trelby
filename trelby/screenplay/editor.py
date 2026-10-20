@@ -60,6 +60,12 @@ class Editor(
         # this.
         self._topLine = 0
 
+        # how many pixels further down than usual the screen is drawn from
+        # the top line, negative for up. only typewriter scrolling (see
+        # viewmode.ViewMode.scrollLineTo) sets it, to keep the cursor's
+        # line at the same height.
+        self.topOffset = 0
+
         # Mark object if selection active, or None.
         self.mark = None
 

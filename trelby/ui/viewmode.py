@@ -11,6 +11,14 @@ import trelby.util as util
 # number to use with the layout mode margins we have.
 MAX_JUMP_DISTANCE = 17
 
+# how many layouts typewriter scrolling tries to get the top line right
+# (see ViewMode.scrollLineTo)
+TYPEWRITER_TRIES = 6
+
+# how far down the window typewriter scrolling keeps the cursor's line, as
+# a fraction of the window's height
+TYPEWRITER_POSITION = 0.45
+
 # extra space (pixels) above the first page, for the button that opens
 # the title pages dialog (drawn by MyCtrl.OnPaint)
 TITLE_BUTTON_H = 44
@@ -82,6 +90,9 @@ class PageCache:
 # View Mode, i.e. a way of displaying the script on screen. this is an
 # abstract superclass.
 class ViewMode:
+
+    # whether this mode can do typewriter scrolling (see scrollLineTo)
+    typewriter = True
 
     # get a description of what the current screen contains. returns
     # (texts, dpages), where texts = [TextString, ...], dpages =
@@ -198,6 +209,50 @@ class ViewMode:
 
         return True
 
+    # typewriter scrolling: scroll so that the top of line is targetY
+    # pixels from the top of the screen, setting the top line and
+    # ed.topOffset. the top line is one far enough up for the lines above
+    # it to fill the screen down to there, if there are enough of them,
+    # and topOffset moves the screen by what's left over, so the line
+    # ends up exactly there, at the start of the script too. layouts are
+    # tried from a guess, as the lines above can take up more room than
+    # their number says (spacing, page breaks) or less (dual dialogue).
+    def scrollLineTo(self, ctrl, line, targetY):
+        ed = ctrl.ed
+        lineh = max(1, self.getLineHeight(ctrl))
+        pc = PageCache(ctrl)
+
+        top = max(0, line - targetY // lineh)
+        y = None
+
+        for _ in range(TYPEWRITER_TRIES):
+            ed.setTopLine(top)
+            ed.topOffset = 0
+            y = self.lineY(ctrl, line, pc)
+
+            if y is None:
+                # below the screen: too much above it
+                top += max(1, (line - top) // 2)
+            elif (y < targetY) and (top > 0):
+                top = max(0, top - (targetY - y) // lineh - 1)
+            else:
+                break
+
+        if y is None:
+            ed.setTopLine(line)
+            y = self.lineY(ctrl, line, pc) or 0
+
+        ed.topOffset = targetY - y
+
+    # the y position (pixels) of line's first row on screen, or None if
+    # it's not there. pc is a PageCache.
+    def lineY(self, ctrl, line, pc):
+        for t in self.getScreen(ctrl, False, True, pc)[0]:
+            if t.line == line:
+                return t.y
+
+        return None
+
     # semi-generic implementation, for use by Draft and Layout modes.
     #
     # page down puts the last line on screen at the top, with the cursor
@@ -247,7 +302,7 @@ class ViewModeDraft(ViewMode):
 
         width, height = ctrl.GetClientSize()
         ls = ctrl.sp.lines
-        y = 15
+        y = 15 + ctrl.ed.topOffset
         i = ctrl.ed.getTopLine()
 
         marginLeft = int(ctrl.mm2p * cfg.marginLeft)
@@ -266,6 +321,13 @@ class ViewModeDraft(ViewMode):
 
             if not partials and ((y + fyd) > height):
                 break
+
+            # above the screen, when typewriter scrolling has moved it up
+            if (y + fyd <= 0) or (not partials and (y < 0)):
+                y += fyd
+                i += 1
+
+                continue
 
             l = ls[i]
             tcfg = cfg.getType(l.lt)
@@ -380,6 +442,8 @@ class ViewModeLayout(ViewMode):
             else:
                 topOfPage = False
 
+        y += ctrl.ed.topOffset
+
         # create pages, convert them to display format, repeat until
         # script ends or we've filled the display.
 
@@ -414,7 +478,9 @@ class ViewModeLayout(ViewMode):
                 if not isinstance(op, textOp):
                     continue
 
-                ypos = int(pageY + op.y * mm2p)
+                # rounded on its own, so that a line's place on its page
+                # doesn't depend on where the page is
+                ypos = pageY + int(op.y * mm2p)
 
                 # above the screen, on a page that starts above it
                 if ypos < 0:
@@ -482,6 +548,9 @@ class ViewModeLayout(ViewMode):
 # would have, as many pages at a time as fit on the screen, complete pages
 # only, in a single row.
 class ViewModeSideBySide(ViewMode):
+
+    # whole pages are shown, from the top line's page's top
+    typewriter = False
 
     def getScreen(self, ctrl, doExtra, partials=False, pageCache=None):
         cfgGui = ctrl.getCfgGui()
