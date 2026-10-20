@@ -28,6 +28,7 @@ import trelby.ui.scriptactions as scriptactions
 import trelby.dialogs.spellcheckcfgdlg as spellcheckcfgdlg
 import trelby.dialogs.spellcheckdlg as spellcheckdlg
 import trelby.ui.splash as splash
+import trelby.ui.sprinttimer as sprinttimer
 import trelby.ui.statusbar as statusbar
 import trelby.ui.tablereader as tablereader
 import trelby.ui.tabctrl as tabctrl
@@ -81,6 +82,9 @@ class MyFrame(wx.Frame):
 
         # reads the current script aloud (Tools / Read aloud)
         self.reader = tablereader.TableReader(self)
+
+        # runs writing sprints (Tools / Writing sprint)
+        self.sprint = sprinttimer.SprintTimer(self, gd)
 
         self.SetSizeHints(gd.cvars.getMin("width"), gd.cvars.getMin("height"))
 
@@ -664,7 +668,8 @@ class MyFrame(wx.Frame):
             ctrl.updateScreen()
             self.setHomeShown(True)
 
-    def OnSettings(self):
+    # the settings dialog, at the page of the class 'page' if given
+    def OnSettings(self, page=None):
         dlg = cfgdlg.CfgDlg(
             self,
             copy.deepcopy(self.gd.cfgGl),
@@ -672,6 +677,9 @@ class MyFrame(wx.Frame):
             True,
             self.gd,
         )
+
+        if page:
+            dlg.showPage(page)
 
         if dlg.ShowModal() == wx.ID_OK:
             self.applyGlobalCfg(dlg.cfg)
@@ -722,7 +730,10 @@ class MyFrame(wx.Frame):
         self.tools.refreshColors()
         self.noFSBtn.Refresh(False)
         self.applyThemeColors()
-        self.home.Refresh(False)
+
+        # the goals may have changed
+        if self.homeShown:
+            self.home.refresh()
 
         # and the open dialogs, like the settings dialog this may have been
         # applied from
@@ -954,6 +965,24 @@ class MyFrame(wx.Frame):
         self.updateBars()
         self.focusCurrent()
 
+    def OnToggleSprint(self):
+        self.sprint.toggle()
+
+    def OnPauseSprint(self):
+        self.sprint.togglePause()
+
+    # the settings dialog at the Writing Goals page
+    def OnWritingGoals(self):
+        self.OnSettings(cfgdlg.GoalsPanel)
+
+    # the writing sprint started, stopped, paused or went on a second:
+    # show it in the status bar, or on the Home screen
+    def sprintChanged(self):
+        self.statusBar.showToday()
+
+        if self.homeShown:
+            self.home.refresh()
+
     def OnSpellCheckerDictionaryDlg(self, event=None):
         dlg = spellcheckcfgdlg.SCDictDlg(self, copy.deepcopy(self.gd.scDict), True)
 
@@ -1035,6 +1064,7 @@ class MyFrame(wx.Frame):
             self.autosaveTimer.Stop()
             self.writingTimer.Stop()
             self.reader.close()
+            self.sprint.close()
 
             for c in self.getCtrls():
                 c.writing.end()

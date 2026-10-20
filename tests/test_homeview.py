@@ -129,8 +129,9 @@ def key(view, code):
     view.OnKeyDown(e)
 
 
+# the start card's rows' kinds
 def kinds(view):
-    return [r.kind for r in view.rows]
+    return [r.kind for r in view.rows if r.card == 0]
 
 
 def testHelpers():
@@ -156,7 +157,7 @@ def testRows(frame, tmp_path):
     view, owner = makeView(frame, [str(there), gone])
 
     assert kinds(view) == [homeview.ACTION, homeview.MENU] * 2 + [homeview.RECENT] * 2
-    assert [r.value for r in view.rows if r.kind == homeview.ACTION] == [
+    assert [r.value for r in view.rows if r.kind == homeview.ACTION and r.card == 0] == [
         "NewScript",
         "OpenScript",
     ]
@@ -166,7 +167,7 @@ def testRows(frame, tmp_path):
     assert templates and all(n.startswith("NewScript-") for n in templates)
     assert "ImportScript" in view.rows[3].value
 
-    pilot, goneRow = view.rows[4:]
+    pilot, goneRow = [r for r in view.rows if r.kind == homeview.RECENT]
     assert (pilot.label, pilot.detail, pilot.dim) == ("Pilot", str(tmp_path), False)
     assert (goneRow.label, goneRow.note, goneRow.dim) == ("Gone", _("Not found"), True)
 
@@ -175,8 +176,9 @@ def testRows(frame, tmp_path):
         assert a.rect.GetBottom() < b.rect.y
 
     for r in view.rows:
-        assert view.cards[0].Contains(r.rect.GetTopLeft())
-        assert view.cards[0].Contains(r.rect.GetBottomRight())
+        card = view.cards[r.card]
+        assert card.Contains(r.rect.GetTopLeft())
+        assert card.Contains(r.rect.GetBottomRight())
 
 
 def testNoRecentFilesSaysSo(frame):
@@ -234,16 +236,19 @@ def testKeys(frame, tmp_path):
     key(view, wx.WXK_UP)
     assert view.picked == 0
 
+    # the writing card's rows come after the start card's
     key(view, wx.WXK_END)
-    assert view.picked == 6
+    assert view.rows[view.picked].value == "WritingGoals"
     key(view, wx.WXK_DOWN)
+    assert view.rows[view.picked].value == "WritingGoals"
+
+    key(view, wx.WXK_UP)
+    key(view, wx.WXK_UP)
     assert view.picked == 6
 
-    # the picked row stays in range as the list gets shorter
     key(view, wx.WXK_DELETE)
     assert owner.removed == [2]
-    assert len(view.rows) == 6
-    assert view.picked == 5
+    assert len(view.rows) == 8
 
     # Delete on a row that's not a recent file does nothing
     key(view, wx.WXK_HOME)
@@ -410,3 +415,74 @@ def testCardsLayout(frame):
     view, owner = makeView(frame, size=(700, 800))
     a, b = view.cards
     assert a.x == b.x and a.GetBottom() < b.y
+
+
+# a stand-in for the frame's sprinttimer.SprintTimer
+class Timer:
+    def __init__(self, active=False, paused=False):
+        self.active = active
+        self.paused = paused
+
+    def isActive(self):
+        return self.active
+
+    def isPaused(self):
+        return self.paused
+
+    def statusText(self):
+        return "Sprint 18:42  ·  120 words"
+
+
+def writingActions(view):
+    return [(r.label, r.value) for r in view.rows if r.card == 1 and r.kind == homeview.ACTION]
+
+
+# the sprint's rows start or stop one, and the sprint going on and today's
+# are shown
+def testSprintSection(frame):
+    view, owner = makeView(frame)
+    owner.gd.cfgGl.sprintMinutes = 15
+    view.refresh()
+
+    assert writingActions(view) == [
+        ("Start a 15-minute sprint", "ToggleSprint"),
+        (_("Writing goals") + "...", "WritingGoals"),
+    ]
+    assert [r.note for r in view.rows if r.value == "ToggleSprint"] == ["F7"]
+
+    owner.sprint = Timer(active=True)
+    owner.gd.writingLog.addSprint(
+        writinglog.SprintRecord(NOW - 3600, NOW - 2100, 25, 0, 400, True)
+    )
+    view.refresh()
+
+    assert writingActions(view)[:2] == [
+        (_("Stop the sprint"), "ToggleSprint"),
+        (_("Pause the sprint"), "PauseSprint"),
+    ]
+
+    texts = [t[0] for t in view.texts]
+    assert "Sprint 18:42  ·  120 words" in texts
+    assert "1 sprint today, 400 words" in texts
+
+    owner.sprint.paused = True
+    view.refresh()
+    assert writingActions(view)[1] == (_("Resume the sprint"), "PauseSprint")
+
+    # clicking runs them
+    row = [r for r in view.rows if r.value == "PauseSprint"][0]
+    view.OnLeftDown(mouse(view, wx.wxEVT_LEFT_DOWN, centre(row.rect)))
+    assert owner.ran == ["PauseSprint"]
+
+
+def testWeeklyGoal(frame):
+    view, owner = makeView(frame, sessions=[session(0, 300), session(1, 200)])
+    owner.gd.cfgGl.weeklyGoal = 2000
+    view.refresh()
+
+    assert "500 words of 2,000 words this week" in [t[0] for t in view.texts]
+    assert [k for k, r in view.shapes].count(homeview.TRACK) == 1
+
+    owner.gd.cfgGl.weeklyGoal = 400
+    view.refresh()
+    assert "Weekly goal reached: 500 words this week" in [t[0] for t in view.texts]

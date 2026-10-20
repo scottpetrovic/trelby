@@ -16,6 +16,7 @@ from trelby.dialogs.configpages.formattingpanel import FormattingPanel
 
 # import config pages
 from trelby.dialogs.configpages.globalaboutpanel import GlobalAboutPanel
+from trelby.dialogs.configpages.goalspanel import GoalsPanel
 from trelby.dialogs.configpages.keyboardpanel import KeyboardPanel
 from trelby.dialogs.configpages.mcppanel import MCPPanel
 from trelby.dialogs.configpages.miscpanel import MiscPanel
@@ -208,6 +209,7 @@ class CfgDlg(wx.Dialog):
             self.AddPage(MiscPanel, _("Misc"))
             self.AddPage(PDFViewerPanel, "PDF")
             self.AddPage(SpellCheckPanel, _("Spelling Exclusion List"))
+            self.AddPage(GoalsPanel, _("Writing Goals"))
         else:
             self.AddPage(ScriptAboutPanel, _("About"))
             self.AddPage(ElementsPanel, _("Elements"))
@@ -237,6 +239,14 @@ class CfgDlg(wx.Dialog):
             p = classObj(self.listbook.book, -1, self.cfg)
 
         self.listbook.AddPage(p, name)
+
+    # show the page of the class classObj
+    def showPage(self, classObj):
+        for i in range(self.listbook.GetPageCount()):
+            if isinstance(self.listbook.GetPage(i), classObj):
+                self.listbook.SetSelection(i)
+
+                return
 
     # check for errors in each panel
     def checkForErrors(self):

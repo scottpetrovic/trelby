@@ -765,6 +765,16 @@ class ConfigGlobal:
         v.addInt("dailyGoal", 0, "Goals/Daily", 0, 100000)
         v.addBool("dailyGoalPages", False, "Goals/DailyInPages")
 
+        # the weekly goal, in the same unit, for the week from Monday. 0
+        # for none.
+        v.addInt("weeklyGoal", 0, "Goals/Weekly", 0, 1000000)
+
+        # writing sprints (see sprint.py): how long one lasts, the words
+        # that end it early (0 for none), and whether it ends with a sound
+        v.addInt("sprintMinutes", 25, "Goals/SprintMinutes", 1, 240)
+        v.addInt("sprintWords", 0, "Goals/SprintWords", 0, 100000)
+        v.addBool("sprintSound", True, "Goals/SprintSound")
+
         # whether to run the MCP server that lets AI assistants read and
         # edit the open scripts (see mcpserver/app.py), and the localhost port it
         # listens on. the default port must match mcpserver.DEFAULT_PORT.

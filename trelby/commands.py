@@ -420,6 +420,12 @@ def defaultCommands():
             isMenu=True,
         ),
         Command(
+            "PauseSprint",
+            _("Pause or resume the writing sprint."),
+            [keys.Key(keys.WXK_F7, shift=True).toInt()],
+            isMenu=True,
+        ),
+        Command(
             "PrintScript",
             _("Print current script."),
             [keys.Key(16, ctrl=True).toInt()],
@@ -633,6 +639,12 @@ def defaultCommands():
             isMenu=True,
         ),
         Command(
+            "ToggleSprint",
+            _("Start a writing sprint, or stop the one going on."),
+            [keys.Key(keys.WXK_F7).toInt()],
+            isMenu=True,
+        ),
+        Command(
             "ToggleUnderline",
             _(
                 "Make the selected text, or the text typed next,"
@@ -663,6 +675,11 @@ def defaultCommands():
         Command(
             "WorldBuildingDlg",
             _("Open the world building dialog."),
+            isMenu=True,
+        ),
+        Command(
+            "WritingGoals",
+            _("Set the daily and weekly writing goals and the sprints' length."),
             isMenu=True,
         ),
         Command(

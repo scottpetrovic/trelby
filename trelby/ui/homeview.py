@@ -16,6 +16,7 @@ import time
 
 import wx
 
+import trelby.keys as keys
 import trelby.ui.icons as icons
 import trelby.ui.theming as theming
 import trelby.writinglog as writinglog
@@ -54,11 +55,13 @@ TRACK, FILL, BAR, TODAY_BAR, NO_BAR, GOAL_LINE = list(range(6))
 # folder) and at its right (a shortcut, or when the script was changed, or
 # how much was written), and what it does: an Action's name, a list of
 # them, the index of the recent file, or the path of the script written
-# in (None for one never saved, which can't be opened). rect is where it
+# in (None for one never saved, which can't be opened). card is the card
+# it's on: 0 for the start card, 1 for the writing card. rect is where it
 # is, set by HomeView.layout.
 class Row:
-    def __init__(self, kind, label, value, detail="", note="", dim=False):
+    def __init__(self, kind, label, value, detail="", note="", dim=False, card=0):
         self.kind = kind
+        self.card = card
         self.label = label
         self.value = value
         self.detail = detail
@@ -72,6 +75,16 @@ class Row:
     # whether clicking it does something
     def isEnabled(self):
         return not ((self.kind == ACTIVITY) and (self.value is None))
+
+
+# the first key of the keyboard command 'name' in the global config cfgGl,
+# as text ("F7"), or "" if it has none
+def commandKeyText(cfgGl, name):
+    for cmd in cfgGl.commands:
+        if (cmd.name == name) and cmd.keys and cmd.keys[0]:
+            return keys.Key.fromInt(cmd.keys[0]).toStr()
+
+    return ""
 
 
 # "CTRL-N" -> "Ctrl+N"
@@ -158,6 +171,12 @@ class HomeView(wx.Window):
         self.chartDays = []
         self.streak = 0
         self.today = None
+
+        # this week's writinglog.Total, today's sprints' SprintRecords, and
+        # the sprint going on's state (see SprintTimer.statusText), or None
+        self.weekTotal = None
+        self.sprintsToday = []
+        self.sprintText = None
 
         # index of the row under the mouse, and of the one picked with the
         # keyboard, or None
@@ -262,6 +281,47 @@ class HomeView(wx.Window):
         self.todayTotal = log.dayTotal(self.today)
         self.chartDays = log.days(self.today, CHART_DAYS)
         self.streak = log.streak(self.today)
+        self.weekTotal = log.weekTotal(self.today)
+        self.sprintsToday = log.sprintsOn(self.today)
+
+        timer = getattr(self.owner, "sprint", None)
+        sprinting = bool(timer) and timer.isActive()
+        self.sprintText = timer.statusText() if sprinting else None
+
+        # starting and stopping a sprint, and the goals
+        cfgGl = gd.cfgGl
+
+        if sprinting:
+            rows.append(
+                Row(
+                    ACTION,
+                    _("Stop the sprint"),
+                    "ToggleSprint",
+                    note=commandKeyText(cfgGl, "ToggleSprint"),
+                    card=1,
+                )
+            )
+            rows.append(
+                Row(
+                    ACTION,
+                    _("Resume the sprint") if timer.isPaused() else _("Pause the sprint"),
+                    "PauseSprint",
+                    note=commandKeyText(cfgGl, "PauseSprint"),
+                    card=1,
+                )
+            )
+        else:
+            rows.append(
+                Row(
+                    ACTION,
+                    _("Start a %d-minute sprint") % cfgGl.sprintMinutes,
+                    "ToggleSprint",
+                    note=commandKeyText(cfgGl, "ToggleSprint"),
+                    card=1,
+                )
+            )
+
+        rows.append(Row(ACTION, _("Writing goals") + "...", "WritingGoals", card=1))
 
         # what was written in each script lately, leaving out the days a
         # script was only touched
@@ -285,11 +345,16 @@ class HomeView(wx.Window):
                     note="%s  ·  %s"
                     % (self.amountText(t), durationText(t.active)),
                     dim=bool(t.path) and not os.path.exists(t.path),
+                    card=1,
                 )
             )
 
+        # refreshed every second during a sprint, the row under the mouse
+        # stays highlighted
+        if (self.hover is not None) and (self.hover >= len(rows)):
+            self.hover = None
+
         self.rows = rows
-        self.hover = None
 
         if (self.picked is not None) and (self.picked >= len(rows)):
             self.picked = len(rows) - 1
@@ -324,8 +389,8 @@ class HomeView(wx.Window):
         wide = w >= px(CARD_WIDTH) * 2 + px(CARD_GAP) + px(MARGIN) * 2
         top = px(MARGIN) - self.scrollY
 
-        start = [r for r in self.rows if r.kind != ACTIVITY]
-        activity = [r for r in self.rows if r.kind == ACTIVITY]
+        start = [r for r in self.rows if r.card == 0]
+        activity = [r for r in self.rows if r.card == 1]
 
         if wide:
             x = (w - cardW * 2 - px(CARD_GAP)) // 2
@@ -425,8 +490,25 @@ class HomeView(wx.Window):
 
         return y
 
-    # the writing card, at (cardX, top), cardW wide, with the recent
-    # activity's rows. returns where it ends.
+    # a progress bar from x to x + width at y, for 'done' of 'goal', with a
+    # line of text under it: 'reached' once it's reached, else what
+    # 'text(percent)' returns. returns where it ends.
+    def progress(self, x, y, width, done, goal, reached, text):
+        px = self.px
+        part = min(1.0, max(0.0, done) / goal)
+        barH = px(8)
+        self.shapes.append((TRACK, wx.Rect(x, y, width, barH)))
+
+        if part > 0:
+            self.shapes.append((FILL, wx.Rect(x, y, max(barH, int(width * part)), barH)))
+
+        y += barH + px(6)
+
+        return self.note(reached if done >= goal else text(int(100 * part)), x, y)
+
+    # the writing card, at (cardX, top), cardW wide, with its rows: the
+    # sprint's and the goals', and the recent activity's. returns where it
+    # ends.
     def layoutWriting(self, cardX, top, cardW, rows):
         px = self.px
         cfgGl = self.owner.gd.cfgGl
@@ -461,28 +543,63 @@ class HomeView(wx.Window):
 
         y += bigH + px(10)
 
+        def amount(t):
+            return t.shownPages() if self.inPages() else t.shownWords()
+
+        def goalText(n):
+            return pagesText(n) if self.inPages() else wordsText(n)
+
         if goal:
-            done = today.shownPages() if self.inPages() else today.shownWords()
-            part = min(1.0, done / goal)
-            barH = px(8)
-            track = wx.Rect(x, y, innerW, barH)
-            self.shapes.append((TRACK, track))
+            y = self.progress(
+                x,
+                y,
+                innerW,
+                amount(today),
+                goal,
+                _("Daily goal reached"),
+                lambda pc: _("%d%% of %s") % (pc, goalText(goal)),
+            )
 
-            if part > 0:
-                self.shapes.append(
-                    (FILL, wx.Rect(x, y, max(barH, int(innerW * part)), barH))
-                )
+        weekly = cfgGl.weeklyGoal
 
-            y += barH + px(6)
+        if weekly:
+            week = self.weekTotal
+            y += px(4)
+            y = self.progress(
+                x,
+                y,
+                innerW,
+                amount(week),
+                weekly,
+                _("Weekly goal reached: %s this week") % self.amountText(week),
+                lambda pc: _("%s of %s this week")
+                % (self.amountText(week), goalText(weekly)),
+            )
 
-            if done >= goal:
-                text = _("Daily goal reached")
-            elif self.inPages():
-                text = _("%d%% of %s") % (100 * part, pagesText(goal))
+        y += px(SECTION_GAP)
+
+        # the sprint going on, today's sprints, and the rows to start or
+        # stop one and set the goals
+        y = self.heading(_("Sprint"), x, y)
+
+        if self.sprintText:
+            self.texts.append((self.sprintText, x, y, "label", False))
+            y += self.lineH("label") + px(8)
+
+        if self.sprintsToday:
+            n = len(self.sprintsToday)
+            words = sum(sp.words for sp in self.sprintsToday)
+
+            if n == 1:
+                text = _("1 sprint today, %s") % wordsText(words)
             else:
-                text = _("%d%% of %s") % (100 * part, wordsText(goal))
+                text = _("%d sprints today, %s") % (n, wordsText(words))
 
             y = self.note(text, x, y)
+
+        actions = [r for r in rows if r.kind == ACTION]
+        rows = [r for r in rows if r.kind != ACTION]
+        y = self.placeRows(actions, x, y, innerW)
 
         y += px(SECTION_GAP)
 
@@ -504,9 +621,6 @@ class HomeView(wx.Window):
                 True,
             )
         )
-
-        def amount(t):
-            return t.shownPages() if self.inPages() else t.shownWords()
 
         scale = max([amount(t) for t in self.chartDays] + [goal, 1])
         chartH = px(CHART_HEIGHT)

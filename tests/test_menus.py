@@ -287,9 +287,17 @@ def testHomeBlocksScriptActions():
         boardShown = False
         ctrl = None
 
+    class Sprint:
+        def isActive(self):
+            return False
+
+        def isPaused(self):
+            return False
+
     class Frame:
         homeShown = True
         panel = Panel()
+        sprint = Sprint()
 
     class Event:
         def Enable(self, on):
@@ -305,7 +313,15 @@ def testHomeBlocksScriptActions():
     for a in acts.values():
         a.run = lambda f, name=a.name: ran.append(name)
 
-    allowed = ["NewScript", "NewScript-sitcom", "OpenScript", "ImportFdx", "Quit"]
+    allowed = [
+        "NewScript",
+        "NewScript-sitcom",
+        "OpenScript",
+        "ImportFdx",
+        "Quit",
+        "ToggleSprint",
+        "WritingGoals",
+    ]
     blocked = ["Copy", "SaveScript", "CloseScript", "ZoomIn", "ToggleRevisionMode"]
 
     for name in allowed + blocked:

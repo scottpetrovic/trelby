@@ -933,6 +933,40 @@ def makeTable():
                     ),
                 ],
             ),
+            Menu(
+                _("Writing sprint"),
+                "W",
+                [
+                    Action(
+                        "ToggleSprint",
+                        ID_TOOLS_SPRINT,
+                        _("Sprint"),
+                        "S",
+                        OnFrame("OnToggleSprint"),
+                        kind=wx.ITEM_CHECK,
+                        isChecked=lambda f, c: f.sprint.isActive(),
+                    ),
+                    Action(
+                        "PauseSprint",
+                        ID_TOOLS_SPRINT_PAUSE,
+                        _("Pause"),
+                        "P",
+                        OnFrame("OnPauseSprint"),
+                        kind=wx.ITEM_CHECK,
+                        canUse=lambda f, c: f.sprint.isActive(),
+                        isChecked=lambda f, c: f.sprint.isPaused(),
+                    ),
+                    SEP,
+                    Action(
+                        "WritingGoals",
+                        ID_TOOLS_WRITING_GOALS,
+                        _("Writing goals"),
+                        "G",
+                        OnFrame("OnWritingGoals"),
+                        dots=True,
+                    ),
+                ],
+            ),
             SEP,
             Action(
                 "CompareScripts",
@@ -1195,10 +1229,13 @@ ON_HOME = {
     "LoadSettings",
     "NewScript",
     "OpenScript",
+    "PauseSprint",
     "Quit",
     "SaveSettingsAs",
     "Settings",
     "SpellCheckerDictionaryDlg",
+    "ToggleSprint",
+    "WritingGoals",
 }
 
 

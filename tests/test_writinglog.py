@@ -211,3 +211,23 @@ def testLoadFile(tmp_path):
 
     with open(path + ".bad", encoding="utf-8") as f:
         assert f.read() == "{broken"
+
+
+# the week is from Monday: TODAY is a Tuesday
+def testWeekTotal():
+    assert TODAY.weekday() == 1
+
+    log = makeLog(
+        session(0, 100),
+        session(1, 200),
+        # last week's Sunday
+        session(2, 400),
+        # a Monday session that took words away doesn't take them off
+        # Tuesday's
+        session(1, -500, h=12),
+    )
+
+    week = log.weekTotal(TODAY)
+
+    assert week.words == 100
+    assert week.active == 1800

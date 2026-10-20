@@ -225,7 +225,16 @@ class MainStatusBar(StatusBar):
         nextW = self.GetTextExtent(_("Enter: %s    Tab: %s") % (longest, longest))[0]
         wordsW = self.GetTextExtent(formatWordCount(999999))[0] + pad
         runtimeW = self.GetTextExtent(formatRuntime(599))[0] + pad
-        goalW = self.GetTextExtent(formatToday(99999, 0, 99999, False))[0] + pad
+        # wide enough for a sprint's countdown too (see sprinttimer.py)
+        goalW = (
+            max(
+                self.GetTextExtent(formatToday(99999, 0, 99999, False))[0],
+                self.GetTextExtent(_("Sprint paused {}  ·  {}").format(
+                    "240:00", _("{} / {} words").format("9,999", "9,999")
+                ))[0],
+            )
+            + pad
+        )
         widths = [
             self.FromDIP(6),
             -1,
@@ -240,6 +249,11 @@ class MainStatusBar(StatusBar):
 
         self.Bind(wx.EVT_SIZE, self.OnMainSize)
 
+        # a click on the goal field starts or stops a writing sprint
+        self.onAction = onAction
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+
         self.updateZoom()
 
         # the status bar may already have its final size, in which case no
@@ -248,6 +262,26 @@ class MainStatusBar(StatusBar):
 
     def OnMainSize(self, event):
         self.layoutZoomButtons()
+        event.Skip()
+
+    def OnLeftDown(self, event):
+        if self.GetFieldRect(self.SB_GOAL).Contains(event.GetPosition()):
+            self.onAction("ToggleSprint")
+
+        event.Skip()
+
+    # the goal field says what a click on it does
+    def OnMotion(self, event):
+        if self.GetFieldRect(self.SB_GOAL).Contains(event.GetPosition()):
+            tip = _("Written today in all scripts. Click to start or stop a writing sprint.")
+
+            if self.GetToolTipText() != tip:
+                self.SetToolTip(tip)
+                self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        elif self.GetToolTipText():
+            self.UnsetToolTip()
+            self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+
         event.Skip()
 
     # place the zoom buttons centered in their field
@@ -353,6 +387,13 @@ class MainStatusBar(StatusBar):
     # show what's been written today in all scripts, against the daily goal
     def showToday(self):
         cfgGl = self.gd.cfgGl
+        timer = getattr(getattr(self.gd, "mainFrame", None), "sprint", None)
+
+        if timer and timer.isActive():
+            self.SetStatusText(timer.statusText(), self.SB_GOAL)
+
+            return
+
         today = self.gd.writingLog.dayTotal(writinglog.localDay(time.time()))
 
         self.SetStatusText(

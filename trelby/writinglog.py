@@ -13,8 +13,13 @@
 # a session belongs to the day it started on, in local time. a day's words
 # and pages are the sum of its sessions', and never shown as less than 0.
 #
-# the file is JSON: {"version": 1, "sessions": [{...}, ...]}, the sessions
-# in the order they started.
+# it also keeps the writing sprints (see sprint.py): when each started and
+# ended, how long it was set for and its word target, the words written in
+# it, and whether it ran its course (or reached its target) rather than
+# being stopped.
+#
+# the file is JSON: {"version": 1, "sessions": [{...}, ...], "sprints":
+# [{...}, ...]}, each in the order they started.
 
 import datetime
 import json
@@ -109,6 +114,59 @@ class Session:
         )
 
 
+class SprintRecord:
+    def __init__(self, start, end, minutes, target, words, completed, id=None):
+        self.id = id or uuid.uuid4().hex
+        self.start = start
+        self.end = end
+        self.minutes = minutes
+        self.target = target
+        self.words = words
+        self.completed = completed
+
+    def day(self):
+        return localDay(self.start)
+
+    def toDict(self):
+        return {
+            "id": self.id,
+            "start": round(self.start, 1),
+            "end": round(self.end, 1),
+            "minutes": self.minutes,
+            "target": self.target,
+            "words": self.words,
+            "completed": self.completed,
+        }
+
+    # raises ValueError, TypeError, KeyError or AttributeError if d isn't
+    # one
+    @staticmethod
+    def fromDict(d):
+        for key in ("start", "end", "minutes", "target", "words"):
+            v = d[key]
+
+            if isinstance(v, bool) or not isinstance(v, (int, float)):
+                raise ValueError("%s is not a number" % key)
+
+        if not isinstance(d["completed"], bool):
+            raise ValueError("completed is not a bool")
+
+        id = d.get("id")
+
+        if (id is not None) and not isinstance(id, str):
+            raise ValueError("id is not a string")
+
+        return SprintRecord(
+            d["start"],
+            d["end"],
+            int(d["minutes"]),
+            int(d["target"]),
+            int(d["words"]),
+            d["completed"],
+            id,
+        )
+
+
 # the name shown for a script file: its file name without the .trelby
 def scriptName(path):
     name = os.path.basename(path)
@@ -163,6 +221,16 @@ class WritingLog:
         # {id: index into sessions}
         self.index = {}
 
+        # SprintRecords, in the order they started
+        self.sprints = []
+
+        # the words of all the sessions together, and {id: the words each
+        # one had when it was last put}, to keep it up to date as sessions
+        # are replaced. a sprint's words are how much this went up during
+        # it.
+        self.totalWords = 0
+        self.counted = {}
+
         # whether it has changed since it was last saved
         self.dirty = False
 
@@ -197,12 +265,29 @@ class WritingLog:
         log = WritingLog()
         log.sessions = sorted(byId.values(), key=lambda s: s.start)
         log.reindex()
+        log.counted = {s.id: s.words for s in log.sessions}
+        log.totalWords = sum(log.counted.values())
+
+        sprints = data.get("sprints", [])
+
+        if isinstance(sprints, list):
+            for d in sprints:
+                try:
+                    log.sprints.append(SprintRecord.fromDict(d))
+                except (ValueError, TypeError, KeyError, AttributeError):
+                    continue
+
+        log.sprints.sort(key=lambda sp: sp.start)
 
         return log
 
     def save(self):
         return json.dumps(
-            {"version": VERSION, "sessions": [s.toDict() for s in self.sessions]},
+            {
+                "version": VERSION,
+                "sessions": [s.toDict() for s in self.sessions],
+                "sprints": [sp.toDict() for sp in self.sprints],
+            },
             ensure_ascii=False,
             indent=0,
         )
@@ -228,7 +313,18 @@ class WritingLog:
         else:
             self.sessions[i] = s
 
+        self.totalWords += s.words - self.counted.get(s.id, 0)
+        self.counted[s.id] = s.words
         self.dirty = True
+
+    def addSprint(self, rec):
+        self.sprints.append(rec)
+        self.sprints.sort(key=lambda sp: sp.start)
+        self.dirty = True
+
+    # the sprints that started on local day 'day'
+    def sprintsOn(self, day):
+        return [sp for sp in self.sprints if sp.day() == day]
 
     # the sessions that started on local day 'day', newest last
     def sessionsOn(self, day):
@@ -254,6 +350,20 @@ class WritingLog:
 
         for s in self.sessionsOn(day):
             t.add(s)
+
+        return t
+
+    # what was written in the week of day 'today', from its Monday up to
+    # and including it. its words and pages are the days' shown ones, so a
+    # day that took words away doesn't take them off another.
+    def weekTotal(self, today):
+        t = Total(today)
+
+        for i in range(today.weekday() + 1):
+            day = self.dayTotal(today - datetime.timedelta(days=i))
+            t.words += day.shownWords()
+            t.pages += day.shownPages()
+            t.active += day.active
 
         return t
 
