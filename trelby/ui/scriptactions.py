@@ -643,6 +643,22 @@ def addNote(frame, ctrl):
     ctrl.newNote()
 
 
+# whether the outline is shown with a scene selected, whose synopsis
+# editSynopsis edits
+def canEditSynopsis(frame, ctrl):
+    outline = frame.panel.outline
+
+    return frame.gd.outlineShown() and outline.isSceneRow(
+        outline.list.GetSelection()
+    )
+
+
+def editSynopsis(frame, ctrl):
+    if canEditSynopsis(frame, ctrl):
+        outline = frame.panel.outline
+        outline.editSynopsis(outline.list.GetSelection())
+
+
 def insertNbsp(frame, ctrl):
     ctrl.OnKeyChar(keys.MyKeyEvent(160))
 

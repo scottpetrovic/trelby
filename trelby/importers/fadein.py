@@ -12,6 +12,7 @@ from trelby.importers.common import (
     ImportFailed,
     ImportResult,
     addElem,
+    addSynopsis,
     checkLines,
     checkNotEmpty,
     parseXML,
@@ -80,11 +81,22 @@ def parse(data, options=None):
         if txt:
             addPara(lines, styl, txt)
 
-        # notes and synopses become notes on the paragraph (see
-        # ImportResult)
+        # a scene heading's synopsis is the scene's, and other synopses
+        # and notes become notes on the paragraph (see ImportResult)
         for attr in ("note", "synopsis"):
-            if para.get(attr):
-                addElem(lines, screenplay.NOTE, sanitizeStr(para.get(attr)))
+            value = para.get(attr)
+
+            if not value:
+                continue
+
+            if (
+                (attr == "synopsis")
+                and txt
+                and addSynopsis(lines, "\n".join(sanitizeStr(value)))
+            ):
+                continue
+
+            addElem(lines, screenplay.NOTE, sanitizeStr(value))
 
     checkLines(lines)
 

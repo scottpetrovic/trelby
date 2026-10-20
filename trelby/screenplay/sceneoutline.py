@@ -1,4 +1,5 @@
-# the scene outline (the outline panel's data), scene colors, and adding
+# the scene outline (the outline panel's data), scene colors and
+# synopses, and adding
 # and moving whole scenes around.
 
 import trelby.textutil as textutil
@@ -40,6 +41,17 @@ class OutlineMixin:
 
         return None
 
+    # return the synopsis of the scene heading element starting at line i,
+    # or None if it has none or line i isn't the first line of a scene
+    # heading
+    def getSynopsis(self, i):
+        ln = self.lines[i]
+
+        if ln.synopsis and (ln.lt == SCENE) and self.isFirstLineOfElem(i):
+            return ln.synopsis
+
+        return None
+
     # return the script's outline as a list of OutlineItems, one for each
     # scene and act break, in script order. anything before the first
     # scene / act break is not included. page numbers are only accurate
@@ -76,6 +88,7 @@ class OutlineMixin:
                     summary,
                     self.line2pageLabel(start),
                     self.getSceneColor(start),
+                    self.getSynopsis(start),
                 )
             )
 
@@ -143,6 +156,30 @@ class OutlineEditMixin:
 
         self.sp.lines[start].color = color
         self.sp.markChanged()
+
+        u.setAfter(self)
+        self.undoHistory.add(u)
+
+        return True
+
+    # set the synopsis of the scene whose heading starts at the given line
+    # to text, or remove it if text is empty or None. returns False if the
+    # line doesn't start a scene heading or the synopsis is unchanged.
+    def setSynopsis(self, line, text):
+        sp = self.sp
+
+        if not ((sp.lines[line].lt == SCENE) and sp.isFirstLineOfElem(line)):
+            return False
+
+        text = textutil.fixNL(text or "").strip() or None
+
+        if sp.getSynopsis(line) == text:
+            return False
+
+        u = undo.SinglePara(self, undo.CMD_MISC, line)
+
+        sp.lines[line].synopsis = text
+        sp.markChanged()
 
         u.setAfter(self)
         self.undoHistory.add(u)

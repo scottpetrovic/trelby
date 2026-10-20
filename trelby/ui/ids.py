@@ -2,6 +2,7 @@ import wx
 
 ID_EDIT_UNDO = wx.NewIdRef()
 ID_EDIT_ADD_NOTE = wx.NewIdRef()
+ID_EDIT_SYNOPSIS = wx.NewIdRef()
 ID_EDIT_REDO = wx.NewIdRef()
 ID_EDIT_COPY = wx.NewIdRef()
 ID_EDIT_COPY_TO_CB = wx.NewIdRef()

@@ -22,6 +22,7 @@ class Line:
         sceneLock=None,
         notes=(),
         revs=None,
+        synopsis=None,
     ):
 
         # line break type: what separates this line from the next one
@@ -77,9 +78,15 @@ class Line:
         # screenplay/revisions.py.
         self.revs = textfmt.compact(textfmt.fit(revs, len(text))) if revs else None
 
+        # on the first line of a scene heading element: the scene's
+        # synopsis, a short description of what happens in it shown in the
+        # outline (never printed), or None. only meaningful on such lines;
+        # see Screenplay.getSynopsis.
+        self.synopsis = synopsis
+
     # return a copy of this line, including its page lock, dual flag,
-    # color, formatting, centered flag, scene lock, notes and revision
-    # marks
+    # color, formatting, centered flag, scene lock, notes, revision marks
+    # and synopsis
     def copy(self):
         return Line(
             self.lb,
@@ -93,6 +100,7 @@ class Line:
             self.sceneLock,
             self.notes,
             self.revs,
+            self.synopsis,
         )
 
     # return the format string, exactly as long as the text
@@ -179,6 +187,7 @@ class Line:
             or (self.sceneLock != other.sceneLock)
             or (self.notes != other.notes)
             or (textfmt.compact(self.revs) != textfmt.compact(other.revs))
+            or (self.synopsis != other.synopsis)
         )
 
     def __eq__(self, other):

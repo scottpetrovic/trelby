@@ -116,6 +116,11 @@ def save(sp) -> bytes:
         if sceneLock:
             output += "#Scene-Lock %s\n" % sceneLock
 
+        synopsis = sp.getSynopsis(i)
+
+        if synopsis:
+            output += "#Synopsis %s\n" % characterprofiles.escapeText(synopsis)
+
         if sp.hasCenteredFlag(i):
             output += "#Centered \n"
 
@@ -258,6 +263,9 @@ def load(s: str, cfgGl):
     # notes to put on the next script line
     lineNotes = ()
 
+    # synopsis to set on the next script line, or None
+    synopsis = None
+
     for i in range(index, len(lines)):
         s = lines[i]
 
@@ -319,6 +327,10 @@ def load(s: str, cfgGl):
             elif (key == "Centered") and startSeen:
                 centered = True
 
+            elif (key == "Synopsis") and startSeen:
+                synopsis = textutil.fixNL(characterprofiles.unescapeText(val))
+                synopsis = synopsis.strip() or None
+
             elif (key in ("Note", "Note-Resolved")) and startSeen:
                 text = textutil.fixNL(characterprofiles.unescapeText(val))
 
@@ -370,6 +382,7 @@ def load(s: str, cfgGl):
             line.centered = centered
             line.sceneLock = sceneLock
             line.notes = lineNotes
+            line.synopsis = synopsis
 
             if fmt:
                 line.fmt = textfmt.decode(fmt, len(text))
@@ -386,6 +399,7 @@ def load(s: str, cfgGl):
             revs = None
             centered = False
             lineNotes = ()
+            synopsis = None
 
             if lb != LB_LAST:
                 prevType = lt

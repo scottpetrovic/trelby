@@ -135,6 +135,7 @@ class SelectionMixin:
                     fmt=ln.sliceFmt(c1, c2 + 1),
                     sceneLock=self.sp.getSceneLock(i) if (c1 == 0) else None,
                     notes=ln.notes if (c1 == 0) else (),
+                    synopsis=self.sp.getSynopsis(i) if (c1 == 0) else None,
                 )
             )
 
@@ -264,7 +265,12 @@ class SelectionMixin:
             ln = clines[i]
 
             newLine = Line(
-                LB_LAST, ln.lt, dual=ln.dual, color=ln.color, centered=ln.centered
+                LB_LAST,
+                ln.lt,
+                dual=ln.dual,
+                color=ln.color,
+                centered=ln.centered,
+                synopsis=ln.synopsis,
             )
 
             if ln.sceneLock and (ln.sceneLock not in usedLocks):
@@ -319,8 +325,10 @@ class SelectionMixin:
         atEnd = self.column == len(ln.text)
 
         # pasting several lines at the start of a scene heading puts them
-        # before it, so its locked number has to move with its text
+        # before it, so its locked number and synopsis have to move with
+        # its text
         movedLock = None
+        movedSynopsis = None
 
         # and the notes of the paragraph pasted into go with its text
         movedNotes = ()
@@ -328,6 +336,8 @@ class SelectionMixin:
         if (self.column == 0) and (len(inLines) != 1) and not atEnd:
             movedLock = ln.sceneLock
             ln.sceneLock = inLines[0].sceneLock
+            movedSynopsis = ln.synopsis
+            ln.synopsis = inLines[0].synopsis
             movedNotes = ln.notes
             ln.notes = ()
 
@@ -337,6 +347,7 @@ class SelectionMixin:
             ln.color = inLines[0].color
             ln.centered = inLines[0].centered
             ln.sceneLock = inLines[0].sceneLock or ln.sceneLock
+            ln.synopsis = inLines[0].synopsis
 
         if ln.fmt or inLines[0].fmt:
             fmt = ln.getFmt()
@@ -358,6 +369,7 @@ class SelectionMixin:
             if not atEnd:
                 self.splitLine(moveNotes=False)
                 ls[self.line].sceneLock = movedLock
+                ls[self.line].synopsis = movedSynopsis
                 ls[self.line].notes = movedNotes
                 ls[self.line - 1].lb = inLines[0].lb
                 ls[self.line : self.line] = inLines[1:]

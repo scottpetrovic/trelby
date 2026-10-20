@@ -14,7 +14,9 @@ from trelby.screenplay.line import Line
 #
 # the importers add the formats' notes as note elements (screenplay.NOTE)
 # after what they're about, which become notes on the paragraph before each
-# here (see screenplay/notes.py).
+# here (see screenplay/notes.py). a scene's synopsis goes on its heading's
+# first line (Line.synopsis, see addSynopsis); a format's synopses that
+# aren't a scene's become notes.
 class ImportResult:
     def __init__(self, lines, titlePages=None, revisions=None):
         notes.absorbNoteElements(lines)
@@ -57,6 +59,32 @@ def parseXML(data, parser=None):
         return etree.XML(data, parser)
     except etree.XMLSyntaxError as e:
         raise ImportFailed(_("Error parsing file: {}").format(e))
+
+
+# add text to the synopsis of the scene heading that's the last element in
+# lines (on a line of its own, if it already has one), and return True, or
+# return False if the last element isn't a scene heading. empty text is
+# ignored (and True returned, for a scene heading).
+def addSynopsis(lines, text):
+    if not lines:
+        return False
+
+    i = len(lines) - 1
+
+    while (i > 0) and (lines[i - 1].lb != screenplay.LB_LAST):
+        i -= 1
+
+    ln = lines[i]
+
+    if ln.lt != screenplay.SCENE:
+        return False
+
+    text = textutil.cleanInput(textutil.fixNL(text)).strip()
+
+    if text:
+        ln.synopsis = (ln.synopsis + "\n" + text) if ln.synopsis else text
+
+    return True
 
 
 # append an element of type lt, with the lines of text in items, to lines.

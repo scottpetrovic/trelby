@@ -1,6 +1,7 @@
 import wx
 from wx.lib.wordwrap import wordwrap
 
+import trelby.dialogs.synopsisdlg as synopsisdlg
 import trelby.screenplay as screenplay
 import trelby.screenplay.beatsheets as beatsheets
 import trelby.ui.gutil as gutil
@@ -8,7 +9,9 @@ import trelby.ui.icons as icons
 from trelby.ui.theming import blendColors
 from trelby.ui.scrollbar import ScrollBar
 
-# max number of lines of summary text shown under each scene
+# max number of lines of a scene's synopsis shown under its heading, and of
+# the start of its action shown there when it has no synopsis
+SYNOPSIS_LINES = 4
 SUMMARY_LINES = 2
 
 
@@ -116,7 +119,8 @@ def makeRows(items, folded):
 
 
 # the outline's list of items. each row shows the scene number, heading
-# and page on one line, with the scene's summary wrapped underneath.
+# and page on one line, with the scene's synopsis wrapped underneath, or if
+# it has none, the start of its action (the summary), dimmed.
 class OutlineList(wx.VListBox):
     def __init__(self, parent):
         wx.VListBox.__init__(self, parent, -1, style=wx.BORDER_NONE)
@@ -158,7 +162,8 @@ class OutlineList(wx.VListBox):
         # width of the scene number column
         self.nrWidth = 0
 
-        # wrapped summary lines for each item index, valid for summaryWidth
+        # wrapped synopsis / summary lines for each item index, valid for
+        # summaryWidth
         self.summaryCache = {}
         self.summaryWidth = None
 
@@ -240,7 +245,8 @@ class OutlineList(wx.VListBox):
 
         return _("%d scenes") % cnt
 
-    # return the summary of item n wrapped to fit the list's width
+    # return the synopsis of item n, or if it has none its summary, wrapped
+    # to fit the list's width
     def getSummaryLines(self, n):
         width = self.GetClientSize().width - self.getTextX() - self.pad.x
 
@@ -251,12 +257,19 @@ class OutlineList(wx.VListBox):
         lines = self.summaryCache.get(n)
 
         if lines is None:
-            lines = self.wrapSummary(self.items[n].summary.strip(), width)
+            it = self.items[n]
+
+            if it.synopsis:
+                text, maxLines = " ".join(it.synopsis.split()), SYNOPSIS_LINES
+            else:
+                text, maxLines = it.summary.strip(), SUMMARY_LINES
+
+            lines = self.wrapSummary(text, width, maxLines)
             self.summaryCache[n] = lines
 
         return lines
 
-    def wrapSummary(self, text, width):
+    def wrapSummary(self, text, width, maxLines):
         if not text or (width <= 0):
             return []
 
@@ -264,9 +277,9 @@ class OutlineList(wx.VListBox):
         dc.SetFont(self.normalFont)
         lines = [s.strip() for s in wordwrap(text, width, dc).split("\n")]
 
-        if len(lines) > SUMMARY_LINES:
-            rest = " ".join(lines[SUMMARY_LINES - 1 :])
-            lines = lines[: SUMMARY_LINES - 1] + [
+        if len(lines) > maxLines:
+            rest = " ".join(lines[maxLines - 1 :])
+            lines = lines[: maxLines - 1] + [
                 wx.Control.Ellipsize(rest + " ...", dc, wx.ELLIPSIZE_END, width)
             ]
 
@@ -437,10 +450,14 @@ class OutlineList(wx.VListBox):
 
         dc.SetFont(self.normalFont)
 
-        if self.isHighlighted(n):
+        # a synopsis is the writer's, so it's shown like the heading; the
+        # start of the action shown in its place is dimmed
+        if it.synopsis:
             dc.SetTextForeground(fg)
+        elif self.isHighlighted(n):
+            dc.SetTextForeground(blendColors(fg, rowBg, 0.3))
         else:
-            dc.SetTextForeground(blendColors(fg, rowBg, 0.4))
+            dc.SetTextForeground(blendColors(fg, rowBg, 0.5))
 
         for line in self.getSummaryLines(n):
             y += self.lineHeight
@@ -1111,9 +1128,22 @@ class OutlinePanel(wx.Panel):
         elif self.rowKey(n) is not None:
             self.setFolded([self.rowKey(n)], False)
 
+    # whether row n is a scene, whose synopsis can be edited
+    def isSceneRow(self, n):
+        return (0 <= n < len(self.rows)) and (self.rowItem(n).lt == screenplay.SCENE)
+
+    # let the user edit the synopsis of the scene on row n
+    def editSynopsis(self, n):
+        if not self.isSceneRow(n):
+            return
+
+        synopsisdlg.editSynopsis(self, self.getCtrl(), self.rowItem(n).startLine)
+        self.refresh()
+
     # let the user pick the color of row number idx from a menu shown at
-    # pos (in win's client coordinates), and set it. with 'folding', the
-    # menu starts with the items that fold and unfold acts.
+    # pos (in win's client coordinates), and set it. with 'folding' (the
+    # right-click menu), the menu starts with the item that edits a
+    # scene's synopsis and those that fold and unfold acts.
     def showColorMenu(self, idx, win, pos, folding=False):
         it = self.rowItem(idx)
         colors = getSceneColors()
@@ -1133,6 +1163,10 @@ class OutlinePanel(wx.Panel):
             idRefs.append(wx.NewIdRef())
             menu.Append(idRefs[-1], label).Enable(enable)
             actions[int(idRefs[-1])] = func
+
+        if folding and self.isSceneRow(idx):
+            addAction(_("Edit synopsis..."), lambda: self.editSynopsis(idx))
+            menu.AppendSeparator()
 
         if folding:
             key = self.rowKey(idx)

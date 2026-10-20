@@ -114,7 +114,7 @@ def revisionOf(data):
 # report it, never change it.
 def linesRevision(sp):
     s = "\n".join(
-        "%s|%s|%s|%s|%s|%s|%s|%s|%s"
+        "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"
         % (
             ln,
             ln.pageLock or "",
@@ -125,6 +125,7 @@ def linesRevision(sp):
             ln.sceneLock or "",
             repr(ln.notes) if ln.notes else "",
             ln.revs or "",
+            repr(ln.synopsis) if ln.synopsis else "",
         )
         for ln in sp.lines
     )
@@ -386,6 +387,9 @@ def getElements(sp, first, last):
         if ln.lt in (SCENE, ACTBREAK) and sp.getSceneColor(start):
             elem["color"] = "#" + ln.color
 
+        if sp.getSynopsis(start):
+            elem["synopsis"] = ln.synopsis
+
         if ln.lt == CHARACTER and ln.dual:
             elem["dual"] = True
 
@@ -442,7 +446,7 @@ def parseNotes(elem, n):
 
 
 # convert a list of element dicts ({"type", "text", optional "color",
-# "dual", "centered" and "notes"}) to unwrapped lines. if needHeading is
+# "synopsis", "dual", "centered" and "notes"}) to unwrapped lines. if needHeading is
 # True, the first element must be a scene heading or act break.
 def buildLines(elements, needHeading):
     if not isinstance(elements, list) or not elements:
@@ -473,6 +477,16 @@ def buildLines(elements, needHeading):
 
             color = parseColor(elem["color"])
 
+        synopsis = elem.get("synopsis")
+        if synopsis is not None:
+            if not isinstance(synopsis, str):
+                raise ToolError("Element %d's synopsis is not a string." % n)
+
+            if lt != SCENE:
+                raise ToolError("Only scenes can have a synopsis.")
+
+            synopsis = textutil.fixNL(synopsis).strip() or None
+
         dual = bool(elem.get("dual"))
         if dual and (lt != CHARACTER):
             raise ToolError("Only character elements can be marked dual.")
@@ -501,6 +515,7 @@ def buildLines(elements, needHeading):
                     color=color if isFirst else None,
                     centered=centered and isFirst,
                     notes=notes if isFirst else (),
+                    synopsis=synopsis if isFirst else None,
                 )
             )
 
@@ -532,6 +547,9 @@ def getOutline(sp):
 
         if item.sceneNr:
             d["scene_number"] = item.sceneNr
+
+        if item.synopsis:
+            d["synopsis"] = item.synopsis
 
         if item.summary:
             d["summary"] = item.summary
@@ -714,7 +732,8 @@ def write(doc, revision, edit, ownUndo=False):
 
 # replace part 'index' with the given elements. a scene / act break being
 # replaced keeps its color unless the new heading says otherwise, and a
-# scene replaced by a scene keeps its locked number.
+# scene replaced by a scene keeps its locked number, and its synopsis
+# unless the new heading says otherwise.
 def replaceScene(doc, revision, index, elements):
     def edit(ed):
         sp = ed.sp
@@ -726,6 +745,9 @@ def replaceScene(doc, revision, index, elements):
 
         if index > 0:
             lines[0].sceneLock = sp.getSceneLock(first)
+
+        if (index > 0) and ("synopsis" not in elements[0]):
+            lines[0].synopsis = sp.getSynopsis(first)
 
         # like cut + paste: page locks on the replaced lines move to the
         # line after them

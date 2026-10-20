@@ -144,6 +144,18 @@ def generateFDX(sp):
         if first in sceneNrs:
             para.set("Number", sceneNrs[first])
 
+        # a scene's synopsis is its SceneProperties' Summary, a paragraph
+        # per line
+        synopsis = sp.getSynopsis(first) if typ == SCENE else None
+
+        if synopsis:
+            props = etree.SubElement(para, "SceneProperties")
+            summary = etree.SubElement(props, "Summary")
+
+            for ln in synopsis.split("\n"):
+                summaryPara = etree.SubElement(summary, "Paragraph")
+                etree.SubElement(summaryPara, "Text").text = ln
+
         # a Text element for each run of text with different formatting or
         # revision
         for a, b, style, level in runs(fmt, elemRevs(sp, first), len(txt)) or [

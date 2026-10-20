@@ -92,6 +92,9 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[10]: dict of {index: revs} for the lines that have revision
 #   marks, or None if none do
 #
+#   tuple[11]: dict of {index: synopsis} for the lines that have a
+#   synopsis, or None if none do
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
@@ -104,6 +107,7 @@ def lines2storage(lines):
     sceneLocks = {i: ln.sceneLock for i, ln in enumerate(lines) if ln.sceneLock}
     notes = {i: ln.notes for i, ln in enumerate(lines) if ln.notes} or None
     revs = {i: ln.revs for i, ln in enumerate(lines) if ln.revs} or None
+    synopses = {i: ln.synopsis for i, ln in enumerate(lines) if ln.synopsis} or None
 
     # str(ln) only holds the line break, type and text, which is all
     # Line.fromStr can restore, so every other Line attribute travels in
@@ -135,6 +139,7 @@ def lines2storage(lines):
         sceneLocks or None,
         notes,
         revs,
+        synopses,
     )
 
 
@@ -181,6 +186,10 @@ def storage2lines(storage):
     if storage[10]:
         for i, revs in storage[10].items():
             lines[i].revs = revs
+
+    if storage[11]:
+        for i, synopsis in storage[11].items():
+            lines[i].synopsis = synopsis
 
     return lines
 

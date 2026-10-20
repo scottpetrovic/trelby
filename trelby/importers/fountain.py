@@ -59,7 +59,9 @@ class Options:
         # whether bold, italic and underline markup becomes formatting
         self.markup = markup
 
-        # whether sections and synopses become notes, or are dropped
+        # whether sections and synopses become notes, or are dropped. a
+        # synopsis right after a scene heading is always kept, as the
+        # scene's synopsis.
         self.sectionsAsNotes = sectionsAsNotes
 
         # the script's title pages, which the imported titles are put on
@@ -325,6 +327,20 @@ def _identifyLines(lines, options):
             line.lt = screenplay.NOTE
             line.text = sl.strip("[]")
 
+        elif _isSynopsis(s) and _sceneBefore(lns):
+            text = sl.lstrip("=").strip()
+            scene = _sceneBefore(lns)
+
+            if text:
+                scene.synopsis = (
+                    (scene.synopsis + "\n" + text) if scene.synopsis else text
+                )
+
+            if isNextEmpty(i):
+                skipone = True
+
+            continue
+
         elif _isSection(s) or _isSynopsis(s):
             if not options.sectionsAsNotes:
                 if isNextEmpty(i):
@@ -443,3 +459,13 @@ def _isSection(s):
 
 def _isSynopsis(s):
     return s.startswith("=") and not s.startswith("==")
+
+
+# the scene heading line a synopsis read after lns would be the synopsis
+# of: the last line that isn't blank, if it's one, else None
+def _sceneBefore(lns):
+    for ln in reversed(lns):
+        if ln.text != "":
+            return ln if ln.lt == screenplay.SCENE else None
+
+    return None

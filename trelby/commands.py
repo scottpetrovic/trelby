@@ -245,6 +245,11 @@ def defaultCommands():
             [keys.Key(4, ctrl=True).toInt()],
             isMenu=True,
         ),
+        Command(
+            "EditSynopsis",
+            _("Edit the synopsis of the scene selected in the outline."),
+            isMenu=True,
+        ),
         Command("ExportScript", _("Export the current script."), isMenu=True),
         Command(
             "FindAndReplaceDlg",

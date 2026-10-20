@@ -170,6 +170,18 @@ def generateFountain(sp):
                 txt += " ^"
 
         flines.append(txt)
+
+        # a scene's synopsis, a "= " line for each of its lines, after a
+        # blank line (Fountain's importers take it as the scene's)
+        synopsis = sp.getSynopsis(first) if typ == SCENE else None
+
+        if synopsis:
+            flines.append("")
+
+            for ln in synopsis.split("\n"):
+                if ln.strip():
+                    flines.append("= " + ln.strip())
+
         notes.extend(getElemNotes(sp, first))
 
     flushNotes()

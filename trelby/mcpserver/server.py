@@ -46,6 +46,11 @@ whether it's resolved. read_scenes returns them with the elements. When
 replacing a scene, give each element the notes it had, unless asked to
 change them; an element left without notes loses them.
 
+A scene heading can have a synopsis: a sentence or two on what happens in
+the scene, shown in Trelby's outline and never printed. list_scenes and
+read_scenes return it. When replacing a scene, leave synopsis out to keep
+the old one, unless the change makes it wrong.
+
 Every result includes the script's revision. Every edit must be given the
 revision it is based on, and is refused if the script has changed since, so
 read again (list_scenes / read_scenes) after an error like that. Edits return
@@ -141,6 +146,12 @@ class Element(BaseModel):
         description="Outline color '#rrggbb' of a scene or act break, or "
         "null for none. Left out: replace_scene keeps the old color.",
     )
+    synopsis: Optional[str] = Field(
+        None,
+        description="On a scene heading: a short description of what "
+        "happens in the scene, shown in the outline and never printed, or "
+        "null for none. Left out: replace_scene keeps the old synopsis.",
+    )
     dual: bool = Field(
         False,
         description="On a character: this speech is the right-hand column "
@@ -162,8 +173,8 @@ Elements = Annotated[list[Element], Field(min_length=1)]
 
 
 # exclude_unset: a field the client left out stays out of the dict, which
-# isn't the same as null for color (replace_scene keeps the old color only
-# if there's no "color" key at all).
+# isn't the same as null for color and synopsis (replace_scene keeps the
+# old one only if there's no key at all).
 def toDicts(elements):
     return [e.model_dump(exclude_unset=True) for e in elements]
 
@@ -212,7 +223,8 @@ def makeServer(run, inApp):
     async def list_scenes(*, path: Path) -> Result:
         """List the script's scenes and act breaks with their index,
         heading, scene number (e.g. "12", or "12A" for a scene added after
-        scene numbers were locked), page and a short summary. Start here to
+        scene numbers were locked), page, synopsis if it has one, and the
+        start of its action (summary). Start here to
         find a scene's index, which is not the same as its scene number."""
         return await run("list_scenes", {"path": path})
 

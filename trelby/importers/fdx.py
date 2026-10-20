@@ -7,6 +7,7 @@ import trelby.util as util
 from trelby.importers.common import (
     ImportResult,
     addElem,
+    addSynopsis,
     checkLines,
     checkNotEmpty,
     parseXML,
@@ -106,6 +107,12 @@ def parse(data, options=None):
             if (lt == screenplay.ACTION) and (para.get("Alignment") == "Center"):
                 lines[firstLine].centered = True
 
+            # a scene's synopsis is its SceneProperties' Summary, a
+            # paragraph per line. (FD's own paragraphs in it have no Type,
+            # so the loop skips them.)
+            if lt == screenplay.SCENE:
+                addSynopsis(lines, sceneSummary(para))
+
             # in a DualDialogue, the second character's speech is the
             # right-hand column
             parent = para.getparent()
@@ -124,6 +131,17 @@ def parse(data, options=None):
     checkLines(lines)
 
     return ImportResult(lines, revisions=parseRevisions(root))
+
+
+# return the text of a scene heading paragraph's summary, "" if it has
+# none
+def sceneSummary(para):
+    ret = []
+
+    for p in para.xpath("SceneProperties/Summary/Paragraph"):
+        ret.append("".join(t.text or "" for t in p.xpath("Text")))
+
+    return "\n".join(ret)
 
 
 # return the revision a Text element is marked with: its RevisionID, a

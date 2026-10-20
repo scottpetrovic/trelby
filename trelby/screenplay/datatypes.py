@@ -32,7 +32,16 @@ class ClipData:
 # Screenplay.getOutline.
 class OutlineItem:
     def __init__(
-        self, lt, sceneNr, startLine, endLine, heading, summary, page, color=None
+        self,
+        lt,
+        sceneNr,
+        startLine,
+        endLine,
+        heading,
+        summary,
+        page,
+        color=None,
+        synopsis=None,
     ):
 
         # SCENE or ACTBREAK
@@ -48,8 +57,8 @@ class OutlineItem:
         # text of the scene heading / act break element
         self.heading = heading
 
-        # text of the first note in the scene, or if there are none, the
-        # first action element. "" if neither exists.
+        # the start of the scene's action (see getSceneSummary), "" if it
+        # has none
         self.summary = summary
 
         # label of the page the item starts on, e.g. "16" or "15A"
@@ -57,6 +66,10 @@ class OutlineItem:
 
         # color to show the item with in the outline ("rrggbb"), or None
         self.color = color
+
+        # the scene's synopsis (see Screenplay.getSynopsis), or None. the
+        # outline shows it in place of the summary.
+        self.synopsis = synopsis
 
     def __eq__(self, other):
         return isinstance(other, OutlineItem) and (self.__dict__ == other.__dict__)

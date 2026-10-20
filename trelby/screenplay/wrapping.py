@@ -244,13 +244,14 @@ class WrappingMixin:
 
         wrappedLines = self.wrapLine(tmp, width)
 
-        # the dual flag, color and scene lock stay on the first line of
-        # the element
+        # the dual flag, color, scene lock and synopsis stay on the first
+        # line of the element
         firstOfElem = self.isFirstLineOfElem(line1)
         wrappedLines[0].dual = ls[line1].dual and firstOfElem
         wrappedLines[0].color = ls[line1].color if firstOfElem else None
         wrappedLines[0].centered = ls[line1].centered and firstOfElem
         wrappedLines[0].sceneLock = ls[line1].sceneLock if firstOfElem else None
+        wrappedLines[0].synopsis = ls[line1].synopsis if firstOfElem else None
 
         # the notes of all the paragraph's lines go on its first line (see
         # notes.py)

@@ -475,6 +475,15 @@ def makeTable():
                 True,
             ),
             Action(
+                "EditSynopsis",
+                ID_EDIT_SYNOPSIS,
+                _("Edit scene synopsis"),
+                "y",
+                OnScript(scriptactions.editSynopsis),
+                dots=True,
+                canUse=scriptactions.canEditSynopsis,
+            ),
+            Action(
                 "InsertNbsp",
                 ID_EDIT_INSERT_NBSP,
                 _("Insert non-breaking space"),
@@ -1181,6 +1190,7 @@ SCRIPT_ONLY = {
     "Cut",
     "DeleteElements",
     "DualDialogue",
+    "EditSynopsis",
     "FindAndReplaceDlg",
     "GotoPage",
     "GotoScene",

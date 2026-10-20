@@ -203,6 +203,10 @@ class GlobalData:
     def notesShown(self):
         return self.showSidePanel and (self.sideTab == self.SIDE_NOTES)
 
+    # whether the side panel is shown at the outline
+    def outlineShown(self):
+        return self.showSidePanel and (self.sideTab == self.SIDE_OUTLINE)
+
     # the zoom level of what's shown: the beat board's while it's shown,
     # otherwise the script's
     def currentZoom(self):

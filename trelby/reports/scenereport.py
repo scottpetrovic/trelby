@@ -7,7 +7,10 @@ from trelby.ui.pagelist import PageList
 
 
 class SceneReport(textreport.TextReport):
-    options = [("speakers", lambda: _("Speakers"))]
+    options = [
+        ("synopses", lambda: _("Synopses")),
+        ("speakers", lambda: _("Speakers")),
+    ]
 
     def __init__(self, sp):
         super().__init__(sp)
@@ -43,6 +46,10 @@ class SceneReport(textreport.TextReport):
                     si.pages,
                 )
             )
+
+            if self.opts["synopses"] and si.synopsis:
+                tf.addSpace(2.5)
+                tf.addWrappedText("     " + " ".join(si.synopsis.split()), "     ")
 
             if self.opts["speakers"]:
                 tf.addSpace(2.5)
@@ -82,6 +89,9 @@ class SceneInfo:
 
         # scene name, e.g. "INT. MOTEL ROOM - NIGHT"
         self.name = speeches.sceneName(sp, startLine)
+
+        # the scene's synopsis, or None
+        self.synopsis = sp.getSynopsis(startLine)
 
         # the first line after the scene heading
         line = startLine

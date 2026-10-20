@@ -1369,6 +1369,14 @@ class MyCtrl(wx.Control):
         if self.ed.setSceneColor(line, color):
             self.updateScreen()
 
+    # set the synopsis of the scene whose heading starts at the given line
+    # (see Editor.setSynopsis)
+    def setSynopsis(self, line, text):
+        self.clearAutoComp()
+
+        if self.ed.setSynopsis(line, text):
+            self.updateScreen()
+
     # run the keyboard command with the given name, which isn't a menu
     # command
     def runCommand(self, name, cs):

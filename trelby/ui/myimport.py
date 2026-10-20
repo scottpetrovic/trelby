@@ -60,7 +60,13 @@ def askFountainOptions(data, frame, sp):
             _("Import bold, italic and underline markup as formatting.")
         )
     )
-    inf.append(checkboxitem.CheckBoxItem(_("Import section/synopsis as notes.")))
+    inf.append(
+        checkboxitem.CheckBoxItem(
+            _(
+                "Import sections, and synopses that aren't a scene's, as notes."
+            )
+        )
+    )
 
     dlg = checkboxdlg.CheckBoxDlg(
         frame, _("Fountain import options"), inf, _("Import options:"), False
