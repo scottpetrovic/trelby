@@ -32,7 +32,7 @@ It's free and always will be: no subscription, no account, no cloud lock-in. You
 
 ### Writing
 - **Automatic screenplay formatting** with keyboard-driven element switching, and auto-completion for character names, locations and transitions.
-- **Page view or draft view**, side by side pages, zoom and full screen.
+- **Page view or draft view**, side by side pages, zoom and full screen, sharp on high-resolution and scaled displays.
 - **Focus mode and typewriter scrolling**: fade everything but the scene you're in, and keep your line in the middle of the screen.
 - **Spell checking as you type**, a built-in thesaurus, and a database of over 200,000 character names.
 

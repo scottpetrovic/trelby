@@ -8,6 +8,7 @@ import trelby.ui.gutil as gutil
 import trelby.ui.icons as icons
 import trelby.util as util
 
+# in device independent pixels, like the sizes in MyTabCtrl
 TAB_BAR_HEIGHT = 30
 
 
@@ -15,7 +16,8 @@ TAB_BAR_HEIGHT = 30
 # full control over the button's size.
 class MyFSButton(wx.Window):
     def __init__(self, parent, id, getCfgGui):
-        wx.Window.__init__(self, parent, id, size=(TAB_BAR_HEIGHT, TAB_BAR_HEIGHT))
+        wx.Window.__init__(self, parent, id)
+        self.SetInitialSize(self.FromDIP(wx.Size(TAB_BAR_HEIGHT, TAB_BAR_HEIGHT)))
 
         self.getCfgGui = getCfgGui
         self.fsImage = icons.getBitmap("trelby/resources/fullscreen.png")
@@ -64,21 +66,6 @@ class MyTabCtrl(wx.Window):
         # index of first visible tab
         self.firstTab = 0
 
-        # how much padding to leave horizontally at the ends of the
-        # control, and within each tab
-        self.paddingX = 10
-
-        # width of a single tab
-        self.tabWidth = 150
-
-        # x-pos of the center of a tab's close button, relative to the tab
-        self.closeX = self.tabWidth - 18
-
-        # width of the "+" button after the last visible tab, and the size
-        # of its hover highlight
-        self.newTabWidth = 30
-        self.newTabSize = 22
-
         # whether the mouse is over the "+" button
         self.newTabHover = False
 
@@ -88,26 +75,10 @@ class MyTabCtrl(wx.Window):
         # function to call when a tab's close button is clicked
         self.closeFunc = None
 
-        # width, height, spacing, y-pos of arrows
-        self.arrowWidth = 8
-        self.arrowHeight = 13
-        self.arrowSpacing = 3
-        self.arrowY = 5
-
         # initialized in OnPaint since we don't know our height yet
         self.font = None
 
-        self.SetMinSize(
-            wx.Size(
-                self.paddingX * 2
-                + self.arrowWidth * 2
-                + self.arrowSpacing
-                + self.tabWidth
-                + self.newTabWidth
-                + 5,
-                TAB_BAR_HEIGHT,
-            )
-        )
+        self.setMinSize()
 
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDown)
@@ -115,6 +86,71 @@ class MyTabCtrl(wx.Window):
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_DPI_CHANGED, self.OnDpiChanged)
+
+    # the sizes below are in pixels, from device independent ones, so
+    # they follow the window's DPI
+
+    # how much padding to leave horizontally at the ends of the control,
+    # and within each tab
+    @property
+    def paddingX(self):
+        return self.FromDIP(10)
+
+    # width of a single tab
+    @property
+    def tabWidth(self):
+        return self.FromDIP(150)
+
+    # x-pos of the center of a tab's close button, relative to the tab
+    @property
+    def closeX(self):
+        return self.tabWidth - self.FromDIP(18)
+
+    # width of the "+" button after the last visible tab, and the size of
+    # its hover highlight
+    @property
+    def newTabWidth(self):
+        return self.FromDIP(30)
+
+    @property
+    def newTabSize(self):
+        return self.FromDIP(22)
+
+    # width, height, spacing, y-pos of arrows
+    @property
+    def arrowWidth(self):
+        return self.FromDIP(8)
+
+    @property
+    def arrowHeight(self):
+        return self.FromDIP(13)
+
+    @property
+    def arrowSpacing(self):
+        return self.FromDIP(3)
+
+    @property
+    def arrowY(self):
+        return self.FromDIP(5)
+
+    def setMinSize(self):
+        self.SetMinSize(
+            wx.Size(
+                self.paddingX * 2
+                + self.arrowWidth * 2
+                + self.arrowSpacing
+                + self.tabWidth
+                + self.newTabWidth
+                + self.FromDIP(5),
+                self.FromDIP(TAB_BAR_HEIGHT),
+            )
+        )
+
+    def OnDpiChanged(self, event):
+        self.font = None
+        self.setMinSize()
+        event.Skip()
 
     # get the ctrl that the tabbed windows should use as a parent
     def getTabParent(self):
@@ -196,7 +232,7 @@ class MyTabCtrl(wx.Window):
         w -= self.newTabWidth
 
         # leave at least 2 pixels between left arrow and last tab
-        w -= 2
+        w -= self.FromDIP(2)
 
         w //= self.tabWidth
 
@@ -346,9 +382,13 @@ class MyTabCtrl(wx.Window):
         xpos = self.paddingX
 
         # each tab leaves a gap at its right edge, so tabs don't touch
-        tabGap = 3
+        d = self.FromDIP
+        # for the fractional sizes. not GetDPIScaleFactor, which is 2 on
+        # macOS' retina screens, where sizes are in points.
+        scale = d(1000) / 1000
+        tabGap = d(3)
         tabW = self.tabWidth - tabGap
-        radius = 5
+        radius = d(5)
 
         if not self.font:
             self.font = gutil.createPixelFont(
@@ -377,11 +417,11 @@ class MyTabCtrl(wx.Window):
             # the selected tab is taller and covers the separator line, so
             # it joins the script below it
             if selected:
-                tabY = 2
+                tabY = d(2)
                 bottom = h
                 brush = cfgGui.workspaceBrush
             else:
-                tabY = 4
+                tabY = d(4)
                 bottom = h - separatorLineThickness
                 brush = cfgGui.tabNonActiveBgBrush
 
@@ -407,10 +447,12 @@ class MyTabCtrl(wx.Window):
             # its center to the end of the tab
             cx = xpos + self.closeX
             cy = textY + textH / 2
-            s = 3.5
+            s = 3.5 * scale
             gc.SetPen(
                 gc.CreatePen(
-                    wx.GraphicsPenInfo(cfgGui.tabTextColor, 1.5).Cap(wx.CAP_ROUND)
+                    wx.GraphicsPenInfo(cfgGui.tabTextColor, 1.5 * scale).Cap(
+                        wx.CAP_ROUND
+                    )
                 )
             )
             gc.StrokeLine(cx - s, cy - s, cx + s, cy + s)
@@ -421,7 +463,7 @@ class MyTabCtrl(wx.Window):
         # the "+" button after the last tab, with a rounded highlight
         # behind it while the mouse is over it
         cx = xpos + self.newTabWidth / 2
-        cy = (4 + h) / 2
+        cy = (d(4) + h) / 2
 
         if self.newTabHover:
             hs = self.newTabSize
@@ -429,9 +471,11 @@ class MyTabCtrl(wx.Window):
             gc.SetBrush(gc.CreateBrush(cfgGui.tabNonActiveBgBrush))
             gc.DrawRoundedRectangle(cx - hs / 2, cy - hs / 2, hs, hs, radius)
 
-        s = 5
+        s = d(5)
         gc.SetPen(
-            gc.CreatePen(wx.GraphicsPenInfo(cfgGui.tabTextColor, 1.5).Cap(wx.CAP_ROUND))
+            gc.CreatePen(
+                wx.GraphicsPenInfo(cfgGui.tabTextColor, 1.5 * scale).Cap(wx.CAP_ROUND)
+            )
         )
         gc.StrokeLine(cx - s, cy, cx + s, cy)
         gc.StrokeLine(cx, cy - s, cx, cy + s)

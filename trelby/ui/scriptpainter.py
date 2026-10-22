@@ -183,11 +183,12 @@ class ScriptPainter:
 
             dc.SetBrush(self.cfgGui.textBgBrush)
             dc.SetPen(self.cfgGui.textBgPen)
-            dc.DrawRectangle(lx, 5, vp.pageW, size.height - 5)
+            top = vp.dip(5)
+            dc.DrawRectangle(lx, top, vp.pageW, size.height - top)
 
             dc.SetPen(self.cfgGui.pageBorderPen)
-            dc.DrawLine(lx, 5, lx, size.height)
-            dc.DrawLine(rx, 5, rx, size.height)
+            dc.DrawLine(lx, top, lx, size.height)
+            dc.DrawLine(rx, top, rx, size.height)
 
         else:
             dc.SetBrush(self.cfgGui.textBgBrush)
@@ -255,7 +256,7 @@ class ScriptPainter:
 
                     dc.SetTextForeground(self.cfgGui.redColor)
                     dc.SetFont(self.cfgGui.fonts[pml.NORMAL].font)
-                    dc.DrawText(config.lb2char(l.lb), t.x - 10, y)
+                    dc.DrawText(config.lb2char(l.lb), t.x - vp.dip(10), y)
 
                 if not dpages:
                     if self.cfgGl.pbi == config.PBI_REAL_AND_UNADJ:
@@ -857,17 +858,18 @@ class ScriptPainter:
         text = _("Manage title page")
         tw, th = dc.GetTextExtent(text)
 
-        bw = tw + 40
-        bh = th + 16
+        dip = self.vp.dip
+        bw = tw + dip(40)
+        bh = th + dip(16)
         x = (dp.x1 + dp.x2 - bw) // 2
-        y = dp.y1 - bh - 8
+        y = dp.y1 - bh - dip(8)
 
         if y < 0:
             return
 
         dc.SetPen(self.cfgGui.pageBorderPen)
         dc.SetBrush(self.cfgGui.textBgBrush)
-        dc.DrawRoundedRectangle(x, y, bw, bh, 4)
+        dc.DrawRoundedRectangle(x, y, bw, bh, dip(4))
 
         dc.SetTextForeground(self.cfgGui.textColor)
         dc.DrawText(text, x + (bw - tw) // 2, y + (bh - th) // 2)

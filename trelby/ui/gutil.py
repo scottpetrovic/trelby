@@ -15,19 +15,47 @@ import trelby.util as util
 # permanent memory DC to get text extents etc
 permDc = None
 
+# the DPI scale text is measured at (see setMeasureScale)
+measureScale = 1.0
+
 
 def init(doWX=True):
-    global permDc
-
     if doWX:
-        # dunno if the bitmap needs to be big enough to contain the text
-        # we're measuring...
-        permDc = wx.MemoryDC()
-        permDc.SelectObject(wx.Bitmap(512, 32))
+        setMeasureScale(screenScale())
 
         # on Windows, graphics contexts (GDI+) only see the fonts added
         # before the first one is created
         loadBundledFonts()
+
+
+# the primary screen's DPI scale (1.0 = 96 DPI) on Windows, where Trelby
+# is DPI aware and a font is drawn in pixels for the screen's DPI (see
+# trelby.enableDpiAwareness). elsewhere 1.0, since there sizes are in
+# logical pixels, which the system scales.
+def screenScale():
+    if not misc.isWindows:
+        return 1.0
+
+    return wx.ScreenDC().GetPPI().height / 96
+
+
+# measure text (getTextExtent, getFontHeight) as it's drawn at the given
+# DPI scale, e.g. the main window's GetDPIScaleFactor(). a memory DC on a
+# plain bitmap measures at 96 DPI, whatever the screen is, so the bitmap
+# gets the scale.
+def setMeasureScale(scale):
+    global permDc, measureScale
+
+    measureScale = scale
+
+    # dunno if the bitmap needs to be big enough to contain the text
+    # we're measuring...
+    bmp = wx.Bitmap(512, 32)
+
+    if misc.isWindows:
+        bmp.SetScaleFactor(scale)
+
+    permDc = wx.MemoryDC(bmp)
 
 
 # whether the bundled fonts could be loaded, or None before the first
@@ -109,10 +137,28 @@ def courierFace():
 # 12", see ConfigGlobal.setDefaultFonts), which only wxGTK's FromString
 # reads; elsewhere (macOS) they're read as a user string, which takes the
 # same form. a face that isn't installed gives the default face.
+#
+# Windows' strings starting with "0;" (the default ones, and any saved by
+# older versions) give the height in pixels, which wx takes at the current
+# DPI. Trelby wasn't DPI aware before, so they're at 96 DPI and turned into
+# points as such; otherwise a DPI aware Trelby on a scaled screen would
+# shrink them. newer strings ("1;") start with the size in points.
 def fontInfo(s):
     nfi = wx.NativeFontInfo()
 
-    if not nfi.FromString(s) and nfi.FromUserString(s):
+    if nfi.FromString(s):
+        fields = s.split(";")
+
+        if misc.isWindows and (fields[0] == "0") and (len(fields) > 1):
+            try:
+                height = abs(int(fields[1]))
+            except ValueError:
+                height = 0
+
+            if height:
+                nfi.SetFractionalPointSize(height * 72 / 96)
+
+    elif nfi.FromUserString(s):
         # which lowercases the face name
         face = nfi.GetFaceName()
         i = s.lower().find(face.lower())

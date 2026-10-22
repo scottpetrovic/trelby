@@ -43,12 +43,22 @@ class SplashWindow(wx.Frame):
 
         self.pickRandomQuote()
 
+        # the sizes and positions below are in device independent pixels,
+        # and the picture is scaled to match
+        d = self.FromDIP
+        self.d = d
+
         self.pic = icons.getBitmap("trelby/resources/logo.jpg")
 
         if self.pic.IsOk():
-            w, h = (self.pic.GetWidth(), self.pic.GetHeight())
+            w, h = d(self.pic.GetWidth()), d(self.pic.GetHeight())
+
+            if w != self.pic.GetWidth():
+                self.pic = self.pic.ConvertToImage().Scale(
+                    w, h, wx.IMAGE_QUALITY_HIGH
+                ).ConvertToBitmap()
         else:
-            w, h = (500, 400)
+            w, h = d(500), d(400)
 
         self.w, self.h = w, h
 
@@ -58,18 +68,18 @@ class SplashWindow(wx.Frame):
         # dark slate, matching the wordmark in logo.jpg
         self.textColor = wx.Colour(52, 66, 82)
 
-        self.font = gutil.createPixelFont(14, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.font = gutil.createPixelFont(d(14), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
         self.versionFont = gutil.createPixelFont(
-            19, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
+            d(19), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
         )
 
         self.quoteFont = gutil.createPixelFont(
-            16, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
+            d(16), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
         )
 
         self.sourceFont = gutil.createPixelFont(
-            15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL
+            d(15), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL
         )
 
         if delay != -1:
@@ -87,6 +97,7 @@ class SplashWindow(wx.Frame):
 
     def OnPaint(self, event):
         dc = wx.PaintDC(self)
+        d = self.d
 
         dc.SetTextForeground(self.textColor)
 
@@ -95,23 +106,23 @@ class SplashWindow(wx.Frame):
 
         # version and website in the empty top-right corner
         dc.SetFont(self.versionFont)
-        gutil.drawText(dc, "Version %s" % (misc.version), self.w - 12, 10, util.ALIGN_RIGHT)
+        gutil.drawText(dc, "Version %s" % (misc.version), self.w - d(12), d(10), util.ALIGN_RIGHT)
 
         dc.SetFont(self.font)
-        gutil.drawText(dc, "http://www.trelby.org/", self.w - 12, 34, util.ALIGN_RIGHT)
+        gutil.drawText(dc, "http://www.trelby.org/", self.w - d(12), d(34), util.ALIGN_RIGHT)
 
         # quote centered in the band below the wordmark, bottom-aligned
         if self.quote:
             cx = self.w // 2
 
             dc.SetFont(self.sourceFont)
-            gutil.drawText(dc, "— " + self.quote.source, cx, self.h - 28, util.ALIGN_CENTER)
+            gutil.drawText(dc, "— " + self.quote.source, cx, self.h - d(28), util.ALIGN_CENTER)
 
             dc.SetFont(self.quoteFont)
 
             count = len(self.quote.lines)
             for i, line in enumerate(self.quote.lines):
-                y = self.h - 52 - (count - i - 1) * 18
+                y = self.h - d(52) - (count - i - 1) * d(18)
 
                 if i == 0:
                     line = "“" + line

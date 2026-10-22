@@ -369,8 +369,11 @@ class MainToolBar:
         pad = 5
         paddedSize = wx.Size(size.width + pad * 2, size.height + pad * 2)
 
+        # no SetToolBitmapSize: the toolbar sizes its tools from the icons'
+        # wx.BitmapBundles at its DPI, also when fill runs again with
+        # another icon size. on Windows a size set there is taken as
+        # pixels and shrinks the icons on scaled screens.
         tb.ClearTools()
-        tb.SetToolBitmapSize(paddedSize)
 
         # ClearTools normally destroys controls along with their tools, but
         # not always, so destroy any that are left. a destroyed wx object

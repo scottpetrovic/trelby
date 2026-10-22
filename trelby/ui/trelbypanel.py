@@ -125,7 +125,7 @@ class MyPanel(wx.Panel):
 
                 # a negative sash position is the right pane's width
                 self.splitter.SplitVertically(
-                    self.editor, self.side, -self.gd.sideWidth
+                    self.editor, self.side, -self.FromDIP(self.gd.sideWidth)
                 )
 
             self.side.refresh()
@@ -141,9 +141,9 @@ class MyPanel(wx.Panel):
         self.side.setTab(tab)
 
     # sideWidth is what showSide passes to SplitVertically, so it includes
-    # the sash
+    # the sash. it's in device independent pixels.
     def OnSashChanged(self, event):
-        self.gd.sideWidth = (
+        self.gd.sideWidth = self.ToDIP(
             self.splitter.GetClientSize().width - event.GetSashPosition()
         )
         event.Skip()

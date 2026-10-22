@@ -85,7 +85,10 @@ class DisplayPanel(wx.Panel):
             if gutil.isFixedWidth(font):
                 setattr(self.cfg, fname, font.GetNativeFontInfo().ToString())
 
-                self.cfg.fontYdelta = gutil.getFontHeight(font)
+                # the setting is at 96 DPI, see ConfigGui
+                self.cfg.fontYdelta = round(
+                    gutil.getFontHeight(font) / gutil.measureScale
+                )
 
                 self.cfg2gui()
                 self.updateFontLb()

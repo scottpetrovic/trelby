@@ -238,8 +238,11 @@ class ConfigGui:
 
             self.fonts.append(fi)
 
-        # vertical distance between rows in draft mode, in pixels
-        self.fontYdelta = max(1, round(cfgGl.fontYdelta * zoom / 100.0))
+        # vertical distance between rows in draft mode, in pixels. the
+        # setting is at 96 DPI, like the fonts' sizes are in points.
+        self.fontYdelta = max(
+            1, round(cfgGl.fontYdelta * gutil.measureScale * zoom / 100.0)
+        )
 
     # TextType -> FontInfo
     def tt2fi(self, tt):

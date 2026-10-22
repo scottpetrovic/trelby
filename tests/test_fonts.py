@@ -1,3 +1,6 @@
+import sys
+
+import pytest
 import wx
 
 import tests.u as u
@@ -104,3 +107,43 @@ def testFontInfoReadsUnixStrings(app):
     assert nfi.GetPointSize() == 12
     assert nfi.GetWeight() == wx.FONTWEIGHT_BOLD
     assert nfi.GetStyle() == wx.FONTSTYLE_ITALIC
+
+
+# Windows' "0;" strings (the defaults, and older versions' saved fonts)
+# have the height in pixels at 96 DPI, since Trelby wasn't DPI aware. wx
+# would take it at the screen's DPI, shrinking the font on a scaled screen.
+@pytest.mark.skipif(not sys.platform.startswith("win"), reason="Windows font strings")
+def testFontInfoReadsOldWindowsPixelHeights(app):
+    nfi = gutil.fontInfo("0;-13;0;0;0;700;0;0;0;0;3;2;1;49;Courier New")
+
+    assert nfi.GetFractionalPointSize() == pytest.approx(9.75)
+    assert nfi.GetWeight() == wx.FONTWEIGHT_BOLD
+
+    # newer strings have the size in points, used as it is
+    nfi = gutil.fontInfo("1;11;-22;0;0;0;400;0;0;0;1;0;0;2;32;Courier New")
+
+    assert nfi.GetFractionalPointSize() == pytest.approx(11)
+
+
+# text is measured as it's drawn at the window's DPI: a font is as many
+# times bigger in pixels as the scale, and so is draft view's line spacing
+@pytest.mark.skipif(not sys.platform.startswith("win"), reason="DPI scaling on Windows")
+def testMeasureScale(app):
+    font = wx.Font(wx.FontInfo(12).FaceName(gutil.courierFace()))
+    cfgGl = config.ConfigGlobal()
+    old = gutil.measureScale
+
+    try:
+        gutil.setMeasureScale(1.0)
+        w1, h1 = gutil.getTextExtent(font, "O")
+        delta1 = configgui.ConfigGui(cfgGl).fontYdelta
+
+        gutil.setMeasureScale(2.0)
+        w2, h2 = gutil.getTextExtent(font, "O")
+        delta2 = configgui.ConfigGui(cfgGl).fontYdelta
+    finally:
+        gutil.setMeasureScale(old)
+
+    assert w2 == pytest.approx(w1 * 2, abs=2)
+    assert h2 == pytest.approx(h1 * 2, abs=2)
+    assert delta2 == delta1 * 2

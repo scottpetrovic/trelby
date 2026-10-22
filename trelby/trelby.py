@@ -178,6 +178,8 @@ class MyApp(wx.App):
 
         mainFrame.Show(True)
 
+        mainFrame.checkDpi()
+
         # windows needs this for some reason
         mainFrame.focusCurrent()
 
@@ -250,6 +252,31 @@ def restartCommand(args):
     ] + args, env
 
 
+# on Windows, draw at each screen's own DPI (scaling) instead of having
+# Windows stretch a 96 DPI window, which blurs it. per monitor v2 also
+# scales the title bar and the standard controls, and wx sends
+# EVT_DPI_CHANGED when a window moves to a screen with another scaling.
+# must be done before any window is created.
+def enableDpiAwareness():
+    if not sys.platform.startswith("win"):
+        return
+
+    import ctypes
+
+    try:
+        # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, Windows 10 1703+
+        if ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):
+            return
+    except (AttributeError, OSError):
+        pass
+
+    try:
+        # PROCESS_PER_MONITOR_DPI_AWARE, Windows 8.1+
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except (AttributeError, OSError):
+        pass
+
+
 def main():
     # Trelby.exe --mcp-bridge [--port N]: run as the stdio bridge to the MCP
     # server in a running Trelby (see mcpserver/server.py), for exe users with no
@@ -266,6 +293,8 @@ def main():
     startDir = os.getcwd()
 
     opts.init()
+
+    enableDpiAwareness()
 
     myApp = MyApp(0)
 

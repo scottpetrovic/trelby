@@ -41,7 +41,7 @@ def capture(frame, path):
 def setUp():
     gd = wx.GetApp().gd
     frame = gd.mainFrame
-    frame.SetSize(SIZE)
+    frame.SetSize(frame.FromDIP(wx.Size(*SIZE)))
     frame.Center()
     frame.setViewMode(gd.VIEWMODE_LAYOUT)
     frame.showSideTab(gd.SIDE_OUTLINE)

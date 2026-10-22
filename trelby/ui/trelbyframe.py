@@ -86,10 +86,14 @@ class MyFrame(wx.Frame):
         # runs writing sprints (Tools / Writing sprint)
         self.sprint = sprinttimer.SprintTimer(self, gd)
 
-        self.SetSizeHints(gd.cvars.getMin("width"), gd.cvars.getMin("height"))
+        # the saved size is in device independent pixels, the position in
+        # the screen's
+        self.SetSizeHints(
+            self.FromDIP(wx.Size(gd.cvars.getMin("width"), gd.cvars.getMin("height")))
+        )
 
         self.Move(gd.posX, gd.posY)
-        self.SetSize(wx.Size(gd.width, gd.height))
+        self.SetSize(self.FromDIP(wx.Size(gd.width, gd.height)))
 
         util.removeTempFiles(misc.tmpPrefix)
 
@@ -127,6 +131,7 @@ class MyFrame(wx.Frame):
 
         self.Bind(wx.EVT_MOVE, self.OnMove)
         self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_DPI_CHANGED, self.OnDpiChanged)
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(vsizer)
@@ -1126,8 +1131,36 @@ class MyFrame(wx.Frame):
         event.Skip()
 
     def OnSize(self, event):
-        self.gd.width, self.gd.height = self.GetSize()
+        self.gd.width, self.gd.height = self.ToDIP(self.GetSize())
         event.Skip()
+
+    # moved to a screen with another DPI (scaling), or the screen's scaling
+    # changed. wx rescales the controls and their fonts itself.
+    def OnDpiChanged(self, event):
+        event.Skip()
+        wx.CallAfter(self.checkDpi)
+
+    # measure the script's screen fonts at this window's DPI, if they
+    # weren't. called at startup too, since the window may not be on the
+    # primary screen gutil.init measured them for.
+    def checkDpi(self):
+        if not misc.isWindows:
+            return
+
+        scale = self.GetDPIScaleFactor()
+
+        if scale == gutil.measureScale:
+            return
+
+        gutil.setMeasureScale(scale)
+        self.refreshGuiConfig()
+
+        for c in self.getCtrls():
+            c.refreshCache()
+
+        c = self.panel.ctrl
+        c.makeLineVisible(c.ed.line)
+        c.updateScreen()
 
     def getCfgGui(self):
         return self.gd.cfgGui

@@ -19,8 +19,8 @@ TYPEWRITER_TRIES = 6
 # a fraction of the window's height
 TYPEWRITER_POSITION = 0.45
 
-# extra space (pixels) above the first page, for the button that opens
-# the title pages dialog (drawn by MyCtrl.OnPaint)
+# extra space (device independent pixels) above the first page, for the
+# button that opens the title pages dialog (drawn by MyCtrl.OnPaint)
 TITLE_BUTTON_H = 44
 
 
@@ -302,7 +302,7 @@ class ViewModeDraft(ViewMode):
 
         width, height = ctrl.GetClientSize()
         ls = ctrl.sp.lines
-        y = 15 + ctrl.ed.topOffset
+        y = ctrl.dip(15) + ctrl.ed.topOffset
         i = ctrl.ed.getTopLine()
 
         marginLeft = int(ctrl.mm2p * cfg.marginLeft)
@@ -395,7 +395,7 @@ class ViewModeLayout(ViewMode):
         width, height = ctrl.GetClientSize()
 
         # gap between pages (pixels)
-        pageGap = 10
+        pageGap = ctrl.dip(10)
         pager = mypager.Pager(ctrl.sp.cfg)
 
         mm2p = ctrl.mm2p
@@ -436,7 +436,7 @@ class ViewModeLayout(ViewMode):
                     y = pageGap
 
                     if pageNr == 1:
-                        y += TITLE_BUTTON_H
+                        y += ctrl.dip(TITLE_BUTTON_H)
 
                 break
             else:
@@ -517,7 +517,7 @@ class ViewModeLayout(ViewMode):
 
             lastY = texts[-1].y + fontY
             if lastY >= dpages[-1].y2:
-                dpages[-1].y2 = lastY + 10
+                dpages[-1].y2 = lastY + ctrl.dip(10)
 
         return (texts, dpages)
 
@@ -564,7 +564,7 @@ class ViewModeSideBySide(ViewMode):
         mm2p = ctrl.mm2p
 
         # gap between pages (+ screen left edge)
-        pageGap = 10
+        pageGap = ctrl.dip(10)
 
         # how many pages fit on screen
         pageCnt = max(1, (width - pageGap) // (ctrl.pageW + pageGap))
@@ -582,7 +582,7 @@ class ViewModeSideBySide(ViewMode):
         # top of the row of pages
         sy = pageGap
         if pageNr == 1:
-            sy += TITLE_BUTTON_H
+            sy += ctrl.dip(TITLE_BUTTON_H)
 
         while 1:
             if (pagesDone >= pageCnt) or (pageNr >= len(ctrl.sp.pages)):

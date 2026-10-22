@@ -287,6 +287,11 @@ class MyCtrl(wx.Control):
     def getCfgGui(self):
         return self.gd.cfgGui
 
+    # device independent pixels to pixels, as Viewport.dip, for the view
+    # modes
+    def dip(self, v):
+        return self.FromDIP(v)
+
     # while the beat board is shown in the script's place, the script is
     # hidden and must not get the keyboard, so the board gets it instead
     # (see MyPanel.showBeatBoard)
@@ -649,10 +654,17 @@ class MyCtrl(wx.Control):
         # lays us out, and wx can't create empty bitmaps
         if misc.doDblBuf and (size.width > 0) and (size.height > 0):
             sb = wx.Bitmap(size.width, size.height)
+
+            # at the window's DPI, so fonts sized in points are drawn into
+            # it at the size they have on the screen
+            if misc.isWindows:
+                sb.SetScaleFactor(self.GetDPIScaleFactor())
+
             old = getattr(self.__class__, "screenBuf", None)
 
             if (
                 (old == None)
+                or (old.GetScaleFactor() != sb.GetScaleFactor())
                 or (old.GetDepth() != sb.GetDepth())
                 or (old.GetHeight() != sb.GetHeight())
                 or (old.GetWidth() != sb.GetWidth())

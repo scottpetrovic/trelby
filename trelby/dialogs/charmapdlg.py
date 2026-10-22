@@ -95,17 +95,21 @@ class MyCharMap(wx.Window):
 
         self.setChars(blockChars(blocks[0][1]))
 
+        # the sizes are in device independent pixels, made pixels here
+        d = self.FromDIP
+        self.d = d
+
         # offset of grid
-        self.offset = 5
+        self.offset = d(5)
 
         # size of a single character cell
-        self.cellSize = 32
+        self.cellSize = d(32)
 
         # size of the zoomed-in character boxes
-        self.boxSize = 60
+        self.boxSize = d(60)
 
         self.smallFont = gutil.createPixelFont(
-            18, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
+            d(18), wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL
         )
         self.normalFont = gutil.createPixelFont(
             self.cellSize - 2, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD
@@ -122,7 +126,7 @@ class MyCharMap(wx.Window):
         gutil.setWH(
             self,
             self.cols * self.cellSize + 2 * self.offset,
-            self.offset + maxRows * self.cellSize + self.boxSize + 15,
+            self.offset + maxRows * self.cellSize + self.boxSize + d(15),
         )
 
     def rowsFor(self, chars):
@@ -203,14 +207,15 @@ class MyCharMap(wx.Window):
                         util.VALIGN_CENTER,
                     )
 
+        d = self.d
         y = self.offset + self.rows * self.cellSize
-        pad = 5
+        pad = d(5)
 
         if self.selected:
             code = ord(self.selected)
 
             self.drawCharBox(
-                dc, _("Selected:"), self.selected, self.offset, y + pad, 75
+                dc, _("Selected:"), self.selected, self.offset, y + pad, d(75)
             )
 
             c = textutil.upper(self.selected)
@@ -221,18 +226,18 @@ class MyCharMap(wx.Window):
 
             if c:
                 self.drawCharBox(
-                    dc, _("Opposite case:"), c, self.offset + 150, y + pad, 110
+                    dc, _("Opposite case:"), c, self.offset + d(150), y + pad, d(110)
                 )
 
             dc.SetFont(self.smallFont)
             dc.DrawText(
-                (_("Character code: %d") % code) + (" (U+%04X)" % code), 360, y + pad
+                (_("Character code: %d") % code) + (" (U+%04X)" % code), d(360), y + pad
             )
 
             if code == 32:
-                dc.DrawText(_("Normal space"), 360, y + pad + 30)
+                dc.DrawText(_("Normal space"), d(360), y + pad + d(30))
             elif code == 160:
-                dc.DrawText(_("Non-breaking space"), 360, y + pad + 30)
+                dc.DrawText(_("Non-breaking space"), d(360), y + pad + d(30))
 
         else:
             dc.SetFont(self.smallFont)
