@@ -8,7 +8,6 @@ import tests.u as u
 import trelby.config as config
 import trelby.screenplay as screenplay
 import trelby.translations as translations
-import trelby.ui.gutil as gutil
 from tests.test_keyinput import makeCtrl
 from trelby.screenplay.notes import Note
 
@@ -21,14 +20,6 @@ from trelby.ui.globaldata import GlobalData  # noqa: E402
 # the notes sidebar (ui/notesview.py): the × on each card that deletes its
 # note, driven with made-up mouse events on a stand-in for the MyPanel and
 # MyCtrl, with a real Editor on a script
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 class Ctrl:

@@ -268,16 +268,6 @@ def testDeepCopy():
     assert sp2.footer is not sp.footer
 
 
-@pytest.fixture(scope="module")
-def app():
-    import trelby.ui.gutil as gutil
-
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
-
-
 def testDialog(app):
     import trelby.dialogs.footerdlg as footerdlg
 

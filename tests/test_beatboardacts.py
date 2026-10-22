@@ -6,7 +6,6 @@ import trelby.config as config
 import trelby.screenplay.beatboard as beatboard
 import trelby.translations as translations
 import trelby.ui.configgui as configgui
-import trelby.ui.gutil as gutil
 from tests.test_beatboardview import (
     Panel,
     drag,
@@ -180,14 +179,6 @@ def test_undo():
     assert e.sp.beatBoard.acts[0].beats == e.sp.beatBoard.beats[:3]
 
 
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
-
-
 # a board with an act of three cards at the top, and two free cards below
 # it
 @pytest.fixture
@@ -281,11 +272,11 @@ def test_dropMark(view):
     img = paint(view)
     x, y = at(view, b.x - GAP // 2, b.y + H // 2)
     accent = view.getColors()[5]
-    assert (img.GetRed(x, y), img.GetGreen(x, y), img.GetBlue(x, y)) == (
-        accent.Red(),
-        accent.Green(),
-        accent.Blue(),
-    )
+    got = (img.GetRed(x, y), img.GetGreen(x, y), img.GetBlue(x, y))
+    want = (accent.Red(), accent.Green(), accent.Blue())
+
+    # nearly: macOS antialiases the line's edges
+    assert all(abs(a - b) <= 24 for a, b in zip(got, want)), (got, want)
 
     view.OnLeftUp(mouse(wx.wxEVT_LEFT_UP, *at(view, b.x + 20, b.y + 20)))
 

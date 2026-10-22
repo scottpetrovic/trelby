@@ -7,7 +7,6 @@ import tests.u as u
 import trelby.config as config
 import trelby.screenplay as screenplay
 import trelby.ui.configgui as configgui
-import trelby.ui.gutil as gutil
 import trelby.ui.scriptpainter as scriptpainter
 import trelby.ui.trelbyctrl as trelbyctrl
 import trelby.ui.viewmode as viewmode
@@ -16,14 +15,6 @@ import trelby.ui.viewmode as viewmode
 # focus mode's fading of the text around the cursor (ScriptPainter)
 
 SIZE = (900, 1000)
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 def loadSample():

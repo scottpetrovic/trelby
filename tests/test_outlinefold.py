@@ -6,7 +6,6 @@ import wx
 import tests.u as u
 import trelby.screenplay as screenplay
 import trelby.translations as translations
-import trelby.ui.gutil as gutil
 
 _ = translations.trelby_translations_load()
 
@@ -61,14 +60,6 @@ def testMakeRows():
         (4, 5),
         (6, 6),
     ]
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 SCRIPT = "\n".join(

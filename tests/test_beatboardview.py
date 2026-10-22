@@ -20,14 +20,6 @@ import trelby.ui.beatboardview as beatboardview  # noqa: E402
 # going into the script as undo steps
 
 
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
-
-
 # stand-ins for the MyPanel the view is in and its MyCtrl, with a real
 # Editor on a script
 class Ctrl:

@@ -1,6 +1,3 @@
-import pytest
-import wx
-
 import tests.u as u
 import trelby.config as config
 import trelby.dialogs.titlespreview as titlespreview
@@ -16,14 +13,6 @@ _ = translations.trelby_translations_load()
 # configs from the old default (Courier New, Monospace on Unix) to it
 
 FONT_KEYS = ("FontNormal", "FontBold", "FontItalic", "FontBoldItalic")
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 def testMigrateFont():

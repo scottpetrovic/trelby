@@ -7,7 +7,6 @@ import tests.u as u
 import trelby.screenplay as scr
 from trelby.screenplay.notes import Note
 import trelby.translations as translations
-import trelby.ui.gutil as gutil
 
 _ = translations.trelby_translations_load()
 
@@ -163,14 +162,6 @@ def testBeatSheetReplacesEmptyScript():
     assert ed.sp.lines[-1].text.endswith("happened.")
     assert ed.sp.lines[-2].lb != scr.LB_LAST
     ed._validate()
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 # an OutlinePanel on a stand-in MyPanel / MyCtrl with a real Editor

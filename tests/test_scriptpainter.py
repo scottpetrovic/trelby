@@ -6,7 +6,6 @@ import wx
 import tests.u as u
 import trelby.config as config
 import trelby.ui.configgui as configgui
-import trelby.ui.gutil as gutil
 import trelby.screenplay as screenplay
 import trelby.spellcheck as spellcheck
 import trelby.ui.scriptpainter as scriptpainter
@@ -19,14 +18,6 @@ _ = translations.trelby_translations_load()
 # drawing a script (scriptpainter.py) into a bitmap, in each view mode,
 # with the things that are only sometimes drawn: a selection, the
 # auto-completion list, locks and formatting marks
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 def loadSample():

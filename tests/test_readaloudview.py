@@ -5,7 +5,6 @@ import wx
 
 import tests.test_tablereader as test_tablereader
 import trelby.translations as translations
-import trelby.ui.gutil as gutil
 import trelby.ui.tablereader as tablereader
 
 _ = translations.trelby_translations_load()
@@ -17,14 +16,6 @@ from trelby.speech import Voice  # noqa: E402
 # the side panel's Read aloud tab (ui/readaloudview.py), on a stand-in for
 # the MyPanel and the main frame, with a real TableReader on a fake backend
 # (see test_tablereader)
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 class Ctrl(test_tablereader.Ctrl):

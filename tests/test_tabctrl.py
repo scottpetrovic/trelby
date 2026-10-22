@@ -8,13 +8,6 @@ import trelby.ui.tabctrl as tabctrl
 # the "+" button after the last tab, which makes a new script
 
 
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    yield a
-    a.Destroy()
-
-
 # a tab bar 'width' pixels wide with 'count' tabs, and the list that each
 # click on the "+" button adds to
 @pytest.fixture

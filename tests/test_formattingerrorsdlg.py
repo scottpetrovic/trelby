@@ -6,7 +6,6 @@ import wx
 import tests.u as u
 import trelby.screenplay.proofing as proofing
 import trelby.translations as translations
-import trelby.ui.gutil as gutil
 
 _ = translations.trelby_translations_load()
 
@@ -15,14 +14,6 @@ import trelby.dialogs.formattingerrorsdlg as formattingerrorsdlg  # noqa: E402
 # the Formatting Errors dialog (dialogs/formattingerrorsdlg.py) on
 # fixtures/formatting-errors.trelby: its rows, and the cursor moving to the
 # selected error
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 # a stand-in for the MyCtrl, with a real Editor on the script

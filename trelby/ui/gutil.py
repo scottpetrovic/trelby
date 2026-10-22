@@ -1,3 +1,5 @@
+import os
+
 import wx
 
 import trelby.config as config
@@ -39,14 +41,58 @@ def loadBundledFonts():
     global _bundledFontsLoaded
 
     if _bundledFontsLoaded is None:
+        add = registerMacFont if misc.isMac else wx.Font.AddPrivateFont
+
         _bundledFontsLoaded = all(
             [
-                wx.Font.AddPrivateFont(fontinfo.bundledFontPath(fileName))
+                add(fontinfo.bundledFontPath(fileName))
                 for name, fileName in fontinfo.BUNDLED_FONTS.values()
             ]
         )
 
     return _bundledFontsLoaded
+
+
+# make the font file at path usable in this process on macOS, where
+# wx.Font.AddPrivateFont only accepts fonts in the app bundle's
+# Resources/Fonts folder (listed in its Info.plist), through CoreText's
+# CTFontManagerRegisterFontsForURL. returns True if it worked.
+def registerMacFont(path):
+    import ctypes
+    import ctypes.util
+
+    try:
+        cf = ctypes.cdll.LoadLibrary(ctypes.util.find_library("CoreFoundation"))
+        ct = ctypes.cdll.LoadLibrary(ctypes.util.find_library("CoreText"))
+    except OSError:
+        return False
+
+    cf.CFURLCreateFromFileSystemRepresentation.restype = ctypes.c_void_p
+    cf.CFURLCreateFromFileSystemRepresentation.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_char_p,
+        ctypes.c_long,
+        ctypes.c_bool,
+    ]
+    cf.CFRelease.argtypes = [ctypes.c_void_p]
+    ct.CTFontManagerRegisterFontsForURL.restype = ctypes.c_bool
+    ct.CTFontManagerRegisterFontsForURL.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+    ]
+
+    data = os.fsencode(path)
+    url = cf.CFURLCreateFromFileSystemRepresentation(None, data, len(data), False)
+
+    if not url:
+        return False
+
+    try:
+        # 1 = kCTFontManagerScopeProcess
+        return bool(ct.CTFontManagerRegisterFontsForURL(url, 1, None))
+    finally:
+        cf.CFRelease(url)
 
 
 # the face to draw Courier text (pml.COURIER) in on the screen: the

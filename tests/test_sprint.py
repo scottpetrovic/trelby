@@ -5,7 +5,6 @@ import tests.u as u
 import trelby.config as config
 import trelby.sprint as sprint
 import trelby.translations as translations
-import trelby.ui.gutil as gutil
 import trelby.writinglog as writinglog
 
 _ = translations.trelby_translations_load()
@@ -115,12 +114,10 @@ def testSprintRecordsSaved():
 
 
 @pytest.fixture(scope="module")
-def app():
+def app(app):
     u.init()
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
+
+    return app
 
 
 class Clock:

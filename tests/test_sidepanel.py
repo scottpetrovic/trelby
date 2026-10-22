@@ -7,7 +7,6 @@ import tests.u as u
 import trelby.config as config
 import trelby.screenplay as screenplay
 import trelby.translations as translations
-import trelby.ui.gutil as gutil
 
 _ = translations.trelby_translations_load()
 
@@ -17,14 +16,6 @@ from trelby.ui.globaldata import GlobalData  # noqa: E402
 # the side panel (ui/sidepanel.py) with the outline, the notes and the
 # read aloud controls as tabs, on a stand-in for the MyPanel and the main
 # frame, with a real Editor on a script
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 @pytest.fixture

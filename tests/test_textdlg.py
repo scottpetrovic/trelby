@@ -3,7 +3,6 @@ import wx
 
 import tests.u as u
 import trelby.translations as translations
-import trelby.ui.gutil as gutil
 
 _ = translations.trelby_translations_load()
 
@@ -14,12 +13,10 @@ import trelby.dialogs.textdlg as textdlg  # noqa: E402
 
 
 @pytest.fixture(scope="module")
-def app():
+def app(app):
     u.init()
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
+
+    return app
 
 
 def textCtrls(win):

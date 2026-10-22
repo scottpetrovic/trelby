@@ -536,50 +536,41 @@ def testPDFPrintsOmitted():
 # the settings dialog, built for real but not shown
 
 
-def testRevisionsDlg():
-    import wx
-
+def testRevisionsDlg(app):
     import trelby.dialogs.revisionsdlg as revisionsdlg
-    import trelby.ui.gutil as gutil
 
-    app = wx.App(False)
-    gutil.init()
+    rv = revisions.Revisions()
+    rv.dates = {1: "9/1/26"}
+    dlg = revisionsdlg.RevisionsDlg(None, rv, ["2", "5A"])
 
-    try:
-        rv = revisions.Revisions()
-        rv.dates = {1: "9/1/26"}
-        dlg = revisionsdlg.RevisionsDlg(None, rv, ["2", "5A"])
+    # a new script starts at Blue, with its date
+    assert dlg.getLevel() == 1
+    assert dlg.dateEntry.GetValue() == "9/1/26"
 
-        # a new script starts at Blue, with its date
-        assert dlg.getLevel() == 1
-        assert dlg.dateEntry.GetValue() == "9/1/26"
+    # Pink gets today's date
+    dlg.levelCombo.SetSelection(1)
+    dlg.OnLevel(None)
+    assert dlg.dateEntry.GetValue() == revisions.today()
 
-        # Pink gets today's date
-        dlg.levelCombo.SetSelection(1)
-        dlg.OnLevel(None)
-        assert dlg.dateEntry.GetValue() == revisions.today()
+    # looking at Yellow doesn't keep a date for it
+    dlg.levelCombo.SetSelection(2)
+    dlg.OnLevel(None)
+    dlg.levelCombo.SetSelection(1)
+    dlg.OnLevel(None)
 
-        # looking at Yellow doesn't keep a date for it
-        dlg.levelCombo.SetSelection(2)
-        dlg.OnLevel(None)
-        dlg.levelCombo.SetSelection(1)
-        dlg.OnLevel(None)
+    dlg.markEntry.SetValue("#")
 
-        dlg.markEntry.SetValue("#")
+    dlg.EndModal = lambda code: None
+    dlg.OnOK(None)
+    dlg.Destroy()
 
-        dlg.EndModal = lambda code: None
-        dlg.OnOK(None)
-        dlg.Destroy()
+    assert rv.level == 2
+    assert rv.markChar == "#"
 
-        assert rv.level == 2
-        assert rv.markChar == "#"
-
-        # revision mode is the menu item's, not the dialog's
-        assert not rv.active
-        assert rv.autoLock
-        assert rv.dates == {1: "9/1/26", 2: revisions.today()}
-    finally:
-        app.Destroy()
+    # revision mode is the menu item's, not the dialog's
+    assert not rv.active
+    assert rv.autoLock
+    assert rv.dates == {1: "9/1/26", 2: revisions.today()}
 
 
 # Final Draft (FDX) export and import

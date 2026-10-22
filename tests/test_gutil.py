@@ -6,13 +6,6 @@ import trelby.ui.gutil as gutil
 # the spacing finishWindow adds to the windows' layouts (spaceSizer)
 
 
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    yield a
-    a.Destroy()
-
-
 @pytest.fixture
 def frame(app):
     f = wx.Frame(None)

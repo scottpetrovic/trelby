@@ -605,7 +605,8 @@ class Config:
 # the face of the default screen fonts before the bundled font, and the
 # fallback when it can't be loaded
 def oldDefaultFace():
-    return "Courier New" if misc.isWindows else "Monospace"
+    # macOS has Courier New but no font called Monospace
+    return "Monospace" if misc.isUnix and not misc.isMac else "Courier New"
 
 
 # the old default screen fonts on Unix, which only differ from other

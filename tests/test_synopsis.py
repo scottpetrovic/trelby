@@ -14,7 +14,6 @@ import trelby.reports.scenereport as scenereport
 import trelby.screenplay as scr
 import trelby.screenplay.export as export
 import trelby.translations as translations
-import trelby.ui.gutil as gutil
 
 _ = translations.trelby_translations_load()
 
@@ -307,14 +306,6 @@ def testSceneReport():
 
     report.opts["synopses"] = False
     assert "Mary makes dinner" not in report.generateHtml()
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 class FakeCtrl:

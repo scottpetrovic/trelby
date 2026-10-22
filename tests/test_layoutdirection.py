@@ -9,13 +9,6 @@ import trelby.ui.tabctrl as tabctrl
 # page stay left to right (gutil.keepLeftToRight)
 
 
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    yield a
-    a.Destroy()
-
-
 # the interface laid out in the direction of 'language' during the test
 @pytest.fixture
 def direction(app):
@@ -48,6 +41,13 @@ def testSetLanguageDirection(direction):
 
 # a dialog with no parent, holding a panel with a field, and a page that
 # stays left to right, with something in it
+# wxOSX doesn't mirror windows: GetLayoutDirection is always
+# wx.Layout_Default there
+macHasNoLayoutDirection = pytest.mark.skipif(
+    wx.Platform == "__WXMAC__", reason="wxOSX has no right-to-left layout"
+)
+
+
 def makeDialog():
     dlg = wx.Dialog(None)
     panel = wx.Panel(dlg)
@@ -59,6 +59,7 @@ def makeDialog():
     return dlg, [dlg, panel, field], [page, inPage]
 
 
+@macHasNoLayoutDirection
 def testApplyLayoutDirection(direction):
     direction("he_IL")
     dlg, mirrored, kept = makeDialog()
@@ -75,6 +76,7 @@ def testApplyLayoutDirection(direction):
         dlg.Destroy()
 
 
+@macHasNoLayoutDirection
 def testLeftToRightLanguageChangesNothing(direction):
     direction("en_US")
     dlg, mirrored, kept = makeDialog()
@@ -88,6 +90,7 @@ def testLeftToRightLanguageChangesNothing(direction):
         dlg.Destroy()
 
 
+@macHasNoLayoutDirection
 def testWindowsTakeTheDirectionFromTheirParent(direction):
     direction("he_IL")
     frame = wx.Frame(None)

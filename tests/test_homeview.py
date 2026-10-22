@@ -8,7 +8,6 @@ import tests.u as u
 import trelby.config as config
 import trelby.translations as translations
 import trelby.ui.configgui as configgui
-import trelby.ui.gutil as gutil
 import trelby.ui.themes as themes
 import trelby.writinglog as writinglog
 
@@ -20,14 +19,6 @@ import trelby.ui.mrufiles as mrufiles  # noqa: E402
 
 # the Home screen (ui/homeview.py), shown while no script is open: its rows,
 # what clicking them and the keys do, and drawing it in every theme
-
-
-@pytest.fixture(scope="module")
-def app():
-    a = wx.App(False)
-    gutil.init()
-    yield a
-    a.Destroy()
 
 
 # stand-ins for the GlobalData and the main window the view acts through
