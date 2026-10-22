@@ -46,6 +46,8 @@ sh tools/build-exe.sh
 
 It installs PyInstaller if needed, regenerates the `.gz` files, and builds `dist/Trelby/` (`Trelby.exe` + `_internal/`, which must stay together). Takes about 30s. It refuses to run while `Trelby.exe` is open, since that locks `dist/Trelby/`. If you add a new data file, add an `--add-data` for it in the script.
 
+The same script builds on macOS (`dist/Trelby.app`) and Linux (`dist/Trelby/Trelby`), leaving out the Windows-only parts (pyttsx3 / SAPI, `WebView2Loader.dll`); `PY` overrides the python it uses (default `.venv/Scripts/python` or `.venv/bin/python`). `.github/workflows/build.yml` runs the tests and the script on all three on every push to main and every PR, uploading a zip / tar.gz of each as an artifact; pushing a `v*` tag also makes a draft GitHub release with them. The builds aren't signed, so macOS Gatekeeper and Windows SmartScreen warn about them.
+
 When the user asks for a "build", "Windows build" or "exe" to test changes, run the full test suite, then the script, then confirm the result. Check that `build/Trelby/PYZ-00.toc` lists any new `trelby.*` modules, and that the exe starts: launch it, then check that `tasklist //V //FI "IMAGENAME eq Trelby.exe" //FO LIST` shows a `Trelby - ...` window title rather than an error dialog. Leave it running for them, and give the path to `dist/Trelby/Trelby.exe`.
 
 ## MCP server
