@@ -9,7 +9,7 @@ from typing import AnyStr
 
 import trelby.opts as opts
 
-version = "2.4.16.2"
+version = "3.0.0.0"
 
 # the folder file dialogs start in. trelby.py sets it once the global config
 # is loaded, and it's updated as the user picks folders in the open, import
