@@ -45,6 +45,23 @@ class Panel:
         self.ctrl = Ctrl(ed)
 
 
+# make win's mouse capture pretend: the views in these tests are never
+# shown, and capturing the mouse in a hidden window fails on GTK and
+# crashes on macOS
+def fakeMouseCapture(win):
+    captured = [False]
+
+    def capture():
+        captured[0] = True
+
+    def release():
+        captured[0] = False
+
+    win.CaptureMouse = capture
+    win.ReleaseMouse = release
+    win.HasCapture = lambda: captured[0]
+
+
 @pytest.fixture
 def view(app):
     board = beatboard.BeatBoard()
@@ -62,6 +79,7 @@ def view(app):
 
     frame = wx.Frame(None)
     v = beatboardview.BeatBoardView(frame, Panel(ed))
+    fakeMouseCapture(v)
     v.SetClientSize(v.FromDIP(wx.Size(960, 560)))
     v.reload()
 

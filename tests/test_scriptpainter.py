@@ -104,6 +104,23 @@ def countColor(bmp, rgb):
     )
 
 
+# how many pixels of bmp are tinted towards rgb: its strongest channel
+# standing out by over 'margin', which counts antialiased lines (GTK)
+# that are never exactly rgb
+def countTint(bmp, rgb, margin=60):
+    data = bmp.ConvertToImage().GetData()
+    main = rgb.index(max(rgb))
+    n = 0
+
+    for i in range(0, len(data), 3):
+        px = data[i : i + 3]
+
+        if px[main] - max(px[j] for j in range(3) if j != main) > margin:
+            n += 1
+
+    return n
+
+
 @pytest.mark.parametrize("vm", [viewmode.ViewModeDraft, viewmode.ViewModeLayout])
 def testPaintSpellingErrors(app, vm):
     ed = loadSample()
@@ -120,9 +137,12 @@ def testPaintSpellingErrors(app, vm):
     with mock.patch.object(spellcheck, "gdict", {"x"}):
         vp, rect, bmp = paint(ed, vm())
         assert countColor(bmp, red) == 0
+        unchecked = countTint(bmp, red)
 
+        # more red than the same page without underlines, since the
+        # page has other reddish pixels
         vp, rect, bmp = paint(ed, vm(), scDict=spellcheck.Dict())
-        assert countColor(bmp, red) > 0
+        assert countTint(bmp, red) > unchecked
 
 
 # the notes are cards 20 pixels right of the page, one per note, each

@@ -7,7 +7,15 @@ import trelby.screenplay.beatboard as beatboard
 import trelby.translations as translations
 import trelby.ui.configgui as configgui
 import trelby.ui.gutil as gutil
-from tests.test_beatboardview import Panel, drag, ed, editKey, mouse, paint
+from tests.test_beatboardview import (
+    Panel,
+    drag,
+    ed,
+    editKey,
+    fakeMouseCapture,
+    mouse,
+    paint,
+)
 
 _ = translations.trelby_translations_load()
 
@@ -193,6 +201,7 @@ def view(app):
 
     frame = wx.Frame(None)
     v = beatboardview.BeatBoardView(frame, Panel(e))
+    fakeMouseCapture(v)
     v.SetClientSize(v.FromDIP(wx.Size(1400, 900)))
     v.reload()
 

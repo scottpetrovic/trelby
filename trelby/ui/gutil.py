@@ -392,12 +392,15 @@ def createStockButton(parent, label):
             _("Preview"): wx.ID_PREVIEW,
         }
 
-        return wx.Button(parent, ids[label])
-    else:
-        if label == "OK":
-            label = wx.GetStockLabel(wx.ID_OK, wx.STOCK_NOFLAGS)
+        # labels with no stock button (e.g. "Insert variable") get a
+        # plain one
+        if label in ids:
+            return wx.Button(parent, ids[label])
 
-        return wx.Button(parent, -1, label)
+    if label == "OK":
+        label = wx.GetStockLabel(wx.ID_OK, wx.STOCK_NOFLAGS)
+
+    return wx.Button(parent, -1, label)
 
 
 # wxWidgets' own translations, which have the labels of its stock buttons
