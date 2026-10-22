@@ -22,7 +22,7 @@ jobs:
           with:
             python-version: ${{ matrix.python-version }}
 
-        - uses: actions/cache/restore@v4
+        - uses: actions/cache/restore@v5
           id: restore-cache
           with:
             path: ${{ env.pythonLocation }}
@@ -44,7 +44,7 @@ jobs:
             pip install -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04 -r requirements.txt
 
 
-        - uses: actions/cache/save@v4
+        - uses: actions/cache/save@v5
           if: steps.restore-cache.outputs.cache-hit != 'true'
           with:
             path: ${{ env.pythonLocation }}
