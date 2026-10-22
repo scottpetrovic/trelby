@@ -193,8 +193,7 @@ class ConfigGui:
             # to create a font from an empty string, so we must guard
             # against that.
             if s:
-                nfi = wx.NativeFontInfo()
-                nfi.FromString(s)
+                nfi = gutil.fontInfo(s)
 
                 # the default fonts are the bundled ones; if they didn't
                 # load, use the fonts that were the defaults before them

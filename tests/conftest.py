@@ -11,8 +11,10 @@ import pytest
 def app():
     import wx
 
+    import tests.u as u
     import trelby.ui.gutil as gutil
 
+    u.init()
     a = wx.App(False)
     gutil.init()
 

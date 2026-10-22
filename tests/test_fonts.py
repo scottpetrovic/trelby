@@ -1,3 +1,5 @@
+import wx
+
 import tests.u as u
 import trelby.config as config
 import trelby.dialogs.titlespreview as titlespreview
@@ -90,3 +92,15 @@ def testScreenUsesBundledFont(app):
     # the title / header / footer previews and the report windows
     assert gutil.courierFace() == fontinfo.BUNDLED_FACE
     assert titlespreview.faceName(pml.COURIER) == fontinfo.BUNDLED_FACE
+
+
+# the Unix default font strings ("Courier Prime Bold 12") are read on
+# every platform, not only by wxGTK's FromString (macOS used to fall back
+# to Courier New 10)
+def testFontInfoReadsUnixStrings(app):
+    nfi = gutil.fontInfo("%s Bold Italic 12" % fontinfo.BUNDLED_FACE)
+
+    assert nfi.GetFaceName() == fontinfo.BUNDLED_FACE
+    assert nfi.GetPointSize() == 12
+    assert nfi.GetWeight() == wx.FONTWEIGHT_BOLD
+    assert nfi.GetStyle() == wx.FONTSTYLE_ITALIC

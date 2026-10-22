@@ -1,7 +1,6 @@
 import pytest
 import wx
 
-import tests.u as u
 import trelby.config as config
 import trelby.sprint as sprint
 import trelby.translations as translations
@@ -111,13 +110,6 @@ def testSprintRecordsSaved():
     s = log.save().replace('"completed": true', '"completed": "yes"')
     assert [sp.words for sp in writinglog.WritingLog.load(s).sprints] == [20]
     assert writinglog.WritingLog.load('{"sessions": []}').sprints == []
-
-
-@pytest.fixture(scope="module")
-def app(app):
-    u.init()
-
-    return app
 
 
 class Clock:

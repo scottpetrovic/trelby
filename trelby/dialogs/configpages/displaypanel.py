@@ -76,9 +76,7 @@ class DisplayPanel(wx.Panel):
         nfont = getattr(self.cfg, fname)
 
         fd = wx.FontData()
-        nfi = wx.NativeFontInfo()
-        nfi.FromString(nfont)
-        font = wx.Font(nfi)
+        font = wx.Font(gutil.fontInfo(nfont))
         fd.SetInitialFont(font)
 
         dlg = wx.FontDialog(self, fd)
@@ -111,8 +109,7 @@ class DisplayPanel(wx.Panel):
         widths = set()
 
         for i in range(len(names)):
-            nfi = wx.NativeFontInfo()
-            nfi.FromString(getattr(self.cfg, self.fontsLb.GetClientData(i)))
+            nfi = gutil.fontInfo(getattr(self.cfg, self.fontsLb.GetClientData(i)))
 
             ps = nfi.GetPointSize()
             s = nfi.GetFaceName()

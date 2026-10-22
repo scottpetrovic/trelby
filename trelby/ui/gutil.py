@@ -104,6 +104,25 @@ def courierFace():
     return config.oldDefaultFace()
 
 
+# a wx.NativeFontInfo for the font string s (a config's fontNormal etc).
+# the default ones are written as Pango descriptions ("Courier Prime Bold
+# 12", see ConfigGlobal.setDefaultFonts), which only wxGTK's FromString
+# reads; elsewhere (macOS) they're read as a user string, which takes the
+# same form. a face that isn't installed gives the default face.
+def fontInfo(s):
+    nfi = wx.NativeFontInfo()
+
+    if not nfi.FromString(s) and nfi.FromUserString(s):
+        # which lowercases the face name
+        face = nfi.GetFaceName()
+        i = s.lower().find(face.lower())
+
+        if face and i != -1:
+            nfi.SetFaceName(s[i : i + len(face)])
+
+    return nfi
+
+
 # return True if given font is a fixed-width one.
 def isFixedWidth(font):
     return getTextExtent(font, "iiiii")[0] == getTextExtent(font, "OOOOO")[0]

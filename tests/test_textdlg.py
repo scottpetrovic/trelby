@@ -1,7 +1,5 @@
-import pytest
 import wx
 
-import tests.u as u
 import trelby.translations as translations
 
 _ = translations.trelby_translations_load()
@@ -10,13 +8,6 @@ import trelby.dialogs.textdlg as textdlg  # noqa: E402
 
 # the dialog that shows a multi-line message, e.g. the warnings from
 # loading a script
-
-
-@pytest.fixture(scope="module")
-def app(app):
-    u.init()
-
-    return app
 
 
 def textCtrls(win):
