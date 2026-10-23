@@ -82,7 +82,7 @@ class AlternatesDlg(wx.Dialog):
             self,
             parent,
             -1,
-            _("Alternates"),
+            _("Alternate Dialogue"),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
 

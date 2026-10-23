@@ -130,7 +130,7 @@ def defaultCommands():
         Command(
             "AddAlternate",
             _(
-                "Keep the current element's text as an alternate, to rewrite"
+                "Keep the current element's text as an alternate dialogue, to rewrite"
                 " it without losing it."
             ),
             isMenu=True,
@@ -328,7 +328,7 @@ def defaultCommands():
         Command("LocationsDlg", _("Open the locations dialog."), isMenu=True),
         Command(
             "ManageAlternates",
-            _("View, edit, reorder and delete the current element's alternates."),
+            _("View, edit, reorder and delete the current element's alternate dialogue."),
             isMenu=True,
         ),
         Command(
@@ -427,7 +427,7 @@ def defaultCommands():
         ),
         Command(
             "NextAlternate",
-            _("Show the current element's next alternate in place of its text."),
+            _("Show the current element's next alternate dialogue in place of its text."),
             [keys.Key(keys.WXK_RIGHT, alt=True).toInt()],
             isMenu=True,
         ),
@@ -458,7 +458,7 @@ def defaultCommands():
         ),
         Command(
             "PrevAlternate",
-            _("Show the current element's previous alternate in place of its text."),
+            _("Show the current element's previous alternate dialogue in place of its text."),
             [keys.Key(keys.WXK_LEFT, alt=True).toInt()],
             isMenu=True,
         ),

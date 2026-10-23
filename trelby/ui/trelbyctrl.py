@@ -862,7 +862,7 @@ class MyCtrl(wx.Control):
         tip = None
 
         if altLine is not None:
-            tip = _("Alternates: click to show the next one")
+            tip = _("Alternate dialogue: click to show the next one")
 
         if marker and (marker[1] is not None):
             notes = self.sp.getParaNotes(marker[0])

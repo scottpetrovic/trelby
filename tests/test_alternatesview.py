@@ -130,7 +130,7 @@ def testRightClickMenuItems(app):
     )
     items = m.GetMenuItems()
     labels = [it.GetItemLabelText() for it in items]
-    alt = labels.index("Alternates")
+    alt = labels.index("Alternate Dialogue")
 
     assert labels[alt - 1].startswith("Add note")
 
@@ -140,8 +140,8 @@ def testRightClickMenuItems(app):
     assert [it.GetItemLabelText() for it in subItems if not it.IsSeparator()] == [
         "Dinner's ready!",
         "Dinner.",
-        "Add as alternate",
-        "Manage alternates...",
+        "Add as alternate dialogue",
+        "Manage alternate dialogue...",
     ]
     assert subItems[0].IsChecked()
     assert not subItems[1].IsChecked()
@@ -150,7 +150,7 @@ def testRightClickMenuItems(app):
 
     # no submenu without alternates
     m = menus.makeRightClickMenu(actions, ed.sp.cfg, screenplay.DIALOGUE, False)
-    assert "Alternates" not in [it.GetItemLabelText() for it in m.GetMenuItems()]
+    assert "Alternate Dialogue" not in [it.GetItemLabelText() for it in m.GetMenuItems()]
     m.Destroy()
 
 

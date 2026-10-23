@@ -485,13 +485,13 @@ def makeTable():
                 canUse=scriptactions.canEditSynopsis,
             ),
             Menu(
-                _("Alternates"),
+                _("Alternate Dialogue"),
                 "r",
                 [
                     Action(
                         "AddAlternate",
                         ID_EDIT_ADD_ALTERNATE,
-                        _("Add as alternate"),
+                        _("Add as alternate dialogue"),
                         "A",
                         OnScript(scriptactions.addAlternate),
                         canUse=scriptactions.canAddAlternate,
@@ -499,7 +499,7 @@ def makeTable():
                     Action(
                         "NextAlternate",
                         ID_EDIT_NEXT_ALTERNATE,
-                        _("Next alternate"),
+                        _("Next alternate dialogue"),
                         "N",
                         OnScript(scriptactions.cycleAlternate, 1),
                         canUse=scriptactions.hasAlternates,
@@ -507,7 +507,7 @@ def makeTable():
                     Action(
                         "PrevAlternate",
                         ID_EDIT_PREV_ALTERNATE,
-                        _("Previous alternate"),
+                        _("Previous alternate dialogue"),
                         "P",
                         OnScript(scriptactions.cycleAlternate, -1),
                         canUse=scriptactions.hasAlternates,
@@ -515,7 +515,7 @@ def makeTable():
                     Action(
                         "ManageAlternates",
                         ID_EDIT_MANAGE_ALTERNATES,
-                        _("Manage alternates"),
+                        _("Manage alternate dialogue"),
                         "M",
                         OnScript(scriptactions.manageAlternates),
                         dots=True,
@@ -1498,7 +1498,7 @@ def makeRightClickMenu(
 
         append(altMenu, "AddAlternate")
         append(altMenu, "ManageAlternates")
-        m.AppendSubMenu(altMenu, _("Alternates"))
+        m.AppendSubMenu(altMenu, _("Alternate Dialogue"))
 
     tagItems, removeItems = tagging or (None, [])
 
