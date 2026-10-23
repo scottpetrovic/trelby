@@ -75,6 +75,7 @@ class ScriptFormat:
         columns=None,
         headings=None,
         flow=None,
+        completions=None,
     ):
         # id, saved in the script, e.g. "stageplay"
         self.key = key
@@ -107,6 +108,11 @@ class ScriptFormat:
         # from the global settings in this format
         self.flow = flow or {}
 
+        # {line type: [text]}, the auto-completion items a new script in
+        # this format starts with, for the types whose items differ from
+        # autocompletion.DEFAULT_ITEMS
+        self.completions = completions or {}
+
     def name(self):
         return self._name()
 
@@ -129,6 +135,13 @@ class ScriptFormat:
         self.setup(cfg)
         cfg.scriptFormat = self.key
         cfg.recalc()
+
+    # lay out script sp in this format: its config, and its
+    # auto-completion items where they're still the old format's
+    def applyTo(self, sp):
+        old = ofConfig(sp.cfg)
+        self.apply(sp.cfg)
+        sp.autoCompletion.changeFormat(old, self)
 
 
 # set the layout of element type lt in cfg. caps, bold and underlined
@@ -241,6 +254,29 @@ def setupAV(cfg):
     cfg.sceneContinueds = False
 
 
+# what a Sound element (a transition) auto-completes to in an AV script
+AV_SOUNDS = [
+    "MUSIC UP",
+    "MUSIC UNDER",
+    "MUSIC OUT",
+    "SFX:",
+    "NAT SOUND UP",
+    "NAT SOUND UNDER",
+    "AMBIENCE",
+    "SILENCE",
+]
+
+# and a Music element (a transition) in an audio drama
+AUDIO_DRAMA_MUSIC = [
+    "MUSIC IN",
+    "MUSIC UP",
+    "MUSIC UNDER",
+    "MUSIC OUT",
+    "MUSIC: STING",
+    "MUSIC: BRIDGE",
+    "MUSIC FADES OUT",
+]
+
 AV_COLUMNS = {
     ACTION: LEFT,
     SHOT: LEFT,
@@ -308,6 +344,7 @@ FORMATS = [
             SHOT: lambda: _("Sound"),
             TRANSITION: lambda: _("Music"),
         },
+        completions={TRANSITION: AUDIO_DRAMA_MUSIC},
     ),
     ScriptFormat(
         "comic",
@@ -346,6 +383,7 @@ FORMATS = [
         columns=AV_COLUMNS,
         headings=(lambda: _("VIDEO"), lambda: _("AUDIO")),
         flow=AV_FLOW,
+        completions={TRANSITION: AV_SOUNDS},
     ),
 ]
 
@@ -356,6 +394,14 @@ _byKey = {f.key: f for f in FORMATS}
 # one (e.g. from a newer version)
 def get(key):
     return _byKey.get(key, _byKey[SCREENPLAY])
+
+
+# the key of the format called 'key' in a file (any case, spaces around
+# it), or None if there's no such format
+def findKey(key):
+    key = key.strip().lower()
+
+    return key if key in _byKey else None
 
 
 # the format of the script with config cfg

@@ -18,7 +18,7 @@ from trelby.screenplay.line import Line
 # first line (Line.synopsis, see addSynopsis); a format's synopses that
 # aren't a scene's become notes.
 class ImportResult:
-    def __init__(self, lines, titlePages=None, revisions=None):
+    def __init__(self, lines, titlePages=None, revisions=None, format=None):
         notes.absorbNoteElements(lines)
 
         self.lines = lines
@@ -27,6 +27,10 @@ class ImportResult:
         # the script's revision settings (screenplay.revisions.Revisions),
         # for formats that have them, or None
         self.revisions = revisions
+
+        # the key of the script's format (see scriptformats), for files
+        # Trelby wrote that record it, or None
+        self.format = format
 
 
 # an import that failed. message is for the user.

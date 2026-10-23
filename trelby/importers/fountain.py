@@ -5,6 +5,7 @@ import re
 
 import trelby.config as config
 import trelby.screenplay as screenplay
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.screenplay.titles as titles
@@ -26,6 +27,14 @@ TWOSPACE = "  "
 
 # a title page line "Key: value", or "Key:" followed by indented lines
 KEYWORD_RE = re.compile(r"^([A-Za-z][^:]+:)")
+
+# the title page line recording the script's format, as Trelby's export
+# writes it ("Format: av", see scriptformats)
+FORMAT_RE = re.compile(r"^\s*Format:\s*(\S+)\s*$", re.IGNORECASE)
+
+# the character line of a speech with no speaker, as Trelby's export
+# writes it: Fountain's "@" (which forces a character line) alone
+NO_SPEAKER = "@"
 
 # a title page value's continuation line: begins with 3 or more spaces
 CONTINUE_RE = re.compile(r"^\s\s\s+")
@@ -87,7 +96,7 @@ def parse(data, options=None):
     prelines = [textutil.cleanInput(l) for l in data.split("\n")]
 
     titlePages = _copyTitlePages(options.titlePages)
-    prelines = _takeTitles(prelines, options, titlePages)
+    prelines, fmt = _takeTitles(prelines, options, titlePages)
 
     lines = []
 
@@ -98,9 +107,12 @@ def parse(data, options=None):
             lines.append(TWOSPACE)
 
     lns = _identifyLines(lines, options)
+
+    # a speech with no speaker is its dialogue alone
+    lns = [ln for ln in lns if not _isNoSpeaker(ln)]
     ret = _joinElements(lns)
 
-    return ImportResult(ret, titlePages or None)
+    return ImportResult(ret, titlePages or None, format=fmt)
 
 
 # return a copy of pages (None: the default title page), with every
@@ -120,7 +132,8 @@ def _copyTitlePages(pages):
 
 # handle the title page lines at the start of prelines, if there are any,
 # as the options say: put them on titlePages (changed in place), and / or
-# keep them in the script. return the script's lines.
+# keep them in the script. return the script's lines, and the key of the
+# format the title page says the script is in (see FORMAT_RE), or None.
 def _takeTitles(prelines, options, titlePages):
     # First check if title lines are present:
     c = 0
@@ -138,11 +151,25 @@ def _takeTitles(prelines, options, titlePages):
     #   - the line does not start with 'fade'
     #   - the first line has a single ':'
     if c == 0:
-        return prelines
+        return prelines, None
 
     l = textutil.toInputStr(prelines[0].expandtabs(TAB_WIDTH).lstrip().lower())
     if l.startswith("fade") or (l.count(":") != 1):
-        return prelines
+        return prelines, None
+
+    # the script's format isn't a title
+    fmt = None
+    prelines = list(prelines)
+
+    for i in range(c):
+        m = FORMAT_RE.match(prelines[i])
+
+        if m and scriptformats.findKey(m.group(1)):
+            fmt = scriptformats.findKey(m.group(1))
+            del prelines[i]
+            c -= 1
+
+            break
 
     # these are title lines. Now do what the user requested.
     if options.titlePage:
@@ -151,14 +178,14 @@ def _takeTitles(prelines, options, titlePages):
 
         # user might request that titles go into both title page & script
         if not options.titlesAsAction:
-            return rejects + prelines[c + 1 :]
+            return rejects + prelines[c + 1 :], fmt
 
     if options.titlesAsAction:
         # add TWOSPACE to all the title lines.
-        return [s + TWOSPACE for s in prelines[:c]] + prelines[c:]
+        return [s + TWOSPACE for s in prelines[:c]] + prelines[c:], fmt
 
     # remove these lines
-    return prelines[c + 1 :]
+    return prelines[c + 1 :], fmt
 
 
 # return the title page lines' (key, list of value lines), and the lines
@@ -301,6 +328,13 @@ def _identifyLines(lines, options):
             else:
                 line.text = sl
 
+        elif sl.startswith("@") and isPrevEmpty() and not isNextEmpty(i):
+            # a forced character name. an empty one (NO_SPEAKER) is kept
+            # as it is until the dialogue after it has been read, and then
+            # dropped.
+            line.lt = screenplay.CHARACTER
+            line.text = sl[1:].strip() or NO_SPEAKER
+
         elif _isTransition(sl) and isPrevEmpty() and isNextEmpty(i):
             line.lt = screenplay.TRANSITION
             if line.text.startswith(">"):
@@ -414,6 +448,11 @@ def _joinElements(lns):
             ret[i].centered = False
 
     return ret
+
+
+# whether line ln is the character line of a speech with no speaker
+def _isNoSpeaker(ln):
+    return (ln.lt == screenplay.CHARACTER) and (ln.text == NO_SPEAKER)
 
 
 def _isParen(s):

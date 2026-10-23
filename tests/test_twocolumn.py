@@ -5,6 +5,8 @@ import wx
 
 import tests.u as u
 import trelby.config as config
+import trelby.importers.fdx as fdxImporter
+import trelby.importers.fountain as fountainImporter
 import trelby.pdf.mypager as mypager
 import trelby.pdf.pml as pml
 import trelby.screenplay as scr
@@ -16,6 +18,7 @@ import trelby.ui.configgui as configgui
 import trelby.ui.scriptpainter as scriptpainter
 import trelby.ui.viewmode as viewmode
 import trelby.util as util
+from trelby.screenplay.export.common import getElementsAsList
 from trelby.screenplay.line import Line
 from trelby.screenplay.twocolumn import FULL, LEFT, RIGHT, RowLayout
 
@@ -395,6 +398,108 @@ def testDocxExport():
     assert doc.index("WIDE SHOT") < doc.index("MUSIC") < doc.index("</w:tbl>")
     assert doc.index("Audio alone") > doc.rindex("</w:tbl>")
 
+    # the column headings at the top of every page, the first one too,
+    # where they start in the PDF
+    for name in ("word/header1.xml", "word/header2.xml"):
+        with zipfile.ZipFile(BytesIO(export.generateDocx(sp))) as z:
+            hdr = z.read(name).decode("utf-8")
+
+        assert hdr.index("VIDEO") < hdr.index("<w:tab/>") < hdr.index("AUDIO")
+        assert '<w:tab w:val="left" w:pos="%d"/>' % (32 * 12 * sp.cfg.fontSize) in hdr
+
+    assert "<w:titlePg/>" in doc
+
+    # a screenplay has none
+    with zipfile.ZipFile(BytesIO(export.generateDocx(avScript(key="screenplay")))) as z:
+        assert "VIDEO" not in "".join(
+            z.read(n).decode("utf-8") for n in z.namelist() if "header" in n
+        )
+
+
+# Up and Down go up and down the cursor's column, past the other one
+def testUpDown():
+    ed = scr.Editor(avScript())
+    sp = ed.sp
+
+    wide = lineOf(sp, "WIDE SHOT")
+    music = lineOf(sp, "MUSIC")
+    skyLast = music - 1
+    traffic = lineOf(sp, "Traffic")
+    narrationLast = traffic - 1
+    late = lineOf(sp, "Some of them")
+    interview = lineOf(sp, "2. INTERVIEW")
+
+    def move(cmd, line, column=0):
+        ed.line, ed.column = line, column
+        ed.cmd(cmd)
+
+        return ed.line
+
+    # from the bottom of the video to the next row's video, not the audio
+    # beside it
+    assert move("moveDown", skyLast) == traffic
+    assert move("moveUp", traffic) == skyLast
+    assert move("moveDown", wide) == wide + 1
+
+    # and the audio's
+    assert move("moveDown", narrationLast) == late
+    assert move("moveUp", late) == narrationLast
+    assert move("moveUp", music) == 0
+
+    # past the shorter column
+    assert move("moveDown", traffic) == interview
+
+    # into a row, the column under the cursor
+    assert move("moveDown", 0) == wide
+    assert sp.getColumnAt(0, 0) == LEFT
+    sp.lines[0].text = "X" * 40
+    assert sp.getColumnAt(0, 35) == RIGHT
+    assert move("moveDown", 0, 35) == music
+    assert move("moveUp", interview, 0) == traffic
+    assert move("moveUp", interview, 35) == late
+
+    # nothing below the end
+    assert move("moveDown", len(sp.lines) - 1) == len(sp.lines) - 1
+
+    assert sp.getRowAround(0) is None
+    assert sp.getRowAround(wide) == (wide, music, narrationLast)
+    assert sp.getRowAround(late) == (traffic, late, late)
+    assert sp.getRowAround(interview + 1) is None
+
+    # a script with one column goes line by line
+    ed = scr.Editor(avScript(key="screenplay"))
+    sp = ed.sp
+    assert move("moveDown", lineOf(sp, "MUSIC") - 1) == lineOf(sp, "MUSIC")
+
+
+# Sound elements complete to sound cues, not a screenplay's transitions
+def testSoundCompletions():
+    sp = u.new()
+    scriptformats.get("av").applyTo(sp)
+    items = sp.autoCompletion.getType(scr.TRANSITION).items
+
+    assert items == scriptformats.AV_SOUNDS
+    assert "CUT TO:" not in items
+
+    # changing the format back brings the transitions back
+    ed = scr.Editor(sp)
+    ed.applyCfg(config.Config())
+    assert "CUT TO:" in sp.autoCompletion.getType(scr.TRANSITION).items
+
+    # but a list the user has changed is kept
+    sp.autoCompletion.getType(scr.TRANSITION).items = ["WHOOSH"]
+    cfg = config.Config()
+    scriptformats.get("av").apply(cfg)
+    ed.applyCfg(cfg)
+    assert sp.autoCompletion.getType(scr.TRANSITION).items == ["WHOOSH"]
+
+    # and an audio drama's Music elements, music cues
+    sp = u.new()
+    scriptformats.get("audiodrama").applyTo(sp)
+    assert sp.autoCompletion.getType(scr.TRANSITION).items == (
+        scriptformats.AUDIO_DRAMA_MUSIC
+    )
+
 
 def screen(sp, vm):
     ed = scr.Editor(sp)
@@ -425,3 +530,96 @@ def testViews(app):
         assert texts[music][0] > texts[shot][0]
         assert texts[late][1] == texts[traffic][1]
         assert texts[traffic][1] > texts[traffic - 1][1]
+
+
+# the script's elements as (type, text)
+def elements(sp):
+    return [(typ, txt) for typ, txt, first, fmt in getElementsAsList(sp)]
+
+
+# a script made from an import's result, as MyCtrl.importFile does
+def imported(result):
+    sp = u.new()
+
+    if result.format:
+        scriptformats.get(result.format).applyTo(sp)
+
+    sp.lines = result.lines
+    sp.reformatAll()
+    sp.paginate()
+
+    return sp
+
+
+# Fountain has no columns, so the elements go in order, with the format
+# on the title page for Trelby to lay them out in columns again
+def testFountainRoundTrip():
+    sp = avScript()
+    text = export.generateFountain(sp)
+
+    assert "\nFormat: av\n" in "\n" + text
+
+    # the narration with no speaker, after an empty forced character line
+    assert "\n\n@\nSome of them are late." in text
+    assert "\n\n@\nAudio alone." in text
+
+    result = fountainImporter.parse(text)
+    assert result.format == "av"
+    sp2 = imported(result)
+
+    assert scriptformats.ofConfig(sp2.cfg).key == "av"
+    assert "FORMAT" not in str(
+        [ts.items for page in result.titlePages for ts in page]
+    ).upper()
+
+    # Fountain has no shots: they come back as video (action), in the
+    # same column
+    want = [
+        (scr.ACTION if typ == scr.SHOT else typ, txt) for typ, txt in elements(sp)
+    ]
+    assert elements(sp2) == want
+    assert len(sp2.getRowLines(0, len(sp2.lines) - 1)) == len(
+        sp.getRowLines(0, len(sp.lines) - 1)
+    )
+
+    # a screenplay says nothing
+    sp = avScript(key="screenplay")
+    text = export.generateFountain(sp)
+    assert "Format:" not in text
+    assert fountainImporter.parse(text).format is None
+
+    # "@" forces a character name
+    lines = fountainImporter.parse("Hi.\n\n@McCLANE\nYippee.\n").lines
+    assert [(ln.lt, ln.text) for ln in lines] == [
+        (scr.ACTION, "Hi."),
+        (scr.CHARACTER, "McCLANE"),
+        (scr.DIALOGUE, "Yippee."),
+    ]
+
+    # an unknown format is a title
+    result = fountainImporter.parse("Format: widescreen\n\nHello.\n")
+    assert result.format is None
+    assert "Format: widescreen" in str(
+        [ts.items for page in result.titlePages for ts in page]
+    )
+
+
+def testFdxRoundTrip():
+    sp = avScript()
+    data = export.generateFDX(sp).decode("utf-8")
+
+    assert '<TrelbyScriptFormat Key="av"/>' in data
+
+    result = fdxImporter.parse(data)
+    assert result.format == "av"
+    sp2 = imported(result)
+
+    assert elements(sp2) == elements(sp)
+    assert sp2.getRowLines(0, len(sp2.lines) - 1) == sp.getRowLines(
+        0, len(sp.lines) - 1
+    )
+
+    sp = avScript(key="screenplay")
+    data = export.generateFDX(sp).decode("utf-8")
+    assert "TrelbyScriptFormat" not in data
+    assert fdxImporter.parse(data).format is None

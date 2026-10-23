@@ -75,8 +75,11 @@ class CommandsMixin:
         if not self.acItems:
             self.maybeMark(cs.mark)
 
-            if self.line > 0:
-                self.line -= 1
+            # (in a two-column script, up the cursor's column)
+            line = self.sp.getLineAbove(self.line, self.column)
+
+            if line is not None:
+                self.line = line
 
         else:
             self.acSel -= 1
@@ -90,8 +93,10 @@ class CommandsMixin:
         if not self.acItems:
             self.maybeMark(cs.mark)
 
-            if self.line < (len(self.sp.lines) - 1):
-                self.line += 1
+            line = self.sp.getLineBelow(self.line, self.column)
+
+            if line is not None:
+                self.line = line
 
         else:
             self.acSel = (self.acSel + 1) % len(self.acItems)

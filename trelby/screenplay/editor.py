@@ -11,6 +11,7 @@
 
 import copy
 
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.util as util
 from trelby.screenplay.autocomp import AutoCompletionMixin
 from trelby.screenplay.beatboard import BeatBoardEditMixin
@@ -109,6 +110,12 @@ class Editor(
     # history is thrown away (reformatAll insists on that).
     def applyCfg(self, cfg):
         self.undoHistory.clear()
+
+        # a new format (Script > Change format) brings its own
+        # auto-completion items
+        self.sp.autoCompletion.changeFormat(
+            scriptformats.ofConfig(self.sp.cfg), scriptformats.ofConfig(cfg)
+        )
 
         self.sp.cfg = copy.deepcopy(cfg)
         self.sp.cfg.recalc()

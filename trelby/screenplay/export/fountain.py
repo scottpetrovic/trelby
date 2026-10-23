@@ -2,6 +2,7 @@
 
 import re
 
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 from trelby.screenplay.constants import (
@@ -15,6 +16,16 @@ from trelby.screenplay.constants import (
     TRANSITION,
 )
 from trelby.screenplay.export.common import getElemNotes, getElementsAsList
+
+
+# the title page key recording a script's format (see scriptformats),
+# which the importer reads back instead of making it a title
+FORMAT_KEY = "Format:"
+
+# the character line of a speech with no speaker (dialogue with no
+# character before it, like an AV script's narration): Fountain's "@",
+# which makes a character line of the rest of it, alone
+NO_SPEAKER = "@"
 
 
 # generate Fountain and return it as a string.
@@ -82,6 +93,15 @@ def generateFountain(sp):
             else:
                 generateTitleString("Contact:", titleLine.items, 0, "", "")
 
+    # the script's format, for importing it back into Trelby (Fountain has
+    # no two-column layout, so an AV script is its elements in order)
+    if sp.cfg.scriptFormat != scriptformats.SCREENPLAY:
+        flines.append(FORMAT_KEY + " " + sp.cfg.scriptFormat)
+
+    # a blank line ends the title page
+    if flines:
+        flines.append("")
+
     # notes of the elements written since the last place a blank line
     # could go (see flushNotes)
     notes = []
@@ -100,8 +120,15 @@ def generateFountain(sp):
 
         notes.clear()
 
+    prevTyp = None
+
     for typ, txt, first, fmt in eleList:
-        if typ not in (DIALOGUE, PAREN):
+        # dialogue with no speaker gets an empty character line, as
+        # Fountain's dialogue is what follows one
+        noSpeaker = (typ == DIALOGUE) and (prevTyp not in (CHARACTER, PAREN, DIALOGUE))
+        prevTyp = typ
+
+        if (typ not in (DIALOGUE, PAREN)) or noSpeaker:
             flushNotes()
 
         # formatting as markup, a line at a time, since it can't span
@@ -152,6 +179,13 @@ def generateFountain(sp):
 
         elif typ == DIALOGUE:
             tmp = []
+
+            if noSpeaker:
+                if flines and flines[-1] != "":
+                    flines.append("")
+
+                tmp.append(NO_SPEAKER)
+
             for ln in lns:
                 if not ln:
                     tmp.append(TWOSPACE)

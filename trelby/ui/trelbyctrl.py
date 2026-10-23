@@ -307,7 +307,7 @@ class MyCtrl(wx.Control):
     # lay the new, empty script out in the format with the given key (see
     # scriptformats)
     def useFormat(self, key):
-        scriptformats.get(key).apply(self.sp.cfg)
+        scriptformats.get(key).applyTo(self.sp)
         self.sp.reformatAll()
         self.sp.paginate()
         self.setFile(None)
@@ -472,6 +472,13 @@ class MyCtrl(wx.Control):
             return
 
         self.createEmptySp()
+
+        # a script exported from Trelby in another format (an AV one,
+        # whose columns come from the format) comes back in it
+        if result.format:
+            scriptformats.get(result.format).applyTo(self.sp)
+            self.setFile(None)
+            self.refreshCache()
 
         self.sp.lines = result.lines
         if result.titlePages:

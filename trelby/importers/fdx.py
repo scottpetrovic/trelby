@@ -4,6 +4,7 @@ import trelby.screenplay as screenplay
 import trelby.screenplay.alternates as alternates
 import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.revisions as revisions
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.util as util
@@ -143,7 +144,16 @@ def parse(data, options=None):
 
     checkLines(lines)
 
-    return ImportResult(lines, revisions=parseRevisions(root))
+    return ImportResult(lines, revisions=parseRevisions(root), format=parseFormat(root))
+
+
+# the key of the script's format as Trelby's export records it (see
+# export/fdx.py's FORMAT_ELEMENT), or None
+def parseFormat(root):
+    for elem in root.xpath("TrelbyScriptFormat"):
+        return scriptformats.findKey(elem.get("Key") or "")
+
+    return None
 
 
 # return the takes in the script's AltCollection (Final Draft's

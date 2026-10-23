@@ -167,6 +167,105 @@ class TwoColumnMixin:
 
         return (i < len(ls)) and (cols[ls[i].lt] == RIGHT)
 
+    # the row (see getRowLines) line i is in, as (first, right, last), or
+    # None if it's not in one
+    def getRowAround(self, i):
+        cols = self.getColumns()
+        ls = self.lines
+
+        if not cols or (cols[ls[i].lt] == FULL):
+            return None
+
+        right = i
+
+        while (right > 0) and (cols[ls[right - 1].lt] == RIGHT):
+            right -= 1
+
+        if cols[ls[i].lt] == LEFT:
+            right = i
+
+            while (right < len(ls)) and (cols[ls[right].lt] == LEFT):
+                right += 1
+
+        first = right
+
+        while (first > 0) and (cols[ls[first - 1].lt] == LEFT):
+            first -= 1
+
+        last = right
+
+        while ((last + 1) < len(ls)) and (cols[ls[last + 1].lt] == RIGHT):
+            last += 1
+
+        if (first == right) or (right == len(ls)) or (cols[ls[right].lt] != RIGHT):
+            return None
+
+        return (first, right, last)
+
+    # which column (LEFT or RIGHT) the cursor is in on line i at column
+    # col: a column's lines are in their own, and on lines across the
+    # page, the one under the cursor
+    def getColumnAt(self, i, col):
+        cols = self.getColumns()
+        c = cols[self.lines[i].lt]
+
+        if c != FULL:
+            return c
+
+        x = self.cfg.getType(self.lines[i].lt).indent + col
+
+        return RIGHT if x >= self.getColumnBounds()[1][0] else LEFT
+
+    # the line the Down arrow goes to from line i with the cursor at
+    # column col: the next one, except that in a two-column script it
+    # goes down the cursor's column, past the other one. None if there's
+    # nothing below.
+    def getLineBelow(self, i, col):
+        if not self.isTwoColumn():
+            return (i + 1) if (i + 1) < len(self.lines) else None
+
+        side = self.getColumnAt(i, col)
+        row = self.getRowAround(i)
+
+        # from the bottom of a row's left column, below the row
+        if row and (i == (row[1] - 1)):
+            i = row[2]
+
+        if (i + 1) >= len(self.lines):
+            return None
+
+        # into a row, at the top of the cursor's column
+        row = self.getRowAround(i + 1)
+
+        if row and (row[0] == (i + 1)) and (side == RIGHT):
+            return row[1]
+
+        return i + 1
+
+    # the line the Up arrow goes to from line i with the cursor at column
+    # col, like getLineBelow
+    def getLineAbove(self, i, col):
+        if not self.isTwoColumn():
+            return (i - 1) if i > 0 else None
+
+        side = self.getColumnAt(i, col)
+        row = self.getRowAround(i)
+
+        # from the top of a row's right column, above the row
+        if row and (i == row[1]):
+            i = row[0]
+
+        if i == 0:
+            return None
+
+        # into a row, at the bottom of the cursor's column
+        row = self.getRowAround(i - 1)
+
+        if row and (row[2] == (i - 1)) and (side == LEFT):
+            return row[1] - 1
+
+        return i - 1
+
     # the height of lines first - last laid out on a page starting with
     # 'first', in tenths of a line
     def getRowsHeight(self, first, last):

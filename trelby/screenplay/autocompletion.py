@@ -136,6 +136,39 @@ def extensionMatches(text, uses, cur):
     return ["%s %s" % (name, s) for s in exts if s.startswith(text[idx:])]
 
 
+# the items each element type's auto-completion starts with in a
+# screenplay, for the types that have some (a format can have its own:
+# scriptformats.ScriptFormat.completions)
+DEFAULT_ITEMS = {
+    screenplay.TRANSITION: [
+        "BACK TO:",
+        "CROSSFADE:",
+        "CUT TO:",
+        "DISSOLVE TO:",
+        "FADE IN:",
+        "FADE OUT",
+        "FADE TO BLACK",
+        "FLASHBACK TO:",
+        "JUMP CUT TO:",
+        "MATCH CUT TO:",
+        "SLOW FADE TO BLACK",
+        "SMASH CUT TO:",
+        "TIME CUT:",
+    ],
+}
+
+
+# the items type lt's auto-completion starts with in a script of format
+# fmt (a scriptformats.ScriptFormat)
+def defaultItems(lt, fmt):
+    items = fmt.completions.get(lt)
+
+    if items is None:
+        items = DEFAULT_ITEMS.get(lt, [])
+
+    return items
+
+
 # manages auto completion information for a single script.
 class AutoCompletion:
     def __init__(self):
@@ -150,21 +183,7 @@ class AutoCompletion:
         self.types[t.ti.lt] = t
 
         t = Type(screenplay.TRANSITION)
-        t.items = [
-            "BACK TO:",
-            "CROSSFADE:",
-            "CUT TO:",
-            "DISSOLVE TO:",
-            "FADE IN:",
-            "FADE OUT",
-            "FADE TO BLACK",
-            "FLASHBACK TO:",
-            "JUMP CUT TO:",
-            "MATCH CUT TO:",
-            "SLOW FADE TO BLACK",
-            "SMASH CUT TO:",
-            "TIME CUT:",
-        ]
+        t.items = list(DEFAULT_ITEMS[t.ti.lt])
         self.types[t.ti.lt] = t
 
         t = Type(screenplay.SHOT)
@@ -203,6 +222,16 @@ class AutoCompletion:
                     tmp.append(v)
 
             t.items = tmp
+
+    # the script's format changed from old to new (scriptformats
+    # ScriptFormats): give each type new's items, unless it no longer has
+    # old's, which means the user has changed them
+    def changeFormat(self, old, new):
+        for lt, t in self.types.items():
+            if t.items == defaultItems(lt, old):
+                t.items = list(defaultItems(lt, new))
+
+        self.refresh()
 
     # get type's Type, or None if it doesn't exist.
     def getType(self, lt):

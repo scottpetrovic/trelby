@@ -7,6 +7,7 @@ from lxml import etree
 import trelby.config as config
 import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.revisions as revisions
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.textfmt as textfmt
 from trelby.screenplay.constants import (
     ACTBREAK,
@@ -22,6 +23,10 @@ from trelby.screenplay.constants import (
     TRANSITION,
 )
 from trelby.screenplay.export.common import getElemNotes, getElementsAsList
+
+# the element recording a script's format (see scriptformats), which
+# isn't Final Draft's: the importer reads it back
+FORMAT_ELEMENT = "TrelbyScriptFormat"
 
 # the page colors of the revisions in Final Draft's form (16 bits per
 # channel), in revisions.COLORS' order: White, Blue, Pink, Yellow, Green,
@@ -423,6 +428,13 @@ def generateFDX(sp):
 
     altData.addTo(fd)
     tagData.addTo(fd)
+
+    # the script's format, for importing it back into Trelby (Final Draft
+    # has no two-column layout, so an AV script is its elements in order)
+    fmtKey = sp.cfg.scriptFormat
+
+    if fmtKey != scriptformats.SCREENPLAY:
+        etree.SubElement(fd, FORMAT_ELEMENT).set("Key", fmtKey)
 
     return etree.tostring(
         fd, xml_declaration=True, encoding="UTF-8", pretty_print=True

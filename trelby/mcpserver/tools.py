@@ -1147,7 +1147,7 @@ def createScript(path, elements, format=scriptformats.SCREENPLAY):
         )
 
     sp = screenplay.Screenplay(_cfgGl)
-    scriptformats.get(format).apply(sp.cfg)
+    scriptformats.get(format).applyTo(sp)
     sp.lines = buildLines(elements, False)
 
     rev = save(screenplay.Editor(sp), path, False)

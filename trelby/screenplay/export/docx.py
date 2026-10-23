@@ -16,7 +16,8 @@
 #  - lines that start a page in Trelby because of the script's settings
 #    (acts, and scenes if they start new pages) start one in Word too.
 #  - dual dialogue is a two-column table without borders, and so is each
-#    row of a two-column (AV) script.
+#    row of a two-column (AV) script, whose column headings (VIDEO /
+#    AUDIO) are in the header, on the first page too.
 #
 # notes, revision marks and scene numbers aren't exported.
 
@@ -402,9 +403,18 @@ class _Writer:
         hdr = self.headerXml()
         ftr = self.footerXml()
 
-        if hdr:
+        # a two-column script's column headings go below the headers, on
+        # every page
+        cols = self.columnHeadingsXml()
+
+        if hdr or cols:
             refs += self.addPart(
-                "header", "default", "header1.xml", _hdrFtr("hdr", hdr)
+                "header", "default", "header1.xml", _hdrFtr("hdr", hdr + cols)
+            )
+
+        if cols:
+            refs += self.addPart(
+                "header", "first", "header2.xml", _hdrFtr("hdr", cols)
             )
 
         if ftr:
@@ -412,10 +422,10 @@ class _Writer:
                 "footer", "default", "footer1.xml", _hdrFtr("ftr", ftr)
             )
 
-        # the first page never has headers, and has the footer only if
-        # the script says so. a first page header or footer left out is
-        # empty, as the title pages have none to inherit, whereas an empty
-        # one would take a line.
+        # the first page never has headers (only the column headings), and
+        # has the footer only if the script says so. a first page header or
+        # footer left out is empty, as the title pages have none to
+        # inherit, whereas an empty one would take a line.
         if ftr and self.sp.footer.showOnFirstPage:
             refs += self.addPart("footer", "first", "footer2.xml", _hdrFtr("ftr", ftr))
 
@@ -436,7 +446,7 @@ class _Writer:
                 self.twips(cfg.marginLeft),
                 self.twips(cfg.marginTop),
                 self.twips(max(0, cfg.paperHeight - footerY - chH)),
-                "<w:titlePg/>" if (hdr or ftr) else "",
+                "<w:titlePg/>" if (hdr or ftr or cols) else "",
             )
         )
 
@@ -473,6 +483,39 @@ class _Writer:
             lines.append(self.alignedLine(parts))
 
         return "".join(lines)
+
+    # return a two-column script's column headings, as in the PDF: a line
+    # with each one where its column starts, then a blank one, or "" if
+    # there are none
+    def columnHeadingsXml(self):
+        headings = self.sp.getColumnHeadings()
+
+        if not headings:
+            return ""
+
+        cw = self.charW
+        rPr = _rPr(bold=True, underlined=True)
+        tabs = ""
+        s = ""
+
+        for text, indent in headings:
+            if indent:
+                tabs += '<w:tab w:val="left" w:pos="%d"/>' % (indent * cw)
+                s += "<w:r><w:tab/></w:r>"
+
+            s += _run(text, rPr)
+
+        pPr = (
+            '<w:spacing w:before="0" w:after="0" w:line="%d" w:lineRule="exact"/>'
+            '<w:ind w:left="0" w:right="0"/>' % self.lineH
+        )
+
+        return "<w:p><w:pPr>%s%s</w:pPr>%s</w:p><w:p><w:pPr>%s</w:pPr></w:p>" % (
+            "<w:tabs>%s</w:tabs>" % tabs if tabs else "",
+            pPr,
+            s,
+            pPr,
+        )
 
     # return the footer's paragraphs, or "" if it's empty
     def footerXml(self):
