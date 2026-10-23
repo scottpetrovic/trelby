@@ -360,3 +360,69 @@ def testManageAlternates(app, monkeypatch):
     assert alternatesdlg.manageAlternates(None, ctrl, 3)
     assert ed.sp.lines[3].text.startswith("Food's")
     assert texts(ed.sp.getAlternates(3)) == ["Dinner's ready!", "Dinner."]
+
+
+# pixels of the given (r, g, b) color in rect of bmp
+def countColor(bmp, rect, rgb):
+    img = bmp.ConvertToImage()
+
+    return sum(
+        (img.GetRed(x, y), img.GetGreen(x, y), img.GetBlue(x, y)) == rgb
+        for x in range(rect.x, rect.right + 1)
+        for y in range(rect.y, rect.bottom + 1)
+    )
+
+
+def testPaintHoveredMarker(app):
+    from trelby.ui.theming import blendColors
+
+    ed = load()
+    cfgGl = ed.sp.cfgGl
+    cfgGui = configgui.ConfigGui(cfgGl, 100)
+    vm = viewmode.ViewModeLayout()
+    size = wx.Size(900, 1200)
+    vp = scriptpainter.Viewport.make(ed.sp, ed, cfgGui, vm, size, lambda n: n)
+
+    def paintWith(hover):
+        bmp = wx.Bitmap(size)
+        dc = wx.MemoryDC(bmp)
+        painter = scriptpainter.ScriptPainter(
+            vp, vm, cfgGl, False, hoverAltLine=hover
+        )
+        painter.paint(dc)
+        dc.SelectObject(wx.NullBitmap)
+
+        return bmp, painter.altMarkers[0][0]
+
+    def fill(amount):
+        return blendColors(cfgGui.textBgColor, cfgGui.accentColor, amount).Get(False)
+
+    bmp, rect = paintWith(None)
+    assert countColor(bmp, rect, fill(0.25)) > 0
+    assert countColor(bmp, rect, fill(0.45)) == 0
+
+    # the badge the mouse is over is tinted more, other lines' aren't
+    bmp, rect = paintWith(3)
+    assert countColor(bmp, rect, fill(0.45)) > 0
+    assert countColor(bmp, rect, fill(0.25)) == 0
+
+    bmp, rect = paintWith(5)
+    assert countColor(bmp, rect, fill(0.25)) > 0
+
+
+def testHoverTracking(app):
+    ed = load()
+    ctrl = makeCtrl(ed)
+    ctrl.hoverAltLine = None
+    ctrl.altMarkers = [(wx.Rect(10, 20, 15, 12), 3)]
+
+    refreshes = []
+    ctrl.Refresh = lambda *args: refreshes.append(ctrl.hoverAltLine)
+
+    # repainted only when it changes
+    ctrl.setHoverAltLine(ctrl.altMarkerAt(wx.Point(12, 25)))
+    ctrl.setHoverAltLine(ctrl.altMarkerAt(wx.Point(13, 25)))
+    assert refreshes == [3]
+
+    ctrl.OnLeaveWindow(wx.MouseEvent(wx.wxEVT_LEAVE_WINDOW))
+    assert refreshes == [3, None]
