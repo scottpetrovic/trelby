@@ -267,3 +267,33 @@ def testBreakdownTools(script):
         },
     )
     assert "category" in msg
+
+
+def testAlternatesInElements(script):
+    server = mcpserver.makeFileServer()
+
+    rev = call(server, "list_scenes", {"path": script}).structured_content[
+        "revision"
+    ]
+
+    # alternates go through the element model to the operations and back
+    res = call(
+        server,
+        "replace_scene",
+        {
+            "path": script,
+            "revision": rev,
+            "index": 1,
+            "elements": [
+                {"type": "scene", "text": "INT. GARAGE - NIGHT"},
+                {"type": "character", "text": "MARY"},
+                {"type": "dialogue", "text": "Hi.", "alternates": ["Hello."]},
+            ],
+        },
+    )
+    assert not res.is_error
+
+    res = call(server, "read_scenes", {"path": script, "first": 1})
+    elems = res.structured_content["scenes"][0]["elements"]
+    assert elems[2]["alternates"] == ["Hello."]
+    assert "alternates" in mcpserver.COMMON_INSTRUCTIONS

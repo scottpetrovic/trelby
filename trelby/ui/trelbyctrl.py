@@ -98,6 +98,12 @@ SYNONYM_DEFINITION_LENGTH = 50
 UNTAG_ITEMS = 5
 UNTAG_NAME_LENGTH = 30
 
+# how many of an element's other takes the right-click menu offers to
+# switch to (the alternates dialog has them all), and how long their text
+# can be there
+ALT_ITEMS = 9
+ALT_LABEL_LENGTH = 50
+
 
 # load the thesaurus if it isn't loaded already, showing a message box
 # with 'frame' as parent on errors. if it can't be loaded, an empty one is
@@ -176,6 +182,10 @@ class MyCtrl(wx.Control):
         # (ScriptPainter.noteChecks)
         self.noteChecks = []
 
+        # the badges of the elements that have alternates, as (wx.Rect,
+        # line) (see ScriptPainter.drawAlternateMarkers). set by OnPaint.
+        self.altMarkers = []
+
         # the tooltip shown, a note's text while the mouse is over its card
         self.noteTip = None
 
@@ -226,6 +236,14 @@ class MyCtrl(wx.Control):
 
         for id in self.tagIds + self.untagIds:
             self.Bind(wx.EVT_MENU, self.OnTagMenu, id=id)
+
+        # the right-click menu's alternates: one item per other take of
+        # the element clicked on, which starts at altLine
+        self.altIds = [wx.NewIdRef() for i in range(ALT_ITEMS)]
+        self.altLine = None
+
+        for id in self.altIds:
+            self.Bind(wx.EVT_MENU, self.OnAlternateMenu, id=id)
 
         # records the writing sessions in the script in the writing log
         # (see writingsession.py), told about it in updateScreen
@@ -713,6 +731,14 @@ class MyCtrl(wx.Control):
         if not mark and self.toggleNoteCheckAt(event.GetPosition()):
             return
 
+        # a click on an element's alternates badge shows its next take
+        altLine = None if mark else self.altMarkerAt(event.GetPosition())
+
+        if altLine is not None:
+            self.cycleAlternate(altLine, 1)
+
+            return
+
         marker = None if mark else self.noteMarkerAt(event.GetPosition())
 
         if marker is not None:
@@ -821,14 +847,22 @@ class MyCtrl(wx.Control):
         pos = event.GetPosition()
 
         marker = self.noteMarkerAt(pos)
+        altLine = self.altMarkerAt(pos)
 
-        if self.isOverTitleButton(pos) or (marker is not None):
+        if (
+            self.isOverTitleButton(pos)
+            or (marker is not None)
+            or (altLine is not None)
+        ):
             self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
         else:
             self.SetCursor(wx.NullCursor)
 
         # a note's whole text, which its card may cut off
         tip = None
+
+        if altLine is not None:
+            tip = _("Alternates: click to show the next one")
 
         if marker and (marker[1] is not None):
             notes = self.sp.getParaNotes(marker[0])
@@ -857,6 +891,15 @@ class MyCtrl(wx.Control):
         for rect, line, index in self.noteMarkers:
             if rect.Contains(pos):
                 return line, index
+
+        return None
+
+    # the first line of the element whose alternates badge is at pos, or
+    # None
+    def altMarkerAt(self, pos):
+        for rect, line in self.altMarkers:
+            if rect.Contains(pos):
+                return line
 
         return None
 
@@ -1056,6 +1099,7 @@ class MyCtrl(wx.Control):
             self.spellingMenu(line, col),
             self.synonymsMenu(line, col),
             self.tagMenu(line, col),
+            self.alternatesMenu(line),
         )
         self.PopupMenu(m)
         m.Destroy()
@@ -1243,6 +1287,35 @@ class MyCtrl(wx.Control):
                 )
 
         return (tagItems, removeItems)
+
+    # the right-click menu's alternates for the element at line: (the
+    # shown take's label, and an (id, label) item for each other take to
+    # switch to), or None for no Alternates submenu (with a selection, or
+    # outside the script). sets self.altLine.
+    def alternatesMenu(self, line):
+        self.altLine = None
+
+        if (line is None) or self.ed.mark:
+            return None
+
+        self.altLine = self.sp.getElemFirstIndexFromLine(line)
+        alts = self.sp.getAlternates(line)[:ALT_ITEMS]
+
+        def label(take):
+            return take.preview(ALT_LABEL_LENGTH).replace("&", "&&")
+
+        return (
+            label(self.sp.getShownTake(line)),
+            [(id, label(t)) for id, t in zip(self.altIds, alts)],
+        )
+
+    def OnAlternateMenu(self, event):
+        ids = [int(x) for x in self.altIds]
+
+        if self.altLine is not None:
+            self.switchAlternate(self.altLine, ids.index(event.GetId()))
+
+        self.altLine = None
 
     def OnTagMenu(self, event):
         id = event.GetId()
@@ -1481,6 +1554,32 @@ class MyCtrl(wx.Control):
 
     def removeElement(self, category, name, line=None):
         return self.editTags(lambda: self.ed.removeElement(category, name, line))
+
+    # the alternates' edits (see Editor.setTakes etc.), from the menus and
+    # the alternates dialog. each returns whether it changed anything.
+    # they can change the element's text, so the script is repaginated.
+    def addAlternate(self, line):
+        return self.editAlternates(lambda: self.ed.addAlternate(line) is not None)
+
+    def switchAlternate(self, line, index):
+        return self.editAlternates(lambda: self.ed.switchAlternate(line, index))
+
+    def cycleAlternate(self, line, step):
+        return self.editAlternates(lambda: self.ed.cycleAlternate(line, step))
+
+    def setTakes(self, line, shown, others):
+        return self.editAlternates(lambda: self.ed.setTakes(line, shown, others))
+
+    def editAlternates(self, edit):
+        self.clearAutoComp()
+        changed = edit()
+
+        if changed:
+            self.sp.paginate()
+            self.makeLineVisible(self.ed.line)
+            self.updateScreen()
+
+        return changed
 
     def editTags(self, edit):
         self.clearAutoComp()
@@ -1732,6 +1831,7 @@ class MyCtrl(wx.Control):
         self.titleButtonRect = painter.paint(dc)
         self.noteMarkers = painter.noteMarkers
         self.noteChecks = painter.noteChecks
+        self.altMarkers = painter.altMarkers
 
         if self.noteEditor:
             self.noteEditor.update(self.noteMarkers)

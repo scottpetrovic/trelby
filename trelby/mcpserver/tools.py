@@ -30,6 +30,7 @@ import trelby.translations as translations
 import trelby.undo as undo
 import trelby.util as util
 from trelby.screenplay.line import Line
+from trelby.screenplay.alternates import Take, cleanText
 from trelby.screenplay.notes import Note
 from trelby.screenplay import (
     ACTBREAK,
@@ -115,7 +116,7 @@ def revisionOf(data):
 # report it, never change it.
 def linesRevision(sp):
     s = "\n".join(
-        "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"
+        "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"
         % (
             ln,
             ln.pageLock or "",
@@ -128,6 +129,7 @@ def linesRevision(sp):
             ln.revs or "",
             repr(ln.synopsis) if ln.synopsis else "",
             repr(ln.tags) if ln.tags else "",
+            repr(ln.alternates) if ln.alternates else "",
         )
         for ln in sp.lines
     )
@@ -363,7 +365,9 @@ def partOfLine(sp, line):
 # them, so replacing a scene drops its bold / italic / underline. the notes
 # on the element's paragraphs (screenplay/notes.py) are returned as the
 # element's, and buildLines puts them on its first paragraph, and so are
-# the breakdown tags (screenplay/breakdown.py).
+# the breakdown tags (screenplay/breakdown.py). the element's other takes
+# (screenplay/alternates.py) are returned as their texts, without their
+# formatting, like the element's own text.
 def getElements(sp, first, last):
     ls = sp.lines
     ret = []
@@ -374,11 +378,13 @@ def getElements(sp, first, last):
         text = ""
         notes = ()
         tags = ()
+        alternates = ()
 
         while 1:
             text += ls[i].text
             notes += ls[i].notes
             tags += ls[i].tags
+            alternates += ls[i].alternates
 
             if ls[i].lb == LB_LAST:
                 break
@@ -408,6 +414,9 @@ def getElements(sp, first, last):
 
         if tags:
             elem["tags"] = [tagDict(t) for t in tags]
+
+        if alternates:
+            elem["alternates"] = [t.text for t in alternates]
 
         ret.append(elem)
         i += 1
@@ -451,6 +460,17 @@ def parseNotes(elem, n):
             ret += (Note(text, bool(item.get("resolved"))),)
 
     return ret
+
+
+# the element's other takes, as Takes: a list of texts, "\n" separating
+# paragraphs. empty ones are dropped.
+def parseAlternates(elem, n):
+    items = elem.get("alternates") or []
+
+    if not isinstance(items, list) or not all(isinstance(t, str) for t in items):
+        raise ToolError("Element %d's alternates are not a list of texts." % n)
+
+    return tuple(Take(t) for t in map(cleanText, items) if t)
 
 
 # a breakdown tag as a dict: {"category", "name", and "text" if it has any}
@@ -553,6 +573,7 @@ def buildLines(elements, needHeading):
 
         notes = parseNotes(elem, n)
         tags = parseTags(elem, n)
+        alternates = parseAlternates(elem, n)
 
         parts = textutil.fixNL(text).replace("\t", " ").split("\n")
 
@@ -573,6 +594,7 @@ def buildLines(elements, needHeading):
                     centered=centered and isFirst,
                     notes=notes if isFirst else (),
                     tags=tags if isFirst else (),
+                    alternates=alternates if isFirst else (),
                     synopsis=synopsis if isFirst else None,
                 )
             )

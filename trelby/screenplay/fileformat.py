@@ -6,6 +6,7 @@ import re
 from typing import Tuple
 
 import trelby.config as config
+import trelby.screenplay.alternates as alternates
 import trelby.error as error
 import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.characterprofiles as characterprofiles
@@ -49,6 +50,31 @@ def parseTag(val):
         return None
 
     return breakdown.Tag(parts[0], name, text)
+
+
+# an Alternate line's value for a take: its formatting (textfmt.encode,
+# which never has a "|") and its text, escaped like the notes
+def formatTake(take):
+    return "%s|%s" % (
+        textfmt.encode(take.fmt) if take.fmt else "",
+        characterprofiles.escapeText(take.text),
+    )
+
+
+# an Alternate line's value as an alternates.Take, or None if it's empty
+# or isn't valid
+def parseTake(val):
+    fmt, sep, text = val.partition("|")
+
+    if not sep:
+        return None
+
+    text = alternates.cleanText(characterprofiles.unescapeText(text))
+
+    if not text:
+        return None
+
+    return alternates.Take(text, textfmt.decode(fmt, len(text)))
 
 
 # save script to a utf-8 encoded string and return that
@@ -167,6 +193,9 @@ def save(sp) -> bytes:
                 escapeTagText(tag.name),
                 escapeTagText(tag.text),
             )
+
+        for take in ln.alternates:
+            output += "#Alternate %s\n" % formatTake(take)
 
         output += str(ln) + "\n"
 
@@ -301,6 +330,9 @@ def load(s: str, cfgGl):
     # breakdown tags to put on the next script line
     lineTags = ()
 
+    # other takes to put on the next script line
+    lineAlternates = ()
+
     for i in range(index, len(lines)):
         s = lines[i]
 
@@ -372,6 +404,12 @@ def load(s: str, cfgGl):
                 if tag:
                     lineTags += (tag,)
 
+            elif (key == "Alternate") and startSeen:
+                take = parseTake(val)
+
+                if take:
+                    lineAlternates += (take,)
+
             elif (key in ("Note", "Note-Resolved")) and startSeen:
                 text = textutil.fixNL(characterprofiles.unescapeText(val))
 
@@ -425,6 +463,7 @@ def load(s: str, cfgGl):
             line.notes = lineNotes
             line.synopsis = synopsis
             line.tags = lineTags
+            line.alternates = lineAlternates
 
             if fmt:
                 line.fmt = textfmt.decode(fmt, len(text))
@@ -443,6 +482,7 @@ def load(s: str, cfgGl):
             lineNotes = ()
             synopsis = None
             lineTags = ()
+            lineAlternates = ()
 
             if lb != LB_LAST:
                 prevType = lt

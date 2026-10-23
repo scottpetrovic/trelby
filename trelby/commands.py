@@ -128,6 +128,14 @@ def defaultCommands():
         ),
         Command("About", _("Show the about dialog."), isMenu=True),
         Command(
+            "AddAlternate",
+            _(
+                "Keep the current element's text as an alternate, to rewrite"
+                " it without losing it."
+            ),
+            isMenu=True,
+        ),
+        Command(
             "AddNote",
             _("Add a note to the current paragraph."),
             [keys.Key(ord("N"), alt=True).toInt()],
@@ -319,6 +327,11 @@ def defaultCommands():
         Command("LoadSettings", _("Load global settings."), isMenu=True),
         Command("LocationsDlg", _("Open the locations dialog."), isMenu=True),
         Command(
+            "ManageAlternates",
+            _("View, edit, reorder and delete the current element's alternates."),
+            isMenu=True,
+        ),
+        Command(
             "MoveDown",
             _("Move down."),
             [keys.WXK_DOWN],
@@ -413,6 +426,12 @@ def defaultCommands():
             isMenu=True,
         ),
         Command(
+            "NextAlternate",
+            _("Show the current element's next alternate in place of its text."),
+            [keys.Key(keys.WXK_RIGHT, alt=True).toInt()],
+            isMenu=True,
+        ),
+        Command(
             "OpenScript",
             _("Open a script."),
             [keys.Key(15, ctrl=True).toInt()],
@@ -435,6 +454,12 @@ def defaultCommands():
             "PauseSprint",
             _("Pause or resume the writing sprint."),
             [keys.Key(keys.WXK_F7, shift=True).toInt()],
+            isMenu=True,
+        ),
+        Command(
+            "PrevAlternate",
+            _("Show the current element's previous alternate in place of its text."),
+            [keys.Key(keys.WXK_LEFT, alt=True).toInt()],
             isMenu=True,
         ),
         Command(

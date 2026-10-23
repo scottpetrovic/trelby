@@ -139,6 +139,10 @@ class ScriptPainter:
         # box to make it easier to click
         self.noteChecks = []
 
+        # the alternates markers drawn, as (wx.Rect, line) tuples, line
+        # being the first line of the element (see drawAlternateMarkers)
+        self.altMarkers = []
+
     # draw the script on dc. returns the wx.Rect of the "Manage title
     # page" button above the first page, or None if it's not on screen.
     def paint(self, dc):
@@ -396,6 +400,7 @@ class ScriptPainter:
         self.drawLocks(dc, strings, dpages, size)
         self.drawRevisionMarks(dc, strings, dpages, size)
         self.drawNoteMarkers(dc, strings, dpages, size)
+        self.drawAlternateMarkers(dc, strings)
 
         if vp.ed.acItems and (cursorY > 0):
             self.drawAutoComp(dc, posX, cursorY, acFi)
@@ -869,6 +874,79 @@ class ScriptPainter:
         for k in (1, 2):
             ly = y + bh * k // 3
             gutil.drawLine(dc, lx, ly, lw, 0)
+
+    # mark each element that has other takes (see screenplay/alternates.py)
+    # with a badge just left of its first line: a stack of cards with the
+    # number of takes it has, the shown one included. only shown on
+    # screen. remembers them for clicks, as (wx.Rect, line) tuples in
+    # altMarkers.
+    def drawAlternateMarkers(self, dc, strings):
+        sp = self.vp.sp
+
+        if not sp.hasAlternates():
+            return
+
+        h = max(6, self.cfgGui.fonts[pml.NORMAL].fy)
+        gap = h // 2
+        done = set()
+
+        for t in strings:
+            i = t.line
+
+            if (i == -1) or (i in done) or not sp.isFirstLineOfElem(i):
+                continue
+
+            done.add(i)
+            count = len(sp.getAlternates(i))
+
+            if not count:
+                continue
+
+            w = self.altMarkerWidth(dc, h, count + 1)
+            x = t.x - gap - w
+            self.drawAlternateMarker(dc, x, t.y, w, h, count + 1, self.isFaded(i))
+            self.altMarkers.append((wx.Rect(x, t.y, w, h), i))
+
+    def altMarkerFont(self, h):
+        font = self.noteFont()
+        font.SetPixelSize(wx.Size(0, max(6, h * 3 // 4)))
+
+        return font.Bold()
+
+    # how wide the marker for 'count' takes is, h pixels high
+    def altMarkerWidth(self, dc, h, count):
+        dc.SetFont(self.altMarkerFont(h))
+
+        return max(h, dc.GetTextExtent(str(count))[0] + h // 2) + h // 4
+
+    # draw the alternates marker w pixels wide and h high with its top
+    # left corner at (x, y): a card with 'count' on it, in a tint of the
+    # accent color, and the edge of another one behind it
+    def drawAlternateMarker(self, dc, x, y, w, h, count, faded=False):
+        cfgGui = self.cfgGui
+        bg = cfgGui.textBgColor
+        fill = blendColors(bg, cfgGui.accentColor, 0.25)
+        border = blendColors(bg, cfgGui.accentColor, 0.8)
+        text = blendColors(bg, cfgGui.textColor, 0.85)
+
+        if faded:
+            fill, border, text = [self.fadeColor(c) for c in (fill, border, text)]
+
+        off = max(2, h // 5)
+        r = max(1, h // 6)
+
+        dc.SetPen(wx.Pen(border))
+        dc.SetBrush(wx.Brush(bg))
+        dc.DrawRoundedRectangle(x + off, y, w - off, h - off, r)
+
+        dc.SetBrush(wx.Brush(fill))
+        dc.DrawRoundedRectangle(x, y + off, w - off, h - off, r)
+
+        dc.SetFont(self.altMarkerFont(h))
+        dc.SetTextForeground(text)
+        s = str(count)
+        tw, th = dc.GetTextExtent(s)
+        dc.DrawText(s, x + (w - off - tw) // 2, y + off + (h - off - th) // 2)
 
     # draw a padlock w pixels wide and h pixels high, with its top left
     # corner at (x, y)

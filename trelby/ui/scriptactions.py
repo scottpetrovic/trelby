@@ -9,6 +9,7 @@ from functools import partial
 
 import wx
 
+import trelby.dialogs.alternatesdlg as alternatesdlg
 import trelby.dialogs.autocompletiondlg as autocompletiondlg
 import trelby.dialogs.cfgdlg as cfgdlg
 import trelby.dialogs.characterprofilesdlg as characterprofilesdlg
@@ -657,6 +658,28 @@ def editSynopsis(frame, ctrl):
     if canEditSynopsis(frame, ctrl):
         outline = frame.panel.outline
         outline.editSynopsis(outline.list.GetSelection())
+
+
+# the alternates of the element at the cursor (see
+# screenplay/alternates.py)
+def canAddAlternate(frame, ctrl):
+    return bool(ctrl.sp.getShownTake(ctrl.ed.line).text)
+
+
+def hasAlternates(frame, ctrl):
+    return bool(ctrl.sp.getAlternates(ctrl.ed.line))
+
+
+def addAlternate(frame, ctrl):
+    ctrl.addAlternate(ctrl.ed.line)
+
+
+def cycleAlternate(frame, ctrl, step):
+    ctrl.cycleAlternate(ctrl.ed.line, step)
+
+
+def manageAlternates(frame, ctrl):
+    alternatesdlg.manageAlternates(frame, ctrl, ctrl.ed.line)
 
 
 def insertNbsp(frame, ctrl):

@@ -384,4 +384,16 @@ empty. Elements are the same element if their categories and names match,
 ignoring case. There can be several before a line. Ones without a name
 are ignored.
 
+"Alternate". Value: "format|text". Another take of the element that
+starts at the next line: a version of its text that isn't shown or
+printed, which the writer can switch to (the element's own text is the
+shown take). "text" is the take's whole text, escaped like the notes,
+with "\n" between its paragraphs; "format" is its bold / italic /
+underline formatting, in the same form as "Format" but counting the
+characters of the whole text (each "\n" being one), or empty. There can
+be several before a line, in the order the takes come after the shown
+one. Empty ones are ignored. Versions that don't know this line ignore
+it (with a warning that the file has information they don't know), and
+keep only the shown take.
+
 See sample.trelby for an example screenplay.

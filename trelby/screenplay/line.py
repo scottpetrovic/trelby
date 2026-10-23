@@ -24,6 +24,7 @@ class Line:
         revs=None,
         synopsis=None,
         tags=(),
+        alternates=(),
     ):
 
         # line break type: what separates this line from the next one
@@ -91,9 +92,14 @@ class Line:
         # breakdown.py.
         self.tags = tags
 
+        # the other takes (a tuple of screenplay.alternates.Take) of the
+        # element this line starts. only on an element's first line, apart
+        # from in the middle of an edit; see alternates.py.
+        self.alternates = alternates
+
     # return a copy of this line, including its page lock, dual flag,
     # color, formatting, centered flag, scene lock, notes, revision marks,
-    # synopsis and tags
+    # synopsis, tags and alternates
     def copy(self):
         return Line(
             self.lb,
@@ -109,6 +115,7 @@ class Line:
             self.revs,
             self.synopsis,
             self.tags,
+            self.alternates,
         )
 
     # return the format string, exactly as long as the text
@@ -197,6 +204,7 @@ class Line:
             or (textfmt.compact(self.revs) != textfmt.compact(other.revs))
             or (self.synopsis != other.synopsis)
             or (self.tags != other.tags)
+            or (self.alternates != other.alternates)
         )
 
     def __eq__(self, other):

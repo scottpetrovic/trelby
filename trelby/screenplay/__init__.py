@@ -15,6 +15,7 @@
 #   notes*        notes on paragraphs, shown in the notes sidebar
 #   breakdown*    production breakdown tags on paragraphs, and the
 #                 breakdown worked out from them
+#   alternates*   other takes of an element's text, one of them shown
 #   revisions*    revision marks and colors, revised pages
 #
 # Editor:

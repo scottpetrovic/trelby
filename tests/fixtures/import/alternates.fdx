@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<FinalDraft DocumentType="Script" Template="No" Version="6">
+
+  <Content>
+    <Paragraph Type="Scene Heading" id="7b0c1f1e-1d1c-4a2e-9d7e-2f6a1c0f0a01">
+      <Text>INT. LIGHTHOUSE - NIGHT</Text>
+    </Paragraph>
+    <Paragraph Type="Character" id="7b0c1f1e-1d1c-4a2e-9d7e-2f6a1c0f0a02">
+      <Text>MARA</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue" id="7b0c1f1e-1d1c-4a2e-9d7e-2f6a1c0f0a03">
+      <Text Style="Italic">Keep the light burning.</Text>
+      <Alts Current="0">
+        <AltId>10</AltId>
+        <AltId>9</AltId>
+      </Alts>
+    </Paragraph>
+    <Paragraph Type="Character" id="7b0c1f1e-1d1c-4a2e-9d7e-2f6a1c0f0a04">
+      <Text>OWEN</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue" id="7b0c1f1e-1d1c-4a2e-9d7e-2f6a1c0f0a05">
+      <Text>Always.</Text>
+      <Alts Current="2">
+        <AltId>21</AltId>
+        <AltId>14</AltId>
+        <AltId>13</AltId>
+      </Alts>
+    </Paragraph>
+  </Content>
+
+  <AltCollection>
+    <Alt Id="9">
+      <Paragraph Alignment="Left" FirstIndent="0.00" Leading="Regular" LeftIndent="2.50" OutlineLevel="1" RightIndent="-1.11" SpaceBefore="0" Spacing="1" StartsNewPage="No">
+        <Text AdornmentStyle="0" Font="Courier Final Draft" RevisionID="0" Size="12" Style="">Don't let it go out.</Text>
+      </Paragraph>
+    </Alt>
+    <Alt Id="10">
+      <Paragraph Alignment="Left" FirstIndent="0.00" Leading="Regular" LeftIndent="2.50" OutlineLevel="1" RightIndent="-1.11" SpaceBefore="0" Spacing="1" StartsNewPage="No">
+        <Text AdornmentStyle="0" Font="Courier Final Draft" RevisionID="0" Size="12" Style="Bold">Light</Text>
+        <Text AdornmentStyle="0" Font="Courier Final Draft" RevisionID="0" Size="12" Style=""> it.</Text>
+      </Paragraph>
+    </Alt>
+    <Alt Id="13">
+      <Paragraph Alignment="Left" FirstIndent="0.00" Leading="Regular" LeftIndent="2.50" OutlineLevel="1" RightIndent="-1.11" SpaceBefore="0" Spacing="1" StartsNewPage="No">
+        <Text AdornmentStyle="0" Font="Courier Final Draft" RevisionID="0" Size="12" Style="">Every night.</Text>
+      </Paragraph>
+    </Alt>
+    <Alt Id="14">
+      <Paragraph Alignment="Left" FirstIndent="0.00" Leading="Regular" LeftIndent="2.50" OutlineLevel="1" RightIndent="-1.11" SpaceBefore="0" Spacing="1" StartsNewPage="No">
+        <Text AdornmentStyle="0" Font="Courier Final Draft" RevisionID="0" Size="12" Style="">I will.</Text>
+      </Paragraph>
+    </Alt>
+    <Alt Id="21">
+      <Paragraph Alignment="Left" FirstIndent="0.00" Leading="Regular" LeftIndent="2.50" OutlineLevel="1" RightIndent="-1.11" SpaceBefore="0" Spacing="1" StartsNewPage="No">
+        <Text AdornmentStyle="0" Font="Courier Final Draft" RevisionID="0" Size="12" Style="">Yes.</Text>
+      </Paragraph>
+    </Alt>
+    <Alt Id="2">
+      <Paragraph Alignment="Left" FirstIndent="0.00" Leading="Regular" LeftIndent="2.50" OutlineLevel="1" RightIndent="-1.11" SpaceBefore="0" Spacing="1" StartsNewPage="No">
+        <Text AdornmentStyle="0" Font="Courier Final Draft" RevisionID="0" Size="12" Style="">Left over, used by no paragraph.</Text>
+      </Paragraph>
+    </Alt>
+  </AltCollection>
+  <TargetScriptLength>30</TargetScriptLength>
+</FinalDraft>

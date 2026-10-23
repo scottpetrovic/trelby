@@ -83,6 +83,13 @@ scene with the tag added to the element that mentions it. When replacing a
 scene, give each element the tags it had, unless asked to change them; an
 element left without tags loses them.
 
+An element can have alternates: other versions ("takes") of its text, of
+which only the element's text is shown and printed. Trelby's writer
+switches between them; read_scenes returns them as texts. To offer a new
+wording without losing the old one, put the old text in alternates. When
+replacing a scene, give each element the alternates it had, unless asked
+to change them; an element left without alternates loses them.
+
 A script can also have world building notes (get_world_building), the
 writer's free-text notes about the story's world, and character profiles
 (get_character_profiles) with notes about each character. When they exist,
@@ -196,6 +203,12 @@ class Element(BaseModel):
     tags: list[ElementTag] = Field(
         [],
         description="Production breakdown tags on this element.",
+    )
+    alternates: list[str] = Field(
+        [],
+        description="Other versions of this element's text, not shown or "
+        "printed, which the writer can switch to. Use \\n for a forced "
+        "line break.",
     )
 
 

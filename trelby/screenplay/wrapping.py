@@ -260,6 +260,11 @@ class WrappingMixin:
         # and so do its breakdown tags (see breakdown.py)
         wrappedLines[0].tags = sum((ls[i].tags for i in range(line1, line2 + 1)), ())
 
+        # and its element's other takes, if it has them (see alternates.py)
+        wrappedLines[0].alternates = sum(
+            (ls[i].alternates for i in range(line1, line2 + 1)), ()
+        )
+
         ls[line1 : line2 + 1] = wrappedLines
 
         # put the page locks back on the lines that now contain the text

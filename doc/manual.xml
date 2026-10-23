@@ -619,6 +619,45 @@
 
 	</sect1>
 
+	<sect1 id="alternates">
+	  <title>Edit/Alternates</title>
+
+	  <para>An element can keep alternates: other versions of its text,
+	  such as a few ways of saying a line of dialogue, of which only one
+	  is in the script, printed and exported. The others are kept with the
+	  element, out of sight, to switch to later. Any element can have
+	  them, but they're mostly for dialogue and parentheticals.</para>
+
+	  <para>'Add as alternate' keeps the element's current text as an
+	  alternate; then rewrite the element, and both versions are kept.
+	  'Next alternate' (Alt+Right) and 'Previous alternate' (Alt+Left)
+	  put the next or previous version in the script in place of the
+	  current one, which becomes an alternate. An element with alternates
+	  has a small badge left of it on screen, with the number of versions
+	  it has; clicking it shows the next one. The 'Alternates' submenu of
+	  the script's right-click menu lists the element's versions, the one
+	  in the script checked, to switch to.</para>
+
+	  <para>'Manage alternates' opens a dialog listing all of the
+	  element's versions, the one in the script first: select one to see
+	  or edit its text below the list (Enter starts a new paragraph,
+	  Ctrl+Enter is OK), 'New' adds an empty one, 'Show this one' puts the
+	  selected version in the script, 'Move up' and 'Move down' change the
+	  order the versions come in when switching, and 'Delete' removes
+	  one. To keep only one version, delete the others. Every change is
+	  one step to undo.</para>
+
+	  <para>Alternates stay with their element as the script is edited.
+	  Changing the element's type keeps them; splitting it in two leaves
+	  them with the first part (unless it's split at its very start); and
+	  joining two elements keeps both's alternates. Deleting all of an
+	  element's text deletes its alternates too. Final Draft files (.fdx)
+	  keep them as Final Draft's own alternates, both ways; other export
+	  formats only have the version in the script. AI assistants
+	  connected over MCP see and keep them too.</para>
+
+	</sect1>
+
 	<sect1 id="globcfg_menu">
 	  <title>Edit/Settings</title>
 

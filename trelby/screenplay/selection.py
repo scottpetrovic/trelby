@@ -136,6 +136,7 @@ class SelectionMixin:
                     sceneLock=self.sp.getSceneLock(i) if (c1 == 0) else None,
                     notes=ln.notes if (c1 == 0) else (),
                     tags=ln.tags if (c1 == 0) else (),
+                    alternates=ln.alternates if (c1 == 0) else (),
                     synopsis=self.sp.getSynopsis(i) if (c1 == 0) else None,
                 )
             )
@@ -221,6 +222,7 @@ class SelectionMixin:
             self.sp.movePageLocksForward(del1, del2)
             self.sp.moveNotesForward(del1, del2)
             self.sp.moveTagsForward(del1, del2)
+            self.sp.moveAlternatesForward(del1, del2)
 
         del ls[del1 : del2 + 1]
 
@@ -294,6 +296,7 @@ class SelectionMixin:
                 newLine.text += ln.text
                 newLine.notes += ln.notes
                 newLine.tags += ln.tags
+                newLine.alternates += ln.alternates
                 parts.append((ln.text, ln.fmt))
 
                 if ln.lb in (LB_LAST, LB_FORCED):
@@ -333,10 +336,11 @@ class SelectionMixin:
         movedLock = None
         movedSynopsis = None
 
-        # and the notes and tags of the paragraph pasted into go with its
-        # text
+        # and the notes, tags and alternates of the paragraph pasted into
+        # go with its text
         movedNotes = ()
         movedTags = ()
+        movedAlternates = ()
 
         if (self.column == 0) and (len(inLines) != 1) and not atEnd:
             movedLock = ln.sceneLock
@@ -347,6 +351,8 @@ class SelectionMixin:
             ln.notes = ()
             movedTags = ln.tags
             ln.tags = ()
+            movedAlternates = ln.alternates
+            ln.alternates = ()
 
         if (len(ln.text) == 0) and self.sp.isOnlyLineOfElem(self.line):
             ln.lt = inLines[0].lt
@@ -371,6 +377,7 @@ class SelectionMixin:
         # all
         ln.notes += inLines[0].notes
         ln.tags += inLines[0].tags
+        ln.alternates += inLines[0].alternates
 
         if len(inLines) != 1:
 
@@ -380,6 +387,7 @@ class SelectionMixin:
                 ls[self.line].synopsis = movedSynopsis
                 ls[self.line].notes = movedNotes
                 ls[self.line].tags = movedTags
+                ls[self.line].alternates = movedAlternates
                 ls[self.line - 1].lb = inLines[0].lb
                 ls[self.line : self.line] = inLines[1:]
                 self.line += len(inLines) - 2

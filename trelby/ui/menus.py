@@ -484,6 +484,44 @@ def makeTable():
                 dots=True,
                 canUse=scriptactions.canEditSynopsis,
             ),
+            Menu(
+                _("Alternates"),
+                "r",
+                [
+                    Action(
+                        "AddAlternate",
+                        ID_EDIT_ADD_ALTERNATE,
+                        _("Add as alternate"),
+                        "A",
+                        OnScript(scriptactions.addAlternate),
+                        canUse=scriptactions.canAddAlternate,
+                    ),
+                    Action(
+                        "NextAlternate",
+                        ID_EDIT_NEXT_ALTERNATE,
+                        _("Next alternate"),
+                        "N",
+                        OnScript(scriptactions.cycleAlternate, 1),
+                        canUse=scriptactions.hasAlternates,
+                    ),
+                    Action(
+                        "PrevAlternate",
+                        ID_EDIT_PREV_ALTERNATE,
+                        _("Previous alternate"),
+                        "P",
+                        OnScript(scriptactions.cycleAlternate, -1),
+                        canUse=scriptactions.hasAlternates,
+                    ),
+                    Action(
+                        "ManageAlternates",
+                        ID_EDIT_MANAGE_ALTERNATES,
+                        _("Manage alternates"),
+                        "M",
+                        OnScript(scriptactions.manageAlternates),
+                        dots=True,
+                    ),
+                ],
+            ),
             Action(
                 "InsertNbsp",
                 ID_EDIT_INSERT_NBSP,
@@ -1216,6 +1254,7 @@ def fillLanguageMenu(menu, gd, onLanguage):
 # MyPanel.showBeatBoard), and their menu items and buttons are greyed out,
 # so that e.g. CTRL-X on the board doesn't cut text from the hidden script.
 SCRIPT_ONLY = {
+    "AddAlternate",
     "AddNote",
     "ClearRevisionMarks",
     "OmitScene",
@@ -1229,10 +1268,13 @@ SCRIPT_ONLY = {
     "GotoPage",
     "GotoScene",
     "InsertNbsp",
+    "ManageAlternates",
     "NameDatabase",
+    "NextAlternate",
     "CharacterMap",
     "Paste",
     "PasteSystemCb",
+    "PrevAlternate",
     "ReadAloud",
     "SelectAll",
     "SelectScene",
@@ -1374,7 +1416,10 @@ def onUpdateUI(frame, event, a):
 # misspelled word, is a list of (id, label) items to put first, an id of
 # None making the label a disabled item. tagging is (the "Tag as"
 # submenu's (id, label) items, or None for none, and (id, label) items for
-# removing breakdown tags), see MyCtrl.tagMenu.
+# removing breakdown tags), see MyCtrl.tagMenu. alternates, for the
+# Alternates submenu, is (the shown take's label, (id, label) items for
+# the other takes to switch to), or None for none (see
+# MyCtrl.alternatesMenu).
 def makeRightClickMenu(
     actions,
     cfg,
@@ -1385,6 +1430,7 @@ def makeRightClickMenu(
     spelling=None,
     synonyms=None,
     tagging=None,
+    alternates=None,
 ):
     def append(menu, name, kind=wx.ITEM_NORMAL):
         a = actions[name]
@@ -1436,6 +1482,23 @@ def makeRightClickMenu(
 
     m.AppendSeparator()
     append(m, "AddNote")
+
+    if alternates:
+        shownLabel, altItems = alternates
+        altMenu = wx.Menu()
+
+        # the takes, the shown one checked and the others to switch to
+        if altItems:
+            altMenu.Append(wx.ID_ANY, shownLabel, kind=wx.ITEM_CHECK).Check(True)
+
+            for id, label in altItems:
+                altMenu.Append(id, label, kind=wx.ITEM_CHECK)
+
+            altMenu.AppendSeparator()
+
+        append(altMenu, "AddAlternate")
+        append(altMenu, "ManageAlternates")
+        m.AppendSubMenu(altMenu, _("Alternates"))
 
     tagItems, removeItems = tagging or (None, [])
 

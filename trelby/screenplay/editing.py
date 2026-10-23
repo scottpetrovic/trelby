@@ -112,6 +112,7 @@ class EditingMixin:
         # rewrapPara moves them to the paragraph's first line
         ln.notes += ls[line + 1].notes
         ln.tags += ls[line + 1].tags
+        ln.alternates += ls[line + 1].alternates
 
         # the joined line's page lock now points into the middle of this
         # line. rewrapPara uses pageLockCol to put it back on the right
@@ -135,9 +136,9 @@ class EditingMixin:
         self.column = pos
 
     # split current line at current column position. splitting at the
-    # start of a paragraph moves its text down, so its notes and tags
-    # (which only a paragraph's first line has) go with it, unless
-    # 'moveNotes' is False.
+    # start of a paragraph moves its text down, so its notes, tags and
+    # alternates (which only a paragraph's first line has) go with it,
+    # unless 'moveNotes' is False.
     def splitLine(self, moveNotes=True):
         ln = self.sp.lines[self.line]
 
@@ -152,6 +153,8 @@ class EditingMixin:
             ln.notes = ()
             newLine.tags = ln.tags
             ln.tags = ()
+            newLine.alternates = ln.alternates
+            ln.alternates = ()
 
         ln.lb = LB_FORCED
         self.sp.lines.insert(self.line + 1, newLine)

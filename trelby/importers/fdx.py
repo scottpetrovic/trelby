@@ -1,6 +1,7 @@
 # Final Draft (FDX) files.
 
 import trelby.screenplay as screenplay
+import trelby.screenplay.alternates as alternates
 import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.revisions as revisions
 import trelby.textfmt as textfmt
@@ -51,6 +52,7 @@ def parse(data, options=None):
     root = parseXML(data)
     lines = []
     tagData = parseTagData(root)
+    altData = parseAltCollection(root)
 
     for para in root.xpath("Content//Paragraph"):
         et = para.get("Type")
@@ -116,6 +118,7 @@ def parse(data, options=None):
                 lines[firstLine].centered = True
 
             addTags(lines, firstLine, lt, s, tagNrs, tagData)
+            lines[firstLine].alternates = paraAlternates(para, altData)
 
             # a scene's synopsis is its SceneProperties' Summary, a
             # paragraph per line. (FD's own paragraphs in it have no Type,
@@ -141,6 +144,69 @@ def parse(data, options=None):
     checkLines(lines)
 
     return ImportResult(lines, revisions=parseRevisions(root))
+
+
+# return the takes in the script's AltCollection (Final Draft's
+# alternates) as a dict of Alt Id -> alternates.Take, with the text and
+# formatting of each Alt's paragraph(s)
+def parseAltCollection(root):
+    ret = {}
+
+    for alt in root.xpath("AltCollection/Alt"):
+        texts = []
+
+        for p in alt.xpath("Paragraph"):
+            s = ""
+            fmt = ""
+
+            for text in p.xpath("Text"):
+                if text.text:
+                    s += text.text
+                    fmt += textfmt.char(textStyle(text)) * len(text.text)
+
+            texts.append((s, fmt))
+
+        s = "\n".join(t for t, f in texts)
+        take = alternates.Take(
+            alternates.cleanText(s), textfmt.compact("0".join(f for t, f in texts))
+        )
+
+        # cleanText can change the text (e.g. tabs or spaces at the ends),
+        # and then the formatting no longer fits it
+        if take.text != s:
+            take = alternates.Take(take.text)
+
+        if take.text:
+            ret[alt.get("Id")] = take
+
+    return ret
+
+
+# return the other takes of a paragraph from its Alts, in Trelby's order:
+# the ones after the shown one first, then the ones before it. Current is
+# the shown take's place among them all, the AltIds being the others in
+# order.
+def paraAlternates(para, altData):
+    for alts in para.xpath("Alts"):
+        ids = [(a.text or "").strip() for a in alts.xpath("AltId")]
+        cur = util.str2int(alts.get("Current", "0"), 0, 0, len(ids))
+        takes = [altData[i] for i in ids[cur:] + ids[:cur] if i in altData]
+
+        return tuple(takes)
+
+    return ()
+
+
+# return the textfmt style of a Text element, from its Style
+def textStyle(text):
+    styles = (text.get("Style") or "").split("+")
+    style = 0
+
+    for name, bit in STYLES:
+        if name in styles:
+            style |= bit
+
+    return style
 
 
 # return the script's breakdown elements from its TagData (Final Draft's

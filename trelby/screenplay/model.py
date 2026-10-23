@@ -26,6 +26,7 @@ import trelby.screenplay.titles as titles
 import trelby.util as util
 import trelby.screenplay.worldbuilding as worldbuilding
 from trelby.screenplay.line import Line
+from trelby.screenplay.alternates import AlternatesMixin
 from trelby.screenplay.breakdown import BreakdownMixin
 from trelby.screenplay.centering import CenteringMixin
 from trelby.screenplay.constants import (
@@ -53,6 +54,7 @@ class Screenplay(
     OutlineMixin,
     NotesMixin,
     BreakdownMixin,
+    AlternatesMixin,
     RevisionsMixin,
 ):
     def __init__(self, cfgGl):

@@ -98,6 +98,9 @@ BASE_MEMORY_USAGE = 1500
 #   tuple[12]: dict of {index: tags} for the lines that have breakdown
 #   tags, or None if none do. like notes, they're immutable and shared.
 #
+#   tuple[13]: dict of {index: alternates} for the lines that have other
+#   takes, or None if none do. immutable and shared too.
+#
 def lines2storage(lines):
     if not lines:
         return (0,)
@@ -112,6 +115,9 @@ def lines2storage(lines):
     revs = {i: ln.revs for i, ln in enumerate(lines) if ln.revs} or None
     synopses = {i: ln.synopsis for i, ln in enumerate(lines) if ln.synopsis} or None
     tags = {i: ln.tags for i, ln in enumerate(lines) if ln.tags} or None
+    alternates = {
+        i: ln.alternates for i, ln in enumerate(lines) if ln.alternates
+    } or None
 
     # str(ln) only holds the line break, type and text, which is all
     # Line.fromStr can restore, so every other Line attribute travels in
@@ -145,6 +151,7 @@ def lines2storage(lines):
         revs,
         synopses,
         tags,
+        alternates,
     )
 
 
@@ -199,6 +206,10 @@ def storage2lines(storage):
     if storage[12]:
         for i, tags in storage[12].items():
             lines[i].tags = tags
+
+    if storage[13]:
+        for i, alternates in storage[13].items():
+            lines[i].alternates = alternates
 
     return lines
 

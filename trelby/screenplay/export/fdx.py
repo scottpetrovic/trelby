@@ -220,6 +220,68 @@ class FdxTags:
                 etree.SubElement(elem, "DefId").text = self.defs[key][0]
 
 
+# the other takes of elements (see screenplay/alternates.py) as Final
+# Draft's alternates: an element's paragraph lists its takes by number
+# (Alts / AltId), and the AltCollection after the content has their text
+# (Alt, a paragraph with no Type). Current is the shown take's place
+# among them all, which is first here (a guess from Final Draft's own
+# files: its Current goes up to the number of AltIds).
+class FdxAlts:
+    def __init__(self):
+        # the takes, Alt n being self.takes[n - 1]
+        self.takes = []
+
+    # list the takes in 'alternates' in the paragraph para, if there are
+    # any
+    def addElem(self, para, alternates):
+        if not alternates:
+            return
+
+        alts = etree.SubElement(para, "Alts")
+        alts.set("Current", "0")
+
+        for take in alternates:
+            self.takes.append(take)
+            etree.SubElement(alts, "AltId").text = str(len(self.takes))
+
+    # add the AltCollection element to fd, if any element has takes
+    def addTo(self, fd):
+        if not self.takes:
+            return
+
+        coll = etree.SubElement(fd, "AltCollection")
+
+        for nr, take in enumerate(self.takes, 1):
+            alt = etree.SubElement(coll, "Alt")
+            alt.set("Id", str(nr))
+            para = etree.SubElement(alt, "Paragraph")
+
+            for a, b, style, level, tagNr in runs(take.fmt, None, len(take.text)):
+                addText(para, take.text[a:b], style)
+
+
+# add a Text element with text s in the textfmt style 'style' to para, and
+# return it
+def addText(para, s, style):
+    elem = etree.SubElement(para, "Text")
+    elem.text = s
+
+    flags = [
+        name
+        for bit, name in (
+            (textfmt.BOLD, "Bold"),
+            (textfmt.ITALIC, "Italic"),
+            (textfmt.UNDERLINED, "Underline"),
+        )
+        if style & bit
+    ]
+
+    if flags:
+        elem.set("Style", "+".join(flags))
+
+    return elem
+
+
 # a color "rrggbb" in Final Draft's form, 16 bits per channel
 def fdxColor(color):
     return "#" + "".join(color[i : i + 2].upper() * 2 for i in range(0, 6, 2))
@@ -279,6 +341,7 @@ def generateFDX(sp):
     noteId = 0
 
     tagData = FdxTags()
+    altData = FdxAlts()
 
     # scene numbers, when they're locked or printed
     if sp.hasSceneLocks() or sp.cfg.pdfShowSceneNumbers:
@@ -324,8 +387,7 @@ def generateFDX(sp):
         )
 
         for a, b, style, level, tagNr in elemRuns or [(0, 0, 0, 0, 0)]:
-            paratxt = etree.SubElement(para, "Text")
-            paratxt.text = str(txt[a:b])
+            paratxt = addText(para, str(txt[a:b]), style)
 
             if level:
                 paratxt.set("RevisionID", str(level))
@@ -333,18 +395,9 @@ def generateFDX(sp):
             if tagNr:
                 paratxt.set("TagNumber", str(tagNr))
 
-            flags = [
-                name
-                for bit, name in (
-                    (textfmt.BOLD, "Bold"),
-                    (textfmt.ITALIC, "Italic"),
-                    (textfmt.UNDERLINED, "Underline"),
-                )
-                if style & bit
-            ]
-
-            if flags:
-                paratxt.set("Style", "+".join(flags))
+        # the element's other takes, after its text as in Final Draft's
+        # files
+        altData.addElem(para, sp.getAlternates(first))
 
         # the element's notes, as script notes in its paragraph
         for note in getElemNotes(sp, first):
@@ -368,6 +421,7 @@ def generateFDX(sp):
     eleSetPara = etree.SubElement(eleSet, "ParagraphSpec")
     eleSetPara.set("Alignment", "Center")
 
+    altData.addTo(fd)
     tagData.addTo(fd)
 
     return etree.tostring(
