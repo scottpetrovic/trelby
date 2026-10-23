@@ -218,3 +218,52 @@ def testExeBridgeArg():
 
     assert res.returncode == 2
     assert "usage:" in res.stderr
+
+
+def testBreakdownTools(script):
+    server = mcpserver.makeFileServer()
+
+    rev = call(server, "list_scenes", {"path": script}).structured_content[
+        "revision"
+    ]
+
+    # tags go through the element model to the operations
+    res = call(
+        server,
+        "replace_scene",
+        {
+            "path": script,
+            "revision": rev,
+            "index": 1,
+            "elements": [
+                {"type": "scene", "text": "INT. GARAGE - NIGHT"},
+                {
+                    "type": "action",
+                    "text": "A red car.",
+                    "tags": [{"category": "vehicles", "name": "Car", "text": "car"}],
+                },
+            ],
+        },
+    )
+    assert not res.is_error
+
+    res = call(server, "get_breakdown", {"path": script}).structured_content
+    assert res["scenes"][0]["elements"]["vehicles"] == ["Car"]
+
+    msg = callError(
+        server,
+        "replace_scene",
+        {
+            "path": script,
+            "revision": res["revision"],
+            "index": 1,
+            "elements": [
+                {
+                    "type": "scene",
+                    "text": "INT. A",
+                    "tags": [{"category": "food", "name": "Cake"}],
+                }
+            ],
+        },
+    )
+    assert "category" in msg

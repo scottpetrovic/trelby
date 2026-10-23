@@ -14,6 +14,7 @@ import copy
 import trelby.util as util
 from trelby.screenplay.autocomp import AutoCompletionMixin
 from trelby.screenplay.beatboard import BeatBoardEditMixin
+from trelby.screenplay.breakdown import BreakdownEditMixin
 from trelby.screenplay.centering import CenteringEditMixin
 from trelby.screenplay.commands import CommandsMixin
 from trelby.screenplay.constants import PAREN
@@ -38,6 +39,7 @@ class Editor(
     OutlineEditMixin,
     BeatBoardEditMixin,
     NotesEditMixin,
+    BreakdownEditMixin,
     RevisionsEditMixin,
     EditingMixin,
     FormattingMixin,

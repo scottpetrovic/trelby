@@ -2,14 +2,15 @@ import wx
 
 import trelby.ui.icons as icons
 import trelby.ui.widgets as widgets
+from trelby.ui.breakdownview import BreakdownPanel
 from trelby.ui.globaldata import GlobalData
 from trelby.ui.notesview import NotesPanel
 from trelby.ui.outline import OutlinePanel
 from trelby.ui.readaloudview import ReadAloudPanel
 from trelby.ui.theming import blendColors
 
-# the panel beside the script, with the outline, the notes and the table
-# read's controls (Read aloud) as tabs.
+# the panel beside the script, with the outline, the notes, the table
+# read's controls (Read aloud) and the production breakdown as tabs.
 # its header has the tabs, the shown tab's buttons, and a button that hides
 # the panel. which tab is shown, and whether the panel is, is the same in
 # every script's tab (GlobalData.sideTab / showSidePanel), so the tabs and
@@ -21,9 +22,11 @@ from trelby.ui.theming import blendColors
 # accent color. clicking one calls onSelect(index).
 class SideTabs(wx.Window):
 
-    # space around each label, in DIPs
+    # space around each label, in DIPs, and how far the space beside them
+    # can shrink in a narrow panel
     PAD_X = 8
     PAD_Y = 5
+    MIN_PAD_X = 1
 
     # the underline's thickness, in DIPs
     BAR = 2
@@ -46,6 +49,7 @@ class SideTabs(wx.Window):
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeave)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
 
         self.updateSize()
 
@@ -54,6 +58,11 @@ class SideTabs(wx.Window):
         self.textColor = cfgGui.tabTextColor
         self.accentColor = cfgGui.accentColor
         self.Refresh()
+
+    # the tabs' padding depends on the width
+    def OnSize(self, event):
+        self.Refresh(False)
+        event.Skip()
 
     def AcceptsFocus(self):
         return False
@@ -65,14 +74,24 @@ class SideTabs(wx.Window):
         return self.GetFont().Bold()
 
     # the width of each tab: its label in bold, so that it doesn't change
-    # when the tab is shown, plus the padding
-    def getWidths(self, dc):
+    # when the tab is shown, plus the padding, which shrinks (down to
+    # MIN_PAD_X) where there isn't room for all of them. if 'room' is
+    # given, it's the width there is, otherwise the window's.
+    def getWidths(self, dc, room=None):
         dc.SetFont(self.boldFont())
+        texts = [dc.GetTextExtent(label).width for label in self.labels]
 
-        return [
-            dc.GetTextExtent(label).width + 2 * self.FromDIP(self.PAD_X)
-            for label in self.labels
-        ]
+        if room is None:
+            room = self.GetClientSize().width
+
+        pad = self.FromDIP(self.PAD_X)
+        minPad = self.FromDIP(self.MIN_PAD_X)
+
+        if room > 0:
+            fits = (room - sum(texts)) // (2 * len(texts))
+            pad = max(minPad, min(pad, fits))
+
+        return [w + 2 * pad for w in texts]
 
     # the tabs' wx.Rects
     def getRects(self, dc):
@@ -98,7 +117,7 @@ class SideTabs(wx.Window):
             + self.FromDIP(self.BAR)
         )
 
-        self.SetInitialSize(wx.Size(sum(self.getWidths(dc)), height))
+        self.SetInitialSize(wx.Size(sum(self.getWidths(dc, 0)), height))
         self.SetMinSize(wx.Size(self.FromDIP(40), height))
 
     def setSelected(self, idx):
@@ -165,7 +184,7 @@ class SideTabs(wx.Window):
             if shown:
                 dc.SetPen(wx.TRANSPARENT_PEN)
                 dc.SetBrush(wx.Brush(self.accentColor))
-                pad = self.FromDIP(self.PAD_X) // 2
+                pad = min(self.FromDIP(self.PAD_X), (r.width - size.width) // 2) // 2
                 dc.DrawRectangle(r.x + pad, r.GetBottom() - bar + 1, r.width - 2 * pad, bar)
 
 
@@ -185,16 +204,19 @@ class SidePanel(wx.Panel):
                 _("Outline"),
                 _("Notes"),
                 _("Read"),
+                _("Breakdown"),
             ],
             self.OnTabClicked,
         )
         hdr.Add(self.tabs, 1, wx.ALIGN_BOTTOM | wx.LEFT, self.FromDIP(2))
 
-        # GlobalData.SIDE_OUTLINE / SIDE_NOTES / SIDE_READ_ALOUD index this
+        # GlobalData.SIDE_OUTLINE / SIDE_NOTES / SIDE_READ_ALOUD /
+        # SIDE_BREAKDOWN index this
         self.outline = OutlinePanel(self, scriptPanel, self)
         self.notes = NotesPanel(self, scriptPanel, self)
         self.readAloud = ReadAloudPanel(self, scriptPanel, self)
-        self.pages = [self.outline, self.notes, self.readAloud]
+        self.breakdown = BreakdownPanel(self, scriptPanel, self)
+        self.pages = [self.outline, self.notes, self.readAloud, self.breakdown]
 
         for page in self.pages:
             hdr.Add(page.tools, 0, wx.ALIGN_CENTER_VERTICAL)

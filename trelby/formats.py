@@ -124,6 +124,17 @@ EXPORT_FORMATS = [
         lambda sp, pageMarkers=False: export.generateText(sp, pageMarkers),
         options=[("pageMarkers", lambda: _("Include page markers"))],
     ),
+    # not the script, but what each scene needs for production (see
+    # screenplay/breakdown.py)
+    Format(
+        "breakdown",
+        lambda: _("Breakdown CSV"),
+        lambda: _("Breakdown (CSV)"),
+        "B",
+        ["csv"],
+        lambda sp, castSpeakers=True: export.generateBreakdownCSV(sp, castSpeakers),
+        options=[("castSpeakers", lambda: _("Speaking characters as cast"))],
+    ),
 ]
 
 IMPORT_FORMATS = [

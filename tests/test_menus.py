@@ -163,6 +163,8 @@ def testProductionMenu():
         "TogglePageLocks",
         "ExportRevisedPages",
         "ClearRevisionMarks",
+        "ShowBreakdownPanel",
+        "ToggleShowTags",
     ]
 
 

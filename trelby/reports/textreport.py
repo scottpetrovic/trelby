@@ -97,9 +97,13 @@ class HtmlFormatter:
         self.flushSpace()
         self.parts.append(self.styled(s, fs, style) + "<br>")
 
+    # the text's leading spaces are kept, as its indentation
     def addWrappedText(self, text: str, indent: str) -> None:
+        body = text.lstrip(" ")
+        lead = "&nbsp;" * (len(text) - len(body))
+
         self.flushSpace()
-        self.parts.append(html.escape(text) + "<br>")
+        self.parts.append(lead + html.escape(body) + "<br>")
 
     def styled(self, s: str, fs: int, style: int) -> str:
         if style & pml.BOLD:

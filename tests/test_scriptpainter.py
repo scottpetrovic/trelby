@@ -31,7 +31,9 @@ def loadSample():
     return screenplay.Editor(sp)
 
 
-def paint(ed, vm, showFormatting=False, size=(900, 1200), scDict=None):
+def paint(
+    ed, vm, showFormatting=False, size=(900, 1200), scDict=None, showTags=False
+):
     cfgGl = ed.sp.cfgGl
     cfgGui = configgui.ConfigGui(cfgGl, 100)
     vp = scriptpainter.Viewport.make(
@@ -41,7 +43,7 @@ def paint(ed, vm, showFormatting=False, size=(900, 1200), scDict=None):
     bmp = wx.Bitmap(*size)
     dc = wx.MemoryDC(bmp)
     rect = scriptpainter.ScriptPainter(
-        vp, vm, cfgGl, showFormatting, scDict
+        vp, vm, cfgGl, showFormatting, scDict, showTags=showTags
     ).paint(dc)
     dc.SelectObject(wx.NullBitmap)
 
@@ -273,3 +275,23 @@ def testPaintRevisions(app, vm):
         paint(ed, vm())
 
     assert marks.count("*") == 1
+
+
+# the text breakdown tags were made from is highlighted in a tint of their
+# category's color, with a bar in the color itself, when tags are shown
+@pytest.mark.parametrize("vm", [viewmode.ViewModeDraft, viewmode.ViewModeLayout])
+def testPaintBreakdownTags(app, vm):
+    from trelby.screenplay.breakdown import Tag, category
+
+    ed = loadSample()
+    ed.line = 0
+    words = ed.sp.lines[1].text.split()
+    ed.sp.lines[1].tags = (Tag("props", "Thing", words[0]),)
+
+    color = wx.Colour("#" + category("props").color).Get(False)
+
+    vp, rect, bmp = paint(ed, vm())
+    assert countColor(bmp, color) == 0
+
+    vp, rect, bmp = paint(ed, vm(), showTags=True)
+    assert countColor(bmp, color) > 0

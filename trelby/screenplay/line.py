@@ -23,6 +23,7 @@ class Line:
         notes=(),
         revs=None,
         synopsis=None,
+        tags=(),
     ):
 
         # line break type: what separates this line from the next one
@@ -84,9 +85,15 @@ class Line:
         # see Screenplay.getSynopsis.
         self.synopsis = synopsis
 
+        # the breakdown tags (a tuple of screenplay.breakdown.Tag) on the
+        # paragraph this line starts. like the notes, only on a paragraph's
+        # first line, apart from in the middle of an edit; see
+        # breakdown.py.
+        self.tags = tags
+
     # return a copy of this line, including its page lock, dual flag,
-    # color, formatting, centered flag, scene lock, notes, revision marks
-    # and synopsis
+    # color, formatting, centered flag, scene lock, notes, revision marks,
+    # synopsis and tags
     def copy(self):
         return Line(
             self.lb,
@@ -101,6 +108,7 @@ class Line:
             self.notes,
             self.revs,
             self.synopsis,
+            self.tags,
         )
 
     # return the format string, exactly as long as the text
@@ -188,6 +196,7 @@ class Line:
             or (self.notes != other.notes)
             or (textfmt.compact(self.revs) != textfmt.compact(other.revs))
             or (self.synopsis != other.synopsis)
+            or (self.tags != other.tags)
         )
 
     def __eq__(self, other):

@@ -13,6 +13,8 @@
 #   locks*        locked pages and scene numbers
 #   sceneoutline* the outline, scene colors, moving scenes
 #   notes*        notes on paragraphs, shown in the notes sidebar
+#   breakdown*    production breakdown tags on paragraphs, and the
+#                 breakdown worked out from them
 #   revisions*    revision marks and colors, revised pages
 #
 # Editor:

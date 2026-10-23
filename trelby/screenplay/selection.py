@@ -135,6 +135,7 @@ class SelectionMixin:
                     fmt=ln.sliceFmt(c1, c2 + 1),
                     sceneLock=self.sp.getSceneLock(i) if (c1 == 0) else None,
                     notes=ln.notes if (c1 == 0) else (),
+                    tags=ln.tags if (c1 == 0) else (),
                     synopsis=self.sp.getSynopsis(i) if (c1 == 0) else None,
                 )
             )
@@ -219,6 +220,7 @@ class SelectionMixin:
         if del2 != -1:
             self.sp.movePageLocksForward(del1, del2)
             self.sp.moveNotesForward(del1, del2)
+            self.sp.moveTagsForward(del1, del2)
 
         del ls[del1 : del2 + 1]
 
@@ -291,6 +293,7 @@ class SelectionMixin:
 
                 newLine.text += ln.text
                 newLine.notes += ln.notes
+                newLine.tags += ln.tags
                 parts.append((ln.text, ln.fmt))
 
                 if ln.lb in (LB_LAST, LB_FORCED):
@@ -330,8 +333,10 @@ class SelectionMixin:
         movedLock = None
         movedSynopsis = None
 
-        # and the notes of the paragraph pasted into go with its text
+        # and the notes and tags of the paragraph pasted into go with its
+        # text
         movedNotes = ()
+        movedTags = ()
 
         if (self.column == 0) and (len(inLines) != 1) and not atEnd:
             movedLock = ln.sceneLock
@@ -340,6 +345,8 @@ class SelectionMixin:
             ln.synopsis = inLines[0].synopsis
             movedNotes = ln.notes
             ln.notes = ()
+            movedTags = ln.tags
+            ln.tags = ()
 
         if (len(ln.text) == 0) and self.sp.isOnlyLineOfElem(self.line):
             ln.lt = inLines[0].lt
@@ -363,6 +370,7 @@ class SelectionMixin:
         # the first pasted paragraph joins the one pasted into, notes and
         # all
         ln.notes += inLines[0].notes
+        ln.tags += inLines[0].tags
 
         if len(inLines) != 1:
 
@@ -371,6 +379,7 @@ class SelectionMixin:
                 ls[self.line].sceneLock = movedLock
                 ls[self.line].synopsis = movedSynopsis
                 ls[self.line].notes = movedNotes
+                ls[self.line].tags = movedTags
                 ls[self.line - 1].lb = inLines[0].lb
                 ls[self.line : self.line] = inLines[1:]
                 self.line += len(inLines) - 2

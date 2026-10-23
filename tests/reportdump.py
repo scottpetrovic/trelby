@@ -8,6 +8,7 @@
 import os
 
 import tests.u as u
+import trelby.reports.breakdownreport as breakdownreport
 import trelby.reports.characterreport as characterreport
 import trelby.reports.dialoguechart as dialoguechart
 import trelby.reports.locationreport as locationreport
@@ -29,6 +30,7 @@ def textReports(sp):
         "location": locationreport.LocationReport(scenereport.SceneReport(sp)),
         "character": characterreport.CharacterReport(sp),
         "script": scriptreport.ScriptReport(sp),
+        "breakdown": breakdownreport.BreakdownReport(sp),
     }
 
 

@@ -7,6 +7,7 @@ from typing import Tuple
 
 import trelby.config as config
 import trelby.error as error
+import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.screenplay.notes as notes
 import trelby.screenplay.headers as headers
@@ -24,6 +25,30 @@ from trelby.screenplay.constants import (
     NOTE,
 )
 from trelby.screenplay.datatypes import Mark, isValidColor
+
+
+# a breakdown tag's name or text, escaped like the character profile
+# notes, plus "|", which separates them on a Tag line
+def escapeTagText(s):
+    return characterprofiles.escapeText(s).replace("|", "\\u007c")
+
+
+# a Tag line's value ("category|name|text") as a breakdown.Tag, or None if
+# it isn't valid. categories this version doesn't know are kept as they
+# are, and counted as Miscellaneous.
+def parseTag(val):
+    parts = val.split("|")
+
+    if (len(parts) != 3) or not re.fullmatch(r"[a-z0-9_-]+", parts[0]):
+        return None
+
+    name = breakdown.cleanName(characterprofiles.unescapeText(parts[1]))
+    text = " ".join(characterprofiles.unescapeText(parts[2]).split())
+
+    if not name:
+        return None
+
+    return breakdown.Tag(parts[0], name, text)
 
 
 # save script to a utf-8 encoded string and return that
@@ -134,6 +159,13 @@ def save(sp) -> bytes:
             output += "#%s %s\n" % (
                 "Note-Resolved" if note.resolved else "Note",
                 characterprofiles.escapeText(note.text),
+            )
+
+        for tag in ln.tags:
+            output += "#Tag %s|%s|%s\n" % (
+                tag.category,
+                escapeTagText(tag.name),
+                escapeTagText(tag.text),
             )
 
         output += str(ln) + "\n"
@@ -266,6 +298,9 @@ def load(s: str, cfgGl):
     # synopsis to set on the next script line, or None
     synopsis = None
 
+    # breakdown tags to put on the next script line
+    lineTags = ()
+
     for i in range(index, len(lines)):
         s = lines[i]
 
@@ -331,6 +366,12 @@ def load(s: str, cfgGl):
                 synopsis = textutil.fixNL(characterprofiles.unescapeText(val))
                 synopsis = synopsis.strip() or None
 
+            elif (key == "Tag") and startSeen:
+                tag = parseTag(val)
+
+                if tag:
+                    lineTags += (tag,)
+
             elif (key in ("Note", "Note-Resolved")) and startSeen:
                 text = textutil.fixNL(characterprofiles.unescapeText(val))
 
@@ -383,6 +424,7 @@ def load(s: str, cfgGl):
             line.sceneLock = sceneLock
             line.notes = lineNotes
             line.synopsis = synopsis
+            line.tags = lineTags
 
             if fmt:
                 line.fmt = textfmt.decode(fmt, len(text))
@@ -400,6 +442,7 @@ def load(s: str, cfgGl):
             centered = False
             lineNotes = ()
             synopsis = None
+            lineTags = ()
 
             if lb != LB_LAST:
                 prevType = lt

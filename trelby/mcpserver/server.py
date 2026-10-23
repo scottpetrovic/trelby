@@ -28,6 +28,7 @@ from mcp.types import ToolAnnotations
 
 import trelby.formats as formats
 import trelby.mcpserver.tools as mcptools
+import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.scriptformats as scriptformats
 
 # port the server in the app listens on by default
@@ -71,6 +72,16 @@ what some element types stand for in it:
   panel shows, and act breaks are chapters. Captions and sound effects are
   speeches (character CAPTION or SFX, then dialogue); transitions aren't
   used.
+
+An element can also have breakdown tags: the things its scene needs for
+production (cast, extras, props, vehicles, wardrobe, special effects, ...),
+each with a category, the element's name and the element's text it was made
+from (highlighted in Trelby wherever it appears in the element), or no text
+for something the text doesn't mention. get_breakdown lists what each scene
+needs and the scenes each element is in. To tag something, replace its
+scene with the tag added to the element that mentions it. When replacing a
+scene, give each element the tags it had, unless asked to change them; an
+element left without tags loses them.
 
 A script can also have world building notes (get_world_building), the
 writer's free-text notes about the story's world, and character profiles
@@ -126,6 +137,21 @@ class ElementNote(BaseModel):
     )
 
 
+class ElementTag(BaseModel):
+    category: Literal[tuple(c.key for c in breakdown.CATEGORIES)] = Field(
+        description="The breakdown category."
+    )
+    name: str = Field(
+        description="The element's name, the same wherever it's tagged "
+        "(e.g. 'Revolver'); case is ignored."
+    )
+    text: str = Field(
+        "",
+        description="The words of this element's text the tag was made "
+        "from (e.g. 'his gun'), or empty for something it doesn't mention.",
+    )
+
+
 class Element(BaseModel):
     type: Literal[
         "scene",
@@ -166,6 +192,10 @@ class Element(BaseModel):
         [],
         description="Notes about this element, shown in the notes sidebar "
         "and never printed.",
+    )
+    tags: list[ElementTag] = Field(
+        [],
+        description="Production breakdown tags on this element.",
     )
 
 
@@ -248,6 +278,24 @@ def makeServer(run, inApp):
         """List the speaking characters, with how many speeches they have
         and the indexes of the scenes they speak in."""
         return await run("list_characters", {"path": path})
+
+    @server.tool(annotations=READ)
+    async def get_breakdown(
+        *,
+        path: Path,
+        cast_speakers: Annotated[
+            bool,
+            Field(description="Count the speaking characters as cast."),
+        ] = True,
+    ) -> Result:
+        """Return the script's production breakdown: for each scene (by
+        index, as in list_scenes) its scene number, heading, INT./EXT.,
+        time of day, page, length in eighths of a page and the elements it
+        needs by category; and every element with the indexes of the
+        scenes it's in."""
+        return await run(
+            "get_breakdown", {"path": path, "cast_speakers": cast_speakers}
+        )
 
     @server.tool(annotations=READ)
     async def search_script(

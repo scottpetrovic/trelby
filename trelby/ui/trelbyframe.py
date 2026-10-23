@@ -790,6 +790,13 @@ class MyFrame(wx.Frame):
         if fileio.writeToFile(path, self.gd.cfgGl.save(), self):
             self.gd.confFilename = path
 
+    # Production > Highlight breakdown tags, in every tab
+    def OnToggleShowTags(self):
+        self.gd.showTags = not self.gd.showTags
+
+        for i in range(self.tabCtrl.getPageCount()):
+            self.tabCtrl.getPage(i).ctrl.Refresh(False)
+
     # from the View menu item, which wx has already (un)checked, or its
     # keyboard command
     def OnToggleShowFormatting(self):
@@ -843,6 +850,7 @@ class MyFrame(wx.Frame):
             ID_VIEW_SHOW_READ_ALOUD,
             gd.showSidePanel and (gd.sideTab == gd.SIDE_READ_ALOUD),
         )
+        self.menuBar.Check(ID_VIEW_SHOW_BREAKDOWN, gd.breakdownShown())
 
     # the table read (self.reader) started, stopped, paused or went on to
     # another element: show it in the Read aloud tabs

@@ -21,6 +21,7 @@ import trelby.ui.myimport as myimport
 import trelby.ui.noteeditor as noteeditor
 import trelby.opts as opts
 import trelby.screenplay as screenplay
+import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.scriptformats as scriptformats
 import trelby.spellcheck as spellcheck
 import trelby.ui.scriptactions as scriptactions
@@ -91,6 +92,11 @@ SYNONYMS_PER_SENSE = 5
 
 # how long a sense's definition can be in the synonyms menu
 SYNONYM_DEFINITION_LENGTH = 50
+
+# how many of the tags under the mouse the right-click menu offers to
+# remove, and how long their names can be there
+UNTAG_ITEMS = 5
+UNTAG_NAME_LENGTH = 30
 
 
 # load the thesaurus if it isn't loaded already, showing a message box
@@ -207,6 +213,19 @@ class MyCtrl(wx.Control):
 
         for id in self.synonymIds:
             self.Bind(wx.EVT_MENU, self.OnSynonymMenu, id=id)
+
+        # the right-click menu's breakdown items: tagging the selection or
+        # the word clicked on as each category, and removing the tags
+        # under the mouse. tagTarget is (line, text) to tag, and
+        # untagTargets the (line, index, Tag)s to remove, for the menu
+        # last opened.
+        self.tagIds = [wx.NewIdRef() for c in breakdown.CATEGORIES]
+        self.untagIds = [wx.NewIdRef() for i in range(UNTAG_ITEMS)]
+        self.tagTarget = None
+        self.untagTargets = []
+
+        for id in self.tagIds + self.untagIds:
+            self.Bind(wx.EVT_MENU, self.OnTagMenu, id=id)
 
         # records the writing sessions in the script in the writing log
         # (see writingsession.py), told about it in updateScreen
@@ -589,6 +608,7 @@ class MyCtrl(wx.Control):
         self.panel.outline.scheduleRefresh()
         self.panel.notes.scheduleRefresh()
         self.panel.side.readAloud.scheduleRefresh()
+        self.panel.side.breakdown.scheduleRefresh()
 
     # if text has wide characters (Chinese, Japanese, Korean) and the
     # script doesn't use double-width characters, offer to switch to them,
@@ -1035,6 +1055,7 @@ class MyCtrl(wx.Control):
             self.ed.getCenteredState(),
             self.spellingMenu(line, col),
             self.synonymsMenu(line, col),
+            self.tagMenu(line, col),
         )
         self.PopupMenu(m)
         m.Destroy()
@@ -1173,6 +1194,74 @@ class MyCtrl(wx.Control):
         self.sp.paginate()
         self.makeLineVisible(self.ed.line)
         self.updateScreen()
+
+    # the right-click menu's breakdown items for (line, col): (the "Tag
+    # as" submenu's (id, label) items, or None if there's nothing to tag,
+    # and (id, label) items for removing the tags there). what's tagged is
+    # the selection if it's in one paragraph, otherwise the word at (line,
+    # col). sets self.tagTarget and self.untagTargets.
+    def tagMenu(self, line, col):
+        self.tagTarget = None
+        self.untagTargets = []
+
+        if line is None:
+            return (None, [])
+
+        if self.ed.mark:
+            self.tagTarget = self.ed.getSelectedTagText()
+        else:
+            found = spellcheck.wordAt(self.sp.lines[line].text, col)
+
+            if found:
+                self.tagTarget = (line, found[1])
+
+        tagItems = None
+
+        if self.tagTarget:
+            tagItems = [
+                (id, c.label()) for id, c in zip(self.tagIds, breakdown.CATEGORIES)
+            ]
+
+        removeItems = []
+
+        if not self.ed.mark:
+            self.untagTargets = self.sp.getTagsAt(line, col)[:UNTAG_ITEMS]
+
+            for id, (first, index, tag) in zip(self.untagIds, self.untagTargets):
+                name = tag.name
+
+                if len(name) > UNTAG_NAME_LENGTH:
+                    name = name[: UNTAG_NAME_LENGTH - 1].rstrip() + "…"
+
+                removeItems.append(
+                    (
+                        id,
+                        _("Remove tag: {} ({})").format(
+                            name, breakdown.category(tag.category).label()
+                        ),
+                    )
+                )
+
+        return (tagItems, removeItems)
+
+    def OnTagMenu(self, event):
+        id = event.GetId()
+        tagIds = [int(x) for x in self.tagIds]
+        untagIds = [int(x) for x in self.untagIds]
+
+        if (id in tagIds) and self.tagTarget:
+            line, text = self.tagTarget
+            cat = breakdown.CATEGORIES[tagIds.index(id)].key
+            self.addTag(line, cat, text, text)
+        elif id in untagIds:
+            k = untagIds.index(id)
+
+            if k < len(self.untagTargets):
+                line, index, tag = self.untagTargets[k]
+                self.removeTag(line, index)
+
+        self.tagTarget = None
+        self.untagTargets = []
 
     def OnMouseWheel(self, event):
         if event.ControlDown():
@@ -1372,6 +1461,35 @@ class MyCtrl(wx.Control):
         self.clearAutoComp()
         self.ed.deleteNote(line, index)
         self.updateScreen()
+
+    # the breakdown's edits (see Editor.addTag etc.), from the right-click
+    # menu and the breakdown panel. each returns whether it changed
+    # anything.
+    def addTag(self, line, category, name, text=""):
+        return self.editTags(lambda: self.ed.addTag(line, category, name, text))
+
+    def removeTag(self, line, index):
+        return self.editTags(lambda: self.ed.removeTag(line, index) or True)
+
+    def addSceneElement(self, line, category, name):
+        return self.editTags(lambda: self.ed.addSceneElement(line, category, name))
+
+    def renameElement(self, category, name, newCategory, newName):
+        return self.editTags(
+            lambda: self.ed.renameElement(category, name, newCategory, newName)
+        )
+
+    def removeElement(self, category, name, line=None):
+        return self.editTags(lambda: self.ed.removeElement(category, name, line))
+
+    def editTags(self, edit):
+        self.clearAutoComp()
+        changed = edit()
+
+        if changed:
+            self.updateScreen()
+
+        return changed
 
     # set the outline color of the scene containing the given line, or
     # remove it if color is None. used by the outline view.
@@ -1609,6 +1727,7 @@ class MyCtrl(wx.Control):
             self.newNoteLine,
             self.readingLines,
             self.focusLines(),
+            self.gd.showTags,
         )
         self.titleButtonRect = painter.paint(dc)
         self.noteMarkers = painter.noteMarkers

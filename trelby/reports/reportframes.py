@@ -1,5 +1,6 @@
 import wx
 
+import trelby.reports.breakdownreport as breakdownreport
 import trelby.reports.characterreport as characterreport
 import trelby.reports.dialoguechart as dialoguechart
 import trelby.reports.locationreport as locationreport
@@ -24,6 +25,14 @@ class LocationReportFrame(reportwindow.TextReportFrame):
 
     def createReport(self):
         return locationreport.LocationReport(scenereport.SceneReport(self.sp))
+
+
+class BreakdownReportFrame(reportwindow.TextReportFrame):
+    def getName(self):
+        return _("Breakdown Report")
+
+    def createReport(self):
+        return breakdownreport.BreakdownReport(self.sp)
 
 
 class ScriptReportFrame(reportwindow.TextReportFrame):
@@ -176,6 +185,10 @@ def genCharacterReport(mainFrame, sp, scriptName):
 
 def genScriptReport(mainFrame, sp, scriptName):
     reportwindow.show(ScriptReportFrame, mainFrame, sp, scriptName)
+
+
+def genBreakdownReport(mainFrame, sp, scriptName):
+    reportwindow.show(BreakdownReportFrame, mainFrame, sp, scriptName)
 
 
 def genDialogueChart(mainFrame, sp, scriptName):

@@ -61,7 +61,7 @@ class GlobalData:
     ) = list(range(3))
 
     # the side panel's tabs (see sidepanel.SidePanel)
-    SIDE_OUTLINE, SIDE_NOTES, SIDE_READ_ALOUD = list(range(3))
+    SIDE_OUTLINE, SIDE_NOTES, SIDE_READ_ALOUD, SIDE_BREAKDOWN = list(range(4))
 
     # available zoom levels, in percent
     ZOOM_LEVELS = [50, 67, 75, 90, 100, 125, 150, 175, 200, 250, 300]
@@ -137,9 +137,13 @@ class GlobalData:
             self.SIDE_OUTLINE,
             "SideTab",
             self.SIDE_OUTLINE,
-            self.SIDE_READ_ALOUD,
+            self.SIDE_BREAKDOWN,
         )
         v.addInt("sideWidth", 240, "SideWidth", 120, 2000)
+
+        # whether the script's breakdown tags are highlighted in their
+        # categories' colors (see screenplay/breakdown.py)
+        v.addBool("showTags", True, "ShowBreakdownTags")
 
         v.addList("files", [], "Files", mypickle.StrUnicodeVar("", "", ""))
 
@@ -202,6 +206,10 @@ class GlobalData:
     # whether the side panel is shown at the notes
     def notesShown(self):
         return self.showSidePanel and (self.sideTab == self.SIDE_NOTES)
+
+    # whether the side panel is shown at the breakdown
+    def breakdownShown(self):
+        return self.showSidePanel and (self.sideTab == self.SIDE_BREAKDOWN)
 
     # whether the side panel is shown at the outline
     def outlineShown(self):

@@ -373,4 +373,15 @@ starts at the next line, shown in the notes sidebar and never printed;
 "Note-Resolved" is one marked as dealt with. There can be several before
 a line, in the order they're shown. Empty ones are ignored.
 
+"Tag". Value: "category|name|text", the name and text escaped like the
+notes, with "|" as |. A production breakdown tag on the paragraph
+that starts at the next line: the paragraph's scene needs the element
+"name" of the category (one of cast, extras, stunts, vehicles, props, sfx,
+vfx, wardrobe, makeup, animals, music, sound, setdressing, equipment,
+misc; others are treated as misc), and "text" is the paragraph's text the
+tag was made from, highlighted wherever it's found in the paragraph, or
+empty. Elements are the same element if their categories and names match,
+ignoring case. There can be several before a line. Ones without a name
+are ignored.
+
 See sample.trelby for an example screenplay.

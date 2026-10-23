@@ -10,6 +10,7 @@ from wx.lib.wordwrap import wordwrap
 import trelby.config as config
 import trelby.ui.gutil as gutil
 import trelby.pdf.pml as pml
+import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.revisions as revisions
 import trelby.spellcheck as spellcheck
 import trelby.textfmt as textfmt
@@ -90,7 +91,8 @@ class ScriptPainter:
     # is (first line, last line) of the element being read aloud, which is
     # highlighted, or None. focusLines is (first line, last line) of the
     # text focus mode keeps, everything else being faded into the page,
-    # or None for none faded.
+    # or None for none faded. showTags is whether the breakdown tags'
+    # text is highlighted in their categories' colors.
     def __init__(
         self,
         vp,
@@ -101,6 +103,7 @@ class ScriptPainter:
         newNoteLine=None,
         readingLines=None,
         focusLines=None,
+        showTags=False,
     ):
         self.vp = vp
         self.vm = vm
@@ -110,6 +113,11 @@ class ScriptPainter:
         self.newNoteLine = newNoteLine
         self.readingLines = readingLines
         self.focusLines = focusLines
+        self.showTags = showTags
+
+        # the colors the tags of each breakdown category are highlighted
+        # with, by category key: (background, bar)
+        self.tagColors = {}
 
         self.spellChecker = None
 
@@ -228,6 +236,9 @@ class ScriptPainter:
 
                 if l.revs:
                     self.drawRevised(dc, t, l, y, lineh, cfx)
+
+                if self.showTags:
+                    self.drawTags(dc, t, i, y, lineh, cfx)
 
                 if marked and vp.ed.isLineMarked(i, marked):
                     c1, c2 = vp.ed.getMarkedColumns(i, marked)
@@ -429,6 +440,45 @@ class ScriptPainter:
             if level:
                 dc.SetBrush(wx.Brush(self.revisionColor(level)))
                 dc.DrawRectangle(t.x + a * cfx, y, (b - a) * cfx, lineh)
+
+    # highlight the text of line i, drawn at t.x, y, that breakdown tags
+    # were made from (see screenplay/breakdown.py): a tint of its
+    # category's color, with a bar in the color itself along the bottom
+    def drawTags(self, dc, t, i, y, lineh, cfx):
+        spans = self.vp.sp.getLineTagSpans(i)
+
+        if not spans:
+            return
+
+        n = len(t.text)
+        bar = max(2, self.vp.dip(2))
+        dc.SetPen(wx.TRANSPARENT_PEN)
+
+        for a, b, tag in spans:
+            b = min(b, n)
+
+            if a >= b:
+                continue
+
+            bg, fg = self.tagColor(tag.category)
+            x = t.x + a * cfx
+            w = (b - a) * cfx
+
+            dc.SetBrush(wx.Brush(bg))
+            dc.DrawRectangle(x, y, w, lineh)
+            dc.SetBrush(wx.Brush(fg))
+            dc.DrawRectangle(x, y + lineh - bar, w, bar)
+
+    # (background, bar) colors for highlighting tags of the given category
+    def tagColor(self, key):
+        colors = self.tagColors.get(key)
+
+        if colors is None:
+            color = wx.Colour("#" + breakdown.category(key).color)
+            colors = (blendColors(self.cfgGui.textBgColor, color, 0.25), color)
+            self.tagColors[key] = colors
+
+        return colors
 
     # the color revised text of 'level' is highlighted with: the
     # revision's color, faded into the page's

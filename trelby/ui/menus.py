@@ -20,6 +20,7 @@ from trelby.ui.beatboardview import BOARD_TOGGLE_KEY
 from trelby.ui.globaldata import GlobalData
 from trelby.ui.ids import *
 from trelby.reports.reportframes import (
+    genBreakdownReport,
     genCharacterReport,
     genDialogueChart,
     genLocationReport,
@@ -593,6 +594,14 @@ def makeTable():
                 kind=wx.ITEM_CHECK,
             ),
             Action(
+                "ToggleBreakdown",
+                ID_VIEW_SHOW_BREAKDOWN,
+                _("Breakdown"),
+                "k",
+                OnFrame("OnToggleSideTab", GlobalData.SIDE_BREAKDOWN),
+                kind=wx.ITEM_CHECK,
+            ),
+            Action(
                 "ToggleBeatBoard",
                 ID_VIEW_BEAT_BOARD,
                 _("Beat board"),
@@ -835,6 +844,23 @@ def makeTable():
                 OnScript(scriptactions.clearRevisionMarks),
                 canUse=lambda f, c: c.sp.hasRevisionMarks(),
             ),
+            SEP,
+            Action(
+                "ShowBreakdownPanel",
+                ID_PRODUCTION_BREAKDOWN,
+                _("Breakdown"),
+                "B",
+                OnFrame("showSideTab", GlobalData.SIDE_BREAKDOWN),
+            ),
+            Action(
+                "ToggleShowTags",
+                ID_PRODUCTION_SHOW_TAGS,
+                _("Highlight breakdown tags"),
+                "H",
+                OnFrame("OnToggleShowTags"),
+                kind=wx.ITEM_CHECK,
+                isChecked=lambda f, c: f.gd.showTags,
+            ),
         ],
     )
 
@@ -879,6 +905,14 @@ def makeTable():
                 _("Dialogue chart"),
                 "D",
                 OnScript(scriptactions.report, genDialogueChart),
+                dots=True,
+            ),
+            Action(
+                "ReportBreakdown",
+                ID_REPORTS_BREAKDOWN,
+                _("Breakdown report"),
+                "B",
+                OnScript(scriptactions.report, genBreakdownReport),
                 dots=True,
             ),
         ],
@@ -1202,8 +1236,10 @@ SCRIPT_ONLY = {
     "ReadAloud",
     "SelectAll",
     "SelectScene",
+    "ShowBreakdownPanel",
     "SpellCheckerDlg",
     "ToggleBold",
+    "ToggleBreakdown",
     "ToggleCentered",
     "ToggleItalic",
     "ToggleNotes",
@@ -1336,7 +1372,9 @@ def onUpdateUI(frame, event, a):
 # the cursor, otherwise whether the cursor is in a dual dialogue.
 # centeredState is likewise for centering action elements. spelling, for a
 # misspelled word, is a list of (id, label) items to put first, an id of
-# None making the label a disabled item.
+# None making the label a disabled item. tagging is (the "Tag as"
+# submenu's (id, label) items, or None for none, and (id, label) items for
+# removing breakdown tags), see MyCtrl.tagMenu.
 def makeRightClickMenu(
     actions,
     cfg,
@@ -1346,6 +1384,7 @@ def makeRightClickMenu(
     centeredState=None,
     spelling=None,
     synonyms=None,
+    tagging=None,
 ):
     def append(menu, name, kind=wx.ITEM_NORMAL):
         a = actions[name]
@@ -1397,6 +1436,16 @@ def makeRightClickMenu(
 
     m.AppendSeparator()
     append(m, "AddNote")
+
+    tagItems, removeItems = tagging or (None, [])
+
+    if tagItems:
+        tagMenu = wx.Menu()
+        appendItems(tagMenu, tagItems)
+        m.AppendSubMenu(tagMenu, _("Tag as"))
+
+    appendItems(m, removeItems)
+
     append(m, "SelectScene")
     m.AppendSeparator()
     m.Append(

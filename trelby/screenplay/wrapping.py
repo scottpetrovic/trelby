@@ -257,6 +257,9 @@ class WrappingMixin:
         # notes.py)
         wrappedLines[0].notes = sum((ls[i].notes for i in range(line1, line2 + 1)), ())
 
+        # and so do its breakdown tags (see breakdown.py)
+        wrappedLines[0].tags = sum((ls[i].tags for i in range(line1, line2 + 1)), ())
+
         ls[line1 : line2 + 1] = wrappedLines
 
         # put the page locks back on the lines that now contain the text

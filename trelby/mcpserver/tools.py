@@ -16,6 +16,7 @@ import hashlib
 import os
 import re
 
+import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.characterprofiles as characterprofiles
 import trelby.config as config
 import trelby.error as error
@@ -114,7 +115,7 @@ def revisionOf(data):
 # report it, never change it.
 def linesRevision(sp):
     s = "\n".join(
-        "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"
+        "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"
         % (
             ln,
             ln.pageLock or "",
@@ -126,6 +127,7 @@ def linesRevision(sp):
             repr(ln.notes) if ln.notes else "",
             ln.revs or "",
             repr(ln.synopsis) if ln.synopsis else "",
+            repr(ln.tags) if ln.tags else "",
         )
         for ln in sp.lines
     )
@@ -360,7 +362,8 @@ def partOfLine(sp, line):
 # (Line.fmt) and scene locks are not returned, and buildLines doesn't take
 # them, so replacing a scene drops its bold / italic / underline. the notes
 # on the element's paragraphs (screenplay/notes.py) are returned as the
-# element's, and buildLines puts them on its first paragraph.
+# element's, and buildLines puts them on its first paragraph, and so are
+# the breakdown tags (screenplay/breakdown.py).
 def getElements(sp, first, last):
     ls = sp.lines
     ret = []
@@ -370,10 +373,12 @@ def getElements(sp, first, last):
         start = i
         text = ""
         notes = ()
+        tags = ()
 
         while 1:
             text += ls[i].text
             notes += ls[i].notes
+            tags += ls[i].tags
 
             if ls[i].lb == LB_LAST:
                 break
@@ -400,6 +405,9 @@ def getElements(sp, first, last):
             elem["notes"] = [
                 {"text": n.text, "resolved": n.resolved} for n in notes
             ]
+
+        if tags:
+            elem["tags"] = [tagDict(t) for t in tags]
 
         ret.append(elem)
         i += 1
@@ -445,8 +453,56 @@ def parseNotes(elem, n):
     return ret
 
 
+# a breakdown tag as a dict: {"category", "name", and "text" if it has any}
+def tagDict(tag):
+    d = {"category": tag.category, "name": tag.name}
+
+    if tag.text:
+        d["text"] = tag.text
+
+    return d
+
+
+# return the breakdown tags in an element dict's "tags" (a list of
+# {"category", "name", optional "text"}) as a tuple of Tags. n is the
+# element's number, for errors.
+def parseTags(elem, n):
+    items = elem.get("tags") or []
+
+    if not isinstance(items, list):
+        raise ToolError("Element %d's tags are not a list." % n)
+
+    ret = ()
+
+    for item in items:
+        if not isinstance(item, dict) or not all(
+            isinstance(item.get(k, ""), str) for k in ("category", "name", "text")
+        ):
+            raise ToolError(
+                "Element %d has a tag that isn't {category, name, text}." % n
+            )
+
+        cat = item.get("category", "").strip().lower()
+
+        if not breakdown.isCategory(cat):
+            raise ToolError(
+                "Unknown breakdown category '%s'. Valid categories: %s."
+                % (cat, ", ".join(c.key for c in breakdown.CATEGORIES))
+            )
+
+        name = breakdown.cleanName(item.get("name", ""))
+
+        if not name:
+            raise ToolError("Element %d has a tag without a name." % n)
+
+        text = " ".join(item.get("text", "").split())
+        ret += (breakdown.Tag(cat, name, text),)
+
+    return ret
+
+
 # convert a list of element dicts ({"type", "text", optional "color",
-# "synopsis", "dual", "centered" and "notes"}) to unwrapped lines. if needHeading is
+# "synopsis", "dual", "centered", "notes" and "tags"}) to unwrapped lines. if needHeading is
 # True, the first element must be a scene heading or act break.
 def buildLines(elements, needHeading):
     if not isinstance(elements, list) or not elements:
@@ -496,6 +552,7 @@ def buildLines(elements, needHeading):
             raise ToolError("Only action elements can be centered.")
 
         notes = parseNotes(elem, n)
+        tags = parseTags(elem, n)
 
         parts = textutil.fixNL(text).replace("\t", " ").split("\n")
 
@@ -515,6 +572,7 @@ def buildLines(elements, needHeading):
                     color=color if isFirst else None,
                     centered=centered and isFirst,
                     notes=notes if isFirst else (),
+                    tags=tags if isFirst else (),
                     synopsis=synopsis if isFirst else None,
                 )
             )
@@ -588,10 +646,58 @@ def getInfo(doc):
             "character_profiles": len(sp.characterProfiles.profiles),
             "has_world_building": bool(sp.worldBuilding.text.strip()),
             "notes": len(sp.getAllNotes()),
+            "breakdown_tags": len(sp.getAllTags()),
         }
     )
 
     return ret
+
+
+# the production breakdown (see screenplay/breakdown.py): what each scene
+# needs, by category, and every element with the scenes it's in. scenes
+# are given by their index, as in list_scenes. if castSpeakers, the
+# speaking characters are counted as cast.
+def getBreakdown(doc, castSpeakers=True):
+    sp, rev = doc.read()
+
+    scenes = []
+
+    for sb in sp.getBreakdown(castSpeakers):
+        d = {
+            "index": partOfLine(sp, sb.start),
+            "heading": sb.heading,
+            "page": sb.page,
+            "length_eighths": sb.eighths,
+            "elements": sb.elements,
+        }
+
+        if sb.number:
+            d["scene_number"] = sb.number
+
+        if sb.intExt:
+            d["int_ext"] = sb.intExt
+
+        if sb.time:
+            d["time"] = sb.time
+
+        scenes.append(d)
+
+    elements = [
+        {
+            "category": e.category,
+            "name": e.name,
+            "scenes": [partOfLine(sp, s) for s in e.scenes],
+            "tagged": e.tagged,
+        }
+        for e in sp.getElementList(castSpeakers)
+    ]
+
+    return {
+        "revision": rev,
+        "categories": {c.key: c.label() for c in breakdown.CATEGORIES},
+        "scenes": scenes,
+        "elements": elements,
+    }
 
 
 def listScenes(doc):
@@ -1034,6 +1140,7 @@ OPS = {
     "list_scenes": lambda d, a: listScenes(d),
     "read_scenes": lambda d, a: readScenes(d, a["first"], a.get("last")),
     "list_characters": lambda d, a: listCharacters(d),
+    "get_breakdown": lambda d, a: getBreakdown(d, a.get("cast_speakers", True)),
     "search_script": lambda d, a: search(
         d, a["query"], a.get("case_sensitive", False)
     ),

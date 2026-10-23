@@ -1049,6 +1049,47 @@
 
 	</sect1>
 
+	<sect1 id="breakdown">
+	  <title>Production/Breakdown</title>
+
+	  <para>A breakdown lists what each scene needs to be shot: its cast,
+	  extras, stunts, vehicles, props, special and visual effects,
+	  wardrobe, makeup and hair, animals, music, sound, set dressing and
+	  special equipment. It's what scheduling and budgeting start
+	  from.</para>
+
+	  <para>To tag something, select it in the script (or just put the
+	  mouse on a single word), right-click, and pick its category under
+	  'Tag as'. The tagged text is highlighted in the category's color
+	  wherever it appears in that paragraph, and the tag stays with the
+	  paragraph as the script is edited. Right-clicking tagged text offers
+	  to remove the tag. 'Highlight breakdown tags' turns the
+	  highlighting on and off.</para>
+
+	  <para>'Breakdown' opens the side panel's Breakdown tab, which shows
+	  what the scene at the cursor needs, by category, or everything in
+	  the whole script with how many scenes each is in. The speaking
+	  characters are counted as cast without being tagged (their names
+	  are dimmed, with "speaks"); the panel's right-click menu turns this
+	  off. The + button adds something the scene needs that its text
+	  doesn't mention, such as a rain machine. Double-clicking an element
+	  goes to it (in the whole script, to the next scene it's in), and its
+	  right-click menu renames it, moves it to another category, or
+	  removes it from the scene or the whole script. Things tagged with
+	  the same category and name are the same element, so renaming one
+	  renames it everywhere; to make two names one element, rename one to
+	  the other.</para>
+
+	  <para>Reports/Breakdown report shows a breakdown sheet for each
+	  scene (its number, heading, page, length in eighths of a page, and
+	  what it needs) and the list of every element with its scenes.
+	  File/Export/Breakdown (CSV) saves the breakdown as a spreadsheet,
+	  a row per scene and a column per category, for scheduling software.
+	  AI assistants connected over MCP can read the breakdown
+	  (get_breakdown) and tag elements.</para>
+
+	</sect1>
+
 	<sect1 id="spell_checker">
 	  <title>Tools/Spell checker</title>
 
