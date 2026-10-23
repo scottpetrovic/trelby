@@ -541,3 +541,187 @@ def testReport():
     assert "ELEMENTS" not in report.generateHtml()
 
     assert report.generate().startswith(b"%PDF")
+
+
+# Final Draft (FDX): the tags as its tagger's TagData, and back
+
+FDX_PROPS = "05c556eb-6bc1-4a3a-b09f-f8b5ba1b6afa"
+FDX_CAST = "01fc9642-84ff-4366-b37c-a3068dee57e8"
+
+
+def fdxTagged():
+    ed = load()
+    ed.addSceneElement(0, "sfx", "Rain machine")
+    ed.addSceneElement(0, "cast", "Stunt double")
+    car = lineOf(ed, "The sports car")
+    ed.addTag(car, "props", "Car keys", "car")
+    ed.addTag(lineOf(ed, "JOHN"), "cast", "John", "John")
+    ed.sp.paginate()
+
+    return ed
+
+
+def fdxRoot(sp):
+    from lxml import etree
+
+    import trelby.screenplay.export as export
+
+    return etree.fromstring(export.generateFDX(sp))
+
+
+def testFdxExportTags():
+    ed = fdxTagged()
+    root = fdxRoot(ed.sp)
+
+    # every Final Draft category, with its own Id, the ones Trelby has in
+    # Trelby's colors
+    cats = root.xpath("TagData/TagCategories/TagCategory")
+    assert [c.get("Name") for c in cats] == [
+        c[0] for c in breakdown.FDX_CATEGORIES
+    ]
+    props = root.xpath("TagData/TagCategories/TagCategory[@Name='Props']")[0]
+    assert props.get("Id") == FDX_PROPS
+    assert props.get("Color") == "#8E8E2424AAAA"
+
+    defs = {
+        d.get("Label"): d for d in root.xpath("TagData/TagDefinitions/TagDefinition")
+    }
+    assert list(defs) == [
+        "Rain machine",
+        "Stunt double",
+        "Revolver",
+        "John",
+        "Sports car",
+        "Car keys",
+    ]
+    assert defs["Revolver"].get("CatId") == FDX_PROPS
+    assert defs["John"].get("CatId") == FDX_CAST
+
+    # Tag number -> labels of the elements it names
+    tags = {
+        t.get("Number"): [
+            [k for k, d in defs.items() if d.get("Id") == i.text][0]
+            for i in t.xpath("DefId")
+        ]
+        for t in root.xpath("TagData/Tags/Tag")
+    }
+
+    # text run -> the elements tagged on it
+    runs = [
+        (t.text, tags[t.get("TagNumber")])
+        for t in root.xpath("Content//Text[@TagNumber]")
+    ]
+    assert runs == [
+        # the scene's elements that its text doesn't mention are on its
+        # heading
+        ("INT. GARAGE - NIGHT", ["Rain machine", "Stunt double"]),
+        ("his gun", ["Revolver"]),
+        ("JOHN", ["John"]),
+        # overlapping tags: a Tag naming both
+        ("sports ", ["Sports car"]),
+        ("car", ["Sports car", "Car keys"]),
+    ]
+
+    # the same Ids every time
+    assert fdxRoot(ed.sp).xpath("TagData/TagDefinitions/TagDefinition/@Id") == [
+        d.get("Id") for d in defs.values()
+    ]
+
+
+def testFdxExportWithoutTags():
+    ed = u.loadStringEditor("\n".join(SCRIPT[:3]))
+    ed.sp.lines[0].tags = ()
+    ed.sp.paginate()
+
+    root = fdxRoot(ed.sp)
+    assert not root.xpath("TagData")
+    assert not root.xpath("//Text[@TagNumber]")
+
+
+# the tags of each imported line that has some, as (text, set of tags)
+def importedTags(lines):
+    return [(ln.text, set(ln.tags)) for ln in lines if ln.tags]
+
+
+def testFdxRoundTrip():
+    import trelby.importers.fdx as fdximport
+    import trelby.screenplay.export as export
+
+    ed = fdxTagged()
+    lines = fdximport.parse(export.generateFDX(ed.sp).decode("UTF-8")).lines
+
+    # the export writes character names etc. in capitals, which the tags'
+    # texts match all the same
+    def same(tags):
+        return {(t.key, t.text.lower()) for t in tags}
+
+    want = [same(ln.tags) for ln in ed.sp.lines if ln.tags]
+    got = importedTags(lines)
+
+    assert want == [same(tags) for _s, tags in got]
+    assert got[0][0] == "INT. GARAGE - NIGHT"
+    assert Tag("sfx", "Rain machine") in got[0][1]
+
+
+def testFdxImportFinalDraftTags():
+    import pathlib
+
+    import trelby.importers.fdx as fdximport
+
+    path = pathlib.Path("tests/fixtures/import/tagged.fdx")
+    lines = fdximport.parse(path.read_text(encoding="UTF-8")).lines
+
+    assert importedTags(lines) == [
+        ("INT. BOATHOUSE - NIGHT", {Tag("setdressing", "Boathouse", "BOATHOUSE")}),
+        (
+            "Mara lifts the old lantern and the shotgun. A heron watches.",
+            {
+                Tag("cast", "MARA", "Mara"),
+                # a tag over two text runs (in different styles)
+                Tag("props", "Lantern", "old lantern"),
+                # a Tag naming two elements, one in a category Trelby hasn't
+                # got
+                Tag("misc", "Shotgun", "shotgun"),
+                Tag("props", "Shotgun shells", "shotgun"),
+                Tag("animals", "Heron", "heron"),
+            },
+        ),
+        ("MARA", {Tag("cast", "MARA", "MARA")}),
+        ("Where's the lantern?", {Tag("props", "Lantern", "lantern")}),
+        # a whole heading tagged is an element of the scene, with no text
+        ("EXT. DOCK - DAY", {Tag("misc", "Lake dock")}),
+        # an element with no name is named by its text; an unknown DefId is
+        # ignored
+        ("Fog rolls in.", {Tag("sfx", "Fog", "Fog")}),
+    ]
+
+
+@pytest.mark.parametrize(
+    "name, key",
+    [
+        ("Cast Members", "cast"),
+        ("Background Actors", "extras"),
+        ("Makeup/Hair", "makeup"),
+        ("Makeup / hair", "makeup"),
+        ("Special Effects", "sfx"),
+        ("special effects", "sfx"),
+        ("Mechanical Effects", "sfx"),
+        ("Set Dressing", "setdressing"),
+        ("setdressing", "setdressing"),
+        ("Greenery", "setdressing"),
+        ("Special Equipment", "equipment"),
+        ("Visual Effects", "vfx"),
+        ("Miscellaneous", "misc"),
+        ("Weapons", "misc"),
+        ("Location", "misc"),
+        ("", "misc"),
+    ],
+)
+def testCategoryFromFdx(name, key):
+    assert breakdown.categoryFromFdx(name) == key
+
+
+def testFdxCategoriesCoverTrelbys():
+    keys = [c[3] for c in breakdown.FDX_CATEGORIES if c[3]]
+
+    assert sorted(keys) == sorted(c.key for c in breakdown.CATEGORIES)

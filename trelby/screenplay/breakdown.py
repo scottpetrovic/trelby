@@ -74,6 +74,81 @@ def isCategory(key):
     return key in _BY_KEY
 
 
+# Final Draft's standard tagger categories, as its .fdx files list them
+# in TagData / TagCategories: (name, Id, Number, the Trelby category key
+# or None). the Ids are the same in every file, so tags written with them
+# land in Final Draft's own categories.
+FDX_CATEGORIES = [
+    ("Synopsis", "8e5e75c2-713b-47df-a75f-f12648b98ded", 1, None),
+    ("Cast Members", "01fc9642-84ff-4366-b37c-a3068dee57e8", 2, CAST),
+    ("Background Actors", "028a4e2b-b507-4d09-88ab-90e3edae9071", 3, "extras"),
+    ("Stunts", "0377dbe6-77a3-41af-bda8-86eb2468fdbf", 4, "stunts"),
+    ("Vehicles", "04721a56-f54b-49c8-80ad-d53887d6b851", 5, "vehicles"),
+    ("Props", "05c556eb-6bc1-4a3a-b09f-f8b5ba1b6afa", 6, "props"),
+    ("Camera", "47b02ff1-5161-4137-b736-f36eebba7643", 7, None),
+    ("Special Effects", "069e18b8-2109-4f3d-94e7-d802027a60a8", 8, "sfx"),
+    ("Wardrobe", "0726fa85-1e65-4ab8-87de-bf21d09b01f0", 9, "wardrobe"),
+    ("Makeup/Hair", "08ae1eef-32ce-415f-9a9b-0982d2453ec4", 10, "makeup"),
+    ("Animals", "09cb0d1c-ce01-4f22-bb64-b5f2e6c491c6", 11, "animals"),
+    ("Animal Wrangler", "0ae40617-cc7c-48e6-ae2b-5aaecc09986f", 12, None),
+    ("Music", "0b0b44c9-aa4b-4c40-88b1-d94472ad7a26", 13, "music"),
+    ("Sound", "0ce7d308-096d-4603-8fe8-349f72cd89ff", 15, "sound"),
+    ("Art Department", "c86eae40-3b01-41c3-a7de-6859e6ec971d", 16, None),
+    ("Set Dressing", "0debb71b-5743-4c53-80cc-e17e841ce645", 17, "setdressing"),
+    ("Greenery", "0e7a8fc5-5441-4bad-a9bf-5ddd3fe51c69", 18, None),
+    ("Special Equipment", "0ff5cda4-4d43-4cfe-940f-91380c46fdad", 19, "equipment"),
+    ("Security", "109d0eaa-0334-4823-ac0c-b44d3f209dc4", 20, None),
+    ("Additional Labor", "1179a4b1-70ee-4011-b4a2-809a0af09e92", 21, None),
+    ("Visual Effects", "12ab0932-e3b9-4b4a-bcd0-3da1b4e61d5e", 23, "vfx"),
+    ("Mechanical Effects", "135cc9d1-c4d5-4d00-83d9-571f584ea9cd", 24, None),
+    ("Miscellaneous", "ce04f547-f7ee-40c9-ab66-d95a0c98034e", 25, "misc"),
+    ("Notes", "15b6f4fd-4e74-4ad8-9971-b239d88c2997", 26, None),
+    ("Script Day", "63c140da-ef2b-491a-b416-b46f461abb89", 27, None),
+    ("Unit", "849f1ebf-5507-4f33-bff6-3a5b4d73be14", 28, None),
+    ("Sequence", "70877d87-30ef-45b6-be46-c6fa94b83a71", 29, None),
+    ("Location", "c5e89e4d-f83e-4c28-950c-92a63f1b5f26", 30, None),
+    ("Comments", "216f33fd-fc42-4269-be01-b05b18f815a0", 31, None),
+]
+
+
+# a category name tidied up for comparing: lower case, letters and digits
+# only ("Makeup / hair" -> "makeuphair")
+def _nameKey(name):
+    return "".join(c for c in textutil.lower(name) if c.isalnum())
+
+
+# category names (as _nameKey gives them) that are close enough to one of
+# Trelby's, for Final Draft's categories that Trelby hasn't got and other
+# programs' names
+_FDX_ALIASES = {
+    "extras": "extras",
+    "background": "extras",
+    "mechanicaleffects": "sfx",
+    "greenery": "setdressing",
+    "animalwrangler": "animals",
+    "equipment": "equipment",
+    "cast": CAST,
+}
+
+
+# the Trelby category key of a category in a Final Draft file, by its
+# name, ignoring case, spaces and punctuation: Final Draft's names (which
+# Trelby's English labels match), Trelby's category keys and a few close
+# ones; anything else is UNKNOWN
+def categoryFromFdx(name):
+    key = _nameKey(name)
+
+    for fdName, _id, _nr, ck in FDX_CATEGORIES:
+        if ck and (_nameKey(fdName) == key):
+            return ck
+
+    for c in CATEGORIES:
+        if _nameKey(c.key) == key:
+            return c.key
+
+    return _FDX_ALIASES.get(key, UNKNOWN)
+
+
 # an element's name with its spaces tidied up
 def cleanName(name):
     return " ".join(name.split())

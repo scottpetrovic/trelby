@@ -1088,6 +1088,16 @@
 	  AI assistants connected over MCP can read the breakdown
 	  (get_breakdown) and tag elements.</para>
 
+	  <para>The tags go to Final Draft and back: File/Export/Final Draft
+	  (FDX) writes them for Final Draft's tagger, each in Final Draft's
+	  category of the same name (extras are its Background Actors), and
+	  importing an FDX file reads its tags back. Final Draft categories
+	  that Trelby hasn't got become Miscellaneous, except Mechanical
+	  Effects (special effects), Greenery (set dressing) and Animal
+	  Wrangler (animals). Things a scene needs that its text doesn't
+	  mention are tagged on its whole scene heading in Final Draft, and
+	  a whole scene heading tagged there comes back as such.</para>
+
 	</sect1>
 
 	<sect1 id="spell_checker">

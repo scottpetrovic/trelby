@@ -1,8 +1,11 @@
 # Final Draft XML (.fdx) export.
 
+import uuid
+
 from lxml import etree
 
 import trelby.config as config
+import trelby.screenplay.breakdown as breakdown
 import trelby.screenplay.revisions as revisions
 import trelby.textfmt as textfmt
 from trelby.screenplay.constants import (
@@ -10,6 +13,9 @@ from trelby.screenplay.constants import (
     ACTION,
     CHARACTER,
     DIALOGUE,
+    LB_FORCED,
+    LB_LAST,
+    LB_SPACE,
     PAREN,
     SCENE,
     SHOT,
@@ -49,21 +55,174 @@ def elemRevs(sp, first):
     )
 
 
-# return the (start, end, style, level) runs of text n characters long
-# with the format string fmt and revision marks revs, each run having the
-# same formatting and revision throughout. empty for n == 0.
-def runs(fmt, revs, n):
+# return the (start, end, style, level, tag) runs of text n characters
+# long with the format string fmt, revision marks revs and tags (a Tag
+# number per character, 0 for none, or None for no tags), each run having
+# the same formatting, revision and tag throughout. empty for n == 0.
+def runs(fmt, revs, n, tags=None):
     fmt = textfmt.fit(fmt, n)
     revs = textfmt.fit(revs, n)
+    tags = tags or [0] * n
     ret = []
     start = 0
 
     for i in range(1, n + 1):
-        if (i == n) or (fmt[i] != fmt[start]) or (revs[i] != revs[start]):
-            ret.append((start, i, ord(fmt[start]) - 48, ord(revs[start]) - 48))
+        if (
+            (i == n)
+            or (fmt[i] != fmt[start])
+            or (revs[i] != revs[start])
+            or (tags[i] != tags[start])
+        ):
+            ret.append(
+                (start, i, ord(fmt[start]) - 48, ord(revs[start]) - 48, tags[start])
+            )
             start = i
 
     return ret
+
+
+# the breakdown tags (see screenplay/breakdown.py) as Final Draft's
+# TagData: each element is a TagDefinition in its category, and each
+# stretch of text tagged with the same elements a numbered Tag listing
+# them (DefId), which the text runs refer to (TagNumber).
+class FdxTags:
+    def __init__(self):
+        # element key -> (TagDefinition Id, Number, category key, name)
+        self.defs = {}
+
+        # the Tags, as tuples of element keys: Tag n is self.tags[n - 1]
+        self.tags = []
+
+    # return the Tag number of each character of the element's text txt
+    # (as getElementsAsList gives it), which starts at line 'first', 0 for
+    # none, adding the Tags and TagDefinitions it needs; or None if
+    # nothing in it is tagged
+    def elemTags(self, sp, txt, first):
+        ls = sp.lines
+        last = sp.getElemLastIndexFromLine(first)
+
+        if not any(ls[i].tags for i in range(first, last + 1)):
+            return None
+
+        # the element keys tagged at each character
+        keys = [()] * len(txt)
+
+        # the element's paragraphs, which forced line breaks end, by their
+        # first line and their place in txt
+        pos = 0
+        paraFirst = first
+        paraStart = 0
+
+        for i in range(first, last + 1):
+            pos += len(ls[i].text)
+
+            if ls[i].lb in (LB_FORCED, LB_LAST):
+                self.markPara(sp, txt, keys, paraFirst, paraStart, pos)
+                pos += 1
+                paraFirst = i + 1
+                paraStart = pos
+            elif ls[i].lb == LB_SPACE:
+                pos += 1
+
+        ret = [0] * len(txt)
+
+        for i, k in enumerate(keys):
+            if k:
+                if (i == 0) or (keys[i - 1] != k):
+                    self.tags.append(k)
+
+                ret[i] = len(self.tags)
+
+        return ret
+
+    # mark the characters of the paragraph txt[start:end], whose first
+    # line is 'first', in keys with the elements tagged there. a tag whose
+    # text isn't in it (one with no text, which is on a scene heading, or
+    # whose text has been edited away) marks all of it, so that Final
+    # Draft still has it in the scene. an empty paragraph's tags are lost.
+    def markPara(self, sp, txt, keys, first, start, end):
+        tags = sp.getParaTags(first)
+
+        if not tags or (start == end):
+            return
+
+        found = set()
+
+        for a, b, tag in breakdown.findSpans(txt[start:end], tags):
+            found.add(tag)
+            self.mark(keys, tag, start + a, start + b)
+
+        for tag in tags:
+            if tag not in found:
+                self.mark(keys, tag, start, end)
+
+    def mark(self, keys, tag, start, end):
+        cat = breakdown.category(tag.category).key
+        key = breakdown.elementKey(cat, tag.name)
+
+        if key not in self.defs:
+            # the same Id for the same element every time, so that
+            # exporting again gives the same file
+            defId = uuid.uuid5(uuid.NAMESPACE_URL, "trelby:tag:%s:%s" % key)
+            self.defs[key] = (
+                str(defId),
+                len(self.defs) + 1,
+                cat,
+                breakdown.cleanName(tag.name),
+            )
+
+        for i in range(start, end):
+            if key not in keys[i]:
+                keys[i] += (key,)
+
+    # add the TagData element to fd, if anything is tagged. it lists all
+    # of Final Draft's standard categories, as Final Draft does, the ones
+    # Trelby has in Trelby's colors.
+    def addTo(self, fd):
+        if not self.defs:
+            return
+
+        data = etree.SubElement(fd, "TagData")
+        cats = etree.SubElement(data, "TagCategories")
+        catIds = {}
+
+        for name, catId, nr, key in breakdown.FDX_CATEGORIES:
+            elem = etree.SubElement(cats, "TagCategory")
+
+            if key:
+                catIds[key] = catId
+                color = fdxColor(breakdown.category(key).color)
+            else:
+                color = "#94AA11150000"
+
+            elem.set("Color", color)
+            elem.set("Id", catId)
+            elem.set("Name", name)
+            elem.set("Number", str(nr))
+            elem.set("Style", "Bold")
+
+        defs = etree.SubElement(data, "TagDefinitions")
+
+        for defId, nr, cat, name in self.defs.values():
+            elem = etree.SubElement(defs, "TagDefinition")
+            elem.set("CatId", catIds[cat])
+            elem.set("Id", defId)
+            elem.set("Label", name)
+            elem.set("Number", str(nr))
+
+        tags = etree.SubElement(data, "Tags")
+
+        for nr, keys in enumerate(self.tags, 1):
+            elem = etree.SubElement(tags, "Tag")
+            elem.set("Number", str(nr))
+
+            for key in keys:
+                etree.SubElement(elem, "DefId").text = self.defs[key][0]
+
+
+# a color "rrggbb" in Final Draft's form, 16 bits per channel
+def fdxColor(color):
+    return "#" + "".join(color[i : i + 2].upper() * 2 for i in range(0, 6, 2))
 
 
 # add the script's revision sets (Final Draft's Revisions element), one
@@ -119,6 +278,8 @@ def generateFDX(sp):
     # the last ScriptNote's ID
     noteId = 0
 
+    tagData = FdxTags()
+
     # scene numbers, when they're locked or printed
     if sp.hasSceneLocks() or sp.cfg.pdfShowSceneNumbers:
         sceneNrs = dict(sp.getSceneLabels())
@@ -156,16 +317,21 @@ def generateFDX(sp):
                 summaryPara = etree.SubElement(summary, "Paragraph")
                 etree.SubElement(summaryPara, "Text").text = ln
 
-        # a Text element for each run of text with different formatting or
-        # revision
-        for a, b, style, level in runs(fmt, elemRevs(sp, first), len(txt)) or [
-            (0, 0, 0, 0)
-        ]:
+        # a Text element for each run of text with different formatting,
+        # revision or tags
+        elemRuns = runs(
+            fmt, elemRevs(sp, first), len(txt), tagData.elemTags(sp, txt, first)
+        )
+
+        for a, b, style, level, tagNr in elemRuns or [(0, 0, 0, 0, 0)]:
             paratxt = etree.SubElement(para, "Text")
             paratxt.text = str(txt[a:b])
 
             if level:
                 paratxt.set("RevisionID", str(level))
+
+            if tagNr:
+                paratxt.set("TagNumber", str(tagNr))
 
             flags = [
                 name
@@ -201,6 +367,8 @@ def generateFDX(sp):
     eleSetFont.set("Style", "Underline+AllCaps")
     eleSetPara = etree.SubElement(eleSet, "ParagraphSpec")
     eleSetPara.set("Alignment", "Center")
+
+    tagData.addTo(fd)
 
     return etree.tostring(
         fd, xml_declaration=True, encoding="UTF-8", pretty_print=True
