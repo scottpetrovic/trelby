@@ -6,11 +6,14 @@ from trelby.screenplay.constants import (
 )
 
 
-# return a dual dialogue (see getDualLines) as a list of (lineType,
-# text) rows of plain text, indented with spaces, with the columns side
-# by side. lineType is that of the row's left column if it has a line
-# there, otherwise the right column's, and DIALOGUE for empty rows.
-def getDualTextRows(sp, first, right, last):
+# return a dual dialogue or a two-column script's row (see
+# getSideBySideLines) as a list of (lineType, text) rows of plain text,
+# indented with spaces, with the columns side by side. lineType is that of
+# the row's left column if it has a line there, otherwise the right
+# column's, and DIALOGUE for empty rows.
+def getColumnTextRows(sp, first, right, last):
+    twoColumn = sp.isTwoColumn()
+
     def column(start, end, col):
         rows = []
 
@@ -23,7 +26,10 @@ def getDualTextRows(sp, first, right, last):
             if text and sp.needsExtraParenIndent(i):
                 text = " " + text
 
-            indent = sp.cfg.getDualIndentWidth(sp.lines[i].lt, col)[0]
+            if twoColumn:
+                indent = sp.cfg.getType(sp.lines[i].lt).indent
+            else:
+                indent = sp.cfg.getDualIndentWidth(sp.lines[i].lt, col)[0]
             rows.append((sp.lines[i].lt, " " * indent + text))
 
         return rows
@@ -54,7 +60,7 @@ def generateText(sp, doPages):
 
     for p in range(1, len(sp.pages)):
         start, end = sp.page2lines(p)
-        dualLines = sp.getDualLines(start, end)
+        dualLines = sp.getSideBySideLines(start, end)
 
         if doPages and (p != 1):
             s = "%s %s. " % ("-" * 30, sp.pageLabels[p])
@@ -66,7 +72,7 @@ def generateText(sp, doPages):
             tcfg = sp.cfg.getType(line.lt)
             dual = dualLines.get(i)
 
-            # dual dialogues are output whole at their first line
+            # dual dialogues and rows are output whole at their first line
             if dual and (i != dual[1]):
                 continue
 
@@ -76,7 +82,7 @@ def generateText(sp, doPages):
                 output += (sp.getSpacingBefore(i) // 10) * "\n"
 
             if dual:
-                for lt, s in getDualTextRows(sp, *dual[1:]):
+                for lt, s in getColumnTextRows(sp, *dual[1:]):
                     output += s + "\n"
 
                 continue

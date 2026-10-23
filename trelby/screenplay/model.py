@@ -41,6 +41,7 @@ from trelby.screenplay.pagination import PaginationMixin
 from trelby.screenplay.revisions import RevisionsMixin
 from trelby.screenplay.sceneoutline import OutlineMixin
 from trelby.screenplay.structure import StructureMixin
+from trelby.screenplay.twocolumn import TwoColumnMixin
 from trelby.screenplay.wrapping import WrappingMixin
 
 
@@ -56,6 +57,7 @@ class Screenplay(
     BreakdownMixin,
     AlternatesMixin,
     RevisionsMixin,
+    TwoColumnMixin,
 ):
     def __init__(self, cfgGl):
         self.autoCompletion = autocompletion.AutoCompletion()

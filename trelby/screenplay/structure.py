@@ -238,7 +238,10 @@ class StructureMixin:
         return count
 
     # returns true if 'line', which must be the last line on a page, needs
-    # (MORE) after it and the next page needs a "SOMEBODY (cont'd)".
+    # (MORE) after it and the next page needs a "SOMEBODY (cont'd)": it's
+    # in a character's speech, which goes on after it. (dialogue with no
+    # character before it, like an AV script's narration, has nobody to
+    # continue.)
     def needsMore(self, line):
         ls = self.lines
 
@@ -246,6 +249,7 @@ class StructureMixin:
             ls[line].lt in (DIALOGUE, PAREN)
             and (line != (len(ls) - 1))
             and ls[line + 1].lt in (DIALOGUE, PAREN)
+            and (self.getSpeechIndexes(line) is not None)
         )
 
     # starting at line, go backwards until a line with type of CHARACTER

@@ -42,10 +42,12 @@ class DualDialogueMixin:
     # dual dialogue, return the dual dialogue's lines as (first line of
     # left speech, r, last line of right speech), otherwise None. the
     # left speech is the one right before r, and it can't itself be the
-    # right-hand column of another dual dialogue.
+    # right-hand column of another dual dialogue. two-column scripts have
+    # none, as their speeches are already in a column.
     def getDualBlockFromRight(self, r):
         if (
             (r == 0)
+            or self.isTwoColumn()
             or not self.hasDualFlag(r)
             or (self.lines[r - 1].lt not in (PAREN, DIALOGUE))
         ):

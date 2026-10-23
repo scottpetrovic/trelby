@@ -72,6 +72,16 @@ what some element types stand for in it:
   panel shows, and act breaks are chapters. Captions and sound effects are
   speeches (character CAPTION or SFX, then dialogue); transitions aren't
   used.
+- av: a two-column AV script (documentary, commercial, corporate video),
+  with what's seen in the left column and what's heard in the right one.
+  Action elements are the video and shots are camera shots, in the left
+  column; dialogue elements are the audio (narration or what someone says,
+  after a character element naming the speaker if there is one), and
+  transitions are sound effects and music cues, in the right column. Each
+  run of video elements is printed beside the run of audio elements right
+  after it, so write a row's video first, then its audio. Scene headings
+  go across the page and divide the script into segments; act breaks
+  aren't used.
 
 An element can also have breakdown tags: the things its scene needs for
 production (cast, extras, props, vehicles, wardrobe, special effects, ...),

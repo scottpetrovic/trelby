@@ -33,18 +33,23 @@ class PaginationMixin:
         start = util.clamp(self.pages[-2] + 1, 0, last)
 
         # in tenths of a line, like paginate
-        units = 10
+        units = self.getColumnHeadingsHeight()
 
         if pageCnt > 1:
             units += self.headers.getNrOfLines() * 10
 
-        for i in range(start + 1, last + 1):
+        if self.isTwoColumn():
+            units += self.getRowsHeight(start, last)
+        else:
             units += 10
 
-            if ls[i - 1].lb == LB_LAST:
-                units += ct[ls[i].lt].beforeSpacing
-            else:
-                units += ct[ls[i].lt].intraSpacing
+            for i in range(start + 1, last + 1):
+                units += 10
+
+                if ls[i - 1].lb == LB_LAST:
+                    units += ct[ls[i].lt].beforeSpacing
+                else:
+                    units += ct[ls[i].lt].intraSpacing
 
         return (pageCnt - 1) + min(1.0, units / (self.cfg.linesOnPage * 10))
 
@@ -65,6 +70,19 @@ class PaginationMixin:
         locks = self.getPageLocks()
 
         self.initDualPagination()
+
+        # a two-column script's rows that a page mustn't end in, like
+        # dualBlockAt: {line: (first, height)} for each of their lines but
+        # the last, height being the row's in tenths of a line
+        self.rowAt = {}
+        heights = {}
+
+        for i, (col, first, right, last) in self.getRowLines(0, length - 1).items():
+            if first not in heights:
+                heights[first] = self.getRowsHeight(first, last)
+
+            if i != last:
+                self.rowAt[i] = (first, heights[first])
 
         # the lines that start a page of their own
         self.pageStarts = set()
@@ -175,6 +193,8 @@ class PaginationMixin:
         dualBlockAt = self.dualBlockAt
         dualCost = self.dualCost
         pageStarts = self.pageStarts
+        rowAt = self.rowAt
+        cols = self.getColumns()
 
         # each iteration makes one page, starting at line i. heights are
         # in tenths of a line, like the spacing settings: lp is the room on
@@ -197,12 +217,20 @@ class PaginationMixin:
                 if self.needsMore(i - 1):
                     lp -= 10
 
+            lp -= self.getColumnHeadingsHeight()
+
             # just a safeguard
             lp = max(50, lp)
+
+            # a two-column script's lines are placed in their columns
+            layout = self.makeRowLayout()
 
             pageLines = 0
             if i < length:
                 pageLines = 10
+
+                if layout:
+                    layout.place(cols[ls[i].lt], 0)
 
                 # advance i until it points to the last line to put on
                 # this page (before adjustments)
@@ -214,7 +242,15 @@ class PaginationMixin:
 
                     dual = dualCost.get(i + 1)
 
-                    if dual and (dual[0] > lastBreak):
+                    if layout:
+                        if ls[i].lb == lbl:
+                            spacing = ct[ls[i + 1].lt].beforeSpacing
+                        else:
+                            spacing = ct[ls[i + 1].lt].intraSpacing
+
+                        layout.place(cols[ls[i + 1].lt], spacing)
+                        pageLines = layout.bottom()
+                    elif dual and (dual[0] > lastBreak):
                         pageLines += dual[1]
                     else:
                         pageLines += 10
@@ -249,6 +285,15 @@ class PaginationMixin:
                     i = first - 1
                 elif i >= right:
                     i = right - 1
+
+            # nor a two-column script's row, unless it starts at the top of
+            # the page or wouldn't fit on one anyway, when it goes on at the
+            # top of the next page: its right column, or if its left column
+            # doesn't fit either, the rest of that and the right column
+            row = rowAt.get(i)
+
+            if row and (row[0] > (lastBreak + 1)) and (row[1] <= lp):
+                i = row[0] - 1
 
             line = ls[i]
 

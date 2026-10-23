@@ -14,7 +14,7 @@ from trelby.screenplay.constants import (
     SHOT,
     TRANSITION,
 )
-from trelby.screenplay.export.text import getDualTextRows
+from trelby.screenplay.export.text import getColumnTextRows
 
 
 # add the given notes to the HTML (an etree element) as note paragraphs,
@@ -88,7 +88,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         para.set("class", "title")
         para.text = "***"
 
-    dualLines = sp.getDualLines(0, len(ls) - 1)
+    dualLines = sp.getSideBySideLines(0, len(ls) - 1)
 
     # notes of the element(s) being written, added after them
     notes = []
@@ -105,7 +105,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         if includeNotes:
             notes.extend(line.notes)
 
-        # dual dialogues are output whole at their first line
+        # dual dialogues and rows are output whole at their first line
         if dual and (i != dual[1]):
             continue
 
@@ -126,7 +126,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             para.text = " "
 
         if dual:
-            for lt, s in getDualTextRows(sp, *dual[1:]):
+            for lt, s in getColumnTextRows(sp, *dual[1:]):
                 para = etree.SubElement(content, "pre")
                 para.set("class", htmlMap[lt])
                 para.text = s or " "

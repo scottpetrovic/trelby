@@ -13,6 +13,12 @@
 # script in another format opens in older versions too, just with the
 # usual names.
 #
+# a two-column format (AV) puts some element types in a left column and
+# others in a right one (ScriptFormat.columns): their indents and widths
+# keep them in their columns, and the page layout (see twocolumn) puts
+# each run of right-column elements beside the run of left-column ones
+# before it. the script is still one list of elements.
+#
 # the texts are made when asked for, as the formats are defined before
 # the translations are loaded.
 
@@ -40,10 +46,35 @@ TYPE_ORDER = (SCENE, ACTION, CHARACTER, PAREN, DIALOGUE, TRANSITION, SHOT, ACTBR
 # it is.
 FORMAT_VARS = ("pbActNewPage", "pbSceneNewPage", "sceneContinueds")
 
+# the columns of a two-column format; element types in neither go across
+# the page
+LEFT = 1
+RIGHT = 2
+
+
+# what Enter and Tab make or switch an element to (see config.TypeGlobal),
+# for a format that has its own instead of the global settings
+class TypeFlow:
+    def __init__(self, newTypeEnter, newTypeTab, nextTypeTab, prevTypeTab):
+        self.newTypeEnter = newTypeEnter
+        self.newTypeTab = newTypeTab
+        self.nextTypeTab = nextTypeTab
+        self.prevTypeTab = prevTypeTab
+
 
 class ScriptFormat:
     def __init__(
-        self, key, name, untitled, description, setup, labels=None, hidden=()
+        self,
+        key,
+        name,
+        untitled,
+        description,
+        setup,
+        labels=None,
+        hidden=(),
+        columns=None,
+        headings=None,
+        flow=None,
     ):
         # id, saved in the script, e.g. "stageplay"
         self.key = key
@@ -64,6 +95,17 @@ class ScriptFormat:
 
         # line types the format doesn't use
         self.hidden = frozenset(hidden)
+
+        # for a two-column format, {line type: LEFT or RIGHT}, else None
+        self.columns = columns
+
+        # for a two-column format, functions returning the titles printed
+        # above its columns on every page, (left, right)
+        self.headings = headings
+
+        # {line type: TypeFlow} for the types whose Enter and Tab differ
+        # from the global settings in this format
+        self.flow = flow or {}
 
     def name(self):
         return self._name()
@@ -182,6 +224,43 @@ def setupComic(cfg):
     cfg.pbActNewPage = True
 
 
+# AV (audio-visual) two-column script, for documentaries, commercials,
+# corporate and educational videos: what's seen on the left, what's heard
+# on the right, side by side. scene headings (and act breaks) go across
+# the page. Audio is the dialogue type, so it can follow a speaker or
+# stand on its own as narration.
+def setupAV(cfg):
+    setType(cfg, ACTION, indent=0, width=28)
+    setType(cfg, SHOT, indent=0, width=28)
+    setType(cfg, CHARACTER, indent=32, width=28)
+    setType(cfg, DIALOGUE, indent=32, width=28)
+    setType(cfg, PAREN, indent=33, width=26)
+    setType(cfg, TRANSITION, indent=32, width=28)
+    setType(cfg, ACTBREAK, indent=20, width=20)
+
+    cfg.sceneContinueds = False
+
+
+AV_COLUMNS = {
+    ACTION: LEFT,
+    SHOT: LEFT,
+    CHARACTER: RIGHT,
+    PAREN: RIGHT,
+    DIALOGUE: RIGHT,
+    TRANSITION: RIGHT,
+}
+
+# Enter goes from a video element to the audio beside it and from audio to
+# the next row's video, and Tab goes round each column's types
+AV_FLOW = {
+    ACTION: TypeFlow(DIALOGUE, CHARACTER, DIALOGUE, SHOT),
+    SHOT: TypeFlow(ACTION, DIALOGUE, ACTION, SCENE),
+    DIALOGUE: TypeFlow(ACTION, TRANSITION, TRANSITION, ACTION),
+    TRANSITION: TypeFlow(ACTION, DIALOGUE, CHARACTER, DIALOGUE),
+    CHARACTER: TypeFlow(DIALOGUE, PAREN, DIALOGUE, ACTION),
+}
+
+
 FORMATS = [
     ScriptFormat(
         SCREENPLAY,
@@ -248,6 +327,26 @@ FORMATS = [
         },
         hidden=(TRANSITION,),
     ),
+    ScriptFormat(
+        "av",
+        lambda: _("AV two-column"),
+        lambda: _("Untitled AV Script"),
+        lambda: _(
+            "A documentary, commercial or corporate video: what's seen on"
+            " the left, what's heard beside it on the right."
+        ),
+        setupAV,
+        labels={
+            ACTION: lambda: _("Video"),
+            CHARACTER: lambda: _("Speaker"),
+            DIALOGUE: lambda: _("Audio"),
+            TRANSITION: lambda: _("Sound"),
+        },
+        hidden=(ACTBREAK,),
+        columns=AV_COLUMNS,
+        headings=(lambda: _("VIDEO"), lambda: _("AUDIO")),
+        flow=AV_FLOW,
+    ),
 ]
 
 _byKey = {f.key: f for f in FORMATS}
@@ -287,3 +386,16 @@ def usedTypes(cfg):
     hidden = ofConfig(cfg).hidden
 
     return [lt for lt in TYPE_ORDER if lt not in hidden]
+
+
+# what Enter and Tab do in an element of type lt in the script with config
+# cfg: the format's own TypeFlow if it has one, else the global settings'
+# config.TypeGlobal from cfgGl
+def typeFlow(cfgGl, cfg, lt):
+    return ofConfig(cfg).flow.get(lt) or cfgGl.getType(lt)
+
+
+# the script with config cfg's columns, {line type: LEFT or RIGHT}, or
+# None if its format has one column
+def columns(cfg):
+    return ofConfig(cfg).columns

@@ -15,7 +15,8 @@
 #    Trelby's pagination.
 #  - lines that start a page in Trelby because of the script's settings
 #    (acts, and scenes if they start new pages) start one in Word too.
-#  - dual dialogue is a two-column table without borders.
+#  - dual dialogue is a two-column table without borders, and so is each
+#    row of a two-column (AV) script.
 #
 # notes, revision marks and scene numbers aren't exported.
 
@@ -219,7 +220,7 @@ class _Writer:
     def script(self):
         sp = self.sp
         ls = sp.lines
-        dualLines = sp.getDualLines(0, len(ls) - 1)
+        dualLines = sp.getSideBySideLines(0, len(ls) - 1)
         pageStarts = getattr(sp, "pageStarts", set())
 
         s = ""
@@ -230,7 +231,11 @@ class _Writer:
 
             if dual:
                 col, first, right, last = dual
-                s += self.dualTable(first, right, last)
+
+                if sp.isTwoColumn():
+                    s += self.rowTable(first, right, last)
+                else:
+                    s += self.dualTable(first, right, last)
                 i = last + 1
 
                 continue
@@ -303,27 +308,58 @@ class _Writer:
     # starting at line 'right', as a table of two columns at the action's
     # indent, each element indented in its column as in the PDF
     def dualTable(self, first, right, last):
-        sp = self.sp
         cfg = self.cfg
-        cw = self.charW
-
         action = cfg.getType(ACTION)
         colWidth = (action.width - DUAL_GAP) // 2
 
         # the left column includes the gap
-        widths = [(colWidth + DUAL_GAP) * cw, colWidth * cw]
+        return self.columnTable(
+            first,
+            right,
+            last,
+            [
+                (action.indent, colWidth + DUAL_GAP),
+                (action.indent + colWidth + DUAL_GAP, colWidth),
+            ],
+            cfg.getDualIndentWidth,
+        )
 
+    # return a two-column script's row on lines first - last, its right
+    # column starting at line 'right', as a table of two columns, each
+    # element at its own indent and width
+    def rowTable(self, first, right, last):
+        bounds = self.sp.getColumnBounds()
+        (x1, x2), (x3, x4) = bounds
+
+        def indentWidth(lt, col):
+            t = self.cfg.getType(lt)
+
+            return (t.indent, t.width)
+
+        # the left column reaches to the right one
+        return self.columnTable(
+            first, right, last, [(x1, x3 - x1), (x3, x4 - x3)], indentWidth
+        )
+
+    # return lines first - last as a table of two columns, the right one
+    # starting at line 'right'. columns is each column's (x, width) in
+    # characters, and indentWidth(lt, column) an element's.
+    def columnTable(self, first, right, last, columns, indentWidth):
+        sp = self.sp
+        cw = self.charW
+
+        widths = [w * cw for x, w in columns]
         cells = []
 
         for col, (start, end) in enumerate(((first, right - 1), (right, last)), 1):
-            colX = action.indent + (0 if col == 1 else colWidth + DUAL_GAP)
+            colX = columns[col - 1][0]
             cellW = widths[col - 1]
             s = ""
             i = start
 
             while i <= end:
                 elemLast = sp.getElemLastIndexFromLine(i)
-                x, width = cfg.getDualIndentWidth(sp.lines[i].lt, col)
+                x, width = indentWidth(sp.lines[i].lt, col)
                 left = (x - colX) * cw
                 ind = (left, max(0, cellW - left - width * cw - cw // 2))
 
@@ -335,7 +371,7 @@ class _Writer:
                 % (cellW, s)
             )
 
-        # (two dual dialogues in a row become one table of two rows)
+        # (two tables in a row become one table of two rows)
         return (
             "<w:tbl><w:tblPr>"
             '<w:tblW w:w="%d" w:type="dxa"/>'
@@ -351,7 +387,7 @@ class _Writer:
             '<w:tr><w:trPr><w:cantSplit/></w:trPr>%s</w:tr></w:tbl>'
             % (
                 sum(widths),
-                action.indent * cw,
+                columns[0][0] * cw,
                 widths[0],
                 widths[1],
                 "".join(cells),

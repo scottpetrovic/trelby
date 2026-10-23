@@ -17,6 +17,7 @@
 #                 breakdown worked out from them
 #   alternates*   other takes of an element's text, one of them shown
 #   revisions*    revision marks and colors, revised pages
+#   twocolumn     two-column (AV) scripts' rows, laid out side by side
 #
 # Editor:
 #   editing       type changes, joining / splitting, whole-script edits

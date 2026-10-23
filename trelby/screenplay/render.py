@@ -134,6 +134,24 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
             sp.headers.generatePML(pg, pvars, cfg)
         y += sp.headers.getNrOfLines() * 10
 
+    # a two-column script's column headings, on every page
+    if sp.getColumnHeadingsHeight():
+        if doExtra:
+            for text, indent in sp.getColumnHeadings():
+                pg.add(
+                    pml.TextOp(
+                        text,
+                        cfg.marginLeft + indent * chX,
+                        cfg.marginTop + (y / 10.0) * chY,
+                        fs,
+                        pml.BOLD | pml.UNDERLINED,
+                        charWidth=cw,
+                    )
+                )
+
+        y += sp.getColumnHeadingsHeight()
+
+    if pageNr != 1:
         if cfg.sceneContinueds and not sp.isFirstLineOfScene(start):
             if doExtra:
                 s = cfg.strContinuedPageStart
@@ -182,12 +200,18 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
     dualLines = sp.getDualLines(start, end)
     dualTop = dualLeftBottom = 0
 
+    # a two-column script's rows are placed by a twocolumn.RowLayout
+    layout = sp.makeRowLayout(y)
+    cols = sp.getColumns()
+
     for i in range(start, end + 1):
         line = ls[i]
         tcfg = cfg.getType(line.lt)
         dual = dualLines.get(i)
 
-        if dual and (i == dual[2]):
+        if layout:
+            y = layout.place(cols[line.lt], sp.getSpacingBefore(i))
+        elif dual and (i == dual[2]):
             dualLeftBottom = y
             y = dualTop
         elif i != start:
@@ -273,7 +297,9 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
 
         # the left column's line numbers are where the right one's
         # would go
-        if doExtra and cfg.pdfShowLineNumbers and not (dual and (dual[0] == 2)):
+        besideLeft = (dual and (dual[0] == 2)) or (layout and layout.inRightRun())
+
+        if doExtra and cfg.pdfShowLineNumbers and not besideLeft:
             pg.add(
                 pml.TextOp(
                     "%02d" % (i - start + 1),
@@ -301,6 +327,11 @@ def generatePMLPage(sp, pager, pageNr, forPDF, doExtra):
             )
 
         y += 10
+
+    # (MORE) goes right below the speech, in its column, and the rest
+    # below both columns
+    if layout:
+        y = max(y, layout.bottom())
 
     if cfg.sceneContinueds and not sp.isLastLineOfScene(end):
         if doExtra:

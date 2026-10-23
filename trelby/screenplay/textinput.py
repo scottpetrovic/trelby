@@ -1,6 +1,7 @@
 # commands that type or delete text: adding characters (with automatic
 # capitalization and type changes), deleting, line breaks, and tab.
 
+import trelby.screenplay.scriptformats as scriptformats
 import trelby.textfmt as textfmt
 import trelby.textutil as textutil
 import trelby.undo as undo
@@ -166,6 +167,13 @@ class TextInputMixin:
         u.setAfter(self)
         self.undoHistory.add(u)
 
+    # what Enter and Tab do in the cursor's element (see
+    # scriptformats.typeFlow)
+    def typeFlow(self):
+        sp = self.sp
+
+        return scriptformats.typeFlow(sp.cfgGl, sp.cfg, sp.lines[self.line].lt)
+
     def splitElementCmd(self, cs):
         if self.isAutoCompPartial():
             self.acceptAutoComp(cs)
@@ -175,7 +183,7 @@ class TextInputMixin:
         # with a selection, splitElement only clears it
         hadMark = bool(self.mark)
 
-        tcfg = self.sp.cfgGl.getType(self.sp.lines[self.line].lt)
+        tcfg = self.typeFlow()
         self.splitElement(tcfg.newTypeEnter)
 
         if not hadMark:
@@ -194,7 +202,7 @@ class TextInputMixin:
 
             return
 
-        tcfg = self.sp.cfgGl.getType(self.sp.lines[self.line].lt)
+        tcfg = self.typeFlow()
 
         if self.tabMakesNew():
             self.splitElement(tcfg.newTypeTab)
@@ -210,7 +218,7 @@ class TextInputMixin:
 
             return
 
-        tcfg = self.sp.cfgGl.getType(self.sp.lines[self.line].lt)
+        tcfg = self.typeFlow()
         self.convertTypeTo(tcfg.prevTypeTab, True)
         self.offerAutoComp(cs)
 

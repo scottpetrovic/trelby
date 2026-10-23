@@ -342,8 +342,7 @@ class MainStatusBar(StatusBar):
     # the cursor is on
     def showScript(self, ctrl):
         sp = ctrl.sp
-        cfgGl = self.gd.cfgGl
-        cur = cfgGl.getType(sp.lines[ctrl.ed.line].lt)
+        cur = ctrl.ed.typeFlow()
 
         if ctrl.ed.tabMakesNew():
             tabNext = cur.newTypeTab

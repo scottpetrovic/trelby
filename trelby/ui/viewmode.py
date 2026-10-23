@@ -312,14 +312,27 @@ class ViewModeDraft(ViewMode):
 
         texts = []
 
-        while (y < height) and (i < length):
+        # a two-column script's rows are side by side here too
+        layout = ctrl.sp.makeRowLayout(y)
+        cols = ctrl.sp.getColumns()
+
+        while i < length:
             # spacing is in tenths of a line
-            y += int((ctrl.sp.getSpacingBefore(i) / 10.0) * fyd)
+            spacing = int((ctrl.sp.getSpacingBefore(i) / 10.0) * fyd)
 
-            if y >= height:
-                break
+            if layout:
+                y = layout.place(cols[ls[i].lt], spacing, fyd)
+            else:
+                y += spacing
 
-            if not partials and ((y + fyd) > height):
+            if (y >= height) or (not partials and ((y + fyd) > height)):
+                # a row's right column starts higher up than where its
+                # left one goes off the screen
+                if layout and ctrl.sp.isBesideRightRun(i):
+                    i += 1
+
+                    continue
+
                 break
 
             # above the screen, when typewriter scrolling has moved it up
