@@ -155,6 +155,7 @@ class MyCtrl(wx.Control):
         self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDClick)
         self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
         self.Bind(wx.EVT_CHAR, self.OnKeyChar)
 
@@ -185,6 +186,9 @@ class MyCtrl(wx.Control):
         # the badges of the elements that have alternates, as (wx.Rect,
         # line) (see ScriptPainter.drawAlternateMarkers). set by OnPaint.
         self.altMarkers = []
+
+        # the line of the badge the mouse is over, drawn darker, or None
+        self.hoverAltLine = None
 
         # the tooltip shown, a note's text while the mouse is over its card
         self.noteTip = None
@@ -848,6 +852,7 @@ class MyCtrl(wx.Control):
 
         marker = self.noteMarkerAt(pos)
         altLine = self.altMarkerAt(pos)
+        self.setHoverAltLine(altLine)
 
         if (
             self.isOverTitleButton(pos)
@@ -879,6 +884,16 @@ class MyCtrl(wx.Control):
         if tip != self.noteTip:
             self.noteTip = tip
             self.SetToolTip(tip)
+
+    def OnLeaveWindow(self, event):
+        event.Skip()
+        self.setHoverAltLine(None)
+
+    # set the alternates badge the mouse is over, repainting if it changed
+    def setHoverAltLine(self, line):
+        if line != self.hoverAltLine:
+            self.hoverAltLine = line
+            self.Refresh(False)
 
     def isOverTitleButton(self, pos):
         return bool(self.titleButtonRect) and self.titleButtonRect.Contains(pos)
@@ -1827,6 +1842,7 @@ class MyCtrl(wx.Control):
             self.readingLines,
             self.focusLines(),
             self.gd.showTags,
+            self.hoverAltLine,
         )
         self.titleButtonRect = painter.paint(dc)
         self.noteMarkers = painter.noteMarkers

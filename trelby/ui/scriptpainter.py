@@ -92,7 +92,9 @@ class ScriptPainter:
     # highlighted, or None. focusLines is (first line, last line) of the
     # text focus mode keeps, everything else being faded into the page,
     # or None for none faded. showTags is whether the breakdown tags'
-    # text is highlighted in their categories' colors.
+    # text is highlighted in their categories' colors. hoverAltLine is
+    # the first line of the element whose alternates badge the mouse is
+    # over, which is drawn darker, or None.
     def __init__(
         self,
         vp,
@@ -104,6 +106,7 @@ class ScriptPainter:
         readingLines=None,
         focusLines=None,
         showTags=False,
+        hoverAltLine=None,
     ):
         self.vp = vp
         self.vm = vm
@@ -114,6 +117,7 @@ class ScriptPainter:
         self.readingLines = readingLines
         self.focusLines = focusLines
         self.showTags = showTags
+        self.hoverAltLine = hoverAltLine
 
         # the colors the tags of each breakdown category are highlighted
         # with, by category key: (background, bar)
@@ -904,14 +908,16 @@ class ScriptPainter:
 
             w = self.altMarkerWidth(dc, h, count + 1)
             x = t.x - gap - w
-            self.drawAlternateMarker(dc, x, t.y, w, h, count + 1, self.isFaded(i))
+            self.drawAlternateMarker(
+                dc, x, t.y, w, h, count + 1, self.isFaded(i), i == self.hoverAltLine
+            )
             self.altMarkers.append((wx.Rect(x, t.y, w, h), i))
 
     def altMarkerFont(self, h):
         font = self.noteFont()
         font.SetPixelSize(wx.Size(0, max(6, h * 3 // 4)))
 
-        return font.Bold()
+        return font
 
     # how wide the marker for 'count' takes is, h pixels high
     def altMarkerWidth(self, dc, h, count):
@@ -921,11 +927,12 @@ class ScriptPainter:
 
     # draw the alternates marker w pixels wide and h high with its top
     # left corner at (x, y): a card with 'count' on it, in a tint of the
-    # accent color, and the edge of another one behind it
-    def drawAlternateMarker(self, dc, x, y, w, h, count, faded=False):
+    # accent color, and the edge of another one behind it. 'hover' (the
+    # mouse is over it) makes the tint stronger.
+    def drawAlternateMarker(self, dc, x, y, w, h, count, faded=False, hover=False):
         cfgGui = self.cfgGui
         bg = cfgGui.textBgColor
-        fill = blendColors(bg, cfgGui.accentColor, 0.25)
+        fill = blendColors(bg, cfgGui.accentColor, 0.45 if hover else 0.25)
         border = blendColors(bg, cfgGui.accentColor, 0.8)
         text = blendColors(bg, cfgGui.textColor, 0.85)
 
